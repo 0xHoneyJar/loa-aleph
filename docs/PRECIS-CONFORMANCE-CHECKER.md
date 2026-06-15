@@ -236,6 +236,12 @@ copy still exits 0, and the entire Slice 3 battery above continues to fail close
 9. **Safe disposition drift via §5 ledger** — move a claim ID into the wrong §5
    disposition row (ledger says `carried` for a claim §4 records `unresolved`) →
    **C3 (disposition drift)** fires.
+10. **Isolated orphan (C2 only)** — keep a claim in the §4 inventory **and** its §5
+    ledger entry, but scrub it from every other section (its matrix cell and §13
+    prose) → **C2 (orphan claim)** fires *in isolation*. Verified that **C1 and C3
+    do not fire** for this case: the claim still resolves to §4 and the ledger
+    still agrees, so only the orphan check trips. This proves C2 is independently
+    triggerable, not merely a side effect of C1.
 
 ## Deferred hardening (intentionally NOT implemented)
 
