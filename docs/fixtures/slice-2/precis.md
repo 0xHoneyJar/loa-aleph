@@ -17,8 +17,8 @@ appears between §12 (do-not-use boundaries) and §13 (cluster synthesis), its
 position in the trail.
 
 > **Scope note (Aleph Slice 2, Choice A).** The stress-test matrix is demonstrated
-> here at the *fixture level only*. This slice does **not** amend the frozen v0
-> acceptance envelope in `../../precis-wedge.md`. Aleph's precedent is to run the
+> here at the *fixture level only*. This slice does **not** amend the accepted
+> provisional v0 envelope in `../../precis-wedge.md`. Aleph's precedent is to run the
 > packet first and let the matrix name the structure second; whether the envelope
 > should later require a stress-test matrix is deferred to a future slice once this
 > concrete matrix shape exists as evidence.
@@ -283,7 +283,7 @@ See `README.md` for the case-by-case and disposition self-check tables.
 - **Synthetic:** no real research; conclusions are illustrative of the artifact
   shape under adversarial pressure, not findings about Freeside.
 - **No schema freeze:** field structure is provisional. The stress-test matrix is
-  demonstrated at fixture level and is **not** added to the frozen v0 envelope by
-  this slice (see scope note at top).
+  demonstrated at fixture level and is **not** added to the accepted provisional
+  v0 envelope by this slice (see scope note at top).
 - **No live machinery:** the Précis was authored by hand for this fixture; no
   extractor / parser / matrix-generator code exists or is implied.

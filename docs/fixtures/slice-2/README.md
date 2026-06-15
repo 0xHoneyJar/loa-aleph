@@ -41,7 +41,7 @@ actively trying to break it.
 
 Slice 2 instantiates the `stress-test matrix` step named in the completeness
 trail of `../../precis-wedge.md` but skipped by Slice 1. Per Choice A, the matrix
-is demonstrated at fixture level only; the frozen v0 acceptance envelope in
+is demonstrated at fixture level only; the accepted provisional v0 envelope in
 `../../precis-wedge.md` is **not** amended by this slice.
 
 ## Files
@@ -119,6 +119,6 @@ off-ledger discard path.
   amended by this slice; the stress-test matrix is demonstrated, not formalized
   into the envelope yet.
 - No PRD, GTM plan, market landscape, product spec, or any downstream projection.
-- No Sensenet formalization; no Freeside implementation.
+- No adjacent-consumer formalization; no Freeside implementation.
 - No real ChatGPT export material; no real market/competitor conclusions.
 - Not Aleph's scope or boundary — instance #2 only.
