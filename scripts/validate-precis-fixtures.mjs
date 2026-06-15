@@ -501,10 +501,251 @@ function checkStressMatrix(slice, dir) {
 }
 
 // ---------------------------------------------------------------------------
+// Slice 4 — cross-section consistency (reference-level, NOT semantic truth)
+// ---------------------------------------------------------------------------
+// These checks prove the Précis is internally consistent across its sections:
+// no phantom / orphan / drifting references. They deliberately do NOT judge
+// whether a human disposition is CORRECT — only that references resolve and the
+// section accounting agrees. See PRECIS-CONFORMANCE-CHECKER.md for the deferred
+// (brittle, prose-policing) checks that are intentionally NOT implemented.
+
+// Lenient §4 collector (does NOT emit failures — strict validation already lives
+// in parseInventory/checkInventoryAndAccounting; here we just need the id-set and
+// the per-claim source provenance for the consistency checks). For each §4 table
+// row whose first cell is a bare CC-NNN, capture its id and the SRC-NNN tokens in
+// its source(s) column (col index 2).
+function collectInventory(precisText) {
+  const body = envelopeSection(precisText, 4);
+  const idSet = new Set();
+  const sources = new Map(); // CC-NNN -> Set(SRC-NNN)
+  for (const line of body.split('\n')) {
+    const cells = tableCells(line);
+    if (!cells || isSeparatorRow(cells)) continue;
+    if (!/^CC-\d+$/.test(cells[0])) continue;
+    const id = cells[0];
+    idSet.add(id);
+    const srcCol = cells[2] || '';
+    sources.set(id, new Set(srcCol.match(/SRC-\d+/g) || []));
+  }
+  return { idSet, sources };
+}
+
+// Declared source IDs from §2 source inventory (first column SRC-NNN rows).
+function collectSourceInventory(precisText) {
+  const body = envelopeSection(precisText, 2);
+  const set = new Set();
+  for (const line of body.split('\n')) {
+    const cells = tableCells(line);
+    if (!cells || isSeparatorRow(cells)) continue;
+    if (/^SRC-\d+$/.test(cells[0])) set.add(cells[0]);
+  }
+  return set;
+}
+
+// §5 ledger rows -> [{ disposition, claimIds: [...] }]. Each data row is
+// "| <disposition> | <count> | <CC-NNN, CC-NNN, ...> |"; the **total** row and
+// the header row are skipped.
+function collectLedgerRows(precisText) {
+  const body = envelopeSection(precisText, 5);
+  const rows = [];
+  for (const line of body.split('\n')) {
+    const cells = tableCells(line);
+    if (!cells || isSeparatorRow(cells)) continue;
+    if (cells.length < 3) continue;
+    const disp = cells[0].toLowerCase();
+    if (!VALID_DISPOSITIONS.includes(disp)) continue; // skips header + **total**
+    const claimIds = (cells[2].match(/CC-\d+/g) || []);
+    rows.push({ disposition: disp, claimIds });
+  }
+  return rows;
+}
+
+// §11 merge-map rows -> [{ canonical, absorbs: [...] }]. Columns:
+// "| canonical | absorbs | basis | provenance retained |".
+function collectMergeMap(precisText) {
+  const body = envelopeSection(precisText, 11);
+  const rows = [];
+  for (const line of body.split('\n')) {
+    const cells = tableCells(line);
+    if (!cells || isSeparatorRow(cells)) continue;
+    if (!/^CC-\d+$/.test(cells[0])) continue; // skips header row
+    const canonical = cells[0];
+    const absorbs = ((cells[1] || '').match(/CC-\d+/g) || []);
+    rows.push({ canonical, absorbs });
+  }
+  return rows;
+}
+
+// Stress-test matrix rows with their dedicated CC / SRC reference columns,
+// located by HEADER NAME (not a fixed index) so column re-ordering can't fool it.
+function collectMatrixRefs(precisText) {
+  const section = headingSection(precisText, /^##\s+stress-test matrix\s*$/i);
+  if (!section) return { present: false, ccRefs: [], srcRefs: [], stmRowIds: new Set() };
+  const lines = section.split('\n');
+  let ccCol = -1, srcCol = -1, headerSeen = false;
+  const ccRefs = []; // { stm, id }
+  const srcRefs = []; // { stm, id }
+  const stmRowIds = new Set();
+  for (const line of lines) {
+    const cells = tableCells(line);
+    if (!cells || isSeparatorRow(cells)) continue;
+    if (!headerSeen && /case[_ ]?id/i.test(cells[0])) {
+      headerSeen = true;
+      for (let i = 0; i < cells.length; i++) {
+        if (/candidate claim id/i.test(cells[i])) ccCol = i;
+        if (/source ref/i.test(cells[i])) srcCol = i;
+      }
+      continue;
+    }
+    const stm = /^STM-\d+$/.test(cells[0]) ? cells[0] : null;
+    if (stm) stmRowIds.add(stm);
+    if (ccCol >= 0 && cells[ccCol]) {
+      for (const id of cells[ccCol].match(/CC-\d+/g) || []) ccRefs.push({ stm, id });
+    }
+    if (srcCol >= 0 && cells[srcCol]) {
+      for (const id of cells[srcCol].match(/SRC-\d+/g) || []) srcRefs.push({ stm, id });
+    }
+  }
+  return { present: true, ccCol, srcCol, ccRefs, srcRefs, stmRowIds };
+}
+
+// Build the body of precis.md with §4 and §5 removed, so C2 (orphan) can test
+// that a claim appears at least once OUTSIDE the inventory + ledger. Loose by
+// design: presence of the CC-NNN token anywhere outside §4/§5, no heading,
+// wording, or disposition-themed location is required.
+function textOutsideInventoryAndLedger(precisText) {
+  const s4 = envelopeSection(precisText, 4);
+  const s5 = envelopeSection(precisText, 5);
+  let out = precisText;
+  if (s4) out = out.replace(s4, '');
+  if (s5) out = out.replace(s5, '');
+  return out;
+}
+
+function checkCrossSectionConsistency(slice, dir) {
+  const text = readMaybe(join(dir, 'precis.md'));
+  if (text === null) { fail(`${slice.name} consistency: precis.md missing`); return; }
+
+  const { idSet, sources } = collectInventory(text);
+  const srcSet = collectSourceInventory(text);
+  let hit = false;
+
+  // C1 — no phantom CC-NNN: every CC token in precis.md exists in §4 inventory.
+  for (const m of text.matchAll(/\bCC-\d+\b/g)) {
+    if (!idSet.has(m[0])) {
+      hit = true;
+      fail(`${slice.name} consistency C1 (phantom CC): ${m[0]} is referenced but not in the §4 candidate-claim inventory`);
+    }
+  }
+
+  // C2 — no orphan claim: every §4 claim appears at least once OUTSIDE §4+§5.
+  const outside = textOutsideInventoryAndLedger(text);
+  for (const id of idSet) {
+    if (!new RegExp(`\\b${id}\\b`).test(outside)) {
+      hit = true;
+      fail(`${slice.name} consistency C2 (orphan claim): ${id} is in the §4 inventory but never referenced outside §4/§5`);
+    }
+  }
+
+  // C3 — §5 ledger ↔ §4 disposition consistency + id-set equality.
+  const ledgerRows = collectLedgerRows(text);
+  const ledgerIds = new Set();
+  for (const row of ledgerRows) {
+    for (const cid of row.claimIds) {
+      ledgerIds.add(cid);
+      if (!idSet.has(cid)) {
+        hit = true;
+        fail(`${slice.name} consistency C3 (ledger drift): §5 lists ${cid} under "${row.disposition}" but ${cid} is not in the §4 inventory`);
+      }
+    }
+  }
+  // disposition agreement: build §4 id->disposition from the lenient §4 parse
+  const invDisp = new Map();
+  {
+    const body = envelopeSection(text, 4);
+    for (const line of body.split('\n')) {
+      const cells = tableCells(line);
+      if (!cells || isSeparatorRow(cells)) continue;
+      if (!/^CC-\d+$/.test(cells[0])) continue;
+      const d = (cells[3] || '').toLowerCase();
+      if (VALID_DISPOSITIONS.includes(d)) invDisp.set(cells[0], d);
+    }
+  }
+  for (const row of ledgerRows) {
+    for (const cid of row.claimIds) {
+      if (!idSet.has(cid)) continue; // already reported by C3 phantom branch
+      const d4 = invDisp.get(cid);
+      if (d4 && d4 !== row.disposition) {
+        hit = true;
+        fail(`${slice.name} consistency C3 (disposition drift): §5 ledger lists ${cid} under "${row.disposition}" but §4 records it as "${d4}"`);
+      }
+    }
+  }
+  for (const id of idSet) {
+    if (!ledgerIds.has(id)) {
+      hit = true;
+      fail(`${slice.name} consistency C3 (ledger coverage): §4 claim ${id} does not appear in any §5 ledger disposition row`);
+    }
+  }
+
+  // C4 — no phantom SRC-NNN: every SRC token in precis.md exists in §2.
+  for (const m of text.matchAll(/\bSRC-\d+\b/g)) {
+    if (!srcSet.has(m[0])) {
+      hit = true;
+      fail(`${slice.name} consistency C4 (phantom SRC): ${m[0]} is referenced but not in the §2 source inventory`);
+    }
+  }
+
+  // C5 / C6 — matrix CC and SRC reference columns must resolve.
+  const matrix = collectMatrixRefs(text);
+  if (slice.requireMatrix && matrix.present) {
+    for (const { stm, id } of matrix.ccRefs) {
+      if (!idSet.has(id)) {
+        hit = true;
+        fail(`${slice.name} consistency C5 (matrix CC ref): ${stm || 'matrix row'} references ${id}, not in the §4 inventory`);
+      }
+    }
+    for (const { stm, id } of matrix.srcRefs) {
+      if (!srcSet.has(id)) {
+        hit = true;
+        fail(`${slice.name} consistency C6 (matrix SRC ref): ${stm || 'matrix row'} references ${id}, not in the §2 source inventory`);
+      }
+    }
+  }
+
+  // C7 — no phantom STM-N: every STM token in precis.md is a real matrix row.
+  // (For a slice with no matrix, the valid set is empty: any STM token is phantom.)
+  for (const m of text.matchAll(/\bSTM-\d+\b/g)) {
+    if (!matrix.stmRowIds.has(m[0])) {
+      hit = true;
+      fail(`${slice.name} consistency C7 (phantom STM): ${m[0]} is referenced but is not an actual stress-test matrix row`);
+    }
+  }
+
+  // C8 — merge provenance retention: canonical claim's §4 source-set must be a
+  // superset of every absorbed claim's §4 source-set (no provenance dropped).
+  for (const { canonical, absorbs } of collectMergeMap(text)) {
+    const canonSrc = sources.get(canonical) || new Set();
+    for (const absorbed of absorbs) {
+      const absSrc = sources.get(absorbed) || new Set();
+      const dropped = [...absSrc].filter((s) => !canonSrc.has(s));
+      if (dropped.length) {
+        hit = true;
+        fail(`${slice.name} consistency C8 (merge provenance): canonical ${canonical} drops source provenance ${dropped.join(', ')} retained by absorbed claim ${absorbed}`);
+      }
+    }
+  }
+
+  if (!hit) {
+    pass(`${slice.name} cross-section consistency: no phantom/orphan CC·SRC·STM refs, §5↔§4 dispositions agree, matrix refs resolve, merge provenance retained (C1–C8)`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-console.log('Aleph Slice 3 — v0 Précis Conformance Checker');
+console.log('Aleph Précis Conformance Checker — v0 envelope (Slice 3) + cross-section consistency (Slice 4)');
 console.log('(validates the accepted provisional v0 envelope; this is NOT a schema freeze)');
 if (REPO_ROOT !== DEFAULT_ROOT) console.log(`(root override: ${REPO_ROOT})`);
 console.log('');
@@ -528,6 +769,7 @@ for (const slice of SLICES) {
   checkEnvelope17(slice, dir);
   checkInventoryAndAccounting(slice, dir);
   checkStressMatrix(slice, dir);
+  checkCrossSectionConsistency(slice, dir);
 }
 
 console.log('PASSED CHECKS:');

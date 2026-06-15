@@ -1,11 +1,15 @@
-# Précis Conformance Checker (Aleph Slice 3)
+# Précis Conformance Checker (Aleph Slices 3 + 4)
 
 `scripts/validate-precis-fixtures.mjs`
 
 A narrow, dependency-free, local conformance checker that validates the
 already-accepted Research Précis fixtures (Slice 1 and Slice 2) against the
-**accepted provisional v0 envelope**. This is the first Aleph slice to introduce
-code; it is deliberately kept minimal.
+**accepted provisional v0 envelope**. **Slice 3** introduced the checker (fixture
+shape, forbidden tokens, projection boundary, corpus boundary, envelope,
+inventory/accounting, stress-test matrix). **Slice 4** adds **cross-section
+consistency** — proving the Précis is internally consistent across its sections
+(no phantom / orphan / drifting references) without becoming a semantic truth
+checker. It remains code-minimal: Node built-ins only, read-only, fail-closed.
 
 ## How to run
 
@@ -61,6 +65,50 @@ That the accepted Précis fixtures are not merely human-readable but carry
    count parsed from the §4 inventory.
 10. **Stress-test matrix** (Slice 2 only) — a clearly named `## Stress-test
     matrix` section exists, carrying rows `STM-1 … STM-7`.
+
+## Cross-section consistency (Slice 4)
+
+Slice 3 proved each section is **well-formed**. Slice 4 proves the sections are
+**internally consistent** with one another — that every cross-reference resolves
+and the accounting agrees across sections. These checks are **reference-level**,
+not semantic: they verify that an ID exists and that two sections agree, never
+that a human's disposition judgment is *correct*. Run per fixture as check group
+`C1–C8`:
+
+- **C1 — no phantom `CC-NNN`.** Every candidate-claim ID appearing *anywhere* in
+  `precis.md` must exist in the §4 candidate-claim inventory. Catches a claim ID
+  invented in prose, the ledger, or the matrix.
+- **C2 — no orphan claim.** Every §4 inventory claim must appear at least once
+  **outside** §4 and §5. Deliberately **loose**: presence of the `CC-NNN` token
+  anywhere outside the inventory + ledger satisfies it — no specific section,
+  heading, prose wording, or disposition-themed location is required. This avoids
+  prose-policing; it only catches a claim that is defined but never carried into
+  any downstream section.
+- **C3 — §5 ledger ↔ §4 disposition consistency.** Every `CC-NNN` listed in a §5
+  ledger disposition row must (a) exist in §4, and (b) carry *that* disposition in
+  §4; and every §4 claim must appear in some §5 row. Catches **safe disposition
+  drift** (e.g. the ledger filing `CC-107` under `carried` while §4 records it
+  `excluded-with-reason`) structurally, without reading prose.
+- **C4 — no phantom `SRC-NNN`.** Every source ID appearing anywhere in
+  `precis.md` must exist in the §2 source inventory. Catches an invented source in
+  §4 provenance, §11, or the matrix.
+- **C5 — matrix CC references valid** (Slice 2 only). Every `CC-NNN` in the
+  matrix's *candidate claim IDs* column (located by header name, not index) must
+  exist in §4.
+- **C6 — matrix SRC references valid** (Slice 2 only). Every `SRC-NNN` in the
+  matrix's *source refs* column must exist in §2.
+- **C7 — no phantom `STM-N`.** Every stress-test ID appearing anywhere in
+  `precis.md` must be an actual matrix table row. For a slice with no matrix the
+  valid set is empty, so any `STM-N` token is phantom.
+- **C8 — merge provenance retention.** For each §11 merge-map row, the canonical
+  claim's §4 source set must be a **superset** of every absorbed claim's §4 source
+  set — a merge may not silently drop a source provenance. Driven off the parsed
+  §4 `SRC-NNN` sets (structured), not the free-text "provenance retained" column.
+
+All Slice 4 checks read `precis.md` only and emit `FAIL <slice> consistency
+C<n> (<label>): …` on violation. Matrix-dependent checks (C5/C6) and the matrix
+side of C7 only engage for a slice that has a matrix; C8 only engages when a §11
+merge-map row exists.
 
 ## What it does NOT prove
 
@@ -160,13 +208,57 @@ product spec`, `no schema freeze`, `projection-neutral`, `no downstream
 projection generated`, and `could project only in a future consumer`, plus the
 ordinary-English `unresolved at the research stage` inside `corpus.md`.
 
-## Future possible hardening (explicitly deferred)
+### Slice 4 negative battery (cross-section consistency)
 
-These are **not** implemented in this slice and require their own approved slice:
+Slice 4 adds a second `--root` mutation battery. Each case copies the fixtures to
+a temp root, injects exactly one cross-section inconsistency, runs the **real**
+checker, and confirms the **intended** `C<n>` check fires (verified by grepping
+the specific `consistency C<n>` failure line, not merely a non-zero exit). A clean
+copy still exits 0, and the entire Slice 3 battery above continues to fail closed.
 
-- Cross-checking the §6–§10 prose sections against the §4 inventory per claim.
-- Verifying merge-map provenance (that merged claims retain all source IDs).
-- Validating that every `STM` row references claim IDs that exist in §4.
+1. **Phantom CC in prose** — inject `CC-999` into a §6 prose line → **C1** fires.
+2. **Phantom CC in matrix** — put `CC-999` in a matrix candidate-claim-IDs cell →
+   **C1** (token anywhere) and **C5** (matrix-column ref) fire.
+3. **Phantom SRC in §4 provenance** — add `SRC-999` to a §4 claim's source cell →
+   **C4** fires.
+4. **Phantom STM outside the matrix** — reference `STM-99` in §13 prose → **C7**
+   fires.
+5. **Matrix row references a non-existent CC** — change a matrix CC cell to
+   `CC-888` → **C5** fires (and **C1**, since the token is now in `precis.md`).
+6. **Merged claim loses one SRC provenance** — drop `SRC-104` from canonical
+   `CC-104`'s §4 source cell (it absorbs `CC-114`, which keeps `SRC-104`) → **C8**
+   fires.
+7. **Inventory claim removed but still referenced downstream** — delete `CC-103`'s
+   §4 row and its §5 ledger entry, leaving §6/§13 references → **C1** fires (the
+   downstream `CC-103` token no longer resolves to §4).
+8. **Downstream prose references a claim not in inventory** — add `CC-777` to a
+   §13 synthesis line → **C1** fires.
+9. **Safe disposition drift via §5 ledger** — move a claim ID into the wrong §5
+   disposition row (ledger says `carried` for a claim §4 records `unresolved`) →
+   **C3 (disposition drift)** fires.
+
+## Deferred hardening (intentionally NOT implemented)
+
+These are **deferred** — not missing implementation, but checks we judged would
+become brittle prose-policing or step over the line into semantic-truth checking.
+They are documented here so the boundary is explicit; each would need its own
+approved slice and a stable, false-positive-free pattern before adoption:
+
+- **Disposition-themed prose-section membership** — e.g. requiring that any
+  `CC-NNN` discussed under §9 "Excluded-with-reason" is recorded
+  `excluded-with-reason` in §4. Deferred because it is **provably brittle** on the
+  real fixtures: §6 references `CC-105`/`CC-106` (both `unresolved`) by ID while
+  explaining a *carried* claim, and §13 cluster-synthesis groups claims by
+  disposition *word*. A "claim under heading X ⇒ disposition Y" rule would
+  false-positive on legitimate cross-references. C3 already catches the same drift
+  **structurally** via the §5 ledger, without policing prose.
+- **Semantic / human-judgment correctness** — whether a claim was *correctly*
+  judged unresolved/excluded/carried. Out of scope by design: the checker proves
+  internal consistency of references and accounting, not the soundness of the
+  human call. (Allowed: "`CC-107` is in §4 and referenced where expected." Not
+  allowed: "`CC-107` was correctly judged excluded.")
+- **Prose ↔ inventory wording match** — verifying the normalized claim text in §4
+  matches its prose restatement. Deferred as overfitting to exact wording.
 - A `--json` machine-readable report mode.
 - CI wiring (intentionally omitted: no CI in this slice).
 - Generalizing beyond the two known fixtures to a discovered-fixtures mode.
