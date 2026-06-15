@@ -100,16 +100,49 @@ It is a read-only conformance gate, the opposite of a generator.
 - Slice 3 makes the forbidden-token / projection-boundary / accounting guarantees
   **enforced** rather than verified by eye.
 
+## Running against a copy (`--root`)
+
+By default the checker validates the fixtures under the repository it lives in.
+It also accepts `--root <dir>`, pointing it at any directory that contains a
+`docs/fixtures/…` tree:
+
+```
+node scripts/validate-precis-fixtures.mjs --root /tmp/some-copy
+```
+
+This is read-only and writes nothing; it exists so the negative-test battery can
+run the **real** checker against temporary copies of the fixtures without ever
+mutating the tracked fixtures.
+
 ## Failure posture
 
 Fail-closed. Any real invariant violation prints a `FAIL <slice> <check>: <what>
-<where>` line and exits non-zero. A passing run prints `RESULT: PASS`. The
-checker was validated against a negative-test battery (injected `Phase`/`Sensenet`
-tokens, leaked `CC-NNN` IDs into corpus, an unqualified generation line, a broken
-ledger total, a dropped disposition, a removed `STM` row) — each produced the
-expected failure — and against false-positive guards (`does not generate a PRD`,
-`could project … into a product spec`, `unresolved at the research stage` in
-corpus) — each correctly passed.
+<where>` line and exits non-zero. A passing run prints `RESULT: PASS`.
+
+After the Slice 3 hardening patch, the checker was **re-run** against a negative
+battery using temporary copies (`--root`); every case below exited non-zero, and
+a clean copy still exited 0:
+
+1. an extra direct file in a fixture directory (`slice-1/extra.md`);
+2. a candidate-claim ID (`CC-001`) leaked into `corpus.md`;
+3. a `Disposition: unresolved` label leaked into `corpus.md`;
+4. a compound disposition `excluded-with-reason` leaked into `corpus.md`;
+5. a removed candidate-inventory row with the ledger left unchanged;
+6. a ledger total changed to mismatch the inventory count;
+7. the actual `STM-7` matrix **row** removed while `STM-7` still appears in
+   summary prose (the checker fails because it isolates the matrix section and
+   requires `STM-7` as a real table row, not prose);
+8. `This Précis deliberately generates a PRD.` (a generation assertion — the word
+   "deliberately" is **not** treated as an exemption);
+9. a malformed inventory row carrying two disposition cells
+   (`| CC-101 | SRC-101 | bad claim | deferred | carried |`) — rejected for both
+   its column count and its multiple disposition cells.
+
+The false-positive guards still pass (a clean fixture is not flagged): legitimate
+refusal/boundary prose such as `no PRD`, `not a GTM plan`, `does not become a
+product spec`, `no schema freeze`, `projection-neutral`, `no downstream
+projection generated`, and `could project only in a future consumer`, plus the
+ordinary-English `unresolved at the research stage` inside `corpus.md`.
 
 ## Future possible hardening (explicitly deferred)
 
