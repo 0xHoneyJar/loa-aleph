@@ -136,7 +136,23 @@ a clean copy still exited 0:
    "deliberately" is **not** treated as an exemption);
 9. a malformed inventory row carrying two disposition cells
    (`| CC-101 | SRC-101 | bad claim | deferred | carried |`) — rejected for both
-   its column count and its multiple disposition cells.
+   its column count and its multiple disposition cells;
+10. `| CC-101 | claim | SRC-101 | carried | extra-cell` — a row with a leading
+    pipe but **no trailing pipe** and an extra cell;
+11. `| CC-101 | claim | SRC-101 | carried | deferred` — same shape, the extra
+    cell being a second disposition;
+12. `CC-101 | claim | SRC-101 | carried | extra-cell` — a row with **no outer
+    pipes at all** and an extra cell;
+13. `CC-101 | claim | SRC-101 | carried | deferred` — same, the extra cell being
+    a second disposition.
+
+Cases 10–13 are the optional-trailing-pipe bypass: the table-row parser strips a
+leading/trailing split fragment **only when it is genuinely empty**, so a
+non-empty trailing fragment is preserved as a real cell. Each of these rows
+therefore parses to 5 cells and is rejected by the exact-column-count check
+(`expected exactly 4 columns, got 5`) rather than being silently truncated to a
+well-formed 4-column row. This closes the bypass that earlier let an extra cell
+or a smuggled second disposition slip past when the outer pipes were omitted.
 
 The false-positive guards still pass (a clean fixture is not flagged): legitimate
 refusal/boundary prose such as `no PRD`, `not a GTM plan`, `does not become a

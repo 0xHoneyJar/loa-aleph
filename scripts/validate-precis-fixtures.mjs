@@ -156,16 +156,23 @@ function readMaybe(path) {
   return readFileSync(path, 'utf8');
 }
 
-// Split a Markdown table row into trimmed content cells (drops the leading and
-// trailing empty cells produced by the outer pipes). Returns null if the line
-// is not a pipe-delimited row.
+// Split a Markdown table row into trimmed content cells. Outer pipes are
+// OPTIONAL: we strip a leading/trailing split fragment ONLY when it is
+// genuinely empty (i.e. the row was written with outer pipes). A non-empty
+// leading/trailing fragment is a real cell and is PRESERVED — so a row with a
+// missing outer pipe but an extra trailing cell (e.g.
+// "| a | b | c | d | extra") is NOT silently truncated to the expected width.
+// Returns null if the line is not a pipe-delimited row.
 function tableCells(line) {
   if (!line.includes('|')) return null;
   const raw = line.split('|');
-  // A well-formed row starts and ends with '|', so first/last split parts are ''.
-  if (raw.length < 3) return null;
-  const inner = raw.slice(1, raw.length - 1).map((c) => c.trim());
-  return inner;
+  if (raw.length < 2) return null;
+  // Remove only a genuinely-empty leading fragment (left outer pipe).
+  if (raw.length > 0 && raw[0].trim() === '') raw.shift();
+  // Remove only a genuinely-empty trailing fragment (right outer pipe).
+  if (raw.length > 0 && raw[raw.length - 1].trim() === '') raw.pop();
+  if (raw.length === 0) return null;
+  return raw.map((c) => c.trim());
 }
 
 function isSeparatorRow(cells) {
