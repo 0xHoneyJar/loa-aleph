@@ -88,8 +88,10 @@ Tier 2.
 ## Consequences
 
 - `README.md`, `docs/responsibility-map.md`, and `docs/precis-wedge.md` are
-  amended to state the two-stage model and to point at this decision. The blunt
-  "no downstream projection generation" lines are replaced with the precise rule:
+  amended to state the two-stage model and to point at this decision. In
+  `README.md` this spans the "What a Research Précis is" prose, the "Where Aleph
+  sits in the stack" diagram, and the Status note; the blunt "no downstream
+  projection generation" lines elsewhere are replaced with the precise rule:
   *the Précis never generates a projection; a separate projection stage does.*
 - A `projections/` concern will be added with per-tier templates and per-projection
   conformance checks, in their own audited slices.

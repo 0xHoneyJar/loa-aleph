@@ -11,7 +11,9 @@ thing and defers everything else.
 > projection-neutral, portable Research Précis file with a complete
 > claim-disposition trail. The artifact is complete by disposition coverage,
 > compact by normalization, and neutral because final-form projection is deferred
-> to the consuming repo or substrate.
+> to a separate projection stage (Aleph's own — see
+> `docs/decisions/0001-projection-as-separate-downstream-stage.md` — or a
+> consuming repo's), never decided by the Précis itself.
 
 This mirrors the Loa-Straylight Recall Wedge: Straylight did not begin by solving
 live memory admission, durable storage, ingestion, consent, revocation UI, or
