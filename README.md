@@ -19,12 +19,15 @@ The Research Précis is the artifact at the hinge of the process: it sits at the
 
 A Research Précis is a **complete-but-compact, projection-neutral** intermediate
 representation. Its final form is deliberately deferred — it is a placeholder
-that the consumer projects into whatever it needs.
+that a separate projection stage (Aleph's own or a consumer's) renders into
+whatever is needed.
 
 The same Précis can become a PRD, a substrate, a control plane, a business
-process, an experience, a landscape, or a product spec. Those are **consumer
-projections**, not different Précis. There is one canonical Précis; the
-renderings are many.
+process, an experience, a landscape, or a product spec. These are **projections**
+— purpose-specific renderings of one canonical Précis. There is one canonical
+Précis; the renderings are many. Projection happens in a **separate downstream
+stage** (owned by Aleph, see below) or by an external consumer; either way it is
+distinct from the Précis, which never renders itself.
 
 A Précis is characterized by three properties:
 
@@ -35,7 +38,8 @@ A Précis is characterized by three properties:
   provenance and status. Redundancy is stripped. Duplicate conviction is not
   allowed to masquerade as new evidence.
 - **Neutral because final-form projection is deferred** — the Précis does not
-  decide what it will become. The consuming repo or substrate does.
+  decide what it will become. A separate projection stage does — whether Aleph's
+  own (see "Where Aleph sits in the stack") or a consuming repo's.
 
 A Précis is therefore **not a loose summary** and **not a transcript**. It is
 compact by normalization and complete only across the declared candidate-claim
@@ -64,16 +68,21 @@ concern from the business-intelligence layer and from any product surface.
 ```
 raw / fragmented research corpus
   ↓
-Aleph
-  ↓
-projection-neutral Research Précis file
+Aleph                                       (this repo)
+  ├─ Stage 1: distillation
+  │    ↓
+  │  projection-neutral Research Précis file  (core artifact)
+  │    ↓
+  └─ Stage 2: projection stage                (Aleph-owned, later slices)
+       ↓
+     finished consumer documents
   ↓
 ┌───────────────┬───────────────┬────────────────┐
 ↓               ↓               ↓
 Sensenet        Freeside        other Loa repos
 business/       product/        future consumers
 market intel    platform use
-projection      projection
+(may also project the neutral Précis themselves)
 ```
 
 Sensenet is an adjacent optional consumer / projection layer, not a mandatory
@@ -96,5 +105,12 @@ candidate-claim disposition trail. See `docs/precis-wedge.md` for the wedge
 definition and acceptance criteria, and `docs/responsibility-map.md` for what
 Aleph owns and does not own.
 
-No endpoint. No downstream projection generation. No final schema freeze beyond
-the v0 acceptance envelope.
+No endpoint yet. No final schema freeze beyond the v0 acceptance envelope.
+
+**Projection is a separate downstream stage.** The Précis itself stays strictly
+projection-neutral and never generates a finished document. Aleph additionally
+owns a distinct **projection stage** that *consumes* a finished Précis and
+*renders* it into consumer documents (product-doctrine, architecture/primitive
+map, responsibility/environment-verification map, mvp-wedge; and domain-specific
+terminal renderings such as a PRD or SSD). Neutrality is a property of the
+Précis, not of the repo. See `docs/decisions/0001-projection-as-separate-downstream-stage.md`.
