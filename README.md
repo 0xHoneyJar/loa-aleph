@@ -96,5 +96,12 @@ candidate-claim disposition trail. See `docs/precis-wedge.md` for the wedge
 definition and acceptance criteria, and `docs/responsibility-map.md` for what
 Aleph owns and does not own.
 
-No endpoint. No downstream projection generation. No final schema freeze beyond
-the v0 acceptance envelope.
+No endpoint yet. No final schema freeze beyond the v0 acceptance envelope.
+
+**Projection is a separate downstream stage.** The Précis itself stays strictly
+projection-neutral and never generates a finished document. Aleph additionally
+owns a distinct **projection stage** that *consumes* a finished Précis and
+*renders* it into consumer documents (product-doctrine, architecture/primitive
+map, responsibility/environment-verification map, mvp-wedge; and domain-specific
+terminal renderings such as a PRD or SSD). Neutrality is a property of the
+Précis, not of the repo. See `docs/decisions/0001-projection-as-separate-downstream-stage.md`.

@@ -6,12 +6,15 @@ not an implementation plan.
 
 ## Ownership statement
 
-> Aleph owns the process substrate and the portable Research Précis artifact. It
-> does not own downstream projections such as PRDs, control planes, business
-> processes, landscapes, product specs, or repo-specific implementation plans.
-> Those are consumer projections. Aleph's first wedge proves only that a bounded
-> corpus can become one projection-neutral Précis file with a complete
-> candidate-claim disposition trail.
+> Aleph owns the process substrate and the portable Research Précis artifact,
+> **and a separate downstream projection stage** that renders a finished Précis
+> into consumer documents. The Précis itself stays strictly projection-neutral —
+> it never generates a finished document. Projection happens in a distinct stage
+> that consumes the neutral artifact without mutating it. Aleph's first wedge
+> proves only that a bounded corpus can become one projection-neutral Précis file
+> with a complete candidate-claim disposition trail; the projection stage is built
+> in its own later slices. See
+> `docs/decisions/0001-projection-as-separate-downstream-stage.md`.
 
 ## Aleph owns
 
@@ -26,12 +29,27 @@ not an implementation plan.
 - The **portability contract**: the Précis is a file that can be checked in,
   handed off, diffed, versioned, audited, and ingested.
 
+## Aleph owns (projection stage)
+
+- The **projection stage**: a separate, explicitly-bounded downstream step that
+  *consumes a finished, neutral Précis* and *renders* it into a named consumer
+  document. It never runs inside the Précis and never mutates it. Organized in
+  two tiers:
+  - **Tier 1 — universal projections** (domain-agnostic): product-doctrine,
+    architecture / primitive-map, responsibility / environment-verification map,
+    mvp-wedge selection.
+  - **Tier 2 — terminal renderings** (domain-specific, pluggable): e.g. PRD / SSD
+    for software; series-bible / world-doctrine for creative work; GTM / ops
+    manual for a business.
+- Each projection type carries its own template and its own conformance checks,
+  added in their own audited slices.
+
 ## Aleph does not own
 
-- **Downstream projections.** PRDs, control planes, business processes,
-  landscapes, experiences, product specs, repo-specific implementation plans —
-  these are produced by the consuming repo or substrate, by projecting from a
-  Précis. Aleph stops at the projection-neutral artifact.
+- **Generation of projections *by the Précis itself*.** The neutral artifact must
+  never commit to a single output form; that neutrality is what makes one Précis
+  reusable across many projections. Projection is allowed only in the separate
+  downstream stage above, never folded into the Précis.
 - **Business / market intelligence.** Competitor analysis, market landscape,
   protocol/product viability, GTM, positioning, revenue path — these do not
   belong to Aleph. Sensenet is a future adjacent stack-wide business/market-intelligence
@@ -53,17 +71,29 @@ not an implementation plan.
 raw / fragmented research corpus
   ↓
 Aleph                                       (this repo)
-  ↓
-projection-neutral Research Précis file     (this repo's artifact)
-  ↓
+  │
+  ├─ Stage 1: distillation
+  │    ↓
+  │  projection-neutral Research Précis file   (this repo's core artifact)
+  │    ↓
+  └─ Stage 2: projection stage                 (this repo, later slices)
+       ↓
+     finished consumer documents
+     (Tier 1: doctrine / primitive-map / responsibility / mvp-wedge;
+      Tier 2: PRD, SSD, … domain-specific)
+       ↓
 ┌───────────────┬───────────────┬────────────────┐
 ↓               ↓               ↓
 Sensenet        Freeside        other Loa repos
 business/       product/        future consumers
 market intel    platform use
-projection      projection
+(may also project the neutral Précis themselves)
 ```
 
+- **The neutral Précis is the hinge.** Aleph's own Stage-2 projection consumes it;
+  so can any external consumer. A consumer is never *forced* through Aleph's
+  projection stage — it may take the neutral Précis and project it itself. Aleph
+  owning a projection stage adds a capability; it does not close the artifact off.
 - **Aleph fans out, it does not serialize.** The Précis is an adjacent input to
   whichever consumers need it. Sensenet is an optional consumer / projection
   layer, not a mandatory intermediary between Aleph and Freeside.
@@ -89,7 +119,8 @@ approves commits and pushes.
 ## What is explicitly out of scope right now
 
 - No endpoint.
-- No implementation / code.
-- No downstream projection generation.
+- No implementation / code beyond the conformance checker.
+- The **Précis never generates a projection**; projection lives only in the
+  separate downstream stage (built in its own later slices).
 - No final schema freeze beyond the v0 acceptance envelope.
 - No Sensenet formalization until the Aleph Précis contract is stable.
