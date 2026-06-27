@@ -1,80 +1,63 @@
 # Eileen Daily Implementation Agent Mode Agent
 
-This file is the repo-local runbook for the daily GPT-5.5 Thinking implementation agent. The daily prompt must explicitly read this file before editing this repo. It converts Daily Deep Research Report issues into one bounded additive PR.
+This repo-local runbook must be read by the daily GPT-5.5 Thinking implementation agent before editing `0xHoneyJar/loa-aleph`. The agent must decide what should be implemented and why before coding, then write a PR report that traces every commit/file change back to repo value, scaling, security, and simplicity.
 
 ## Repository responsibility
 
-`0xHoneyJar/loa-aleph` owns research distillation: Research Précis files, claim disposition, projection-neutral handoffs, completeness-by-disposition coverage, and portable research artifacts.
+`loa-aleph` owns research distillation: Research Précis files, claim disposition, projection-neutral handoffs, completeness-by-disposition coverage, and portable research artifacts.
 
 Aleph must not become the product/runtime implementation repo for Freeside, Dixie, Hounfour, Finn, Straylight, or Arcturus work.
 
 ## Eligible input
 
-Implement only from a Daily Deep Research Report or follow-up plan-audit item with:
+Implement only from a Daily Deep Research Report or plan-audit item with `PROPOSED_NEXT_LANE_SEED`, candidate ID, repo-fit reasoning, acceptance criteria, rollback path, and `VERDICT: ACCEPT_PLAN`.
 
-- `PROPOSED_NEXT_LANE_SEED`
-- candidate ID
-- repo-fit reasoning
-- acceptance criteria
-- rollback path
-- `VERDICT: ACCEPT_PLAN`
+Without `VERDICT: ACCEPT_PLAN`, the agent may self-audit only docs, fixtures, tests, or checkers. Product/runtime work is out of scope.
 
-Without `VERDICT: ACCEPT_PLAN`, only docs, fixtures, tests, or checkers may be self-audited in-run. Runtime/product work is out of scope.
+## Required pre-implementation thesis
 
-## Selection rule
+Before editing, write and preserve this analysis:
 
-Pick at most one candidate per run. Prefer:
+1. candidate issue, candidate ID, and verdict
+2. what should be implemented
+3. why it should be implemented now
+4. why it belongs in Aleph and not a sibling repo
+5. what this is good for
+6. why the implementation path should work
+7. how it advances Aleph's endgame as a research-to-implementation distillation substrate
+8. creative future paths not implemented now
+9. mass-user scaling impact for research volume, claim ledgers, issue projection load, artifact reuse, and reviewer load
+10. security scope for source provenance, false claim propagation, instruction contamination, and repo-boundary drift
+11. simplicity argument: how the design keeps research disposition explicit and avoids hidden implementation authority
+12. non-goals, forbidden surfaces, checks, and rollback
 
-1. docs-only précis/projection contracts
-2. fixture-only research packet examples
-3. test-only checker coverage
-4. checker/validator-only additions
-5. default-off précis validation tooling
+If this thesis is weak, do not implement.
 
 ## Additive-only policy
 
-Allowed by default:
+Allowed by default: new docs, précis examples, fixtures, tests, validators/checkers, projection contract additions, and non-canonical candidate dispositions marked experimental.
 
-- new docs
-- new précis examples
-- new fixtures
-- new tests
-- new validators/checkers
-- projection contract additions
-
-Forbidden without explicit Eileen approval:
-
-- deleting files
-- changing canonical précis semantics by default
-- weakening completeness/disposition rules
-- broad refactors
-- unrelated dependency upgrades
-- sibling repo mutation
-- auto-merge
-- closing source issues
+Forbidden without explicit Eileen approval: deleting files, changing canonical précis semantics by default, changing completeness/disposition rules without accepted plan, product/runtime implementation, production migrations, broad refactors, unrelated dependency upgrades, sibling repo mutation, auto-merge, or closing source issues.
 
 ## Aleph-specific stop conditions
 
-Stop and return `VERDICT: NEEDS_HUMAN` if the candidate would implement product/runtime behavior, collapse projection-neutral artifacts into repo-specific conclusions, remove claim-disposition requirements, or weaken completeness-by-coverage constraints.
+Stop with `VERDICT: NEEDS_HUMAN` if the candidate implements product behavior instead of research handoff logic, collapses projection-neutral artifacts into repo-specific conclusions, removes claim-disposition requirements, weakens completeness-by-coverage constraints, or mutates sibling repos from Aleph.
 
 ## Implementation steps
 
 1. Read this file, README/package scripts, and nearby docs.
-2. Confirm the source item has `VERDICT: ACCEPT_PLAN`.
-3. Check for obvious duplicate open issues/PRs.
-4. Write a short plan: candidate, implementation class, allowed files, checks, rollback.
-5. Create a branch named `daily-impl/YYYY-MM-DD-loa-aleph-<candidate>`.
-6. Implement exactly one candidate with a minimal diff.
-7. Run relevant checks.
-8. Open a draft PR.
-9. Add `CODEX AUDIT REQUEST` to the PR body.
-10. Comment: `@codex review for additive-only scope violations, précis/disposition semantic regressions, accidental product-runtime drift, failing or missing tests, rollback clarity, repo-boundary violations, and security regressions`.
-11. Do not merge and do not close the source issue.
+2. Confirm `VERDICT: ACCEPT_PLAN`.
+3. Check for duplicate open issues/PRs.
+4. Write the required pre-implementation thesis.
+5. Create branch `daily-impl/YYYY-MM-DD-loa-aleph-<candidate>`.
+6. Implement exactly one candidate with minimal diff.
+7. Prefer explicit claim disposition and projection contracts over clever abstractions.
+8. Run relevant checks.
+9. Open a draft PR.
+10. Add `CODEX AUDIT REQUEST` and the traceability report.
+11. Comment: `@codex review for additive-only scope violations, précis/disposition semantic regressions, accidental product-runtime drift, scaling risks, security regressions, unnecessary complexity, failing or missing tests, rollback clarity, and repo-boundary violations`.
+12. Do not merge or close the source issue.
 
-## PR body requirements
+## Required PR traceability report
 
-Include source issue, candidate ID, implementation class, what changed, what did not change, checks run, skipped or failing checks, rollback path, and Codex audit request.
-
-## Final run report
-
-Report selected repo, source issue, branch, PR URL, files changed, checks run, Codex review status, blockers, and boundaries approached.
+Every implementation PR must include source issue and candidate ID, pre-implementation thesis summary, file-by-file change rationale, why each changed file is good for Aleph, why it advances the repo endgame, why it should work, mass-user scaling analysis, security scope, simplicity analysis, tests/checks, skipped checks, rollback path, future creative paths not implemented, and `CODEX AUDIT REQUEST`.
