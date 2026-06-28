@@ -95,8 +95,10 @@ Tier 2.
   *the Précis never generates a projection; a separate projection stage does.*
 - A `projections/` concern will be added with per-tier templates and per-projection
   conformance checks, in their own audited slices.
-- The conformance checker needs **no change for this decision**: it already scans
-  only `docs/fixtures/*/precis.md` and the per-fixture `README.md`, so it enforces
-  neutrality on the Précis layer alone and does not touch a future `projections/`
-  tree. A later slice that adds projection fixtures will extend the checker
-  deliberately, in lockstep with those fixtures.
+- The conformance checker needs **no change for this decision**: it scans only
+  the per-fixture directories under `docs/fixtures/*/` (their `precis.md`,
+  `README.md`, and `corpus.md`), enforcing neutrality and corpus-boundary rules at
+  the fixture/Précis layer alone. It never reads the top-level docs amended here
+  and does not touch a future `projections/` tree. A later slice that adds
+  projection fixtures will extend the checker deliberately, in lockstep with those
+  fixtures.
