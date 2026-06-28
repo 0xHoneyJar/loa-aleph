@@ -105,6 +105,12 @@ invariant-bearing — the contradiction is *what* stress-tests the invariant). S
 - external-referent need
 - doctrine-spine strength
 
+Note on `external-referent need`: this signal measures whether a cluster *appears to depend
+on* an external fact (does it gesture at competitors, prior art, a known category?) — which
+is readable from the corpus. It is **not** the external fact itself (whether that prior art
+actually exists), which per §1 is never in the corpus and may not be invented. The vector
+records the *need for* a referent; supplying the referent is gated (§8).
+
 **Routing reads the vector.** Forcing one tag per cluster repeats the mistake of collapsing
 epistemic-type and disposition into one axis.
 
@@ -247,8 +253,10 @@ it"). It never ran a heavy convergent reconciliation against a known category, a
 innovated on a known base. So:
 
 - The entire **convergent-heavy half** of the two-arm model has **no replay case**.
-- The **known-category-plus-novel-delta hybrid** — the mode a real distillation user most
-  often needs — is the one mode the golden corpus **cannot teach**.
+- The **known-category-plus-novel-delta hybrid** — a mode many distillation users will need,
+  since most real corpora reconcile a novel idea against some existing category — is the one
+  mode the golden corpus **cannot teach**. (How common it is in practice is itself an
+  external-existence question this doctrine does not assert as fact.)
 
 By Aleph's Popperian discipline, those arms have **not earned validation** and must not be
 treated as proven. Closing this gap will eventually require a **second golden replay corpus**
