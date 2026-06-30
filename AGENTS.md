@@ -110,9 +110,10 @@ The procedure-is-the-product principle means steps are backed by checks, not vib
 - The checker is a single Node script: `scripts/validate-precis-fixtures.mjs`.
 - Run it: `node scripts/validate-precis-fixtures.mjs` (exit 0 = pass).
 - What it enforces today: file presence, projection-neutrality of the Précis,
-  corpus-boundary / answer-key leakage, the v0 acceptance envelope, the
-  disposition inventory and ledger balance, the stress-test matrix, and
-  cross-section consistency — all over the fixtures in `docs/fixtures/*/`.
+  corpus-boundary / answer-key leakage, forbidden-token scan (no premature
+  Phase/Sensenet vocabulary), provisional-schema wording, the v0 acceptance
+  envelope, the disposition inventory and ledger balance, the stress-test matrix,
+  and cross-section consistency — all over the fixtures in `docs/fixtures/*/`.
 - See `docs/PRECIS-CONFORMANCE-CHECKER.md` for what each check means.
 - **Not yet checked:** routing/clustering, derivation cards, the finalization
   gate, and any projection output. These are doctrine today; a future slice adds
