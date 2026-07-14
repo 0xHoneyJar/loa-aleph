@@ -189,7 +189,8 @@ User (Eileen)  = product/architecture authority; approves stance, external
 Coordinator    = interprets, sequences, writes prompts and docs
 Claude in repo = repo-local implementation worker (and, in agent mode, the
                  run orchestrator)
-Codex          = independent auditor; audit precedes PR
+Auditor        = independent reviewer (any capable agent/human not the
+                 implementer); audit precedes PR
 GitHub PRs     = source-of-truth checkpoints
 ```
 

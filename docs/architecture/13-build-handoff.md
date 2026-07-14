@@ -1,4 +1,4 @@
-# 13 — Build Handoff (for Codex, or any implementing agent/human)
+# 13 — Build Handoff (for any implementing agent or human)
 
 > Status: PROPOSED handoff brief. You are reading the entry point for
 > **building** the Aleph Method. Everything you need is in this repo; this
@@ -38,8 +38,9 @@ must print `RESULT: PASS`.
 
 - Roles per `docs/responsibility-map.md`: the authority (Eileen) approves
   scope and accepts; you implement; an independent audit precedes every PR
-  merge. When you are Codex, your historical role has been auditor — as
-  builder here, someone else audits you; do not self-audit.
+  merge. Whoever builds is not the one who audits — if you have historically
+  played the auditor role in this repo, someone else audits your build work;
+  never self-audit.
 - **One work package = one branch = one PR.** Branch naming
   `aleph-slice-⟨n⟩-⟨slug⟩` per existing convention. PR descriptions follow
   the house pattern visible in merged PRs #1–#11: what this proves, files,

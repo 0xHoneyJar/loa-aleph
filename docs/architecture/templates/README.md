@@ -3,7 +3,7 @@
 > Status: PROPOSED. These are the copy-into-a-run templates for every artifact
 > in [`../03-artifact-contracts.md`](../03-artifact-contracts.md). They are
 > **provisional shapes** (no schema freeze): the golden-run slice (WP2 in
-> [`../13-build-handoff-codex.md`](../13-build-handoff-codex.md)) is expected
+> [`../13-build-handoff.md`](../13-build-handoff.md)) is expected
 > to amend them from experience, in the same PR that authors the fixture.
 
 ## How to use

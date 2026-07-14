@@ -315,8 +315,8 @@ all ledgers final.
 
 - **Purpose:** the human decision that the Précis is done, at a PR checkpoint,
   after independent audit.
-- **Work:** branch + PR containing the run directory; independent auditor
-  (Codex role) reviews against the contracts; authority accepts or returns
+- **Work:** branch + PR containing the run directory; an independent
+  auditor reviews against the contracts; authority accepts or returns
   with findings.
 - **DoD:**
   - [ ] 👤 independent audit completed and attached

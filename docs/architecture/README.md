@@ -41,7 +41,7 @@ manual mode, and a slice-by-slice build roadmap.
 | 10 | [`10-build-roadmap-slices.md`](10-build-roadmap-slices.md) | The phased build plan: slices, dependencies, per-slice Definition of Done, validation gates |
 | 11 | [`11-research-grounding.md`](11-research-grounding.md) | The research behind the design: Fable 5 capabilities, agentic-research literature, and the mapping from findings to decisions |
 | 12 | [`12-risks-open-questions-do-not-build.md`](12-risks-open-questions-do-not-build.md) | Risk register, open decisions, and the consolidated do-not-build list |
-| 13 | [`13-build-handoff-codex.md`](13-build-handoff-codex.md) | **The builder's entry point**: mission, read order, work packages WP1–WP8 with per-package Definitions of Done |
+| 13 | [`13-build-handoff.md`](13-build-handoff.md) | **The builder's entry point**: mission, read order, work packages WP1–WP8 with per-package Definitions of Done |
 
 ## Build kits (the with-what)
 
@@ -54,8 +54,8 @@ execute without design decisions left open:
 | [`prompts/`](prompts/README.md) | The prompt-pack drafts: assembly rules, common preamble, orchestrator prompt, all worker roles with bundles/withholds and output contracts, all verifier lens charters with quorum defaults |
 | [`checker-spec/`](checker-spec/README.md) | Implementation specs for kernel increments K1–K6: per-check rules, exact FAIL formats, false-positive guards, negative-battery case lists |
 
-**If you are the builder (Codex or otherwise): start at
-[`13-build-handoff-codex.md`](13-build-handoff-codex.md).**
+**If you are the builder — any implementing agent or human — start at
+[`13-build-handoff.md`](13-build-handoff.md).**
 
 A reader who wants the shortest path to understanding: read 1, 2, 4, then the
 runbook for your mode (8 or 9), then the slice you are building in 10,
