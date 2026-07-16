@@ -6,18 +6,14 @@
 - predecessor_run: none
 - mode: manual
 - created: 2026-07-16
-- doctrine_sha: dab38ec4145cd2f4e68b2f39f605e1b5fce9caba
-- doctrine_basis: PR #19 architecture merge; this is the last committed base,
-  not a claim that same-change fixture amendments exist at that SHA
-- doctrine_amendments: docs/decisions/0003-architecture-build-kit-implementation.md
-  and the current working-tree runbook/contract clarifications coauthored with
-  this fixture; publication must repin this record to the resulting commit
-- runbook: current working-tree docs/architecture/09-runbook-manual-mode.md,
-  based on doctrine_sha and amended by Decision 0003
-- publication_repin_required: after the implementation is committed and
-  reviewed, replace doctrine_sha and the runbook version with the publishable
-  commit SHA, rerun the exact checker command, and refresh the latest kernel
-  report; until then this remains an unpinned fixture candidate
+- doctrine_sha: 2dc3549a0c6f3fed660b10743198409945c70b64
+- doctrine_basis: implementation commit derived from PR #19 and including
+  Decision 0003 plus the fixture-backed runbook and contract clarifications
+- doctrine_amendments: none outside doctrine_sha
+- runbook: docs/architecture/09-runbook-manual-mode.md at doctrine_sha
+- publication_pin_status: doctrine, runbook, checker scripts, and fixture
+  contracts are pinned to the committed implementation; the latest kernel
+  report records the same checker SHA
 
 ## Corpus binding
 

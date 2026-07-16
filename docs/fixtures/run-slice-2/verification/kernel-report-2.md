@@ -1,12 +1,12 @@
 # Projection Kernel Report - RUN-slice-2
 
-- checker_version: UNPINNED-WORKTREE
+- checker_version: 2dc3549a0c6f3fed660b10743198409945c70b64
 - checker_base_sha: dab38ec4145cd2f4e68b2f39f605e1b5fce9caba
 - checker_content_sha256: sha256:c84f8b606b33f31615119ae46f100a719b09948db8fbbd058610ecb1845f1eca
-- record_role: current prepublication worktree capture
-- publication_repin_required: after committing the checker, replace checker_version with that 40-character git SHA, recompute checker_content_sha256, rerun this exact command, and replace this output
+- record_role: publication-ready checker capture
+- publication_pin_status: checker scripts are committed at checker_version and the content digest matches that commit
 - command: `node scripts/validate-run.mjs --root . --run docs/fixtures/run-slice-2`
-- date: 2026-07-16 13:20 UTC
+- date: 2026-07-16 14:08 UTC
 - result: PASS
 
 ## Output (verbatim, complete)
@@ -63,6 +63,5 @@ RESULT: PASS
 The accepted source Precis hash before and after both projection cycles was
 `sha256:13764f65dba08f7909377ab282c1b1d74020c809a490893f5957dab890a7a4e3`.
 This deterministic PASS proves only structural conformance of the fixture
-record. `UNPINNED-WORKTREE` is not a publication version, and this report does
-not prove semantic rendering quality, real independent review, real authority
-acceptance, agent mode, or system v1.
+record. The committed checker pin does not prove semantic rendering quality,
+real independent review, real authority acceptance, agent mode, or system v1.
