@@ -1,12 +1,12 @@
 # TypeScript Migration Kernel Report — RUN-slice-2
 
-- checker_version: UNPINNED-WORKTREE
+- checker_version: 027b07908010380f726a1a8c16c3eaa1e19ac0f6
 - checker_base_sha: 082d9bae0fb04ecdccee6e2ba5cf98f958204936
-- checker_content_sha256: unavailable; TypeScript migration worktree is not yet committed
-- record_role: prepublication TypeScript migration verification
-- publication_repin_required: commit the migration, rerun this command, and replace this report with the committed checker SHA and refreshed output
+- checker_content_sha256: sha256:682afdcab98b1da544e924926c3e133f59cf9b89bfd0a335abdb3fb5ddc98c68
+- record_role: publication-ready TypeScript checker capture
+- publication_pin_status: checker scripts are committed at checker_version and the content digest matches that commit
 - command: `node scripts/validate-run.ts --root . --run docs/fixtures/run-slice-2`
-- date: 2026-07-16 14:30 UTC
+- date: 2026-07-16 15:25 UTC
 - result: PASS
 
 ## Output (verbatim, complete)
@@ -60,7 +60,7 @@ PASS RUN-slice-2 K6.10 (type contract): registered projection metadata and requi
 RESULT: PASS
 ```
 
-This prepublication capture proves that the TypeScript checker preserves the
-golden fixture's deterministic K2-K6 result. It cannot support publication or
-replay claims until the migration is committed and this report is repinned to
-that commit.
+This committed checker capture proves that the TypeScript implementation
+preserves the golden fixture's deterministic K2-K6 result. The reproducible
+checker pin does not prove semantic rendering quality, real independent review,
+real authority acceptance, agent mode, or system v1.

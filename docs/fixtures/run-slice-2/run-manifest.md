@@ -11,10 +11,9 @@
   Decision 0003 plus the fixture-backed runbook and contract clarifications
 - doctrine_amendments: none outside doctrine_sha
 - runbook: docs/architecture/09-runbook-manual-mode.md at doctrine_sha
-- publication_pin_status: doctrine, runbook, and the accepted fixture record
-  remain pinned to the committed implementation; the TypeScript checker
-  migration is captured in kernel-report-3.md as UNPINNED-WORKTREE and must be
-  repinned after the migration commit before it supports publication or replay
+- publication_pin_status: doctrine, runbook, checker scripts, and fixture
+  contracts are pinned to committed implementations; the latest kernel report
+  records the TypeScript checker SHA and reproducible content digest
 
 ## Corpus binding
 
