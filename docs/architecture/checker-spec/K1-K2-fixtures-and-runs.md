@@ -57,12 +57,19 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
   manifest's state log shows the run reached the state that produces them
   (state→artifact table hardcoded from doc 04's "Emits" column).
 - K2.2 (`manifest`): manifest carries mode, doctrine_sha (40-hex), corpus
-  hash, ≥1 state-log row, states appear in the doc-02 §3 order without
-  gaps; every sign-off gate row required by reached states is present
-  (S0 approval before any packet exists).
-- K2.3 (`forbidden tokens`): the fixture-layer absolute-forbidden token scan
-  applied to every file in the run directory (same zero-tolerance semantics,
-  same token list as the existing checker).
+  hash, ≥1 state-log row; every state-log transition follows an edge of the
+  doc-02 §3 machine — forward states in machine order without gaps, `BLOCKED`
+  allowed any number of times with each occurrence followed by re-entry into
+  the state it interrupted (or by run end); every sign-off gate row required
+  by reached states is present (S0 approval before any packet exists).
+- K2.3 (`forbidden tokens`, fixture runs only): the fixture-layer
+  absolute-forbidden token scan (same zero-tolerance semantics, same token
+  list as the existing checker) applied to every file of a run directory
+  that lives under `docs/fixtures/` — the tokens exist to catch answer-key
+  leakage in *generated* fixtures. Real run directories are exempt: an
+  arbitrary user corpus may legitimately contain those words, and S0
+  preserves source content losslessly, so this check never runs outside
+  `docs/fixtures/`.
 - K2.4 (`packet resolution`): every packet row's `source_id` exists in the
   corpus manifest; its locator parses under that source's declared scheme
   (`L⟨a⟩-L⟨b⟩` with a≤b within file line count; `M⟨n⟩`/`M⟨n⟩:S⟨k⟩` positive
@@ -109,8 +116,10 @@ K2.4 with a `PASS (scheme ⟨x⟩ unverified)` note rather than a failure —
 new schemes get verification when their fixture arrives.
 
 **Battery (minimum 10):** missing `run-manifest.md` → K2.1; state log with
-ASSEMBLED before CORPUS-FROZEN → K2.2; forbidden token in `run-log.md` →
-K2.3; tampered span (hash mismatch) → K2.4; `PKT-9999` cited in a route card
+ASSEMBLED before CORPUS-FROZEN → K2.2; forbidden token in a fixture run's
+`run-log.md` → K2.3, while the same token in a run directory outside
+`docs/fixtures/` → no finding (exemption proven, not assumed);
+tampered span (hash mismatch) → K2.4; `PKT-9999` cited in a route card
 → K2.5; inventory row with two dispositions → K2.6; ledger total off by one
 → K2.7; absorbed claim missing a source in canonical set → K2.8; criteria
 timestamp after first S2 log entry → K2.9; `superseded-by:PKT-0999`

@@ -25,9 +25,12 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   policy actually used (agent mode) or "human" (manual); budgets granted and
   spent; state-transition log (state, timestamp, actor); authority sign-offs
   with dates; known deviations from the runbook, with reasons.
-- **Invariants:** exists before any other run artifact; every state in
-  [`02-system-architecture.md`](02-system-architecture.md) §3 that the run
-  entered appears exactly once in order; model identifiers are exact strings,
+- **Invariants:** exists before any other run artifact; the state-transition
+  log is append-only and every transition follows an edge of the
+  [`02-system-architecture.md`](02-system-architecture.md) §3 state machine —
+  forward states appear in machine order without gaps, while `BLOCKED` may
+  appear any number of times, each occurrence followed by re-entry into the
+  state it interrupted (or by run end); model identifiers are exact strings,
   never "latest".
 
 ## 2. Corpus manifest and source inventory (`corpus/manifest.md`)
