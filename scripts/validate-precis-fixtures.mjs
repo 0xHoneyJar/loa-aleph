@@ -24,20 +24,30 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateRun } from './validate-run.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = join(__dirname, '..');
 
-function parseRoot() {
+function parseOptions() {
   const args = process.argv.slice(2);
+  let root = DEFAULT_ROOT;
+  let json = false;
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--root') return args[i + 1];
-    if (args[i].startsWith('--root=')) return args[i].slice('--root='.length);
+    if (args[i] === '--root') {
+      root = args[i + 1];
+      i++;
+    } else if (args[i].startsWith('--root=')) {
+      root = args[i].slice('--root='.length);
+    } else if (args[i] === '--json') {
+      json = true;
+    }
   }
-  return DEFAULT_ROOT;
+  return { root, json };
 }
 
-const REPO_ROOT = parseRoot();
+const OPTIONS = parseOptions();
+const REPO_ROOT = OPTIONS.root;
 const FIXTURES_DIR = join(REPO_ROOT, 'docs', 'fixtures');
 
 // ---------------------------------------------------------------------------
@@ -135,8 +145,45 @@ const CORPUS_LEAKS = [
 
 const failures = [];
 const passes = [];
-function fail(msg) { failures.push(msg); }
-function pass(msg) { passes.push(msg); }
+const checks = [];
+
+function inferScope(msg) {
+  return msg.match(/^([^ :]+)/)?.[1] || 'fixtures';
+}
+
+function inferCheckId(msg) {
+  if (msg.includes('cross-section consistency')) return 'C1-C8';
+  const explicit = msg.match(/\b(K\d+(?:\.\d+)?|C\d+)\b/);
+  if (explicit) return explicit[1];
+  const label = msg.replace(/^[^ :]+[: ]+/, '');
+  if (label.startsWith('files')) return 'P1';
+  if (label.startsWith('forbidden token')) return 'P2';
+  if (label.startsWith('projection boundary') || label.startsWith('real-export marker')) return 'P3';
+  if (label.startsWith('schema wording')) return 'P4';
+  if (label.startsWith('corpus boundary')) return 'P5';
+  if (label.startsWith('envelope')) return 'P6';
+  if (label.startsWith('inventory')) return 'P7';
+  if (label.startsWith('coverage')) return 'P8';
+  if (label.startsWith('accounting')) return 'P9';
+  if (label.startsWith('matrix')) return 'P10';
+  if (label.startsWith('consistency')) return 'C1-C8';
+  return 'PRECIS';
+}
+
+function record(status, msg, id = inferCheckId(msg), scope = inferScope(msg)) {
+  checks.push({ id, scope, status, message: msg });
+}
+
+function fail(msg, id, scope) {
+  failures.push(msg);
+  record('FAIL', msg, id, scope);
+}
+
+function pass(msg, id, scope) {
+  passes.push(msg);
+  record('PASS', msg, id, scope);
+}
+
 function sliceHasFailure(name, ...prefixes) {
   return failures.some((m) => prefixes.some((p) => m.startsWith(`${name} ${p}`)));
 }
@@ -154,6 +201,141 @@ function range(a, b) {
 function readMaybe(path) {
   if (!existsSync(path)) return null;
   return readFileSync(path, 'utf8');
+}
+
+function parseIdList(value) {
+  if (!value || !value.trim()) throw new Error('empty id list');
+  const ids = [];
+  for (const part of value.split(',').map((item) => item.trim())) {
+    const match = part.match(/^([A-Z]+)-(\d+)(?:\.\.([A-Z]+)-(\d+))?$/);
+    if (!match) throw new Error(`malformed id or range "${part}"`);
+    const [, startPrefix, startDigits, endPrefix, endDigits] = match;
+    if (!endPrefix) {
+      ids.push(`${startPrefix}-${startDigits}`);
+      continue;
+    }
+    if (startPrefix !== endPrefix) throw new Error(`mixed-prefix range "${part}"`);
+    const padded = startDigits.startsWith('0') || endDigits.startsWith('0');
+    if (padded && startDigits.length !== endDigits.length) {
+      throw new Error(`mixed zero-padding range "${part}"`);
+    }
+    const start = Number(startDigits);
+    const end = Number(endDigits);
+    if (start > end) throw new Error(`descending range "${part}"`);
+    for (let n = start; n <= end; n++) {
+      const suffix = padded ? String(n).padStart(startDigits.length, '0') : String(n);
+      ids.push(`${startPrefix}-${suffix}`);
+    }
+  }
+  const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+  if (duplicates.length) throw new Error(`duplicate id(s): ${[...new Set(duplicates)].join(', ')}`);
+  return ids;
+}
+
+function parseFixtureDeclaration(name, dir) {
+  const readme = readMaybe(join(dir, 'README.md'));
+  if (readme === null) {
+    fail(`${name} K1.1 (declaration): README.md is missing`, 'K1.1', name);
+    return null;
+  }
+  const blocks = [...readme.matchAll(/```aleph-fixture\s*\n([\s\S]*?)```/g)];
+  if (blocks.length !== 1) {
+    fail(
+      `${name} K1.1 (declaration): expected exactly one aleph-fixture block in README.md, found ${blocks.length}`,
+      'K1.1',
+      name,
+    );
+    return null;
+  }
+  const fields = new Map();
+  for (const rawLine of blocks[0][1].split('\n')) {
+    const line = rawLine.replace(/\s+#.*$/, '').trim();
+    if (!line) continue;
+    const match = line.match(/^([a-z_]+):\s*(.*?)\s*$/);
+    if (!match || !match[2]) {
+      fail(`${name} K1.1 (declaration): malformed line "${rawLine.trim()}"`, 'K1.1', name);
+      return null;
+    }
+    if (fields.has(match[1])) {
+      fail(`${name} K1.1 (declaration): duplicate field "${match[1]}"`, 'K1.1', name);
+      return null;
+    }
+    fields.set(match[1], match[2]);
+  }
+  const kind = fields.get('kind');
+  if (!kind) {
+    fail(`${name} K1.1 (declaration): required field "kind" is missing`, 'K1.1', name);
+    return null;
+  }
+  const validKinds = ['precis', 'run', 'evidence-role', 'routed', 'projection'];
+  if (!validKinds.includes(kind)) {
+    fail(`${name} K1.2 (unknown kind): "${kind}"`, 'K1.2', name);
+    return null;
+  }
+
+  let srcIds = [];
+  let claimIds = [];
+  let matrixIds = [];
+  try {
+    if (fields.has('src_ids')) srcIds = parseIdList(fields.get('src_ids'));
+    if (fields.has('cc_ids')) claimIds = parseIdList(fields.get('cc_ids'));
+    if (fields.has('stm_rows')) matrixIds = parseIdList(fields.get('stm_rows'));
+  } catch (error) {
+    fail(`${name} K1.3 (range): ${error.message}`, 'K1.3', name);
+    return null;
+  }
+
+  if (kind === 'precis') {
+    const ledgerTotal = Number(fields.get('ledger_total'));
+    if (!srcIds.length || !claimIds.length || !Number.isInteger(ledgerTotal) || ledgerTotal < 0) {
+      fail(
+        `${name} K1.1 (declaration): kind precis requires src_ids, cc_ids, and a non-negative integer ledger_total`,
+        'K1.1',
+        name,
+      );
+      return null;
+    }
+    return {
+      name,
+      dir,
+      kind,
+      srcIds,
+      claimIds,
+      ledgerTotal,
+      requireMatrix: matrixIds.length > 0,
+      matrixIds,
+    };
+  }
+
+  return { name, dir, kind, fields, srcIds, claimIds, matrixIds };
+}
+
+function discoverFixtures() {
+  let entries;
+  try {
+    entries = readdirSync(FIXTURES_DIR, { withFileTypes: true });
+  } catch {
+    return { precis: [], delegated: [] };
+  }
+  const legacy = new Set(SLICES.map((slice) => slice.name));
+  const precis = [];
+  const delegated = [];
+  for (const entry of entries.filter((item) => item.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+    if (legacy.has(entry.name)) continue;
+    const dir = join(FIXTURES_DIR, entry.name);
+    const declaration = parseFixtureDeclaration(entry.name, dir);
+    if (!declaration) continue;
+    if (declaration.kind === 'precis') precis.push(declaration);
+    else delegated.push(declaration);
+  }
+  if (!failures.some((message) => /\bK1\.[123]\b/.test(message))) {
+    pass(
+      `discovery: ${SLICES.length + precis.length + delegated.length} fixture director${SLICES.length + precis.length + delegated.length === 1 ? 'y' : 'ies'} recognized; declarations valid`,
+      'K1',
+      'fixtures',
+    );
+  }
+  return { precis, delegated };
 }
 
 // Split a Markdown table row into trimmed content cells. Outer pipes are
@@ -745,18 +927,29 @@ function checkCrossSectionConsistency(slice, dir) {
 // Main
 // ---------------------------------------------------------------------------
 
-console.log('Aleph Précis Conformance Checker — v0 envelope (Slice 3) + cross-section consistency (Slice 4)');
-console.log('(validates the accepted provisional v0 envelope; this is NOT a schema freeze)');
-if (REPO_ROOT !== DEFAULT_ROOT) console.log(`(root override: ${REPO_ROOT})`);
-console.log('');
+if (!OPTIONS.json) {
+  console.log('Aleph Précis Conformance Checker — v0 envelope (Slice 3) + cross-section consistency (Slice 4)');
+  console.log('(validates the accepted provisional v0 envelope; this is NOT a schema freeze)');
+  if (REPO_ROOT !== DEFAULT_ROOT) console.log(`(root override: ${REPO_ROOT})`);
+  console.log('');
+}
 
 if (!existsSync(FIXTURES_DIR)) {
-  console.error(`FAIL: fixtures directory not found at ${FIXTURES_DIR}`);
+  const message = `fixtures K1.1 (declaration): fixtures directory not found at ${FIXTURES_DIR}`;
+  fail(message, 'K1.1', 'fixtures');
+  if (OPTIONS.json) {
+    console.log(JSON.stringify({ result: 'FAIL', checks }, null, 2));
+  } else {
+    console.error(`FAIL: fixtures directory not found at ${FIXTURES_DIR}`);
+  }
   process.exit(1);
 }
 
-for (const slice of SLICES) {
-  const dir = join(FIXTURES_DIR, slice.name);
+const discovered = discoverFixtures();
+const legacyOnly = discovered.precis.length === 0 && discovered.delegated.length === 0;
+
+for (const slice of [...SLICES, ...discovered.precis]) {
+  const dir = slice.dir || join(FIXTURES_DIR, slice.name);
   if (!existsSync(dir)) {
     fail(`${slice.name}: fixture directory missing at ${dir}`);
     continue;
@@ -772,16 +965,44 @@ for (const slice of SLICES) {
   checkCrossSectionConsistency(slice, dir);
 }
 
-console.log('PASSED CHECKS:');
-for (const p of passes) console.log(`  PASS ${p}`);
-console.log('');
+for (const fixture of discovered.delegated) {
+  const report = validateRun({
+    root: REPO_ROOT,
+    run: fixture.dir,
+    kind: fixture.kind,
+  });
+  for (const check of report.checks) {
+    checks.push(check);
+    const message = `${check.scope} ${check.id} ${check.message}`;
+    if (check.status === 'PASS') passes.push(message);
+    else failures.push(message);
+  }
+}
 
 if (failures.length) {
-  console.log('FAILURES:');
-  for (const f of failures) console.log(`  FAIL ${f}`);
-  console.log(`\nRESULT: FAIL (${failures.length} failure${failures.length === 1 ? '' : 's'})`);
+  if (OPTIONS.json) {
+    console.log(JSON.stringify({ result: 'FAIL', checks }, null, 2));
+  } else {
+    console.log('PASSED CHECKS:');
+    for (const p of passes) console.log(`  PASS ${p}`);
+    console.log('');
+    console.log('FAILURES:');
+    for (const f of failures) console.log(`  FAIL ${f}`);
+    console.log(`\nRESULT: FAIL (${failures.length} failure${failures.length === 1 ? '' : 's'})`);
+  }
   process.exit(1);
 }
 
-console.log(`RESULT: PASS — both fixtures conform to the accepted provisional v0 envelope.`);
+if (OPTIONS.json) {
+  console.log(JSON.stringify({ result: 'PASS', checks }, null, 2));
+} else {
+  console.log('PASSED CHECKS:');
+  for (const p of passes) console.log(`  PASS ${p}`);
+  console.log('');
+  console.log(
+    legacyOnly
+      ? 'RESULT: PASS — both fixtures conform to the accepted provisional v0 envelope.'
+      : 'RESULT: PASS — all discovered fixtures conform to their declared kernels.',
+  );
+}
 process.exit(0);

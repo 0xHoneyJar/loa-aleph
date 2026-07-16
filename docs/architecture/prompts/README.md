@@ -1,7 +1,9 @@
 # Prompt-Pack — Assembly Rules
 
-> Status: PROPOSED DRAFT (slice-8 deliverable, drafted for the builder).
-> These prompts are documents the agent-mode runner loads **verbatim**; they
+> Status: ACCEPTED FOR SUPERVISED IMPLEMENTATION by
+> [`Decision 0003`](../../decisions/0003-architecture-build-kit-implementation.md);
+> agent mode remains unsanctioned pending replay. These prompts are documents
+> the agent-mode runner loads **verbatim**; they
 > are reviewed like doctrine, versioned by git, and pinned per run via the
 > manifest's doctrine SHA. Nothing here authorizes running them — the dry-run
 > slice does that.

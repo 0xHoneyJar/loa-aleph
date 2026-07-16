@@ -7,16 +7,21 @@ kernel checks the trace arithmetic and the neutrality boundary in both
 directions.
 
 **Closed vocabularies:** selection `used`, `not-used`, `surfaced-as-open`;
-statement kinds `load-bearing`, `open-item`, `gap`, `scaffolding`;
+statement kinds `load-bearing`, `boundary`, `open-item`, `gap`, `scaffolding`;
 not-used reasons must start with one of `out-of-projection-scope`,
 `superseded-by:CC-`, `deferred-to:`.
 
 **Checks (scope = run id + projection type):**
 
-- K6.1 (`commission`): a commission file exists for the type; its
+- K6.1 (`commission`): a commission file exists for the type; it defines one
+  unique `PRJ-NNN`, names the exact projection-trace path, and its
   `precis_hash` equals sha256 of `precis.md` **now** (P3 re-verification is
-  this same check re-run); the manifest state log shows ACCEPTED before the
-  commission date.
+  this same check re-run). The trace cites the same projection ID. For a
+  projection inside a run directory, the manifest state log must show ACCEPTED
+  before the commission date. A
+  standalone `kind: projection` fixture need not embed a run manifest; its
+  README records the accepted-Précis provenance for audit, while K6.1 still
+  enforces the hash binding.
 - K6.2 (`selection coverage`): the selection ledger contains exactly one row
   for every `active` carried/merged claim in the inventory; `not-used` rows
   have a reason with a valid prefix; every `deferred`/`unresolved` claim
@@ -26,7 +31,9 @@ not-used reasons must start with one of `out-of-projection-scope`,
 - K6.3 (`trace resolution`): every trace row's `backing` ids exist, are
   `active`, and carry disposition carried or merged (for `load-bearing`
   rows) or deferred/unresolved (for `open-item` rows); `gap` and
-  `scaffolding` rows have empty backing.
+  `scaffolding` rows have empty backing. A `boundary` row has one or more
+  active `NB-` IDs and no claim backing; other statement kinds may not use
+  boundary backing.
 - K6.4 (`trace coverage`): every paragraph of the rendered document (split
   on blank lines; headings count as `scaffolding` automatically) has ≥1
   trace row whose anchor names it; no trace row anchors a nonexistent
@@ -52,6 +59,12 @@ not-used reasons must start with one of `out-of-projection-scope`,
   rendered doc quoting the full §4 table is a leak of the neutral layer into
   a committed document — detected as any table row matching the §4 4-column
   shape with a disposition cell).
+- K6.10 (`type contract`): the projection type is registered; its rendered
+  metadata table carries every field required by that type; its `PRJ-NNN`,
+  projection-trace path, commission path, and current Précis hash agree; no
+  template placeholder/comment remains; and its required numbered top-level
+  sections are present exactly once in order. The initial registry requires
+  sections 1-8 for `product-doctrine` and 1-13 for `prd`.
 
 **False-positive guards:** the document MAY name `CC-` ids inline (that is
 traceability, not leakage); `gap` rows are healthy and expected — the
@@ -63,5 +76,6 @@ missing from selection → K6.2; trace backing a retracted claim → K6.3;
 untraced paragraph → K6.4; load-bearing row with empty backing → K6.5;
 backing includes do-not-use claim → K6.6; open-item anchored outside its
 declared section → K6.7; tainted projection without the header marker →
-K6.8. Clean projection fixture (including one honest `gap` row and one
-`surfaced-as-open` item) → exit 0.
+K6.8; missing registered type section → K6.10; dangling negative-boundary
+backing → K6.3. Clean projection fixture
+(including one honest `gap` row and one `surfaced-as-open` item) → exit 0.

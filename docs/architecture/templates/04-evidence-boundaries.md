@@ -80,10 +80,13 @@ Rules:
 - `status`: `unresolved` | `supplied` | `declined`. Rows are appended by the
   Router (needs) and resolved **only** by authority action: `supplied_by` is
   the authority or a named intake; pipeline workers never fill it.
-- A `supplied` referent that arrived as material points at new
-  `external-research-intake` source rows (T2.1) — the material then flows
-  through S2/S3 like any corpus content. An authority ruling with no material
-  points at an `authority-statement` source row quoting the ruling verbatim.
+- Research material received after freeze does not resolve this run's row.
+  Leave it unresolved and tainted; start a successor run whose manifest names
+  this run, admit the material there at S0 as `external-research-intake` source
+  rows (T2.1), and carry the referent forward for resolution there.
+- An authority ruling with no new material may resolve the current run's row
+  through a manifest sign-off that records the statement verbatim. Do not add a
+  post-freeze `authority-statement` source row to the frozen corpus.
 - `taint note`: one line naming what stays marked `external-referent
   unresolved` while this row is `unresolved` (the cone; K5 computes the full
   set — this note is the human-readable anchor).

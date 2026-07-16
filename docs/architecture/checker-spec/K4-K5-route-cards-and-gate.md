@@ -23,10 +23,11 @@ shape-vector values `low`, `med`, `high`; referent statuses `unresolved`,
   `FAIL … K4.2 (smallest invariant): RC-03 lists no packet ids`.
 - K4.3 (`pending posture ⇒ REF`): posture
   `unrouted-pending-external-referent` requires ≥1 id in the card's
-  referents field, each with status `unresolved` in the referent ledger;
-  conversely a card citing an `unresolved` REF in that field may not carry
-  any *other* posture unless the routing-log/posture-history records the
-  re-route after a resolution.
+  referents relation, each with status `unresolved` in the referent ledger.
+  The relation is the union of card fields and the ledger's `depends` RC/CC
+  ids; all statuses use the closed vocabulary. Conversely an unresolved REF
+  requires the pending posture, while supplied/declined requires history
+  showing pending followed by the current rerouted posture.
 - K4.4 (`tags are tags`): `pre-cluster-tags.md` rows have exactly 3 columns;
   no file matching `PC-*.md` exists anywhere under `clusters/` (pre-clusters
   must not become documents).
@@ -55,11 +56,19 @@ transitive dependencies include a REF with status `unresolved`.
   complete over tainted RC-03`.
 - K5.3 (`Précis taint honesty`): if any load-bearing (carried/merged) claim
   belongs to a tainted cluster, `precis.md` §17 must contain the marker
-  `external-referent unresolved` and name every unresolved `REF-` id.
+  `external-referent unresolved` and name every unresolved `REF-` id in the
+  transitive card cone; every declined referent in that cone is also named.
 - K5.4 (`resolution hygiene`): every `supplied` REF row cites either
   `external-research-intake`/`authority-statement` source rows (which must
-  exist in the corpus manifest) or a manifest sign-off row; `supplied_by`
-  non-empty. A REF flipped to `supplied` with neither is the
+  exist in the corpus manifest) or an explicitly cited positive manifest
+  sign-off whose authority matches `supplied_by`; `supplied_by` is non-empty.
+  Source rows must have been admitted at S0. Research material received after
+  freeze is admissible only in a successor run whose manifest names the prior
+  run; within the frozen current run, only an already-admitted authority
+  statement or a manifest sign-off may resolve the REF. K5.4 verifies manifest
+  membership and sign-off linkage, not wall-clock receipt; run audit owns that
+  chronology judgment.
+  A REF flipped to `supplied` with neither is the
   worker-resolved-a-referent defect —
   `FAIL … K5.4 (resolution hygiene): REF-02 supplied without intake or sign-off`.
 

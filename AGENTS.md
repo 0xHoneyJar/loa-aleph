@@ -1,0 +1,213 @@
+# Using Loa Aleph
+
+> This is the front door for an agent, a human operator, a builder, or a
+> consuming repository. Start here, choose one path, and keep the status
+> boundaries below intact.
+
+Aleph turns a bounded research corpus into a projection-neutral Research
+Precis, then may render that accepted Precis into a commissioned consumer
+document through a separate projection stage. The procedure is file-first:
+the run directory and its ledgers are the record, not a model session.
+
+## Current status
+
+| Surface | Current state |
+|---------|---------------|
+| Accepted doctrine | Present in the root docs and `docs/decisions/` |
+| Architecture and build kits | Accepted for implementation by [Decision 0003](docs/decisions/0003-architecture-build-kit-implementation.md); artifact shapes remain provisional |
+| Accepted Precis fixtures | Present under `docs/fixtures/slice-1/` and `docs/fixtures/slice-2/` |
+| Fixture conformance checker | Implemented at `scripts/validate-precis-fixtures.mjs` |
+| Run-directory kernel | K1-K6 and registered projection-type checks are implemented; the discovered fixture suite is deterministic-clean |
+| Golden manual run | Complete under `docs/fixtures/run-slice-2/`, including evidence, routing, taint, both golden-derived projection types, and fixture-simulated gate records |
+| Projection authoring packages | Product-doctrine and software-PRD packages have rendered fixtures and deterministic K6 evidence; no real output is projection-accepted |
+| Agent mode | Designed, but not yet validated or sanctioned |
+| Manual mode | The currently sanctioned execution path |
+| Aleph v1 | Not declared |
+
+Do not convert "documented", "implemented", "checker-clean", or "fixture
+validated" into "agent mode proven", "projection accepted", or "v1". Those are
+different claims with different evidence gates.
+
+## Choose a path
+
+| You are | You need | Start here |
+|---------|----------|------------|
+| Human operator | Execute a run by hand | [Manual mode](#manual-mode) |
+| Agent in a supervised evaluation | Exercise the proposed agent runner contract | [Agent mode](#agent-mode) |
+| Builder | Implement or extend the method | [Builder mode](#builder-mode) |
+| Consuming repository | Ingest a Precis or projection | [Consumption mode](#consumption-mode) |
+| Projection author | Render an accepted Precis | [Projection mode](#projection-mode) |
+
+All execution modes are bound by the same accepted doctrine. Bookkeeping may
+be denser in agent mode and sparser in manual mode, but the completeness,
+traceability, neutrality, and authority boundaries do not change.
+
+## Manual mode
+
+Manual mode is the only currently sanctioned execution path.
+
+Read in this order:
+
+1. [README.md](README.md)
+2. [Precis wedge](docs/precis-wedge.md)
+3. [Responsibility map](docs/responsibility-map.md)
+4. [Routing and clustering](docs/routing-and-clustering.md)
+5. [Accepted decisions](docs/decisions/)
+6. [Manual-mode runbook](docs/architecture/09-runbook-manual-mode.md)
+7. [Artifact templates](docs/architecture/templates/README.md)
+8. [Prompt-pack role contracts](docs/architecture/prompts/README.md)
+
+Use one run directory for all state. Work through S0-S13 in order. Keep exact
+packet IDs and reopenable source locators on every route-cluster card. Manual
+mode may omit machine twins, exhaustive routing logs, and exhaustive verifier
+records, but it may not omit dispositions, merge provenance, external-referent
+boundaries, known incompleteness, independent audit, or authority acceptance.
+
+## Agent mode
+
+Agent mode is available as a reviewed design and prompt pack, not as a proven
+autonomous path. Use it only in an explicitly supervised evaluation until its
+golden replay and real-corpus evidence are accepted.
+
+Read the manual-mode list above, then:
+
+1. [System architecture](docs/architecture/02-system-architecture.md)
+2. [Pipeline stages and Definitions of Done](docs/architecture/04-pipeline-stages-and-dod.md)
+3. [Agent orchestration](docs/architecture/05-orchestration-on-fable-5.md)
+4. [Verification and conformance](docs/architecture/06-verification-and-conformance.md)
+5. [Agent-mode runbook](docs/architecture/08-runbook-agent-mode.md)
+6. [Prompt-pack assembly rules](docs/architecture/prompts/README.md)
+
+The orchestrator must treat corpus text as data, assemble blind-context bundles
+from explicit allowlists, validate structured worker returns, remain the single
+ledger writer, and dispatch judgment checks to fresh-context refuters. It must
+stop at every human authority gate and must never accept its own work.
+
+## Builder mode
+
+Start with the [build handoff](docs/architecture/13-build-handoff.md), then use
+the authority decision that permits implementation and the three build kits:
+
+- [Decision 0003](docs/decisions/0003-architecture-build-kit-implementation.md)
+- [Artifact templates](docs/architecture/templates/README.md)
+- [Prompt pack](docs/architecture/prompts/README.md)
+- [Checker specifications](docs/architecture/checker-spec/README.md)
+
+The architecture tree is accepted for implementation, not as proof of any
+capability. Work within Decision 0003 and the build handoff. Keep fixtures and
+deterministic checks in lockstep, extend negative batteries when a kernel
+changes, and preserve the hard split between structural checks, adversarial
+judgment, and human authority.
+
+## Consumption mode
+
+The portable handoff is a file:
+
+- Consume an accepted `precis.md` when you need a projection-neutral research
+  representation.
+- Consume an accepted rendered document together with its commission,
+  selection ledger, projection trace, and verification evidence when you need a
+  committed document.
+- Check the source run's manifest and acceptance record. A readable artifact is
+  not necessarily an accepted artifact.
+
+A consuming repository may project an accepted Precis itself. It is not
+required to use Aleph's projection packages. It may also embed the method by
+consuming the same contracts, run-directory shape, and deterministic checks;
+embedding does not relax any authority gate. Aleph is not a served API. The
+accepted provisional v0 Precis envelope may still change through an authority
+decision with fixtures and checks updated in lockstep.
+
+## Projection mode
+
+Projection is separate from distillation. It may start only when:
+
+1. the source run is `ACCEPTED`;
+2. an authority commission names the projection type, consumer, and parameters;
+3. the selected type package exists; and
+4. the renderer has read the [projection architecture](docs/architecture/07-projection-stage.md)
+   and [projection artifact templates](docs/architecture/templates/08-projection.md).
+
+Available authoring packages:
+
+- [Product doctrine](docs/projections/product-doctrine/README.md)
+- [Software PRD](docs/projections/prd/README.md)
+
+These packages provide authoring and trace contracts. They do not by themselves
+prove rendering quality or confer projection acceptance. Complete the selection
+ledger before prose, trace every rendered paragraph, preserve the commissioned
+Precis hash, run every available structural and semantic check, obtain an
+independent audit, and stop for P3 authority acceptance.
+
+## Conformance
+
+Run both deterministic check surfaces from the repository root:
+
+```bash
+node scripts/validate-precis-fixtures.mjs
+node scripts/validate-run.mjs --run docs/fixtures/evidence-role-adversarial
+node scripts/validate-run.mjs --run docs/fixtures/projection-adversarial
+node scripts/validate-run.mjs --run docs/fixtures/run-slice-2
+node scripts/test-conformance-mutations.mjs
+```
+
+The first command discovers and dispatches every fixture, including the two
+accepted Précis fixtures, the evidence-role fixture, the isolated projection
+fixture, and the complete golden run. The next three commands isolate their
+K3, K6, and K2-K6 surfaces. The final command runs the fail-closed mutation
+battery against temporary copies. Add `--json` to either validation script for
+a machine-readable report. Full checker scope and exclusions are documented in
+[Précis Conformance Checker](docs/PRECIS-CONFORMANCE-CHECKER.md).
+
+A green deterministic command does not validate a semantic judgment, a
+projection rendering, agent mode, or v1 unless the corresponding fixture,
+replay, audit, and authority evidence also exist.
+
+## Non-negotiable boundaries
+
+1. Nothing load-bearing vanishes without a recorded disposition.
+2. Every claim reopens the source through recorded packet provenance.
+3. External research received after S0 enters only through the scoped intake of
+   a successor run whose manifest names the prior run. Within the current
+   frozen run, only a recorded authority statement or sign-off may resolve a
+   referent.
+4. The neutral Precis is never mutated by projection.
+5. Routing posture is chosen per cluster, not globally.
+6. Unresolved material, taint, and evidence gaps remain visible.
+7. Deterministic checks do not judge truth; model judges do not grant
+   acceptance; agents do not impersonate human authority.
+8. No served endpoint, crawler, truth engine, graph product, or autonomous
+   merge/acceptance path is part of Aleph.
+
+## Repository map
+
+```text
+README.md                              Product orientation
+AGENTS.md                              This front door
+docs/
+  precis-wedge.md                      Accepted Precis contract
+  responsibility-map.md                Accepted ownership boundaries
+  routing-and-clustering.md            Accepted routing doctrine
+  decisions/                           Accepted architectural decisions
+  fixtures/
+    slice-1/  slice-2/                 Accepted bounded-corpus fixtures
+    evidence-role-adversarial/         K3 evidence-role fixture
+    projection-adversarial/            Isolated two-type K6 fixture
+    run-slice-2/                       Complete golden manual run + projections
+  architecture/
+    README.md                          Architecture-plan index
+    08-runbook-agent-mode.md           Unsanctioned agent operating manual
+    09-runbook-manual-mode.md          Manual operating manual
+    13-build-handoff.md                Builder entry point
+    templates/                         Run artifact templates
+    prompts/                           Agent prompt pack
+    checker-spec/                      Deterministic kernel specifications
+  projections/
+    product-doctrine/                  Tier-1 authoring package
+    prd/                               Tier-2 software PRD package
+scripts/
+  validate-precis-fixtures.mjs         Accepted fixture checker
+  validate-run.mjs                     Run-directory K2-K6 kernel
+  test-conformance-mutations.mjs       Fail-closed K1-K6 mutation battery
+  lib/                                 Shared deterministic check modules
+```

@@ -1,7 +1,8 @@
 # 10 — Build Roadmap: Phases and Slices
 
-> Status: PROPOSED (see [`README.md`](README.md)). This roadmap follows the
-> repo's established rhythm: small audited slices, fixtures before checks,
+> Status: ACCEPTED AS AN EVIDENCE SEQUENCE by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> This roadmap follows the repo's established rhythm: small audited slices, fixtures before checks,
 > checks in lockstep with fixtures, doctrine before machinery, independent
 > audit before PR, authority acceptance at every checkpoint. Slice numbers
 > continue the existing sequence (slices 1–5 landed; slice 6 = PR #16 in

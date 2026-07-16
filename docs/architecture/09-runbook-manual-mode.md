@@ -1,8 +1,9 @@
 # 09 — Runbook: Manual Mode
 
-> Status: PROPOSED (see [`README.md`](README.md)). Manual mode is the
-> currently sanctioned path (routing doctrine §13) and the mode the accepted
-> fixtures were authored in. This runbook writes down how a human executes the
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> Manual mode is the currently sanctioned path (routing doctrine §13) and the
+> mode the accepted fixtures were authored in. This runbook writes down how a human executes the
 > full method at **reconstructable fidelity** — sparse bookkeeping a later
 > tool or agent can rebuild the complete graph from, never exhaustive
 > hand-maintained completeness.
@@ -46,9 +47,11 @@ deeply, write down the criteria your instincts are using — honesty beats
 ritual purity.
 
 **S2 (packets).** Walk each source top to bottom with the criteria beside
-you. A packet row by hand is: `PKT-0042 | SRC-003 | lines 118–131 | "tight
-quote…" | criterion 2`. Line ranges (or message numbers for chat exports) are
-your locators. Do a whole source in one sitting where possible — split
+you. A packet row by hand uses every T3.1 field:
+`PKT-0042 | SRC-003 | L118-L131 | sha256:<hex> | "tight quote..." | 2 |
+active`. Canonical line ranges (or declared message locators for chat exports)
+are your locators; compute the span hash over the frozen bytes. Do a whole
+source in one sitting where possible — split
 sittings are where spans get skipped; if you must split, mark the exact
 resume point.
 
@@ -84,10 +87,15 @@ case **against** the current handling before writing the resolution. For
 load-bearing evidence edges, do leave-one-source-out as a thought experiment
 and check the declared removal effect holds.
 
-**S9b (convergent arm).** Only over referents you (or the authority) actually
-supplied, intaken as scoped corpus extensions. By hand this is a comparison
-table per cluster: claim | referent | agrees/conflicts/extends | note. Mark
-the arm unvalidated in the manifest exactly as agent mode would.
+**S9b (convergent arm).** Only over supplied referent material that was already
+inside the corpus when S0 froze it. Material supplied after freeze leaves the
+current run tainted and starts a successor run whose manifest names this run;
+admit and reconcile it there. A recorded authority statement/sign-off may
+resolve a referent in the current run but must not be treated as research
+material unless that material was already frozen into the corpus. By hand this
+is a comparison table per cluster: claim | referent |
+agrees/conflicts/extends | note. Mark the arm unvalidated in the manifest
+exactly as agent mode would.
 
 **S10–S11 (synthesis, assembly).** Write the synthesis last, from the
 ledgers, with the inventory open beside you — every claim ID you type, check
@@ -106,9 +114,10 @@ record is part of the honesty, not paperwork.
 **S13 (acceptance).** Same as agent mode: branch, PR, independent audit,
 authority acceptance. Manual work gets no audit discount.
 
-**P-stages.** Follow doc 07: commission first; selection ledger before prose;
-trace as you write (after each load-bearing paragraph, list the claim IDs it
-rests on); gaps stay gaps.
+**P-stages.** Follow doc 07: commission first, defining one `PRJ-NNN` and exact
+trace path; selection ledger before prose; cite that ID in the rendering and
+trace; trace as you write (after each load-bearing paragraph, list the claim
+IDs it rests on); gaps stay gaps.
 
 ## 4. Worksheets
 

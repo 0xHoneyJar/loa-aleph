@@ -9,8 +9,10 @@
 > (`docs/precis-wedge.md`); it does not alter the wedge, the disposition ledger, the
 > projection-stage separation (ADR 0001), or the conformance checker.
 >
-> **Nothing here is checker-enforced. Nothing here authorizes tooling.** It is doctrine that
-> later slices may depend on, not schema that any code enforces today.
+> The K4/K5 kernel now enforces the structural route-card, dependency,
+> referent-status, reroute-history, smallest-invariant, and taint-gate rules
+> named in §13. This still authorizes no extractor or generator and freezes no
+> schema; routing posture quality remains a human/model judgment.
 
 ---
 
@@ -29,8 +31,10 @@ stance-neutral first pass, and it is split into two parts that must not be confl
 - **Internal shape** — revealable from the corpus itself (how contradictory, how
   reference-dense, whether a doctrine-like spine exists). Aleph *may* surface this.
 - **External existence** — whether prior art / competitors / reference architectures exist.
-  This is **not in the corpus** and Aleph may **not** invent it. It comes from the user or
-  from an explicit external-research intake (which is just more source dropped in).
+  This is **not in the corpus** and Aleph may **not** invent it. A recorded authority
+  statement/sign-off may resolve it within the current run. Research material received
+  after freeze belongs to an explicit external-research intake at S0 of a successor run
+  whose manifest names the prior run; it is never dropped into the frozen current corpus.
 
 ## 2. Per-cluster routing posture
 
@@ -133,8 +137,10 @@ Aleph proceeds freely with indexing, packetization, candidate-claim inventory, s
 pre-clustering, open-question surfacing, and provisional route hypotheses. It is **not** a
 total gate on progress.
 
-The gate is on **finalizing externally-dependent claims**. These outputs may not be
-finalized without user-supplied referents or explicit external-research intake:
+The gate is on **finalizing externally-dependent claims**. Within a frozen run, these
+outputs may not be finalized without a recorded authority statement/sign-off. External
+research material can support finalization only in the successor run that admits it at
+S0 and names the prior run:
 
 - "this is novel"
 - "this beats competitors"
@@ -147,7 +153,7 @@ When the external referent is unknown, the output stays marked:
 ```
 external-referent unresolved
 routing provisional
-requires user / research-supplied referent
+requires authority statement/sign-off or successor-run research intake
 ```
 
 The gate is **compositional**: an output is "externally complete" only if **every
@@ -232,8 +238,8 @@ human never has to draw it.
 
 Stated as a hand-checkable (and later tool-checkable) rule: *no route-cluster card may exist
 without ≥1 packet ID, and no cited packet ID may be absent from the packet index.* This is
-the manual analogue of the checker's existing corpus-boundary rule — but it is **not**
-implemented or enforced today (§13).
+the manual analogue of the checker's existing corpus-boundary rule. K4.2 and
+K2.4 now enforce both halves against run directories (§13).
 
 ## 12. Known limits / validation ledger (hard)
 
@@ -241,6 +247,12 @@ implemented or enforced today (§13).
 validated:
   - heavy adversarial arm
   - light convergent constraint / stack-compatibility arm
+
+fixture-validated deterministic contracts:
+  - evidence-role accounting and contradiction preservation (K3)
+  - route-card shape, source re-entry, dependency, and referent hygiene (K4)
+  - compositional unresolved-referent taint propagation (K5)
+  - projection trace, boundary, taint, and registered type shape (K6)
 
 not yet validated:
   - heavy convergent competitor/category reconciliation
@@ -262,17 +274,28 @@ By Aleph's Popperian discipline, those arms have **not earned validation** and m
 treated as proven. Closing this gap will eventually require a **second golden replay corpus**
 for a known-domain / hybrid product distillation — not started, not authorized here.
 
-## 13. What is explicitly NOT implemented or enforced yet
+## 13. What is enforced, and what remains out of scope
 
-- **No conformance check** enforces routing, clustering, pre-cluster tagging, derivation
-  cards, the finalization gate, or the smallest manual-mode invariant. The checker
-  (`scripts/validate-precis-fixtures.mjs`) is unchanged and has no cluster/routing concept.
-- **No fixture** demonstrates a route-cluster card or a routed corpus.
+- **K4 enforces structure:** each route card has the fixed field/vector shape,
+  exact packet/source/claim/tag/referent references, valid posture and history,
+  resolvable dependencies, explicit mutual cycles, and no materialized
+  pre-cluster documents.
+- **K2.4 + K4.2 enforce the smallest manual-mode invariant:** every card names a
+  packet, every packet resolves, and supported locator schemes reopen the frozen
+  source bytes with a matching hash.
+- **K5 enforces the compositional gate:** unresolved referents from card fields
+  or referent-ledger dependencies taint the transitive card cone; finalization
+  surfaces and Précis §17 must carry the required marker and IDs; supplied
+  referents require an authorized S0 intake or authority statement/sign-off.
+  Post-freeze research material is successor-run input, never a current-corpus
+  extension.
+- The complete golden fixture at `docs/fixtures/run-slice-2/` demonstrates four
+  cards, pending/supplied referents, rerouting, dependency propagation, and
+  projection taint. Deterministic conformance does not prove that a chosen
+  routing posture is semantically correct.
 - **No extractor / generator / tooling** is authorized to produce packets, pre-clusters,
   route clusters, or cards. Manual mode is the only sanctioned path today.
-- **No schema freeze.** The route-cluster card fields are doctrine, not a validated schema.
+- **No schema freeze.** The checked route-card fields remain provisional
+  implementation shapes that fixtures and code change in lockstep.
 - **The convergent arm and hybrid seam are unvalidated** (§12) and may not be presented as
   proven.
-
-A future slice may add a fixture and a conformance check for the route-cluster card, in
-lockstep, once a replay case exists — deliberately, never inferred from this doc.

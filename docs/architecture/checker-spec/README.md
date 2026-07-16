@@ -1,7 +1,8 @@
 # Checker Specifications — Implementation Constraints
 
-> Status: PROPOSED. These specs tell the builder exactly what to implement
-> for each kernel increment (K1–K6 from
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../../decisions/0003-architecture-build-kit-implementation.md).
+> These specs define each kernel increment (K1-K6 from
 > [`../06-verification-and-conformance.md`](../06-verification-and-conformance.md) §2),
 > precisely enough that no design decisions remain — only code. Each
 > increment lands **in lockstep with its motivating fixture, in the same
@@ -53,8 +54,10 @@ For each battery case: copy the target tree to a temp root; inject exactly
 one violation; run the **real** checker with `--root`; assert (a) non-zero
 exit and (b) the intended check-id appears in a `FAIL` line (grep the id,
 not just the exit code); finally run an unmutated copy and assert exit 0.
-Batteries are documented in the increment's PR description (the established
-practice) — they are not committed as code unless the authority asks.
+Batteries are documented in the increment's PR description. This implementation
+also keeps the cross-group battery executable at
+`scripts/test-conformance-mutations.mjs` so future kernel changes can replay it
+locally.
 
 ## Increment index
 

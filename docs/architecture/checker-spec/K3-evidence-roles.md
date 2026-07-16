@@ -41,8 +41,8 @@ mechanical half of issue #18's acceptance criteria; the semantic half
   `contradictory` edge attached to an absorbed claim must exist (same
   source, role) on the canonical claim — merges may not shed contradictions.
 - K3.8 (`inference markers resolve`): every marker's `claim_id` is `active`
-  + carried/merged; `basis_ids` resolve to existing `CC`/`PKT` ids;
-  `uncertainty` non-empty.
+  + carried/merged; every structured `basis_ids` token belongs to the
+  `CC`/`PKT` families and resolves; `uncertainty` non-empty.
 
 **False-positive guards:** claims with dispositions other than
 carried/merged need no edges at all (sparse manual mode) — K3.4 only ranges

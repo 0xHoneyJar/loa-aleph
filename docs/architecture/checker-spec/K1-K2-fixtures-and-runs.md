@@ -57,11 +57,14 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
   manifest's state log shows the run reached the state that produces them
   (state→artifact table hardcoded from doc 04's "Emits" column).
 - K2.2 (`manifest`): manifest carries mode, doctrine_sha (40-hex), corpus
-  hash, ≥1 state-log row; every state-log transition follows an edge of the
+  hash, exactly one `run_id` (`RUN-<slug>`), exactly one `predecessor_run`
+  (`none` or a different `RUN-<slug>`), and ≥1 state-log row; every state-log
+  transition follows an edge of the
   doc-02 §3 machine — forward states in machine order without gaps, `BLOCKED`
   allowed any number of times with each occurrence followed by re-entry into
-  the state it interrupted (or by run end); every sign-off gate row required
-  by reached states is present (S0 approval before any packet exists).
+  the state it interrupted (or by run end); timestamps never move backwards;
+  S0 approval predates the first S2 packetization entry; and each
+  `PROJECTION-ACCEPTED` cycle has a positive P3 sign-off row.
 - K2.3 (`forbidden tokens`, fixture runs only): the fixture-layer
   absolute-forbidden token scan (same zero-tolerance semantics, same token
   list as the existing checker) applied to every file of a run directory
@@ -75,12 +78,17 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
   (`L⟨a⟩-L⟨b⟩` with a≤b within file line count; `M⟨n⟩`/`M⟨n⟩:S⟨k⟩` positive
   ints); its `span_hash` equals sha256 of the located span bytes
   (`node:crypto` is a built-in — allowed).
-- K2.5 (`id integrity`): every `PKT-`/`CC-`/`SRC-`/`PC-`/`RC-`/`REF-`/`STM-`
-  /`VER-` token anywhere in the run directory resolves to a defining row in
-  its home ledger (generalizes C1/C4/C7). Defining locations table is fixed
-  in the spec: packet-index, claim-inventory, corpus manifest,
-  pre-cluster-tags, route-cards dir, external-referents, stress-test-matrix,
-  verification/harness files respectively.
+- K2.5 (`id integrity`): every `RUN-`/`SRC-`/`PKT-`/`CC-`/`NB-`/`PC-`/`RC-`
+  /`REF-`/`STM-`/`VER-`/`PRJ-` token anywhere in the run directory resolves
+  to exactly one definition (generalizes C1/C4/C7). Fixed homes are:
+  `run-manifest.md`'s `run_id`, corpus manifest, packet index, claim inventory,
+  negative-boundary ledger, pre-cluster tags, route-card files, external-
+  referent ledger, stress-test matrix, verifier files, and the projection
+  commission's `projection_id` row, respectively. A rendered projection or
+  trace cites its `PRJ-*`; neither is a second definition. The sole exception
+  to local-home resolution is the manifest's typed `predecessor_run`: it names
+  an external prior run whose directory/hash verification is outside this
+  run-local checker.
 - K2.6 (`claim table shape`): claim-inventory rows have exactly 10 columns
   (template T3.2); exactly one disposition from the seven on `active` rows;
   `packets` non-empty; `sources` equals the union of the cited packets'
@@ -101,8 +109,9 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
 - K2.11 (`precis consistency`, only when `precis.md` exists): run the
   existing fixture-layer Précis checks (envelope-17, neutrality boundary,
   C1–C8) against the run's `precis.md` with expectations derived from the
-  run ledgers (ID sets, totals), plus: §4 rows equal the 4-column projection
-  of `active` inventory rows exactly (same ids, same dispositions).
+  run ledgers (ID sets, all seven counts, total, and exact §2 source
+  inventory), plus: §4 rows equal the 4-column projection of `active`
+  inventory rows exactly (same ids, same dispositions).
 - K2.12 (`kernel honesty`, when `verification/kernel-report.md` exists):
   report names a checker command containing `validate-run.mjs`; result field
   is PASS/FAIL; a run whose manifest reached VERIFIED must have a PASS
@@ -119,8 +128,9 @@ new schemes get verification when their fixture arrives.
 ASSEMBLED before CORPUS-FROZEN → K2.2; forbidden token in a fixture run's
 `run-log.md` → K2.3, while the same token in a run directory outside
 `docs/fixtures/` → no finding (exemption proven, not assumed);
-tampered span (hash mismatch) → K2.4; `PKT-9999` cited in a route card
-→ K2.5; inventory row with two dispositions → K2.6; ledger total off by one
+tampered span (hash mismatch) → K2.4; dangling `PKT-*`, `RUN-*`, `NB-*`, or
+`PRJ-*` citation, or duplicate `PRJ-*` commission definition → K2.5;
+inventory row with two dispositions → K2.6; ledger total off by one
 → K2.7; absorbed claim missing a source in canonical set → K2.8; criteria
 timestamp after first S2 log entry → K2.9; `superseded-by:PKT-0999`
 (nonexistent) → K2.10; §4 in precis.md missing one active claim → K2.11.

@@ -5,6 +5,10 @@
 > unresolved claims / questions into portable context packets — Research Précis for repos
 > to ingest.
 
+Start at [`AGENTS.md`](AGENTS.md) to run the method manually, conduct a
+supervised agent evaluation, author a projection, extend the substrate, or
+consume an accepted artifact.
+
 ## What Aleph is
 
 Aleph is a **process substrate**. It turns a messy, bounded body of research —
@@ -73,7 +77,7 @@ Aleph                                       (this repo)
   │    ↓
   │  projection-neutral Research Précis file  (core artifact)
   │    ↓
-  └─ Stage 2: projection stage                (Aleph-owned, later slices)
+  └─ Stage 2: projection stage                (Aleph-owned, acceptance-gated)
        ↓
      finished consumer documents
   ↓
@@ -99,13 +103,30 @@ consumers need it; no single downstream sits on the path of any other.
 
 ## Status
 
-Pre-implementation. The current scope is **Phase 0/1**: prove that a bounded
-corpus can become one projection-neutral Précis file with a complete
-candidate-claim disposition trail. See `docs/precis-wedge.md` for the wedge
-definition and acceptance criteria, and `docs/responsibility-map.md` for what
-Aleph owns and does not own.
+**Local substrate implementation candidate.** The repository now contains the
+manual and supervised-agent runbooks, full artifact templates, prompt pack, a
+complete golden manual-run fixture, evidence/routing/projection fixtures,
+product-doctrine and software-PRD projection packages, and dependency-free
+K1-K6 deterministic checks. The fixture suite exercises the full path from
+frozen source spans through a neutral Précis and into both rendered projection
+types.
 
-No endpoint yet. No final schema freeze beyond the v0 acceptance envelope.
+This is not a v1 declaration. Agent mode has not completed an accepted real
+corpus run; manual-to-agent reconstruction and mode equivalence have not been
+demonstrated; convergent-heavy and known-category-plus-novel-delta routing
+remain unvalidated; and no real Tier-1 or Tier-2 output has received independent
+audit and authority acceptance. Fixture-simulated sign-offs prove record shapes,
+not governance or output quality.
+
+Run the deterministic suite from the repository root:
+
+```bash
+node scripts/validate-precis-fixtures.mjs
+node scripts/test-conformance-mutations.mjs
+```
+
+No endpoint is part of this product, and there is no final schema freeze beyond
+the accepted provisional v0 envelope.
 
 **Projection is a separate downstream stage.** The Précis itself stays strictly
 projection-neutral and never generates a finished document. Aleph additionally

@@ -1,7 +1,9 @@
 # 05 — Orchestration on Fable 5 (Agent-Mode Execution Design)
 
-> Status: PROPOSED (see [`README.md`](README.md)). This document designs agent
-> mode around what Claude Fable 5 (`claude-fable-5`) is actually good at,
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md);
+> agent mode remains unsanctioned. This document designs agent mode around
+> what Claude Fable 5 (`claude-fable-5`) is actually good at,
 > per the research in [`11-research-grounding.md`](11-research-grounding.md).
 > It authorizes no tooling; the runbook slice and dry-run slice in
 > [`10-build-roadmap-slices.md`](10-build-roadmap-slices.md) make it real.

@@ -1,11 +1,16 @@
 # 13 — Build Handoff (for any implementing agent or human)
 
-> Status: PROPOSED handoff brief. You are reading the entry point for
-> **building** the Aleph Method. Everything you need is in this repo; this
-> document sequences it into work packages with definitions of done. Where
-> this brief and the accepted doctrine disagree, doctrine wins; where this
-> brief and the other architecture docs disagree, flag it in your PR instead
-> of guessing.
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> You are reading the entry point for **building** the Aleph Method. Everything
+> needed for the substrate is in this repo; this document sequences it into
+> work packages with definitions of done. Where this brief and accepted
+> doctrine disagree, doctrine wins.
+>
+> **Local implementation status (2026-07-16):** WP1-WP8 content is present in
+> this worktree and the deterministic fixture suite is green. The handoff's
+> governance completion signal still requires independent review, publication,
+> and merge; local implementation is not that acceptance.
 
 ## 0. Mission
 
@@ -28,8 +33,10 @@ performed later, under supervision, per the runbooks.
 3. This architecture tree in its README reading order (docs 01–12).
 4. The build kits: [`templates/`](templates/), [`prompts/`](prompts/),
    [`checker-spec/`](checker-spec/).
-5. Open context: PR #16 (front door), issue #18 (evidence-role research —
-   WP4 implements its PROPOSE), the daily-research issues for flavor.
+5. Historical context: PR #16 supplied the first front-door draft, but its
+   pre-implementation status text is superseded by the `AGENTS.md` in this
+   worktree and must be reconciled or closed before publication. Issue #18
+   supplies the evidence-role research implemented by WP4.
 
 Sanity check before starting: `node scripts/validate-precis-fixtures.mjs`
 must print `RESULT: PASS`.
@@ -41,11 +48,13 @@ must print `RESULT: PASS`.
   merge. Whoever builds is not the one who audits — if you have historically
   played the auditor role in this repo, someone else audits your build work;
   never self-audit.
-- **One work package = one branch = one PR.** Branch naming
-  `aleph-slice-⟨n⟩-⟨slug⟩` per existing convention. PR descriptions follow
-  the house pattern visible in merged PRs #1–#11: what this proves, files,
-  boundaries ("Not in this PR"), validation evidence (checker output,
-  battery results), audit note.
+- **Default: one work package = one branch = one PR.** Decision 0003 permits
+  the current substrate build to combine implementation commits on one branch.
+  That exception does not combine capability or acceptance claims: each WP's
+  evidence, boundaries, audit result, and authority disposition remain
+  separately reviewable. Branch naming otherwise follows
+  `aleph-slice-⟨n⟩-⟨slug⟩`; PR descriptions name what the change proves, files,
+  boundaries, validation evidence, and audit status.
 - **Authority gates for the builder:** starting a WP whose slice the
   authority has not green-lit; any doctrine amendment (only WP5 contains
   one, and it is confined to the paragraphs listed there); any deviation
@@ -65,14 +74,10 @@ WP8 last. Roadmap mapping in parentheses.
 
 ### WP1 — Review-and-land the build kits (slice 7 + 8)
 
-The templates, prompts, and checker specs in this tree are drafts. Drive
-them through review to acceptance so later WPs build on approved shapes.
-
-Work: open the review PR (this branch may serve); walk the authority through
-the 12 open questions (doc 12 §2) that block later WPs — minimally Q2
-(hard/soft split), Q4 (locator schemes), Q5 (claim-type column), Q11
-(verdict placement); record decisions as amendments to the affected files in
-the same PR.
+The templates, prompts, and checker specs are accepted for implementation by
+Decision 0003 and remain provisional where marked. Q2, Q4, Q5, and Q11 have
+recorded dispositions in that decision and doc 12. Independent review and
+merge remain the governance work needed to land them.
 
 **DoD:** authority dispositions recorded per file; open questions Q2/Q4/Q5/
 Q11 decided and folded in; audit passed; merged. **Not in scope:** any code.
@@ -87,8 +92,10 @@ consumer (human, agent, checker, replay) learns from.
 Work, in order: copy slice-2's `corpus.md` sources into the run layout
 (split into per-source files under `corpus/sources/`, preserving content
 exactly; manifest rows per T2.1); write criteria (T2.2) consistent with
-slice-2's precis §3; walk S2–S11 by hand — expect roughly 60–90 packets,
-the existing 14 claims (CC-101..114 with their accepted dispositions —
+slice-2's precis §3; walk S2–S11 by hand. Fixture evidence found fourteen
+claim-bearing paragraphs, so the golden uses fourteen tight, non-overlapping
+packets rather than manufacturing overlap to meet the original rough estimate.
+Carry the existing 14 claims (CC-101..114 with their accepted dispositions —
 the golden must agree with the accepted Précis), the accepted merge map,
 evidence-role edges (new work), tags/cards/routing (new work — expect 3–5
 route clusters; the CC-105/106 contradiction cluster is adversarial-
@@ -167,11 +174,12 @@ traces resolve end to end (spot-verified in PR); audit; merged.
 
 ### WP8 — Wire the front door
 
-After PR #16 lands: extend `AGENTS.md` (or add a linked page, authority's
-call) so a zero-context agent is routed: "running a distillation? → runbook
-08 + templates + prompts; building? → this handoff; consuming? → artifact
-contracts." Update the architecture README index if paths moved during
-review.
+The current `AGENTS.md` incorporates and extends PR #16's front-door intent so
+a zero-context agent is routed: "running a distillation? → runbook 08 +
+templates + prompts; building? → this handoff; consuming? → artifact
+contracts." Its status table reflects the implemented local substrate. PR #16
+still carries the older pre-implementation status and must be reconciled or
+closed before this front door is published.
 
 **DoD:** a zero-context reader can reach every kit in ≤2 hops from the repo
 root; links verified; audit; merged.

@@ -1,10 +1,11 @@
 # Artifact Templates — Usage Rules
 
-> Status: PROPOSED. These are the copy-into-a-run templates for every artifact
-> in [`../03-artifact-contracts.md`](../03-artifact-contracts.md). They are
-> **provisional shapes** (no schema freeze): the golden-run slice (WP2 in
-> [`../13-build-handoff.md`](../13-build-handoff.md)) is expected
-> to amend them from experience, in the same PR that authors the fixture.
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../../decisions/0003-architecture-build-kit-implementation.md).
+> These are the copy-into-a-run templates for every artifact in
+> [`../03-artifact-contracts.md`](../03-artifact-contracts.md). They remain
+> **provisional shapes** (no schema freeze); the golden run exercises the
+> current forms, and future fixture evidence may amend them in lockstep.
 
 ## How to use
 

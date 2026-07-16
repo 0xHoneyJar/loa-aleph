@@ -1,11 +1,11 @@
 # Aleph Architecture Plan — The Agentic Research Method
 
-> **Status: PROPOSED.** This tree is an architecture plan, not accepted doctrine.
-> It authorizes no tooling, amends no accepted document, freezes no schema, and
-> changes no checker behavior. Per Aleph discipline, each element here becomes
-> real only through its own audited slice, approved by the product/architecture
-> authority. Until then, treat everything under `docs/architecture/` as a
-> detailed proposal handed to whoever builds next — agent or human.
+> **Status: ACCEPTED FOR IMPLEMENTATION by
+> [Decision 0003](../decisions/0003-architecture-build-kit-implementation.md).**
+> This tree remains subordinate to accepted doctrine and does not freeze a
+> schema. Its artifact shapes become mechanically binding only when a fixture
+> and checker land together. Capability claims still require the replay and
+> authority evidence named in this plan.
 
 ## What this is
 
@@ -51,7 +51,7 @@ execute without design decisions left open:
 | Kit | Contents |
 |-----|----------|
 | [`templates/`](templates/README.md) | Copy-into-a-run templates for every artifact: exact table shapes, filling rules, micro-examples, Précis rendering rules |
-| [`prompts/`](prompts/README.md) | The prompt-pack drafts: assembly rules, common preamble, orchestrator prompt, all worker roles with bundles/withholds and output contracts, all verifier lens charters with quorum defaults |
+| [`prompts/`](prompts/README.md) | The accepted-for-supervised-use prompt pack: assembly rules, common preamble, orchestrator prompt, all worker roles with bundles/withholds and output contracts, all verifier lens charters with quorum defaults |
 | [`checker-spec/`](checker-spec/README.md) | Implementation specs for kernel increments K1–K6: per-check rules, exact FAIL formats, false-positive guards, negative-battery case lists |
 
 **If you are the builder — any implementing agent or human — start at
@@ -96,13 +96,17 @@ derivation cards). Repo-consumption mode ingests the artifacts. The difference
 between modes is who runs the steps and how densely the bookkeeping is
 materialized — never what the steps are or what must be true at the end.
 
-## What this plan deliberately is not
+## Boundaries and implementation status
 
-- Not a doctrine amendment. The wedge, the disposition contract, ADR 0001, ADR
-  0002, and the checker are untouched and load-bearing.
-- Not implementation. No code, no schema freeze, no CI, no endpoint. Where the
-  plan sketches field lists it sketches **provisional** shapes, in the same
-  spirit as the v0 acceptance envelope: packets run first, matrices name the
-  structure second.
-- Not permission. The roadmap in `10-build-roadmap-slices.md` names the slices
-  that would make each part real; each slice needs its own approval and audit.
+- Not a doctrine amendment. The wedge, disposition contract, and ADRs remain
+  load-bearing; fixture-backed K1-K6 checks implement their structural
+  boundaries without taking over semantic judgment.
+- The initial substrate implementation now lives in the golden fixtures,
+  projection packages, front door, and dependency-free K1-K6 scripts.
+  Implementation does not freeze the provisional Markdown shapes.
+- This plan is not capability evidence. Agent mode, real-output quality,
+  mode equivalence, convergent-heavy routing, and v1 remain gated by the
+  replays, audits, and authority decisions named here.
+- It is not permission for an endpoint, autonomous truth engine, extractor,
+  crawler, or unattended acceptance path. The do-not-build list remains
+  binding.

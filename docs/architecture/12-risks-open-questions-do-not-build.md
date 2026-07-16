@@ -1,7 +1,10 @@
 # 12 — Risks, Open Questions, Do-Not-Build
 
-> Status: PROPOSED (see [`README.md`](README.md)). Re-walk this document at
-> every phase boundary of [`10-build-roadmap-slices.md`](10-build-roadmap-slices.md).
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> Re-walk this document at every phase boundary of
+> [`10-build-roadmap-slices.md`](10-build-roadmap-slices.md); resolved questions
+> below retain their recorded disposition.
 
 ## 1. Risk register
 
@@ -28,16 +31,16 @@
 | # | Question | Context | Decide by |
 |---|----------|---------|-----------|
 | Q1 | **Recipe vs invariants** — how prescriptive may instructions be before they fight the doctrine's method-neutrality (the fork PR #16 stayed independent of)? | tenets T1/T10 vs R15 | slice 7 |
-| Q2 | **Hard vs soft conformance** — ratify the proposed split (T1 few/hard/fail-closed; T2 evidence-not-exit-codes)? | doc 06 §1 | slice 7, confirmed in practice at slice 9 |
+| Q2 | **RESOLVED by Decision 0003:** T1 is structural and fail-closed; T2 produces judgment evidence, not truth exit codes. | doc 06 §1 | confirmed in practice by the golden run and kernel |
 | Q3 | **Envelope amendments** — do evidence-role summary and routing/card summary join the 17 fields, and when? | artifact 17; R1 | slice 20 (informed by 10, 11, 14) |
-| Q4 | **Span-locator scheme per source format** — line ranges? message indices? content-anchored quotes? (chat exports re-serialize badly) | artifact 4; ID rules | slice 9 |
-| Q5 | **Claim-type field** — does it earn its place in the inventory, or is it prose-policing bait? | artifact 5 | slice 9/10 fixtures |
+| Q4 | **PARTIALLY RESOLVED by Decision 0003:** `md-lines` byte semantics are fixed; `chat-msg` remains mechanically unverified pending a fixture. | artifact 4; ID rules | next conversation-export fixture |
+| Q5 | **RESOLVED PROVISIONALLY by Decision 0003:** retain the closed claim-type field as unchecked routing metadata and revisit it at envelope review. | artifact 5 | slice 20 evidence review |
 | Q6 | **ID stability mechanics** — hash-matched reuse across re-runs: exact matching rules, collision policy | doc 02 §2 | slice 9 (paper), slice 13 (practice) |
-| Q7 | **Incremental corpora** — new material after a run: always a new run? corpus extensions with Précis versioning? diff-Précis? | corpus-freeze rule | after slice 14 (real need will teach) |
+| Q7 | **PARTIALLY RESOLVED by Decision 0003:** material received after freeze always starts a successor run whose manifest names the prior run; Précis versioning and diff mechanics remain open. | corpus-freeze rule | after slice 14 for version/diff mechanics |
 | Q8 | **Redaction vs exclusion for sensitive spans** — how does a redacted span keep a working locator and honest accounting? | R9 | before slice 14's S0 |
 | Q9 | **Verifier quorum/sampling defaults** — the doc 06 §3 numbers are placeholders | doc 06 | slice 13 sets, slice 14 confirms |
 | Q10 | **Hybrid-mode manifest conventions** — per-stage actor recording when humans and agents split a run | doc 09 §5 | slice 15 |
-| Q11 | **Where verifier detail lives relative to the Précis** — verification *summary* is envelope §16; are verdict files portable companions or run-internal? | artifacts 15/17; portability contract | slice 9 |
+| Q11 | **RESOLVED by Decision 0003:** verdict files are run-internal portable companions; Précis §16 carries summary and sampling honesty. | artifacts 15/17; portability contract | implemented by the golden run |
 | Q12 | **Runner packaging** — when agent mode is sanctioned, do prompt-packs ship as plain docs, or as harness-native skills/commands? (must not fork manual mode) | doc 02 §4 | after slice 13 |
 
 ## 3. Do-not-build (consolidated, standing)
@@ -49,7 +52,10 @@ slice:
 - **No served endpoint / API / live service.** File-first stands. Integration
   surfaces, if ever, project from artifacts.
 - **No web crawler / live citation resolver / general search engine.**
-  External material enters as scoped intake through S0/REF, or not at all.
+  External material enters through scoped S0/REF intake; material received
+  after freeze enters only in a successor run whose manifest names the prior
+  run. The current run may resolve a referent only through a recorded authority
+  statement/sign-off without corpus mutation.
 - **No truth engine.** The method verifies *support within a declared
   corpus*, never facthood at large. The checker never judges semantics; the
   harness never claims more than "survived attack".
