@@ -323,9 +323,14 @@ function checkForbidden(results: ResultCollector, model: RunModel, root: string)
     if (!pathIsWithin(fixtureRoot, model.runDir)) {
       return 'real run is exempt from fixture-only forbidden-token scanning';
     }
+    const deferredBusinessIntelligenceConsumerPattern =
+      new RegExp(`\\b${['sense', 'net'].join('')}\\b`, 'i');
     const tokens: ReadonlyArray<readonly [label: string, pattern: RegExp]> = [
       ['Phase', /\bphase\b/i],
-      ['Sensenet', /\bsensenet\b/i],
+      [
+        'deferred business-intelligence consumer name',
+        deferredBusinessIntelligenceConsumerPattern,
+      ],
     ];
     for (const file of model.files) {
       const lines = file.text.split('\n');

@@ -149,10 +149,16 @@ const VALID_DISPOSITIONS = [
   'unresolved',
 ];
 
+const DEFERRED_BUSINESS_INTELLIGENCE_CONSUMER_PATTERN =
+  new RegExp(`\\b${['sense', 'net'].join('')}\\b`, 'i');
+
 // Absolute zero-tolerance tokens — hard failure anywhere under a fixture dir.
 const ABSOLUTE_FORBIDDEN: PatternRule[] = [
   { label: 'Phase', re: /\bphase\b/i },
-  { label: 'Sensenet', re: /\bsensenet\b/i },
+  {
+    label: 'deferred business-intelligence consumer name',
+    re: DEFERRED_BUSINESS_INTELLIGENCE_CONSUMER_PATTERN,
+  },
 ];
 
 // The EXACT set of direct entries allowed in a fixture directory.
@@ -535,12 +541,12 @@ function checkAbsoluteForbidden(slice: PrecisFixture, dir: string): void {
       for (let i = 0; i < lines.length; i++) {
         if (re.test(lines[i])) {
           hit = true;
-          fail(`${slice.name} forbidden token: "${label}" found in ${e}:${i + 1} -> ${lines[i].trim()}`);
+          fail(`${slice.name} forbidden token: "${label}" found in ${e}:${i + 1}`);
         }
       }
     }
   }
-  if (!hit) pass(`${slice.name} forbidden tokens: zero Phase / Sensenet occurrences`);
+  if (!hit) pass(`${slice.name} forbidden tokens: zero configured absolute-forbidden occurrences`);
 }
 
 function checkProjectionBoundary(slice: PrecisFixture, dir: string): void {

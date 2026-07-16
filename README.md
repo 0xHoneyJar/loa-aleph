@@ -83,20 +83,22 @@ Aleph                                       (this repo)
   ↓
 ┌───────────────┬───────────────┬────────────────┐
 ↓               ↓               ↓
-Sensenet        Freeside        other Loa repos
-business/       product/        future consumers
-market intel    platform use
+business/       Freeside        other Loa repos
+market-intel    product/        future consumers
+consumers       platform use
 (may also project the neutral Précis themselves)
 ```
 
-Sensenet is an adjacent optional consumer / projection layer, not a mandatory
-intermediary between Aleph and Freeside. The Précis fans out to whichever
-consumers need it; no single downstream sits on the path of any other.
+An adjacent business / market-intelligence consumer or projection layer is
+optional, not a mandatory intermediary between Aleph and Freeside. The Précis
+fans out to whichever consumers need it; no single downstream sits on the path
+of any other.
 
 - **Aleph** — research handoff / distillation substrate. Produces portable
   Research Précis files for repos to ingest.
-- **Sensenet** — stack-wide business / market-intelligence substrate. Not
-  Aleph; not Freeside-specific. (See its own repo.)
+- **Business / market-intelligence consumer** — a future, optional, stack-wide
+  downstream role. It is outside Aleph, is not Freeside-specific, and may
+  project the neutral Précis under its own contract.
 - **Freeside** — product / platform surface (token gating, teams, growth loops).
   The first concrete consumer context for current research, not the boundary of
   anything upstream.

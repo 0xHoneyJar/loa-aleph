@@ -50,8 +50,9 @@ That the accepted Précis fixtures are not merely human-readable but carry
 
 1. **Fixture shape** — each fixture directory contains exactly `README.md`,
    `corpus.md`, `precis.md`, and is Markdown-only (no code/data/subdirs leak in).
-2. **Absolute forbidden tokens** — zero occurrences of `Phase` or `Sensenet`
-   anywhere under a fixture directory (hard, context-free zero-tolerance).
+2. **Absolute forbidden tokens** — zero occurrences of `Phase` or the deferred
+   business-intelligence consumer's proper name anywhere under a fixture
+   directory (hard, context-free zero-tolerance).
 3. **Projection boundary** — the Précis does not *generate* a downstream
    projection. A line is flagged only when it pairs a projection noun
    (`PRD`, `GTM`, `market landscape`, `product spec`, `projection`, …) with a

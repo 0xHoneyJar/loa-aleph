@@ -85,8 +85,9 @@ Tier 2.
   provenance rules are untouched.
 - The Précis-layer neutrality guard in the checker stays exactly as strict: a
   `precis.md` that tries to generate a projection still fails closed.
-- Business / market intelligence (Sensenet) remains a separate, deferred concern.
-  Adding a projection stage to Aleph does not pull Sensenet's scope into Aleph.
+- Business / market intelligence remains a separate, deferred downstream
+  concern. Adding a projection stage to Aleph does not pull that downstream
+  scope into Aleph.
 
 ## Consequences
 

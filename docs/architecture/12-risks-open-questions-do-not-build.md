@@ -23,7 +23,7 @@
 | R11 | **Convergent arm stays unvalidated but gets used anyway** — schedule pressure normalizes S9b output | med | high | unvalidated-arm notice is mandatory in manifest + Précis known-limits; validation ledger is checked by audit | culture risk more than mechanism risk |
 | R12 | **Model drift / non-reproducibility** — same run, different month, different behavior | high | med | pin model IDs + doctrine SHA per run; goldens are permanent; re-run replays when models change (doc 06 §5) | bitwise reproducibility is not on offer; contract-level equivalence is the standard |
 | R13 | **Refusal-blocked content skews completeness** — safety classifiers refuse spans of a legitimate corpus | low | med | `refusal-blocked` as a recorded extraction class; manual-mode fallback for those sources; accounting still balances (doc 05 §9) | a heavily-affected corpus may need a different model or manual run (authority call at S0) |
-| R14 | **Scope creep into Sensenet/Freeside territory** — projections quietly become market intel or product surfaces | med | med | responsibility map; projection plugin registry reviewed at acceptance; do-not-build list below | fan-out pressure is permanent; the boundary is doctrinal |
+| R14 | **Scope creep into business/market-intelligence territory or Freeside's product/platform territory** — projections quietly become market intel or product surfaces | med | med | responsibility map; projection plugin registry reviewed at acceptance; do-not-build list below | fan-out pressure is permanent; the boundary is doctrinal |
 | R15 | **The plan itself over-specifies** — this tree becomes step-scripts that degrade execution (the de-prescription finding, applied to us) | med | med | contracts state *what must be true*, runbooks state judgment calls; slice 7 review explicitly prunes; prompt-pack audit checks for step-scripts | the tension is real; err toward invariants over instructions |
 
 ## 2. Open questions (each needs an owner and a decide-by slice)
@@ -67,8 +67,9 @@ slice:
   the graph is reconstructable, not enshrined.
 - **No ranking/recommendation product; no citation-count scoring.** Volume is
   never quality (T12).
-- **No business/market-intelligence projections inside Aleph** (Sensenet's
-  future lane) and **no product/platform surfaces** (Freeside's lane).
+- **No business/market-intelligence projections inside Aleph** (a future
+  business/market-intelligence consumer's lane) and **no product/platform
+  surfaces** (Freeside's lane).
 - **No blanket bans on AI-generated sources.** Classify and bound them
   (trust class, evidence roles); don't censor the corpus.
 - **No invisible pre-extraction discard path** under any label ("low
