@@ -1,7 +1,9 @@
 # 09 — Runbook: Manual Mode
 
 > Status: ACCEPTED FOR IMPLEMENTATION by
-> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md),
+> with the immutable manual execution binding fixed by
+> [`Decision 0004`](../decisions/0004-core-adapter-and-bundle-boundary.md).
 > Manual mode is the currently sanctioned path (routing doctrine §13) and the
 > mode the accepted fixtures were authored in. This runbook writes down how a human executes the
 > full method at **reconstructable fidelity** — sparse bookkeeping a later
@@ -29,8 +31,11 @@ whole trail.
 
 ## 2. Equipment
 
-A run directory (same layout as agent mode — create the folders, fill what
-manual mode fills), a text editor, and the worksheets below. Manual mode never
+A verified immutable Core bundle and lock, a run directory (same layout as
+agent mode — create the folders, fill what manual mode fills), an immutable
+runtime snapshot, a text editor, and the worksheets below. New manual runs pin
+the reserved `core-manual` execution binding; it is not a native agent adapter.
+Manual mode never
 requires producing machine-twin files, routing logs, or exhaustive verifier
 records; the Markdown ledgers and cards are the complete manual artifact set.
 
@@ -39,8 +44,10 @@ records; the Markdown ledgers and cards are the complete manual artifact set.
 Work the same S0–S13 order as doc 04. Per-stage manual guidance, with the
 sparse substitutions called out:
 
-**S0–S1 (intake, inventory, criteria).** Identical to agent mode — these
-stages were designed at hand scale. Freeze the corpus (copy the files in;
+**S0–S1 (intake, inventory, criteria).** Record the Core, `core-manual`,
+bundle, checker, protocol/run-format, host=`human-operator`, model=`human`, and
+runtime-snapshot pins before corpus freeze. Otherwise these stages are
+identical to agent mode and were designed at hand scale. Freeze the corpus (copy the files in;
 note a checksum if you can, a file listing with sizes if you cannot). Write
 the extraction criteria *before* reading deeply; if you have already read
 deeply, write down the criteria your instincts are using — honesty beats

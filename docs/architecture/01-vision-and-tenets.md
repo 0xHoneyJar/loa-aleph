@@ -1,7 +1,9 @@
 # 01 — Vision and Tenets
 
 > Status: ACCEPTED FOR IMPLEMENTATION by
-> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md),
+> with distribution mechanics narrowed by
+> [`Decision 0004`](../decisions/0004-core-adapter-and-bundle-boundary.md).
 > Nothing here amends accepted doctrine; where this document restates doctrine
 > it cites it.
 
@@ -11,8 +13,8 @@ The goal was fixed by Decision 0001 and is restated here as the north star:
 
 > A person should be able to download loa-aleph, drop in their own research,
 > and get a finished document out — a PRD, an SSD, a product-doctrine, an
-> MVP-wedge selection — in either of two modes: **agent mode** (an agent syncs
-> `main`, follows the repo's instructions, and produces the document) or
+> MVP-wedge selection — in either of two modes: **agent mode** (an agent
+> executes an immutable Aleph Core bundle through a sanctioned host adapter) or
 > **manual mode** (a person follows the same instructions by hand, with no
 > agent, and reaches the same result).
 
@@ -161,11 +163,12 @@ honestly be called v1 — is the conjunction of:
    Straylight precedent and slice-2) *and* the convergent-heavy /
    known-category-plus-novel-delta hybrid each have at least one accepted
    golden replay corpus, and the validation ledger says so.
-3. **Agent mode proven.** A Fable 5–class agent has executed a full run on a
-   real corpus (instance #1: the 333-conversation export curated to ~20
-   threads) under the runbook, producing a Précis that passed the conformance
-   kernel, the verification harness, an independent audit, and authority
-   acceptance — with the run directory demonstrating every invariant.
+3. **Agent mode proven.** A protocol-conforming host adapter has executed a
+   full run on a real corpus (instance #1: the 333-conversation export curated
+   to ~20 threads) under the runbook, producing a Précis that passed the
+   conformance kernel, the verification harness, an independent audit, and
+   authority acceptance — with the run directory and immutable bundle/runtime
+   pins demonstrating every invariant.
 4. **Manual mode proven.** A human has executed at least one bounded corpus by
    hand under the manual runbook, and an agent has reconstructed the full
    derivation graph from the human's sparse cards plus raw source (the

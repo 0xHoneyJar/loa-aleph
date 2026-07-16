@@ -2,18 +2,23 @@
 
 Primary entry points:
 
+- `scripts/validate-core-boundary.ts`: repository inventory, adapter lifecycle,
+  typed-reference, ownership, and immutable-bundle boundary validation.
 - `scripts/validate-precis-fixtures.ts`: discovered-fixture dispatcher plus
   the accepted Slice 1/Slice 2 Précis checks.
 - `scripts/validate-run.ts`: import-safe K2-K6 validator for run and run-lite
   directories.
 - `scripts/test-conformance-mutations.ts`: temporary-copy fail-closed battery.
+- `scripts/test-core-boundary-mutations.ts`: temporary-repository negative
+  battery for classification, schema shape, ownership, foreign references and
+  host requirements, and lifecycle, plus Core/host-only rebuild selectivity.
 
-All three runtime surfaces use Node built-ins only, are local, and fail closed.
+All five runtime surfaces use Node built-ins only, are local, and fail closed.
 The development dependencies are the TypeScript compiler and Node type
 definitions used by the static typecheck; there is no emitted build artifact.
-The two validators are read-only over their target artifacts. The mutation
-battery writes only disposable fixture copies beneath the operating system's
-temporary directory and never mutates repository state. The checkers prove
+All three validators are read-only over their target artifacts. The mutation
+batteries write only disposable copies beneath the operating system's temporary
+directory and never mutate repository state. The checkers prove
 structural, accounting, hash, reference, state, taint, and projection-trace
 invariants. They do not judge semantic truth or grant authority acceptance.
 
@@ -22,24 +27,31 @@ invariants. They do not judge semantic truth or grant authority acceptance.
 ```bash
 npm install
 npm run typecheck
+node scripts/validate-core-boundary.ts
 node scripts/validate-precis-fixtures.ts
 node scripts/validate-run.ts --run docs/fixtures/run-slice-2
 node scripts/test-conformance-mutations.ts
+node scripts/test-core-boundary-mutations.ts
 ```
 
 - Node 22.18 or newer executes the `.ts` files directly through native type
   stripping. Runtime validation uses Node built-ins only.
 - `npm install` installs only the pinned development typechecking toolchain.
   `npm run typecheck` emits no files.
-- Both validation scripts read files only, write nothing, and mutate no repo
+- The Core-boundary validator inventories tracked and nonignored untracked
+  paths, and computes Core/checker/adapter payload, lock, and bundle digests.
+- All three validation scripts read files only, write nothing, and mutate no repo
   state.
-- The mutation battery copies fixtures beneath the operating system's temporary
+- The conformance mutation battery copies fixtures beneath the operating system's temporary
   directory, mutates only those copies, and removes its temporary root on exit.
+- The Core-boundary mutation battery creates disposable local Git repositories
+  beneath the operating system's temporary directory and never mutates this
+  checkout.
 - Exit code `0` = all checks pass; non-zero = at least one invariant failed
   (**fail-closed**). Prints a per-check PASS list and, on failure, a `FAIL …`
   line naming what failed and where.
 
-Both validation scripts accept `--json`. Both accept `--root <dir>`;
+All three validation scripts accept `--json` and `--root <dir>`;
 `validate-run.ts` additionally requires `--run <path>` and optionally accepts
 `--kind run|evidence-role|routed|projection`.
 

@@ -1,17 +1,19 @@
 # Prompt-Pack — Assembly Rules
 
 > Status: ACCEPTED FOR SUPERVISED IMPLEMENTATION by
-> [`Decision 0003`](../../decisions/0003-architecture-build-kit-implementation.md);
+> [`Decision 0003`](../../decisions/0003-architecture-build-kit-implementation.md),
+> under the Core/adapter boundary in
+> [`Decision 0004`](../../decisions/0004-core-adapter-and-bundle-boundary.md);
 > agent mode remains unsanctioned pending replay. These prompts are documents
 > the agent-mode runner loads **verbatim**; they
-> are reviewed like doctrine, versioned by git, and pinned per run via the
-> manifest's doctrine SHA. Nothing here authorizes running them — the dry-run
-> slice does that.
+> are reviewed like doctrine and included byte-for-byte in the pinned Core
+> tree. Nothing here authorizes running them — the dry-run slice does that.
 
 ## How a worker request is assembled
 
-Every worker/verifier call is composed in this exact order (prompt-cache
-friendly: 1–3 are byte-stable for a whole run; 4–5 vary per call):
+Every worker/verifier call is composed in this exact order. Parts 1–3 are
+byte-stable for a whole run; an adapter may use host caching, but Core does not
+require it:
 
 ```
 1. COMMON PREAMBLE            (below, verbatim)
@@ -57,8 +59,9 @@ Rules that override everything else you might infer:
 
 ## Output contracts
 
-Each role file ends with an `Output contract` — a JSON shape the runner
-enforces via schema-constrained output. Conventions:
+Each role file ends with an `Output contract` — a JSON shape the adapter must
+validate before the single writer may append it. Native schema-constrained
+output is one possible host mechanism, not a Core requirement. Conventions:
 
 - field names mirror the corresponding template columns 1:1 (see
   [`../templates/`](../templates/)); the orchestrator renders returned
@@ -69,14 +72,13 @@ enforces via schema-constrained output. Conventions:
 - every object carries `flags: string[]` for anomalies (empty when none) —
   this is where rule-1 injection notes land.
 
-## Effort defaults
+## Adapter profile mapping
 
-Per doc 05 §5, encoded here so the runner has one source: intake `medium`;
-extractor `high`; normalizer `high`; merge-judge `xhigh`; disposition-judge
-`xhigh`; evidence-role-judge `high`; cartographer `medium`; router `xhigh`;
-panels/reconciler/verifiers `xhigh`; synthesist `high`; assembler `medium`.
-Verifiers never below the effort of the work they audit. Deviations are
-manifest rows.
+Core assigns roles and isolation contracts, not host model or effort values.
+The selected adapter profile maps every role to an exact host/model identity,
+context policy, and effort/capability class, all pinned in the run manifest.
+Verifiers may not use a weaker declared capability class than the work they
+audit. The Fable mapping in doc 05 §5 is reference material only.
 
 ## Files
 

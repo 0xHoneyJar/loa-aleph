@@ -9,10 +9,12 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "validate:core": "node scripts/validate-core-boundary.ts",
     "validate": "node scripts/validate-precis-fixtures.ts",
     "validate:run": "node scripts/validate-run.ts",
+    "test:core-mutations": "node scripts/test-core-boundary-mutations.ts",
     "test:mutations": "node scripts/test-conformance-mutations.ts",
-    "test": "npm run typecheck && npm run validate && node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial && node scripts/validate-run.ts --run docs/fixtures/projection-adversarial && node scripts/validate-run.ts --run docs/fixtures/run-slice-2 && npm run test:mutations"
+    "test": "npm run typecheck && npm run validate:core && npm run validate && node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial && node scripts/validate-run.ts --run docs/fixtures/projection-adversarial && node scripts/validate-run.ts --run docs/fixtures/run-slice-2 && npm run test:mutations && npm run test:core-mutations"
   },
   "devDependencies": {
     "@types/node": "22.20.1",

@@ -22,18 +22,23 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   reproduce, or audit the run.
 - **Producer → consumer:** S0 → everyone; appended at every state transition.
 - **Fields (provisional):** run id; mode (agent/manual/hybrid); corpus
-  reference + content hash; declared corpus scope (prose); doctrine versions
-  (git SHA of the repo docs the run obeyed); model identifiers and effort
-  policy actually used (agent mode) or "human" (manual); budgets granted and
-  spent; state-transition log (state, timestamp, actor); authority sign-offs
-  with dates; known deviations from the runbook, with reasons.
+  reference + content hash; declared corpus scope (prose); Core ID/version/tree
+  digest; adapter ID/version/tree digest (`core-manual` for manual mode);
+  bundle ID/digest and lock reference; checker digest; adapter-protocol and
+  run-format versions; exact host identity; exact model identifiers and the
+  realized profile mapping (or `human`); immutable runtime-snapshot path and
+  digest; source provenance such as a commit SHA; budgets granted and spent;
+  state-transition log (state, timestamp, actor); authority sign-offs with
+  dates; known deviations from the runbook, with reasons.
 - **Invariants:** exists before any other run artifact; the state-transition
   log is append-only and every transition follows an edge of the
   [`02-system-architecture.md`](02-system-architecture.md) §3 state machine —
   forward states appear in machine order without gaps, while `BLOCKED` may
   appear any number of times, each occurrence followed by re-entry into the
-  state it interrupted (or by run end); model identifiers are exact strings,
-  never "latest".
+  state it interrupted (or by run end); all execution pins are exact, never
+  aliases such as "latest"; the original bundle and runtime snapshot govern
+  every resumption. Historical fixtures retain their recorded predecessor
+  format rather than being silently repinned to current bytes.
 
 ## 2. Corpus manifest and source inventory (`corpus/manifest.md`)
 

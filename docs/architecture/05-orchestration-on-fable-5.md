@@ -1,16 +1,24 @@
-# 05 — Orchestration on Fable 5 (Agent-Mode Execution Design)
+# 05 — Fable 5 Adapter Reference Profile
 
 > Status: ACCEPTED FOR IMPLEMENTATION by
 > [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md);
-> agent mode remains unsanctioned. This document designs agent mode around
-> what Claude Fable 5 (`claude-fable-5`) is actually good at,
-> per the research in [`11-research-grounding.md`](11-research-grounding.md).
-> It authorizes no tooling; the runbook slice and dry-run slice in
-> [`10-build-roadmap-slices.md`](10-build-roadmap-slices.md) make it real.
+> narrowed by
+> [`Decision 0004`](../decisions/0004-core-adapter-and-bundle-boundary.md)
+> to a host profile rather than universal Core runner doctrine. Agent mode
+> remains unsanctioned. This document maps Core orchestration invariants onto
+> capabilities associated with Claude Fable 5 (`claude-fable-5`), per the
+> research in [`11-research-grounding.md`](11-research-grounding.md). It
+> implements neither the Loa nor Hermes adapter and authorizes no tooling.
 
-## 1. Why Fable 5, and what that changes
+## 1. Profile scope: why Fable 5, and what it may change
 
-Capability facts the design leans on (sources in doc 11):
+Core requires durable file state, isolated workers, blind bundles, validated
+returns, single-writer ledgers, deterministic checker invocation, human gates,
+pause/resume, and exact execution identity. It does **not** require one model
+family, context size, effort vocabulary, cache, batch API, pricing model, or
+worker-spawn primitive. Those are adapter/profile choices.
+
+Capability facts this Fable profile may use (sources in doc 11):
 
 | Fable 5 capability | Design consequence |
 |---|---|
@@ -26,7 +34,7 @@ Capability facts the design leans on (sources in doc 11):
 | Task budgets (model-aware token ceilings); prompt caching; batch API | Per-stage budget policy (§7); frozen doctrine prefix for cache hits; batch lane for bulk verification |
 | Safety classifiers can refuse (research-bio/cyber domains) | Corpus-content-triggered refusals are a handled failure mode (§9), with fallback policy and manifest logging |
 
-## 2. Topology: one orchestrator, disposable workers, hostile verifiers
+## 2. Profile topology: one orchestrator, disposable workers, hostile verifiers
 
 ```
                         ┌──────────────────────────────┐
@@ -73,25 +81,31 @@ separation is contextual and contractual, not infrastructural):
 The orchestrator may inline small roles (Scribe, Assembler) but **never**
 inlines a verifier: T8 is structural.
 
-## 3. Context strategy
+The diagram is one host mapping. Core requires the role and isolation
+boundaries, not one long-lived session, one model family, or this exact spawn
+topology. Another adapter may realize the same contracts with different host
+mechanics if its preflight and replay evidence prove the capability.
+
+## 3. Core context invariants and the Fable mapping
 
 - **Context bundles per stage.** Each worker receives exactly the artifacts
   its row above allows — assembled as files, not as pasted prose. This is the
-  runtime enforcement of blind context (T9) and it also keeps worker contexts
-  small, cacheable, and reproducible.
+  runtime enforcement of blind context (T9). Every adapter must preserve this
+  invariant.
 - **The orchestrator carries the map, not the territory.** It tracks ledger
   paths, counts, and state — it does not hold the corpus in context. When it
   needs content, it reads the specific artifact.
-- **Prompt-cache layout.** Frozen prefix: doctrine excerpts + stage contract +
+- **Fable prompt-cache layout (profile option).** Frozen prefix: doctrine excerpts + stage contract +
   role charter (byte-stable per run); volatile suffix: the batch at hand.
-  Doctrine text is versioned by git SHA in the manifest, so the prefix is
-  stable for the whole run by construction.
-- **Long-context stages.** S2 per-source and S4 global-dedup deliberately use
+  Core and prompt bytes are pinned by the immutable bundle lock, so the prefix
+  is stable for the whole run. Hosts without prompt caching still execute the
+  same bundle.
+- **Fable long-context stages (profile option).** S2 per-source and S4 global-dedup deliberately use
   the big window (whole source / whole inventory in context) before any
   sharding. Sharding rules, when needed: shard on source boundaries (S2) or
   alphabetical claim ranges with an overlap pass (S4), and record the sharding
   in the run log.
-- **Compaction, not amnesia.** The orchestrator session enables server-side
+- **Fable compaction (profile option), never amnesia.** The orchestrator session enables server-side
   compaction for very long runs; workers are short-lived and never need it.
   Anything the orchestrator would "remember" across compaction must already be
   in the run log — the file is the memory (T2/tenet, and the Fable 5 memory
@@ -99,7 +113,8 @@ inlines a verifier: T8 is structural.
 
 ## 4. Memory surface
 
-Two files, both mandatory in agent mode:
+This Fable profile uses two memory files; Core requires the durable run record,
+not this exact host-level pair:
 
 - `run-log.md` — the Scribe's append-only narrative: stage entries/exits,
   decisions and their one-line whys, anomalies, budget spend, every gate.
@@ -110,12 +125,14 @@ Two files, both mandatory in agent mode:
   correction-style. This file feeds runbook revisions; it never overrides
   doctrine.
 
-## 5. Effort and model-tier policy
+## 5. Fable model and effort mapping
 
 Default model: `claude-fable-5` for every role in the first validated runs —
 capability first, then tier down with evidence. The policy table below is the
-*starting* dial; the dry-run slice measures and re-tunes it (never assume —
-the effort-sweep discipline).
+*starting Fable profile*; the dry-run slice measures and re-tunes it (never
+assume — the effort-sweep discipline). It is not part of Core. Every adapter
+owns its own exact model/context/effort mapping and pins the realized identities
+in the run.
 
 | Work | Effort | Tier-down candidate (post-validation) |
 |------|--------|----------------------------------------|
@@ -132,16 +149,18 @@ the effort-sweep discipline).
 | S10–S11 synthesis/assembly | high / medium | assembly yes |
 | Bulk ⚖ spot-checks | high, via batch lane | yes |
 
-Two hard rules: **verifiers never run at lower effort than the work they
-audit**, and **any tier-down is an experiment recorded in the manifest until a
-golden replay shows no quality loss** (T11).
+Two Core-level rules survive the profile mapping: **verifiers may not be
+assigned a weaker declared capability class than the work they audit**, and
+**any model/profile downgrade is an experiment recorded in the manifest until
+a golden replay shows no quality loss** (T11).
 
 ## 6. Structured outputs and the ledger interface
 
-Every worker's return contract is a schema, not prose: packet rows, claim
-rows, verdicts, cards — validated at the call boundary (structured outputs /
-strict tools), then rendered into the Markdown ledgers by the orchestrator.
-Consequences:
+Every worker's return contract is structured, not free prose: packet rows,
+claim rows, verdicts, cards. Core requires validation before a single-writer
+ledger append. This Fable profile may enforce that boundary with native
+structured outputs / strict tools; another adapter may use a different
+fail-closed validator. Consequences:
 
 - parsing failures become retries at the API layer, not corrupted ledgers;
 - the Markdown ledger and its machine twin (artifact 20) are generated from
@@ -152,17 +171,18 @@ Consequences:
 Rationale fields are mandatory in every judgment schema. Fable 5's raw
 reasoning is never returned; the written rationale **is** the audit record.
 
-## 7. Budgets, pacing, and cost lanes
+## 7. Core budget invariants and Fable cost lanes
 
-- **Per-stage task budgets.** Each stage gets a token budget in the manifest
-  (model-aware task budgets where supported; orchestrator-enforced otherwise).
+- **Per-stage budgets (Core invariant).** Each stage gets a budget in the
+  manifest (host-native task budgets where supported; adapter-enforced
+  otherwise).
   Exhaustion ⇒ `BLOCKED` with a budget request — never silent truncation of
   coverage (an under-budgeted extraction that skips spans is a completeness
   defect, the worst kind).
-- **Cost lanes.** Interactive lane (orchestrator, gated stages) at standard
+- **Fable cost lanes (profile option).** Interactive lane (orchestrator, gated stages) at standard
   pricing; bulk lane (large verifier sweeps, entailment spot-checks) via the
   batch API at half price where latency does not matter.
-- **Caching discipline.** Frozen prefixes (§3) make repeated worker spawns
+- **Fable caching discipline (profile option).** Frozen prefixes (§3) make repeated worker spawns
   cheap; the dry-run slice records actual cache-hit rates so budget estimates
   are calibrated, not guessed.
 - **Budget telemetry.** The Scribe logs spend per stage; the manifest carries
@@ -202,11 +222,11 @@ reasoning is never returned; the written rationale **is** the audit record.
 |---------|----------|
 | Worker output fails schema | API-level retry with the validation error; after N failures, orchestrator halves the batch and retries; persistent ⇒ run log + `BLOCKED` |
 | Verifier quorum splits | Per policy: judgment targets → `unresolved` + flag (never coin-flip); structural targets → treat as failure and fix |
-| Safety refusal on corpus content | Log the span (by locator, not by re-quoting), mark the packet `refusal-blocked` (a first-class extraction-criteria class so completeness accounting still balances), route the source to manual-mode handling; fallback-model policy per manifest |
+| Safety refusal on corpus content | Log the span (by locator, not by re-quoting), mark the packet `refusal-blocked` (a first-class extraction-criteria class so completeness accounting still balances), and route the source to manual-mode handling or block. A different model may be used only in a separately pinned successor run, never as an in-place fallback. |
 | Budget exhausted | `BLOCKED` + budget request with spend evidence |
 | Context overflow in a worker | Shard per §3 sharding rules; log the shard plan |
 | Orchestrator dies / session lost | Resume from run directory (resumability invariant): re-read manifest + run log, verify ledger hashes, continue at the first unfinished DoD item |
-| Model version changes mid-run | Forbidden: model IDs are pinned in the manifest; a forced change ⇒ authority decision + manifest note + affected stages re-verified |
+| Core, adapter, bundle, checker, model, or runtime changes mid-run | Forbidden. Resume with the original pinned bundle and runtime snapshot; if unavailable or unsuitable, block or begin a successor run rather than changing the current run in place. |
 | Repeated stage failure (3 strikes) | Stop and escalate with the run log excerpt — never loop silently |
 
 ## 10. Concurrency and ordering rules
@@ -228,4 +248,6 @@ prompt-pack slice (stage prompts as reviewable docs), then a supervised dry
 run replaying the slice-2 golden corpus with every gate held, audited
 end-to-end; then instance #1 (the 333-conversation corpus) under supervision.
 Until those land, manual mode remains the only sanctioned path — exactly as
-the routing doctrine already states.
+the routing doctrine already states. This profile is reference material only:
+it is not a Loa adapter, a Hermes adapter, an entrypoint, an installation, or
+evidence that either host can execute full Aleph.

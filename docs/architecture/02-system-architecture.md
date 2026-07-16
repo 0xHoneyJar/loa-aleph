@@ -1,7 +1,9 @@
 # 02 — System Architecture
 
 > Status: ACCEPTED FOR IMPLEMENTATION by
-> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md);
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md),
+> with the Core/adapter boundary fixed by
+> [`Decision 0004`](../decisions/0004-core-adapter-and-bundle-boundary.md);
 > run files remain canonical and artifact shapes remain provisional.
 
 This document defines the layered architecture of the Aleph Method: the planes
@@ -20,7 +22,7 @@ field detail in [`03-artifact-contracts.md`](03-artifact-contracts.md).
 │     PR checkpoints, authority gates, validation ledger               │
 ├──────────────────────────────────────────────────────────────────────┤
 │ L5  RUNNERS                                                          │
-│     agent mode (Fable 5 orchestrator + workers + verifiers)          │
+│     agent mode (protocol-conforming host adapter)                     │
 │     manual mode (human + worksheets + sparse cards)                  │
 │     repo-consumption mode (downstream repos ingest artifacts)        │
 ├──────────────────────────────────────────────────────────────────────┤
@@ -164,11 +166,12 @@ Three tiers with non-overlapping mandates
 
 ### L5 — Runners
 
-- **Agent mode** — a Fable 5 orchestrator session attached to the repo,
-  spawning stage workers and verifier panels as subagents, writing only into
-  the run directory, checkpointing via branches/PRs. Design:
-  [`05-orchestration-on-fable-5.md`](05-orchestration-on-fable-5.md); manual:
-  [`08-runbook-agent-mode.md`](08-runbook-agent-mode.md).
+- **Agent mode** — a protocol-conforming host adapter executes byte-identical
+  Core contracts, isolates workers and verifier panels, writes only through
+  the run directory's single-writer boundary, invokes the real checker, and
+  presents every human gate. The operating contract is
+  [`08-runbook-agent-mode.md`](08-runbook-agent-mode.md); document 05 is one
+  Fable-specific reference profile, not the universal runner.
 - **Manual mode** — the same stages executed by hand at reconstructable
   fidelity: sparse cards instead of materialized graphs, sampled self-checks
   instead of exhaustive panels. Manual:
@@ -178,7 +181,7 @@ Three tiers with non-overlapping mandates
   contracts and L2 artifacts, never on the runners.
 
 **Mode equivalence invariant (hard):** for the same corpus and the same
-doctrine version, agent mode and manual mode must produce runs that are
+Core tree digest and run-format version, agent mode and manual mode must produce runs that are
 *equivalent under the contracts* — same claim inventory completeness, same
 disposition accounting, same traceability — even where they differ in
 bookkeeping density (full graph vs sparse cards) and in throughput. Equivalence
@@ -285,24 +288,23 @@ DRAFT ──► CORPUS-FROZEN ──► DISTILLING ──► ASSEMBLED ──►
   load-bearing cluster, an authority gate, or an exhausted budget. Blocking is
   a normal state, not a failure; the run log records what is awaited.
 
-**Resumability invariant:** any run can be resumed by any runner (the same
-agent, a different agent, or a human) from the run directory alone. If
-resuming requires information not in the directory, that is a defect in the
-stage that failed to record it.
+**Resumability invariant:** any run can be resumed by any compatible runner
+(the same agent, a different agent, or a human) from the run directory plus
+its original immutable bundle lock and runtime snapshot. If resuming requires
+unrecorded information or newer mutable bytes, that is a defect.
 
 ## 4. Where this runs (and where it deliberately does not)
 
-- **Primary target: repo-attached agent harnesses** (Claude Code / Claude
-  Agent SDK class). This matches the product goal literally — "an agent syncs
-  `main` and follows the repo's instructions" — keeps everything file-first,
-  and inherits the harness's own checkpointing, subagents, and skills. The
-  repo's instructions (runbooks, later executable prompt-packs) *are* the
-  deployment.
-- **Secondary target (later, optional): hosted agent runners** with
-  rubric-graded outcome loops — useful for scheduled or unattended runs once
-  the method is validated. This is an execution convenience only; it must
-  consume and produce the same run directory. Named as an option, not a
-  dependency.
+- **Primary target: immutable host bundles.** `aleph-for-loa` and
+  `aleph-for-hermes` each contain the same complete Core bytes plus only their
+  selected adapter. A native host may provide checkpointing, workers, skills,
+  or scheduling, but those are adapter/profile mechanics and may not alter
+  Core.
+- **Other hosts remain possible through the same protocol.** They must consume
+  frozen Core bytes, produce the same run-directory contracts, pass full-mode
+  preflight, and earn validation and sanction independently.
+- **Never: mutable branch deployment.** A run does not sync or fetch `main`;
+  it pins a bundle, checker, adapter, host/model identity, and runtime snapshot.
 - **Never: a served endpoint.** Endpoint surfaces, if they ever exist, project
   from artifacts; they are out of scope for this plan entirely (responsibility
   map, and the do-not-build list in

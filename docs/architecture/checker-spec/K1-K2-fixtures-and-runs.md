@@ -56,7 +56,7 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
   clusters/, arms/, precis.md, verification/) are required **iff** the
   manifest's state log shows the run reached the state that produces them
   (state→artifact table hardcoded from doc 04's "Emits" column).
-- K2.2 (`manifest`): manifest carries mode, doctrine_sha (40-hex), corpus
+- K2.2 (`manifest`, legacy predecessor format): manifest carries mode, doctrine_sha (40-hex), corpus
   hash, exactly one `run_id` (`RUN-<slug>`), exactly one `predecessor_run`
   (`none` or a different `RUN-<slug>`), and ≥1 state-log row; every state-log
   transition follows an edge of the
@@ -65,6 +65,10 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
   the state it interrupted (or by run end); timestamps never move backwards;
   S0 approval predates the first S2 packetization entry; and each
   `PROJECTION-ACCEPTED` cycle has a positive P3 sign-off row.
+  Decision 0004's forward run format additionally requires exact
+  Core/adapter/bundle/checker/protocol/run-format/host/model/runtime pins.
+  The accepted `run-slice-2` golden predates that format and is not silently
+  migrated; the first new-format run fixture must extend K2.2 in lockstep.
 - K2.3 (`forbidden tokens`, fixture runs only): the fixture-layer
   absolute-forbidden token scan (same zero-tolerance semantics, same token
   list as the existing checker) applied to every file of a run directory

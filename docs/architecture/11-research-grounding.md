@@ -126,7 +126,8 @@ most load-bearing single source for doc 05 and the runbook):
   not as an RDF implementation (do-not-build: no graph database).
 - Reproducibility practice from data/ML pipelines (pin versions; freeze
   inputs; append-only logs; content-address artifacts) → corpus freeze,
-  doctrine SHA pinning, model-ID pinning, hash-stable IDs (docs 02, 03).
+  immutable Core/adapter/bundle/checker/runtime pins, exact model identities,
+  and hash-stable IDs (docs 02, 03; Decision 0004).
 
 ## 6. Findings that argue *against* parts of the design (kept visible)
 

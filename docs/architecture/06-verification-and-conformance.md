@@ -110,8 +110,10 @@ Replay is how capability claims earn "validated" (T11):
   proto-goldens; the roadmap adds a full run-directory golden, a real-corpus
   golden (instance #1), and the convergent-arm golden.
 - **Replay:** execute the pipeline (agent mode; or manual mode for
-  mode-equivalence checks) against the frozen corpus with pinned doctrine and
-  model IDs; diff the resulting ledgers against the golden.
+  mode-equivalence checks) against the frozen corpus with pinned Core, adapter,
+  bundle, checker, protocol/run-format, host/model, and runtime-snapshot
+  identities; diff the resulting ledgers against the golden. Do not substitute
+  a newer bundle into an existing replay.
 - **Metrics (defined with the first replay slice, reported per run):**
   - extraction recall against golden packets (misses are the cardinal sin);
   - claim coverage and normalization equivalence (same claims found, allowing

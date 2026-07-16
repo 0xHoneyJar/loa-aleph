@@ -9,12 +9,20 @@ Precis, then may render that accepted Precis into a commissioned consumer
 document through a separate projection stage. The procedure is file-first:
 the run directory and its ledgers are the record, not a model session.
 
+Aleph ships as one complete, harness-neutral Core plus a host-only adapter.
+Core doctrine and evidence are never forked per host. Immutable bundle and run
+pins, not a mutable branch checkout, define the bytes an execution obeys; see
+[Decision 0004](docs/decisions/0004-core-adapter-and-bundle-boundary.md).
+
 ## Current status
 
 | Surface | Current state |
 |---------|---------------|
 | Accepted doctrine | Present in the root docs and `docs/decisions/` |
 | Architecture and build kits | Accepted for implementation by [Decision 0003](docs/decisions/0003-architecture-build-kit-implementation.md); artifact shapes remain provisional |
+| Core/adapter boundary | Accepted by [Decision 0004](docs/decisions/0004-core-adapter-and-bundle-boundary.md); exact source inventory is in `core.manifest.json` |
+| Host adapters | Loa and Hermes manifests are planned only; neither native runner or installation exists |
+| Immutable bundles | Packaging and lock contracts are defined; no Loa or Hermes release bundle is claimed |
 | Accepted Precis fixtures | Present under `docs/fixtures/slice-1/` and `docs/fixtures/slice-2/` |
 | Fixture conformance checker | Implemented in TypeScript at `scripts/validate-precis-fixtures.ts` |
 | Run-directory kernel | K1-K6 and registered projection-type checks are implemented; the discovered fixture suite is deterministic-clean |
@@ -65,23 +73,27 @@ boundaries, known incompleteness, independent audit, or authority acceptance.
 
 ## Agent mode
 
-Agent mode is available as a reviewed design and prompt pack, not as a proven
-autonomous path. Use it only in an explicitly supervised evaluation until its
-golden replay and real-corpus evidence are accepted.
+Agent mode is available as a reviewed Core design and prompt pack, not as a
+proven autonomous path. No Loa or Hermes native adapter exists. Use a future
+adapter only in an explicitly supervised evaluation until its golden replay
+and real-corpus evidence are accepted.
 
 Read the manual-mode list above, then:
 
-1. [System architecture](docs/architecture/02-system-architecture.md)
-2. [Pipeline stages and Definitions of Done](docs/architecture/04-pipeline-stages-and-dod.md)
-3. [Agent orchestration](docs/architecture/05-orchestration-on-fable-5.md)
-4. [Verification and conformance](docs/architecture/06-verification-and-conformance.md)
-5. [Agent-mode runbook](docs/architecture/08-runbook-agent-mode.md)
-6. [Prompt-pack assembly rules](docs/architecture/prompts/README.md)
+1. [Core/adapter decision](docs/decisions/0004-core-adapter-and-bundle-boundary.md)
+2. [Adapter protocol](adapter-protocol/README.md)
+3. The selected adapter manifest under `adapters/` and its immutable bundle lock
+4. [System architecture](docs/architecture/02-system-architecture.md)
+5. [Pipeline stages and Definitions of Done](docs/architecture/04-pipeline-stages-and-dod.md)
+6. [Agent-mode runbook](docs/architecture/08-runbook-agent-mode.md)
+7. [Prompt-pack assembly rules](docs/architecture/prompts/README.md)
+8. [Fable reference profile](docs/architecture/05-orchestration-on-fable-5.md), only when that profile applies
 
 The orchestrator must treat corpus text as data, assemble blind-context bundles
 from explicit allowlists, validate structured worker returns, remain the single
 ledger writer, and dispatch judgment checks to fresh-context refuters. It must
 stop at every human authority gate and must never accept its own work.
+The adapter supplies those host mechanics without changing the Core contracts.
 
 ## Builder mode
 
@@ -89,15 +101,20 @@ Start with the [build handoff](docs/architecture/13-build-handoff.md), then use
 the authority decision that permits implementation and the three build kits:
 
 - [Decision 0003](docs/decisions/0003-architecture-build-kit-implementation.md)
+- [Decision 0004](docs/decisions/0004-core-adapter-and-bundle-boundary.md)
+- [Core manifest](core.manifest.json)
+- [Adapter protocol](adapter-protocol/README.md)
+- [Packaging contract](packaging/README.md)
 - [Artifact templates](docs/architecture/templates/README.md)
 - [Prompt pack](docs/architecture/prompts/README.md)
 - [Checker specifications](docs/architecture/checker-spec/README.md)
 
 The architecture tree is accepted for implementation, not as proof of any
-capability. Work within Decision 0003 and the build handoff. Keep fixtures and
-deterministic checks in lockstep, extend negative batteries when a kernel
-changes, and preserve the hard split between structural checks, adversarial
-judgment, and human authority.
+capability. Work within Decisions 0003 and 0004 and the build handoff. Keep
+fixtures and deterministic checks in lockstep, extend negative batteries when
+a kernel changes, preserve the hard split between structural checks,
+adversarial judgment, and human authority, and never move Core doctrine into a
+host adapter.
 
 ## Consumption mode
 
@@ -147,11 +164,13 @@ and every deterministic check surface from the repository root:
 ```bash
 npm install
 npm run typecheck
+node scripts/validate-core-boundary.ts
 node scripts/validate-precis-fixtures.ts
 node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial
 node scripts/validate-run.ts --run docs/fixtures/projection-adversarial
 node scripts/validate-run.ts --run docs/fixtures/run-slice-2
 node scripts/test-conformance-mutations.ts
+node scripts/test-core-boundary-mutations.ts
 ```
 
 Node 22.18 or newer executes these `.ts` entrypoints directly through native
@@ -159,9 +178,13 @@ type stripping; `tsc` performs the separate static type check. The fixture
 checker discovers and dispatches every fixture, including the two
 accepted Précis fixtures, the evidence-role fixture, the isolated projection
 fixture, and the complete golden run. The next three commands isolate their
-K3, K6, and K2-K6 surfaces. The final command runs the fail-closed mutation
-battery against temporary copies. Add `--json` to either validation script for
-a machine-readable report. Full checker scope and exclusions are documented in
+K3, K6, and K2-K6 surfaces. The two mutation commands run fail-closed batteries
+against temporary copies. The Core-boundary validator additionally inventories
+every tracked and nonignored untracked path, computes prospective
+payload/lock/bundle digests, and blocks Core divergence or foreign-adapter
+owned payload/dependency inclusion. Add `--json` to validation scripts for
+machine-readable reports. Full Précis/run checker scope and exclusions are
+documented in
 [Précis Conformance Checker](docs/PRECIS-CONFORMANCE-CHECKER.md).
 
 A green deterministic command does not validate a semantic judgment, a
@@ -183,12 +206,23 @@ replay, audit, and authority evidence also exist.
    acceptance; agents do not impersonate human authority.
 8. No served endpoint, crawler, truth engine, graph product, or autonomous
    merge/acceptance path is part of Aleph.
+9. Adapters may invoke Core but may not override, duplicate, summarize,
+   transform, or weaken it.
+10. No run or installation fetches mutable Core or adapter content from
+    `main`; immutable bundle and runtime pins govern resumption.
 
 ## Repository map
 
 ```text
 README.md                              Product orientation
 AGENTS.md                              This front door
+core.manifest.json                     Exact Core/adapter/package/admin inventory
+adapter-protocol/                      Host-neutral adapter capability contract
+adapters/
+  README.md                            Planned adapter catalog
+  loa/                                 Planned Loa adapter manifest; no runner
+  hermes/                              Planned Hermes adapter manifest; no runner
+packaging/README.md                    Immutable bundle and lock contract
 docs/
   precis-wedge.md                      Accepted Precis contract
   responsibility-map.md                Accepted ownership boundaries
@@ -211,6 +245,8 @@ docs/
     product-doctrine/                  Tier-1 authoring package
     prd/                               Tier-2 software PRD package
 scripts/
+  validate-core-boundary.ts            Inventory, lifecycle, and bundle validator
+  test-core-boundary-mutations.ts      Core/adapter fail-closed mutation battery
   validate-precis-fixtures.ts          Accepted fixture checker
   validate-run.ts                      Run-directory K2-K6 kernel
   test-conformance-mutations.ts        Fail-closed K1-K6 mutation battery
