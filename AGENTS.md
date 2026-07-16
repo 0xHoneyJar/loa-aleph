@@ -22,7 +22,7 @@ pins, not a mutable branch checkout, define the bytes an execution obeys; see
 | Architecture and build kits | Accepted for implementation by [Decision 0003](docs/decisions/0003-architecture-build-kit-implementation.md); artifact shapes remain provisional |
 | Core/adapter boundary | Accepted by [Decision 0004](docs/decisions/0004-core-adapter-and-bundle-boundary.md); exact source inventory is in `core.manifest.json` |
 | Host adapters | Loa and Hermes manifests are planned only; neither native runner or installation exists |
-| Immutable bundles | Packaging and lock contracts are defined; no Loa or Hermes release bundle is claimed |
+| Immutable bundles | Dependency-free local assembly and independent verification are implemented; default outputs are ignored under `.aleph-bundles/`, both planned adapters remain `NOT-READY`, and no Loa or Hermes release bundle is claimed |
 | Accepted Precis fixtures | Present under `docs/fixtures/slice-1/` and `docs/fixtures/slice-2/` |
 | Fixture conformance checker | Implemented in TypeScript at `scripts/validate-precis-fixtures.ts` |
 | Run-directory kernel | K1-K6 and registered projection-type checks are implemented; the discovered fixture suite is deterministic-clean |
@@ -165,12 +165,15 @@ and every deterministic check surface from the repository root:
 npm install
 npm run typecheck
 node scripts/validate-core-boundary.ts
+node scripts/assemble-bundles.ts assemble
+node scripts/assemble-bundles.ts verify
 node scripts/validate-precis-fixtures.ts
 node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial
 node scripts/validate-run.ts --run docs/fixtures/projection-adversarial
 node scripts/validate-run.ts --run docs/fixtures/run-slice-2
 node scripts/test-conformance-mutations.ts
 node scripts/test-core-boundary-mutations.ts
+node scripts/test-bundle-assembly.ts
 ```
 
 Node 22.18 or newer executes these `.ts` entrypoints directly through native
@@ -178,18 +181,25 @@ type stripping; `tsc` performs the separate static type check. The fixture
 checker discovers and dispatches every fixture, including the two
 accepted Précis fixtures, the evidence-role fixture, the isolated projection
 fixture, and the complete golden run. The next three commands isolate their
-K3, K6, and K2-K6 surfaces. The two mutation commands run fail-closed batteries
-against temporary copies. The Core-boundary validator additionally inventories
-every tracked and nonignored untracked path, computes prospective
-payload/lock/bundle digests, and blocks Core divergence or foreign-adapter
-owned payload/dependency inclusion. Add `--json` to validation scripts for
+K3, K6, and K2-K6 surfaces. The conformance, Core-boundary, and bundle mutation
+commands run fail-closed batteries against temporary copies. The Core-boundary
+validator additionally inventories every tracked and nonignored untracked
+path, computes prospective payload/lock/bundle digests, and blocks Core
+divergence or foreign-adapter owned payload/dependency inclusion. The assembler
+writes exact local bytes to the ignored `.aleph-bundles/` directory, emits a
+canonical `bundle.lock.json`, verifies each output independently, and
+release-blocks unequal Core inventories, digests, or bytes across the two
+targets. The same bundle commands are exposed as `npm run bundle:assemble`,
+`npm run bundle:verify`, and `npm run test:bundles`; the bundle tests are also
+part of `npm test`. Add `--json` to validation and bundle commands for
 machine-readable reports. Full Précis/run checker scope and exclusions are
 documented in
 [Précis Conformance Checker](docs/PRECIS-CONFORMANCE-CHECKER.md).
 
 A green deterministic command does not validate a semantic judgment, a
-projection rendering, agent mode, or v1 unless the corresponding fixture,
-replay, audit, and authority evidence also exist.
+projection rendering, either planned host adapter, agent mode, or v1 unless
+the corresponding implementation, fixture, replay, audit, and authority
+evidence also exist.
 
 ## Non-negotiable boundaries
 
@@ -245,6 +255,8 @@ docs/
     product-doctrine/                  Tier-1 authoring package
     prd/                               Tier-2 software PRD package
 scripts/
+  assemble-bundles.ts                 Immutable host-bundle assembler and verifier
+  test-bundle-assembly.ts             Bundle reproducibility and fail-closed mutation battery
   validate-core-boundary.ts            Inventory, lifecycle, and bundle validator
   test-core-boundary-mutations.ts      Core/adapter fail-closed mutation battery
   validate-precis-fixtures.ts          Accepted fixture checker

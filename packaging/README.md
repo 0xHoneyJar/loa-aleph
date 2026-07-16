@@ -2,7 +2,11 @@
 
 This contract defines distribution for the Core/adapter boundary accepted by
 [Decision 0004](../docs/decisions/0004-core-adapter-and-bundle-boundary.md).
-It uses the exact source classification in
+The dependency-free TypeScript assembler and verifier are implemented in
+[`scripts/assemble-bundles.ts`](../scripts/assemble-bundles.ts), with shared
+canonicalization and digest rules in
+[`scripts/lib/bundle-format.ts`](../scripts/lib/bundle-format.ts). They use the
+exact source classification in
 [`core.manifest.json`](../core.manifest.json) and the lifecycle and capability
 rules in the [adapter protocol](../adapter-protocol/README.md).
 
@@ -19,6 +23,10 @@ projections, authority gates, checkers, checker specifications, fixtures,
 mutation tests, goldens, and replay/audit evidence. Fixtures, goldens, or
 checker evidence may not be omitted to reduce bundle size.
 
+Local assembly writes these directories under the ignored
+`.aleph-bundles/` directory by default. Generated payloads and locks are build
+outputs, not tracked source artifacts or published releases.
+
 The repository-wide `core.manifest.json` is source packaging metadata. It
 classifies Core, both adapters, packaging files, and repository administration,
 so it is not copied verbatim into either host bundle. Assembly selects the
@@ -33,36 +41,81 @@ and does not change the manual-only sanction boundary.
 
 ## Bundle lock
 
-The generated lock records at least:
+`bundle.lock.json` uses lock format `aleph-bundle-lock/v1` and records:
 
-- bundle format, ID, version, and digest;
+- digest algorithm, lock digest, bundle ID, version, payload digest, and bundle
+  digest;
 - Core ID, version, and tree digest;
 - selected adapter ID, version, lifecycle, and tree digest;
 - checker digest;
 - adapter-protocol version (`1.0.0-provisional`);
-- run-format version (`1.0.0-provisional`); and
-- immutable provenance sufficient to reconstruct the assembly, including the
-  selected source-manifest projection digest, exact input file digests, and
-  assembly-tool identity.
+- run-format version (`1.0.0-provisional`);
+- the selected source-manifest projection and its digest;
+- the assembly-tool path and file digest;
+- resolved, target-dependency-closure-scoped Git provenance; and
+- the complete ordered payload inventory, with normalized path, `core` or
+  `adapter` classification, and per-file SHA-256 digest.
 
-All paths in a lock are normalized repository-relative paths. File digests are
-SHA-256 over raw bytes. A tree digest is SHA-256 over the UTF-8-bytewise-sorted
-sequence of `path`, a NUL byte, the lowercase file SHA-256, and a newline. The
-bundle digest uses the same canonical inventory construction over the selected
-payload plus a virtual `bundle.lock.json` record. That record is canonical JSON
-of every generated lock field other than the self-referential `bundle_digest`
-field: bundle/Core/adapter identity and versions, lifecycle, tree digests,
-checker digest, protocol/run-format versions, selected source-manifest
-projection digest, exact input-file digests, and assembly-tool identity. The
-selected manifest projection contains the complete Core inventory plus only
-that bundle's adapter inventory and target, so adding or removing a foreign
-adapter file does not perturb this host's bundle identity. An archive wrapper,
-timestamp, or global Git commit is not bundle identity.
+Canonical serialization and digest rules are:
 
-The source validator computes the prospective payload, lock-projection, and
-bundle digests for boundary verification. It does not emit or claim a release
-bundle. A release assembler must emit the corresponding lock, add the computed
-`bundle_digest`, and verify it before publication.
+1. Paths are normalized repository-relative strings. Paths and JSON object
+   keys are ordered by their raw UTF-8 bytes, not locale.
+2. Canonical JSON permits only null, booleans, strings, arrays, and objects;
+   all numbers are forbidden. It recursively sorts object keys by that order,
+   preserves array order, uses compact JSON with no insignificant whitespace,
+   and ends with exactly one LF.
+3. Canonical strings escape quote and backslash as `\"` and `\\`; use `\b`,
+   `\t`, `\n`, `\f`, and `\r` for those five controls; and encode every other
+   U+0000–U+001F code point as `\u` followed by four lowercase hexadecimal
+   digits. Unpaired UTF-16 surrogates are rejected because they have no stable
+   UTF-8 byte ordering. All other ASCII characters and valid non-ASCII Unicode
+   scalar values are emitted directly as raw UTF-8. No Unicode normalization
+   is performed.
+4. A file digest is `sha256:` plus lowercase SHA-256 hex over the file's exact
+   raw bytes.
+5. Every tree-style digest sorts records by path and hashes the UTF-8 sequence
+   `path`, NUL, the bare 64-character lowercase file digest, and LF. Core,
+   adapter, checker, and payload digests use this construction over their
+   respective inventories.
+6. The selected-manifest-projection digest and provenance digest are SHA-256
+   over their canonical JSON bytes.
+7. `lock_digest` is SHA-256 over the canonical identity projection: lock and
+   digest formats; bundle ID, version, and payload digest; Core and adapter
+   records; checker, protocol, and run-format versions; selected source
+   projection; assembly-tool identity; target-scoped provenance and its digest;
+   and ordered file inventory. It excludes only the self-referential lock and
+   bundle digests.
+8. `bundle.digest` uses the tree construction over the complete payload plus a
+   virtual `bundle.lock.json` record whose file digest is `lock_digest`.
+
+The provenance record uses `aleph-source-provenance/v1` with kind
+`git-dependency-closure-snapshot`. For each target, it selects the most recent
+resolved Git commit touching any path in that target's UTF-8-bytewise-sorted
+payload inventory. If no such path commit exists, it selects the
+UTF-8-bytewise-first root commit from the checked-out history. It records:
+
+- the Git object format;
+- the full selected commit object ID;
+- the raw commit-object bytes in canonical padded base64;
+- the commit-tree object ID;
+- `resolved: true` and `mutable_ref: null`; and
+- `worktree_state: clean` or `modified`, calculated only across that target's
+  selected payload paths, including nonignored untracked paths.
+
+Verification decodes the canonical base64, reconstructs the Git commit object
+ID using the recorded object format and raw object length, reads the tree ID
+from the same commit object, and requires both to match the recorded IDs.
+Mutable, unresolved, malformed, or internally inconsistent provenance is
+invalid.
+
+The complete provenance record and its digest are part of `lock_digest`, so
+provenance tampering or a new commit touching the selected dependency closure
+changes that target's lock and bundle identities. Because commit selection and
+worktree state are scoped to the selected payload paths, a foreign-adapter-only
+or unrelated repository commit or worktree change does not perturb the other
+target. The selected manifest projection likewise contains the complete Core
+inventory plus only that bundle's adapter inventory and target. An archive
+wrapper, timestamp, or mutable branch name is not bundle identity.
 
 The checker digest covers every Core checker, checker library, checker
 specification, and deterministic mutation surface classified by the source
@@ -84,26 +137,70 @@ Assembly fails unless:
    protocol and this release invariant;
 5. no adapter-owned path overlaps or overrides a Core-owned path;
 6. every typed manifest reference resolves in the validated source inventory;
-7. the adapter manifest and lifecycle evidence pass the adapter protocol; and
-8. the generated lock and every recorded digest verify.
+7. the adapter manifest and lifecycle evidence pass the adapter protocol;
+8. the generated lock and every recorded digest verify; and
+9. a rebuild is staged from a fresh selected inventory and replaces the prior
+   target directory, so deleted or renamed source paths cannot survive as stale
+   bundle files.
 
 Core-digest equality across the two bundles and foreign adapter-owned
 payload/dependency exclusion are release-blocking, not advisory comparisons.
-Compare Core, adapter, checker, and bundle digests; global repository `HEAD`
-alone is neither sufficient nor authoritative.
+Compare Core, adapter, checker, provenance, lock, and bundle digests; a global
+repository revision alone is neither sufficient nor authoritative.
 
 ## Rebuild rules
 
 | Change | Required rebuild |
 |--------|------------------|
-| Any Core byte, Core inventory entry, Core checker, fixture, mutation, golden, or Core version | Both host bundles |
+| Any Core byte, Core inventory entry, Core checker, fixture, mutation, golden, Core version, or selected-path provenance change | Both host bundles |
 | Adapter protocol or run-format version | Both host bundles |
-| Loa-only adapter byte or version | Loa bundle only |
-| Hermes-only adapter byte or version | Hermes bundle only |
-| Repository-administration change outside every bundle payload | Neither bundle unless classification or provenance changes |
+| Loa-only adapter byte, version, or selected-path provenance change | Loa bundle only |
+| Hermes-only adapter byte, version, or selected-path provenance change | Hermes bundle only |
+| Commit or worktree change outside a target's selected dependency closure | That target's identity digests do not change |
 
-A rebuild creates a new immutable lock and bundle digest. It never mutates an
+A rebuild creates a canonical immutable lock; a selected dependency-closure
+change creates new lock and bundle identity digests. It never mutates an
 already published bundle.
+
+## Assemble and verify
+
+From the repository root:
+
+```bash
+npm run bundle:assemble
+npm run bundle:verify
+npm run test:bundles
+```
+
+The direct CLI supports custom source, output, and verification paths:
+
+```bash
+node scripts/assemble-bundles.ts assemble [--root <repo>] [--output <dir>] [--json]
+node scripts/assemble-bundles.ts verify [--output <dir>] [--bundle <dir> ...] [--json]
+node scripts/test-bundle-assembly.ts [--json]
+```
+
+Assembly runs the Core-boundary validator over every tracked and nonignored
+untracked source path, snapshots the exact selected bytes, stages and verifies
+both targets, compares their Core inventories, digests, and bytes, confirms the
+source dependency closure did not change during assembly, and only then
+replaces the target output directories. An output directory inside the source
+repository must be ignored by Git; the default is `.aleph-bundles/`.
+
+Verification independently reopens an emitted directory and rejects a
+noncanonical or malformed lock; missing, extra, modified, symlinked, renamed,
+or unclassified files; digest or provenance tampering; lifecycle or adapter
+identity drift; foreign-adapter content; and Core overrides. It recalculates
+file, Core, adapter, checker, payload, lock, and bundle digests, then runs the
+existing Core-boundary validator against the emitted inventory and selected
+manifest projection. `verify` without `--bundle` checks both default target
+directories; repeat `--bundle` to check explicit bundle directories.
+
+Both current adapter manifests remain `planned`, so successful assembly and
+verification report `PREFLIGHT ... NOT-READY lifecycle=planned`. This machinery
+does not implement a host runner, installation, worker, synchronization flow,
+or runnable Loa or Hermes integration; it does not sanction agent mode or
+publish a release.
 
 ## Assembly and installation boundary
 

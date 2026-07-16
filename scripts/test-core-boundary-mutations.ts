@@ -48,10 +48,18 @@ for (const arg of process.argv.slice(2)) {
   else options.error = `unknown argument "${arg}"`;
 }
 
-function runGit(root: string, args: string[]): string {
+function runGit(
+  root: string,
+  args: string[],
+  env: Record<string, string> = {},
+): string {
   const result = spawnSync('git', ['-C', root, ...args], {
     encoding: 'utf8',
     maxBuffer: 32 * 1024 * 1024,
+    env: {
+      ...process.env,
+      ...env,
+    },
   });
   if (result.status !== 0) {
     throw new Error(
@@ -68,7 +76,12 @@ function sourceFiles(): string[] {
     REPO_ROOT,
     ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
   );
-  return output.split('\0').filter(Boolean);
+  const deleted = new Set(
+    runGit(REPO_ROOT, ['ls-files', '-z', '--deleted'])
+      .split('\0')
+      .filter(Boolean),
+  );
+  return output.split('\0').filter((path) => path && !deleted.has(path));
 }
 
 function copyRepository(root: string): void {
@@ -79,6 +92,24 @@ function copyRepository(root: string): void {
   }
   runGit(root, ['init', '-q']);
   runGit(root, ['add', '--all']);
+  runGit(
+    root,
+    [
+      '-c',
+      'user.name=Aleph Core Boundary Tests',
+      '-c',
+      'user.email=aleph-core-boundary-tests.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-qm',
+      'frozen Core-boundary test source',
+    ],
+    {
+      GIT_AUTHOR_DATE: '2000-01-01T00:00:00Z',
+      GIT_COMMITTER_DATE: '2000-01-01T00:00:00Z',
+    },
+  );
 }
 
 function readJson(path: string): Record<string, unknown> {
