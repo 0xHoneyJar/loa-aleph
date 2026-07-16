@@ -16,7 +16,7 @@ the run directory and its ledgers are the record, not a model session.
 | Accepted doctrine | Present in the root docs and `docs/decisions/` |
 | Architecture and build kits | Accepted for implementation by [Decision 0003](docs/decisions/0003-architecture-build-kit-implementation.md); artifact shapes remain provisional |
 | Accepted Precis fixtures | Present under `docs/fixtures/slice-1/` and `docs/fixtures/slice-2/` |
-| Fixture conformance checker | Implemented at `scripts/validate-precis-fixtures.mjs` |
+| Fixture conformance checker | Implemented in TypeScript at `scripts/validate-precis-fixtures.ts` |
 | Run-directory kernel | K1-K6 and registered projection-type checks are implemented; the discovered fixture suite is deterministic-clean |
 | Golden manual run | Complete under `docs/fixtures/run-slice-2/`, including evidence, routing, taint, both golden-derived projection types, and fixture-simulated gate records |
 | Projection authoring packages | Product-doctrine and software-PRD packages have rendered fixtures and deterministic K6 evidence; no real output is projection-accepted |
@@ -141,17 +141,22 @@ independent audit, and stop for P3 authority acceptance.
 
 ## Conformance
 
-Run both deterministic check surfaces from the repository root:
+Install the development-only typechecker, then run the strict TypeScript gate
+and every deterministic check surface from the repository root:
 
 ```bash
-node scripts/validate-precis-fixtures.mjs
-node scripts/validate-run.mjs --run docs/fixtures/evidence-role-adversarial
-node scripts/validate-run.mjs --run docs/fixtures/projection-adversarial
-node scripts/validate-run.mjs --run docs/fixtures/run-slice-2
-node scripts/test-conformance-mutations.mjs
+npm install
+npm run typecheck
+node scripts/validate-precis-fixtures.ts
+node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial
+node scripts/validate-run.ts --run docs/fixtures/projection-adversarial
+node scripts/validate-run.ts --run docs/fixtures/run-slice-2
+node scripts/test-conformance-mutations.ts
 ```
 
-The first command discovers and dispatches every fixture, including the two
+Node 22.18 or newer executes these `.ts` entrypoints directly through native
+type stripping; `tsc` performs the separate static type check. The fixture
+checker discovers and dispatches every fixture, including the two
 accepted Précis fixtures, the evidence-role fixture, the isolated projection
 fixture, and the complete golden run. The next three commands isolate their
 K3, K6, and K2-K6 surfaces. The final command runs the fail-closed mutation
@@ -206,8 +211,8 @@ docs/
     product-doctrine/                  Tier-1 authoring package
     prd/                               Tier-2 software PRD package
 scripts/
-  validate-precis-fixtures.mjs         Accepted fixture checker
-  validate-run.mjs                     Run-directory K2-K6 kernel
-  test-conformance-mutations.mjs       Fail-closed K1-K6 mutation battery
+  validate-precis-fixtures.ts          Accepted fixture checker
+  validate-run.ts                      Run-directory K2-K6 kernel
+  test-conformance-mutations.ts        Fail-closed K1-K6 mutation battery
   lib/                                 Shared deterministic check modules
 ```

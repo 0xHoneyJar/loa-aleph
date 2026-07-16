@@ -1,4 +1,64 @@
-export function normalizeHeader(value) {
+export interface MarkdownTableRow {
+  file: string;
+  line: number;
+  raw: string;
+  cells: string[];
+}
+
+export interface MarkdownTable {
+  file: string;
+  line: number;
+  header: string[];
+  normalizedHeader: string[];
+  rows: MarkdownTableRow[];
+}
+
+export interface MarkdownDocument {
+  text: string;
+  lines: string[];
+  tables: MarkdownTable[];
+}
+
+export interface BulletFields {
+  fields: Map<string, string>;
+  locations: Map<string, number>;
+}
+
+export interface FieldTable {
+  table: MarkdownTable | null;
+  fields: Map<string, string>;
+  rows: Map<string, MarkdownTableRow>;
+}
+
+export interface CommaIdsResult {
+  ids: string[];
+  clean: boolean;
+}
+
+export interface RenderedParagraph {
+  anchor: string;
+  section: string;
+  paragraph: number;
+  text: string;
+}
+
+const ID_FAMILY_PATTERNS = {
+  RUN: String.raw`RUN-[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`,
+  PKT: String.raw`PKT-\d+`,
+  CC: String.raw`CC-\d+`,
+  SRC: String.raw`SRC-\d+`,
+  PC: String.raw`PC-\d+`,
+  RC: String.raw`RC-\d+`,
+  REF: String.raw`REF-\d+`,
+  STM: String.raw`STM-\d+`,
+  VER: String.raw`VER-\d+`,
+  NB: String.raw`NB-\d+`,
+  PRJ: String.raw`PRJ-\d+`,
+} as const;
+
+export type IdentifierFamily = keyof typeof ID_FAMILY_PATTERNS;
+
+export function normalizeHeader(value: unknown): string {
   return String(value || '')
     .replace(/[`*]/g, '')
     .replace(/_/g, ' ')
@@ -8,7 +68,7 @@ export function normalizeHeader(value) {
 }
 
 // Keep the legacy checker's hardened optional-outer-pipe behavior.
-export function tableCells(line) {
+export function tableCells(line: string): string[] | null {
   if (!line.includes('|')) return null;
   const raw = line.split('|');
   if (raw.length < 2) return null;
@@ -18,23 +78,23 @@ export function tableCells(line) {
   return raw.map((cell) => cell.trim());
 }
 
-export function isSeparatorRow(cells) {
+export function isSeparatorRow(cells: readonly string[]): boolean {
   return cells.length > 0 && cells.every((cell) => {
     const compact = cell.replace(/\s/g, '');
     return /^:?-{3,}:?$/.test(compact) || /^-+$/.test(compact);
   });
 }
 
-export function parseTables(text, file = '') {
+export function parseTables(text: string, file = ''): MarkdownTable[] {
   const lines = text.split('\n');
-  const tables = [];
+  const tables: MarkdownTable[] = [];
 
   for (let i = 0; i < lines.length - 1; i++) {
     const header = tableCells(lines[i]);
     const separator = tableCells(lines[i + 1]);
     if (!header || !separator || !isSeparatorRow(separator)) continue;
 
-    const rows = [];
+    const rows: MarkdownTableRow[] = [];
     let end = i + 1;
     for (let j = i + 2; j < lines.length; j++) {
       const cells = tableCells(lines[j]);
@@ -55,7 +115,10 @@ export function parseTables(text, file = '') {
   return tables;
 }
 
-export function findTable(tables, expectedHeader) {
+export function findTable(
+  tables: readonly MarkdownTable[],
+  expectedHeader: readonly string[],
+): MarkdownTable | null {
   const expected = expectedHeader.map(normalizeHeader);
   return tables.find((table) => (
     table.normalizedHeader.length === expected.length
@@ -63,12 +126,18 @@ export function findTable(tables, expectedHeader) {
   )) || null;
 }
 
-export function findTableByFirstHeader(tables, ...names) {
+export function findTableByFirstHeader(
+  tables: readonly MarkdownTable[],
+  ...names: string[]
+): MarkdownTable | null {
   const expected = new Set(names.map(normalizeHeader));
-  return tables.find((table) => expected.has(table.normalizedHeader[0])) || null;
+  return tables.find((table) => {
+    const firstHeader = table.normalizedHeader[0];
+    return firstHeader !== undefined && expected.has(firstHeader);
+  }) || null;
 }
 
-export function headingSection(text, startRe) {
+export function headingSection(text: string, startRe: RegExp): string {
   const lines = text.split('\n');
   let start = -1;
   let level = 0;
@@ -76,7 +145,7 @@ export function headingSection(text, startRe) {
   for (let i = 0; i < lines.length; i++) {
     if (startRe.test(lines[i])) {
       start = i;
-      level = (lines[i].match(/^(#+)/) || ['', '##'])[1].length;
+      level = (lines[i].match(/^(#+)/)?.[1] || '##').length;
       break;
     }
   }
@@ -93,13 +162,13 @@ export function headingSection(text, startRe) {
   return lines.slice(start, end).join('\n');
 }
 
-export function envelopeSection(text, number) {
+export function envelopeSection(text: string, number: number): string {
   return headingSection(text, new RegExp(`^##\\s+${number}\\.\\s`));
 }
 
-export function parseBulletFields(text) {
-  const fields = new Map();
-  const locations = new Map();
+export function parseBulletFields(text: string): BulletFields {
+  const fields = new Map<string, string>();
+  const locations = new Map<string, number>();
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const match = lines[i].match(/^\s*-\s*([A-Za-z][A-Za-z0-9 _-]*):\s*(.*)$/);
@@ -113,11 +182,17 @@ export function parseBulletFields(text) {
   return { fields, locations };
 }
 
-export function parseFieldTable(tables) {
+export function parseFieldTable(tables: readonly MarkdownTable[]): FieldTable {
   const table = findTable(tables, ['field', 'value']);
-  if (!table) return { table: null, fields: new Map(), rows: new Map() };
-  const fields = new Map();
-  const rows = new Map();
+  if (!table) {
+    return {
+      table: null,
+      fields: new Map<string, string>(),
+      rows: new Map<string, MarkdownTableRow>(),
+    };
+  }
+  const fields = new Map<string, string>();
+  const rows = new Map<string, MarkdownTableRow>();
   for (const row of table.rows) {
     if (row.cells.length < 2) continue;
     const key = normalizeHeader(row.cells[0]);
@@ -129,36 +204,23 @@ export function parseFieldTable(tables) {
   return { table, fields, rows };
 }
 
-export function parseFencedBlock(text, language) {
+export function parseFencedBlock(text: string, language: string): string | null {
   const escaped = language.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const matches = [...text.matchAll(new RegExp(`^\\\`\\\`\\\`${escaped}\\s*\\n([\\s\\S]*?)^\\\`\\\`\\\`\\s*$`, 'gm'))];
   if (matches.length !== 1) return null;
-  return matches[0][1];
+  return matches[0]?.[1] ?? null;
 }
 
-export function idsIn(value, family) {
-  const familyPatterns = {
-    RUN: String.raw`RUN-[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`,
-    PKT: String.raw`PKT-\d+`,
-    CC: String.raw`CC-\d+`,
-    SRC: String.raw`SRC-\d+`,
-    PC: String.raw`PC-\d+`,
-    RC: String.raw`RC-\d+`,
-    REF: String.raw`REF-\d+`,
-    STM: String.raw`STM-\d+`,
-    VER: String.raw`VER-\d+`,
-    NB: String.raw`NB-\d+`,
-    PRJ: String.raw`PRJ-\d+`,
-  };
+export function idsIn(value: unknown, family?: IdentifierFamily): string[] {
   const source = family
-    ? familyPatterns[family]
-    : `(?:${Object.values(familyPatterns).join('|')})`;
+    ? ID_FAMILY_PATTERNS[family]
+    : `(?:${Object.values(ID_FAMILY_PATTERNS).join('|')})`;
   if (!source) return [];
   const pattern = new RegExp(`\\b(?:${source})\\b`, 'g');
   return [...String(value || '').matchAll(pattern)].map((match) => match[0]);
 }
 
-export function commaIds(value, family) {
+export function commaIds(value: unknown, family: IdentifierFamily): CommaIdsResult {
   const ids = idsIn(value, family);
   const residue = String(value || '')
     .replace(new RegExp(`\\b${family}-\\d+\\b`, 'g'), '')
@@ -166,8 +228,8 @@ export function commaIds(value, family) {
   return { ids, clean: residue === '' };
 }
 
-export function numberedEnvelopeHeadings(text) {
-  const found = [];
+export function numberedEnvelopeHeadings(text: string): number[] {
+  const found: number[] = [];
   for (const line of text.split('\n')) {
     const match = line.match(/^##\s+(\d+)\.\s/);
     if (match) found.push(Number(match[1]));
@@ -175,21 +237,22 @@ export function numberedEnvelopeHeadings(text) {
   return found;
 }
 
-export function renderedParagraphs(text) {
+export function renderedParagraphs(text: string): RenderedParagraph[] {
   const blocks = text
     .replace(/\r\n?/g, '\n')
     .split(/\n[ \t]*\n/)
     .map((block) => block.trim())
     .filter(Boolean);
-  const paragraphs = [];
+  const paragraphs: RenderedParagraph[] = [];
   let section = '0';
   let paragraph = 0;
 
   for (const block of blocks) {
     const heading = block.match(/^#{1,6}\s+(.+)$/);
     if (heading && !heading[1].includes('\n')) {
-      const numbered = heading[1].match(/^(\d+(?:\.\d+)*)[.)]?\s*/);
-      section = numbered ? numbered[1] : normalizeHeader(heading[1]).replace(/\s+/g, '-');
+      const headingText = heading[1];
+      const numbered = headingText.match(/^(\d+(?:\.\d+)*)[.)]?\s*/);
+      section = numbered ? numbered[1] : normalizeHeader(headingText).replace(/\s+/g, '-');
       paragraph = 0;
       continue;
     }

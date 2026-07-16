@@ -39,7 +39,7 @@ acceptance.
 ## Validation
 
 ```text
-node scripts/validate-run.mjs --root . --run docs/fixtures/projection-adversarial
+node scripts/validate-run.ts --root . --run docs/fixtures/projection-adversarial
 ```
 
 The clean fixture must exit zero with K6.1 through K6.10 passing. The mutation

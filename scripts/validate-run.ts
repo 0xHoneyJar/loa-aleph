@@ -3,17 +3,51 @@
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runK2 } from './lib/checks-k2.mjs';
-import { runK3, runK4K5, runK6 } from './lib/checks-k3-k6.mjs';
-import { parseFencedBlock } from './lib/markdown.mjs';
-import { ResultCollector } from './lib/results.mjs';
-import { loadRun } from './lib/run-model.mjs';
+import { runK2 } from './lib/checks-k2.ts';
+import { runK3, runK4K5, runK6 } from './lib/checks-k3-k6.ts';
+import { parseFencedBlock } from './lib/markdown.ts';
+import { ResultCollector } from './lib/results.ts';
+import type { CheckReport } from './lib/results.ts';
+import { loadRun } from './lib/run-model.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_ROOT = resolve(dirname(SCRIPT_PATH), '..');
-const KINDS = new Set(['run', 'evidence-role', 'routed', 'projection']);
+const KINDS = new Set<RunKind>(['run', 'evidence-role', 'routed', 'projection']);
 
-function declarationKind(runDir) {
+type RunKind = 'run' | 'evidence-role' | 'routed' | 'projection';
+
+export interface ValidateRunOptions {
+  root?: string;
+  run?: string;
+  kind?: RunKind | string;
+}
+
+interface RunReportExtra {
+  scope: string;
+  runDir: string;
+  kind: string;
+}
+
+export type RunReport = CheckReport<RunReportExtra>;
+
+interface CliOptions {
+  root: string;
+  run: string;
+  kind: string;
+  json: boolean;
+  help: boolean;
+  error?: string;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isRunKind(value: string): value is RunKind {
+  return KINDS.has(value as RunKind);
+}
+
+function declarationKind(runDir: string): string {
   const path = join(runDir, 'README.md');
   if (!existsSync(path)) return '';
   const block = parseFencedBlock(readFileSync(path, 'utf8'), 'aleph-fixture');
@@ -25,7 +59,13 @@ function declarationKind(runDir) {
   return '';
 }
 
-function failureReport(scope, id, label, message, extra = {}) {
+function failureReport(
+  scope: string,
+  id: string,
+  label: string,
+  message: string,
+  extra: Omit<RunReportExtra, 'scope'>,
+): RunReport {
   return {
     result: 'FAIL',
     checks: [{
@@ -43,10 +83,10 @@ function failureReport(scope, id, label, message, extra = {}) {
  * Validate one Aleph run or run-lite fixture without printing, exiting, writing,
  * spawning, or using the network.
  *
- * @param {{root?: string, run: string, kind?: 'run'|'evidence-role'|'routed'|'projection'}} options
- * @returns {{result:'PASS'|'FAIL', checks:Array, scope:string, runDir:string, kind:string}}
+ * The public function stays import-safe and reports malformed input instead of
+ * throwing or exiting.
  */
-export function validateRun(options = {}) {
+export function validateRun(options: ValidateRunOptions = {}): RunReport {
   const root = resolve(options.root || DEFAULT_ROOT);
   if (!options.run || typeof options.run !== 'string') {
     return failureReport('run', 'K2.1', 'layout', '--run is required', {
@@ -64,18 +104,18 @@ export function validateRun(options = {}) {
   }
 
   const kind = options.kind || declarationKind(runDir) || 'run';
-  if (!KINDS.has(kind)) {
-    return failureReport(initialScope, 'K1.2', 'unknown kind', `kind "${kind}" is not supported by validate-run.mjs`, {
+  if (!isRunKind(kind)) {
+    return failureReport(initialScope, 'K1.2', 'unknown kind', `kind "${kind}" is not supported by validate-run.ts`, {
       runDir,
       kind,
     });
   }
 
-  let model;
+  let model: ReturnType<typeof loadRun>;
   try {
     model = loadRun(runDir);
   } catch (error) {
-    return failureReport(initialScope, 'K2.1', 'layout', `could not read run tree: ${error.message}`, {
+    return failureReport(initialScope, 'K2.1', 'layout', `could not read run tree: ${errorMessage(error)}`, {
       runDir,
       kind,
     });
@@ -102,8 +142,14 @@ export function validateRun(options = {}) {
   return results.report({ scope, runDir, kind });
 }
 
-function parseArgs(argv) {
-  const options = { root: DEFAULT_ROOT, run: '', kind: '', json: false, help: false };
+function parseArgs(argv: string[]): CliOptions {
+  const options: CliOptions = {
+    root: DEFAULT_ROOT,
+    run: '',
+    kind: '',
+    json: false,
+    help: false,
+  };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
     if (arg === '--help' || arg === '-h') {
@@ -130,7 +176,7 @@ function parseArgs(argv) {
   return options;
 }
 
-function printHuman(report) {
+function printHuman(report: RunReport): void {
   console.log('Aleph Run Conformance Kernel');
   console.log(`(run: ${report.runDir || '(missing)'}, kind: ${report.kind})`);
   console.log('');
@@ -150,10 +196,10 @@ function printHuman(report) {
   console.log(`RESULT: ${report.result}${failures.length ? ` (${failures.length} failure${failures.length === 1 ? '' : 's'})` : ''}`);
 }
 
-function main() {
+function main(): number {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    console.log('Usage: node scripts/validate-run.mjs [--root DIR] --run PATH [--kind KIND] [--json]');
+    console.log('Usage: node scripts/validate-run.ts [--root DIR] --run PATH [--kind KIND] [--json]');
     return 0;
   }
   let report;

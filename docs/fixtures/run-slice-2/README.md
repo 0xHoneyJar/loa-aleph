@@ -126,8 +126,8 @@ No accepted slice-2 file is modified or superseded by this fixture.
 ## Validation
 
 ```text
-node scripts/validate-precis-fixtures.mjs
-node scripts/validate-run.mjs --root . --run docs/fixtures/run-slice-2
+node scripts/validate-precis-fixtures.ts
+node scripts/validate-run.ts --root . --run docs/fixtures/run-slice-2
 ```
 
 The run checker must exit zero and print `RESULT: PASS`.

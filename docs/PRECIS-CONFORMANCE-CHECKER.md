@@ -2,29 +2,35 @@
 
 Primary entry points:
 
-- `scripts/validate-precis-fixtures.mjs`: discovered-fixture dispatcher plus
+- `scripts/validate-precis-fixtures.ts`: discovered-fixture dispatcher plus
   the accepted Slice 1/Slice 2 Précis checks.
-- `scripts/validate-run.mjs`: import-safe K2-K6 validator for run and run-lite
+- `scripts/validate-run.ts`: import-safe K2-K6 validator for run and run-lite
   directories.
-- `scripts/test-conformance-mutations.mjs`: temporary-copy fail-closed battery.
+- `scripts/test-conformance-mutations.ts`: temporary-copy fail-closed battery.
 
-All are dependency-free, local, and fail-closed. The two validators are
-read-only over their target artifacts. The mutation battery writes only
-disposable fixture copies beneath the operating system's temporary directory
-and never mutates repository state. The checkers prove structural, accounting,
-hash, reference, state, taint, and projection-trace invariants. They do not
-judge semantic truth or grant authority acceptance.
+All three runtime surfaces use Node built-ins only, are local, and fail closed.
+The development dependencies are the TypeScript compiler and Node type
+definitions used by the static typecheck; there is no emitted build artifact.
+The two validators are read-only over their target artifacts. The mutation
+battery writes only disposable fixture copies beneath the operating system's
+temporary directory and never mutates repository state. The checkers prove
+structural, accounting, hash, reference, state, taint, and projection-trace
+invariants. They do not judge semantic truth or grant authority acceptance.
 
 ## How to run
 
 ```bash
-node scripts/validate-precis-fixtures.mjs
-node scripts/validate-run.mjs --run docs/fixtures/run-slice-2
-node scripts/test-conformance-mutations.mjs
+npm install
+npm run typecheck
+node scripts/validate-precis-fixtures.ts
+node scripts/validate-run.ts --run docs/fixtures/run-slice-2
+node scripts/test-conformance-mutations.ts
 ```
 
-- Node built-ins only. No dependencies, no
-  `package.json`, no lockfile, no build step, no network.
+- Node 22.18 or newer executes the `.ts` files directly through native type
+  stripping. Runtime validation uses Node built-ins only.
+- `npm install` installs only the pinned development typechecking toolchain.
+  `npm run typecheck` emits no files.
 - Both validation scripts read files only, write nothing, and mutate no repo
   state.
 - The mutation battery copies fixtures beneath the operating system's temporary
@@ -34,7 +40,7 @@ node scripts/test-conformance-mutations.mjs
   line naming what failed and where.
 
 Both validation scripts accept `--json`. Both accept `--root <dir>`;
-`validate-run.mjs` additionally requires `--run <path>` and optionally accepts
+`validate-run.ts` additionally requires `--run <path>` and optionally accepts
 `--kind run|evidence-role|routed|projection`.
 
 ## What it proves
@@ -180,7 +186,7 @@ Human mode prints the same records as `PASS/FAIL <scope> <id> <message>`.
 On 2026-07-16, the repository-level battery was run with:
 
 ```bash
-node scripts/test-conformance-mutations.mjs --json
+node scripts/test-conformance-mutations.ts --json
 ```
 
 It returned `PASS` with 52/52 mutation cases and 3/3 clean baselines:
@@ -253,7 +259,7 @@ It also accepts `--root <dir>`, pointing it at any directory that contains a
 `docs/fixtures/…` tree:
 
 ```
-node scripts/validate-precis-fixtures.mjs --root /tmp/some-copy
+node scripts/validate-precis-fixtures.ts --root /tmp/some-copy
 ```
 
 This is read-only and writes nothing; it exists so the negative-test battery can

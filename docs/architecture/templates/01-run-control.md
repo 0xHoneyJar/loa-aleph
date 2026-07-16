@@ -81,7 +81,7 @@ tokens of the 600k budget.
 ```markdown
 # Kernel Report — ⟨RUN-slug⟩
 - checker_version: ⟨git SHA of scripts/ at run time⟩
-- checker_content_sha256: ⟨optional prepublication aggregate over scripts/*.mjs⟩
+- checker_content_sha256: ⟨optional prepublication aggregate over scripts/*.ts⟩
 - command: `⟨exact command line⟩`
 - date: ⟨YYYY-MM-DD HH:MM⟩
 - result: ⟨PASS | FAIL⟩
@@ -104,7 +104,7 @@ checker, rerun the exact command, replace the marker with the resulting
 40-character git SHA, and refresh the complete output.
 
 When a prepublication content pin is useful, compute
-`checker_content_sha256` by sorting every `scripts/**/*.mjs` path, hashing each
+`checker_content_sha256` by sorting every `scripts/**/*.ts` path, hashing each
 file's exact bytes with SHA-256, joining records as
 `<repo-relative-path>\0<lowercase-file-digest>\n`, and hashing the joined bytes
 with SHA-256. This supplements the required publication git SHA; it never

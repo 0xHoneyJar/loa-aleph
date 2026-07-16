@@ -12,14 +12,15 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import type { SpawnSyncReturns } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
 const FIXTURES = join(REPO_ROOT, 'docs', 'fixtures');
-const PRECIS_CHECKER = join(REPO_ROOT, 'scripts', 'validate-precis-fixtures.mjs');
-const RUN_CHECKER = join(REPO_ROOT, 'scripts', 'validate-run.mjs');
-const EXPECTED_CASES = new Map([
+const PRECIS_CHECKER = join(REPO_ROOT, 'scripts', 'validate-precis-fixtures.ts');
+const RUN_CHECKER = join(REPO_ROOT, 'scripts', 'validate-run.ts');
+const EXPECTED_CASES = new Map<string, number>([
   ['K1', 5],
   ['K2', 19],
   ['K3', 8],
@@ -32,6 +33,44 @@ const options = {
   help: false,
   error: '',
 };
+
+type CheckStatus = 'PASS' | 'FAIL';
+
+interface CheckRecord {
+  id: string;
+  status: CheckStatus;
+  message: string;
+}
+
+interface CheckerReport {
+  result: CheckStatus;
+  checks?: CheckRecord[];
+}
+
+interface MutationCase {
+  group: string;
+  name: string;
+  execute: (root: string) => void;
+}
+
+interface BaselineResult {
+  name: string;
+  status: CheckStatus;
+  error?: string;
+}
+
+interface CaseResult {
+  group: string;
+  name: string;
+  status: CheckStatus;
+  error?: string;
+}
+
+type FixtureMutation = (fixturePath: string, root: string) => void;
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 for (const arg of process.argv.slice(2)) {
   if (arg === '--json') options.json = true;
   else if (arg === '--help' || arg === '-h') options.help = true;
@@ -39,7 +78,7 @@ for (const arg of process.argv.slice(2)) {
 }
 
 if (options.help) {
-  console.log('Usage: node scripts/test-conformance-mutations.mjs [--json]');
+  console.log('Usage: node scripts/test-conformance-mutations.ts [--json]');
   process.exit(0);
 }
 if (options.error) {
@@ -47,17 +86,17 @@ if (options.error) {
   process.exit(2);
 }
 
-const cases = [];
-const baselineResults = [];
-const caseResults = [];
+const cases: MutationCase[] = [];
+const baselineResults: BaselineResult[] = [];
+const caseResults: CaseResult[] = [];
 const tempRoot = mkdtempSync(join(tmpdir(), 'aleph-conformance-mutations-'));
 let sandboxCounter = 0;
 
-function slug(value) {
+function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function sandbox(label) {
+function sandbox(label: string): string {
   sandboxCounter += 1;
   const path = join(
     tempRoot,
@@ -67,19 +106,23 @@ function sandbox(label) {
   return path;
 }
 
-function copyFixture(name, root, relativePath = join('docs', 'fixtures', name)) {
+function copyFixture(
+  name: string,
+  root: string,
+  relativePath = join('docs', 'fixtures', name),
+): string {
   const destination = join(root, relativePath);
   mkdirSync(dirname(destination), { recursive: true });
   cpSync(join(FIXTURES, name), destination, { recursive: true });
   return destination;
 }
 
-function copyLegacyFixtures(root) {
+function copyLegacyFixtures(root: string): void {
   copyFixture('slice-1', root);
   copyFixture('slice-2', root);
 }
 
-function replaceOnce(path, before, after) {
+function replaceOnce(path: string, before: string, after: string): void {
   const text = readFileSync(path, 'utf8');
   const first = text.indexOf(before);
   if (first < 0) {
@@ -88,7 +131,11 @@ function replaceOnce(path, before, after) {
   writeFileSync(path, `${text.slice(0, first)}${after}${text.slice(first + before.length)}`);
 }
 
-function replaceRegexOnce(path, pattern, replacement) {
+function replaceRegexOnce(
+  path: string,
+  pattern: RegExp,
+  replacement: string,
+): void {
   if (pattern.global) throw new Error('replaceRegexOnce requires a non-global RegExp');
   const text = readFileSync(path, 'utf8');
   if (!pattern.test(text)) {
@@ -97,7 +144,7 @@ function replaceRegexOnce(path, pattern, replacement) {
   writeFileSync(path, text.replace(pattern, replacement));
 }
 
-function removeLine(path, pattern) {
+function removeLine(path: string, pattern: RegExp): void {
   if (pattern.global) throw new Error('removeLine requires a non-global RegExp');
   const text = readFileSync(path, 'utf8');
   const lines = text.split('\n');
@@ -107,7 +154,7 @@ function removeLine(path, pattern) {
   writeFileSync(path, lines.join('\n'));
 }
 
-function invoke(script, args) {
+function invoke(script: string, args: string[]): SpawnSyncReturns<string> {
   return spawnSync(process.execPath, [script, ...args], {
     cwd: REPO_ROOT,
     encoding: 'utf8',
@@ -115,7 +162,7 @@ function invoke(script, args) {
   });
 }
 
-function reportFrom(result) {
+function reportFrom(result: SpawnSyncReturns<string>): CheckerReport {
   if (result.error) throw result.error;
   const output = result.stdout.trim();
   if (!output) {
@@ -124,15 +171,20 @@ function reportFrom(result) {
     );
   }
   try {
-    return JSON.parse(output);
+    return JSON.parse(output) as CheckerReport;
   } catch (error) {
     throw new Error(
-      `checker output is not JSON: ${error.message}; stdout: ${output.slice(0, 500)}`,
+      `checker output is not JSON: ${errorMessage(error)}; stdout: ${output.slice(0, 500)}`,
     );
   }
 }
 
-function requireCheck(report, id, status, messagePattern = null) {
+function requireCheck(
+  report: CheckerReport,
+  id: string,
+  status: CheckStatus,
+  messagePattern: RegExp | null = null,
+): CheckRecord {
   const record = report.checks?.find((check) => (
     check.id === id
     && check.status === status
@@ -151,7 +203,7 @@ function requireCheck(report, id, status, messagePattern = null) {
   return record;
 }
 
-function requireFailure(result, id) {
+function requireFailure(result: SpawnSyncReturns<string>, id: string): CheckerReport {
   const report = reportFrom(result);
   if (result.status === 0 || report.result !== 'FAIL') {
     throw new Error(`expected nonzero/FAIL for ${id}, got status ${result.status}/${report.result}`);
@@ -160,7 +212,11 @@ function requireFailure(result, id) {
   return report;
 }
 
-function requirePass(result, ids = [], messagePatterns = new Map()) {
+function requirePass(
+  result: SpawnSyncReturns<string>,
+  ids: readonly string[] = [],
+  messagePatterns: ReadonlyMap<string, RegExp> = new Map(),
+): CheckerReport {
   const report = reportFrom(result);
   if (result.status !== 0 || report.result !== 'PASS') {
     const failed = (report.checks || [])
@@ -178,11 +234,11 @@ function requirePass(result, ids = [], messagePatterns = new Map()) {
   return report;
 }
 
-function runPrecis(root) {
+function runPrecis(root: string): SpawnSyncReturns<string> {
   return invoke(PRECIS_CHECKER, ['--root', root, '--json']);
 }
 
-function expectedLegacyHumanOutput(root) {
+function expectedLegacyHumanOutput(root: string): string {
   const passMessages = [
     'discovery: 2 fixture directories recognized; declarations valid',
     'slice-1 files: exactly README.md, corpus.md, precis.md present; Markdown-only',
@@ -216,7 +272,7 @@ function expectedLegacyHumanOutput(root) {
   ].join('\n');
 }
 
-function requireLegacyHumanOutput(result, root) {
+function requireLegacyHumanOutput(result: SpawnSyncReturns<string>, root: string): void {
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(
@@ -241,7 +297,7 @@ function requireLegacyHumanOutput(result, root) {
   );
 }
 
-function runFixture(root, relativePath) {
+function runFixture(root: string, relativePath: string): SpawnSyncReturns<string> {
   return invoke(RUN_CHECKER, [
     '--root',
     root,
@@ -251,11 +307,17 @@ function runFixture(root, relativePath) {
   ]);
 }
 
-function addCase(group, name, execute) {
+function addCase(group: string, name: string, execute: MutationCase['execute']): void {
   cases.push({ group, name, execute });
 }
 
-function addFailureCase(group, name, fixture, expectedId, mutate) {
+function addFailureCase(
+  group: string,
+  name: string,
+  fixture: string,
+  expectedId: string,
+  mutate: FixtureMutation,
+): void {
   addCase(group, name, (root) => {
     const relativePath = join('docs', 'fixtures', fixture);
     const fixturePath = copyFixture(fixture, root, relativePath);
@@ -264,7 +326,7 @@ function addFailureCase(group, name, fixture, expectedId, mutate) {
   });
 }
 
-function runBaseline(name, fixture, ids) {
+function runBaseline(name: string, fixture: string, ids: readonly string[]): void {
   const root = sandbox(`baseline-${name}`);
   const relativePath = join('docs', 'fixtures', fixture);
   try {
@@ -273,8 +335,9 @@ function runBaseline(name, fixture, ids) {
     baselineResults.push({ name, status: 'PASS' });
     if (!options.json) console.log(`PASS baseline ${name}`);
   } catch (error) {
-    baselineResults.push({ name, status: 'FAIL', error: error.message });
-    if (!options.json) console.log(`FAIL baseline ${name}: ${error.message}`);
+    const message = errorMessage(error);
+    baselineResults.push({ name, status: 'FAIL', error: message });
+    if (!options.json) console.log(`FAIL baseline ${name}: ${message}`);
   }
 }
 
@@ -663,12 +726,16 @@ addFailureCase('K4/K5', 'supplied referent has no supplier or intake', 'run-slic
 // registered type contract. The clean baseline separately guards K6.9,
 // honest gaps, and the surfaced-open happy path.
 addFailureCase('K6', 'commission hash mismatch', 'projection-adversarial', 'K6.1', (path) => {
-  replaceRegexOnce(
-    join(path, 'projections', 'commission-product-doctrine.md'),
+  const commission = join(path, 'projections', 'commission-product-doctrine.md');
+  const text = readFileSync(commission, 'utf8');
+  const match = text.match(
     /(\| precis hash at commissioning \| sha256:)([a-f0-9])([a-f0-9]{63})( \|)/,
-    (match, prefix, first, rest, suffix) => (
-      `${prefix}${first === '0' ? '1' : '0'}${rest}${suffix}`
-    ),
+  );
+  if (!match) throw new Error(`${commission} does not contain a commissioned Précis hash`);
+  replaceOnce(
+    commission,
+    match[0],
+    `${match[1]}${match[2] === '0' ? '1' : '0'}${match[3]}${match[4]}`,
   );
 });
 
@@ -750,7 +817,7 @@ addFailureCase('K6', 'registered type is missing a required section', 'projectio
   );
 });
 
-function verifyDeclaredCounts() {
+function verifyDeclaredCounts(): void {
   for (const [group, expected] of EXPECTED_CASES) {
     const actual = cases.filter((test) => test.group === group).length;
     if (actual !== expected) {
@@ -788,13 +855,14 @@ try {
       caseResults.push({ group: test.group, name: test.name, status: 'PASS' });
       if (!options.json) console.log(`PASS ${test.group} ${test.name}`);
     } catch (error) {
+      const message = errorMessage(error);
       caseResults.push({
         group: test.group,
         name: test.name,
         status: 'FAIL',
-        error: error.message,
+        error: message,
       });
-      if (!options.json) console.log(`FAIL ${test.group} ${test.name}: ${error.message}`);
+      if (!options.json) console.log(`FAIL ${test.group} ${test.name}: ${message}`);
     }
   }
 } catch (error) {
@@ -802,7 +870,7 @@ try {
     group: 'harness',
     name: 'setup',
     status: 'FAIL',
-    error: error.message,
+    error: errorMessage(error),
   });
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });

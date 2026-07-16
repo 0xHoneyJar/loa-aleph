@@ -1,12 +1,32 @@
+export type CheckStatus = 'PASS' | 'FAIL';
+
+export interface CheckRecord {
+  id: string;
+  scope: string;
+  status: CheckStatus;
+  message: string;
+}
+
+export type CheckFailure = (message: string) => void;
+export type CheckCallback = (fail: CheckFailure) => string | void;
+
+export type CheckReport<TExtra extends object = Record<string, never>> = {
+  result: CheckStatus;
+  checks: CheckRecord[];
+} & TExtra;
+
 export class ResultCollector {
-  constructor(scope) {
+  scope: string;
+  checks: CheckRecord[];
+
+  constructor(scope: string) {
     this.scope = scope;
     this.checks = [];
   }
 
-  run(id, label, check) {
+  run(id: string, label: string, check: CheckCallback): void {
     const before = this.checks.length;
-    const fail = (message) => {
+    const fail: CheckFailure = (message) => {
       this.checks.push({
         id,
         scope: this.scope,
@@ -36,11 +56,13 @@ export class ResultCollector {
     }
   }
 
-  report(extra = {}) {
+  report<TExtra extends object = Record<string, never>>(
+    extra: TExtra = {} as TExtra,
+  ): CheckReport<TExtra> {
     return {
       result: this.checks.some((record) => record.status === 'FAIL') ? 'FAIL' : 'PASS',
       checks: this.checks,
       ...extra,
-    };
+    } as CheckReport<TExtra>;
   }
 }

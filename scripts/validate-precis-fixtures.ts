@@ -15,21 +15,28 @@
 // allowed in ordinary prose and in explicit refusal / boundary contexts.
 //
 // Run:
-//   node scripts/validate-precis-fixtures.mjs
-//   node scripts/validate-precis-fixtures.mjs --root /tmp/some-copy
+//   node scripts/validate-precis-fixtures.ts
+//   node scripts/validate-precis-fixtures.ts --root /tmp/some-copy
 // (--root points at a directory that contains docs/fixtures/… ; used by the
 //  negative-test battery to run THIS checker against temporary copies without
 //  ever mutating tracked fixtures.)
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import type { Dirent } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateRun } from './validate-run.mjs';
+import { validateRun } from './validate-run.ts';
+import type { CheckRecord, CheckStatus } from './lib/results.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = join(__dirname, '..');
 
-function parseOptions() {
+interface CheckerOptions {
+  root: string;
+  json: boolean;
+}
+
+function parseOptions(): CheckerOptions {
   const args = process.argv.slice(2);
   let root = DEFAULT_ROOT;
   let json = false;
@@ -50,6 +57,84 @@ const OPTIONS = parseOptions();
 const REPO_ROOT = OPTIONS.root;
 const FIXTURES_DIR = join(REPO_ROOT, 'docs', 'fixtures');
 
+type FixtureKind = 'precis' | 'run' | 'evidence-role' | 'routed' | 'projection';
+type DelegatedKind = Exclude<FixtureKind, 'precis'>;
+
+interface PrecisFixture {
+  name: string;
+  dir?: string;
+  kind: 'precis';
+  srcIds: string[];
+  claimIds: string[];
+  ledgerTotal: number;
+  requireMatrix: boolean;
+  matrixIds: string[];
+}
+
+interface DelegatedFixture {
+  name: string;
+  dir: string;
+  kind: DelegatedKind;
+  fields: Map<string, string>;
+  srcIds: string[];
+  claimIds: string[];
+  matrixIds: string[];
+}
+
+type FixtureDeclaration = PrecisFixture | DelegatedFixture;
+
+interface DiscoveryResult {
+  precis: PrecisFixture[];
+  delegated: DelegatedFixture[];
+}
+
+interface PatternRule {
+  label: string;
+  re: RegExp;
+}
+
+interface InventoryResult {
+  ids: string[];
+  map: Map<string, string>;
+}
+
+interface LedgerResult {
+  declaredTotal: number | null;
+  counts: Map<string, number>;
+}
+
+interface LedgerRow {
+  disposition: string;
+  claimIds: string[];
+}
+
+interface MergeRow {
+  canonical: string;
+  absorbs: string[];
+}
+
+interface MatrixReference {
+  stm: string | null;
+  id: string;
+}
+
+interface MatrixReferences {
+  present: boolean;
+  ccCol?: number;
+  srcCol?: number;
+  ccRefs: MatrixReference[];
+  srcRefs: MatrixReference[];
+  stmRowIds: Set<string>;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isFixtureKind(value: string): value is FixtureKind {
+  return ['precis', 'run', 'evidence-role', 'routed', 'projection'].includes(value);
+}
+
 // ---------------------------------------------------------------------------
 // Constants: the accepted provisional v0 vocabulary (NOT a frozen schema)
 // ---------------------------------------------------------------------------
@@ -65,7 +150,7 @@ const VALID_DISPOSITIONS = [
 ];
 
 // Absolute zero-tolerance tokens — hard failure anywhere under a fixture dir.
-const ABSOLUTE_FORBIDDEN = [
+const ABSOLUTE_FORBIDDEN: PatternRule[] = [
   { label: 'Phase', re: /\bphase\b/i },
   { label: 'Sensenet', re: /\bsensenet\b/i },
 ];
@@ -74,16 +159,19 @@ const ABSOLUTE_FORBIDDEN = [
 const EXPECTED_FILES = ['README.md', 'corpus.md', 'precis.md'];
 
 // Per-slice expectations.
-const SLICES = [
+const SLICES: PrecisFixture[] = [
   {
     name: 'slice-1',
+    kind: 'precis',
     srcIds: ['SRC-001', 'SRC-002', 'SRC-003'],
     claimIds: range(1, 10).map((n) => `CC-${String(n).padStart(3, '0')}`),
     ledgerTotal: 10,
     requireMatrix: false,
+    matrixIds: [],
   },
   {
     name: 'slice-2',
+    kind: 'precis',
     srcIds: ['SRC-101', 'SRC-102', 'SRC-103', 'SRC-104'],
     claimIds: range(101, 114).map((n) => `CC-${n}`),
     ledgerTotal: 14,
@@ -128,7 +216,7 @@ const REAL_EXPORT_MARKERS = [/chatgpt said:/i, /\[oai_citation/i, /^\s*user:\s*$
 // Corpus answer-key / label-leakage detectors (corpus.md only)
 // ---------------------------------------------------------------------------
 
-const CORPUS_LEAKS = [
+const CORPUS_LEAKS: PatternRule[] = [
   { label: 'candidate-claim ID (CC-NNN)', re: /\bCC-\d{3}\b/ },
   { label: 'stress-test-matrix ID (STM-N)', re: /\bSTM-\d+\b/ },
   { label: 'phrase "candidate claim"', re: /\bcandidate claim\b/i },
@@ -143,15 +231,15 @@ const CORPUS_LEAKS = [
 // Result accumulation
 // ---------------------------------------------------------------------------
 
-const failures = [];
-const passes = [];
-const checks = [];
+const failures: string[] = [];
+const passes: string[] = [];
+const checks: CheckRecord[] = [];
 
-function inferScope(msg) {
+function inferScope(msg: string): string {
   return msg.match(/^([^ :]+)/)?.[1] || 'fixtures';
 }
 
-function inferCheckId(msg) {
+function inferCheckId(msg: string): string {
   if (msg.includes('cross-section consistency')) return 'C1-C8';
   const explicit = msg.match(/\b(K\d+(?:\.\d+)?|C\d+)\b/);
   if (explicit) return explicit[1];
@@ -170,21 +258,34 @@ function inferCheckId(msg) {
   return 'PRECIS';
 }
 
-function record(status, msg, id = inferCheckId(msg), scope = inferScope(msg)) {
+function record(
+  status: CheckStatus,
+  msg: string,
+  id = inferCheckId(msg),
+  scope = inferScope(msg),
+): void {
   checks.push({ id, scope, status, message: msg });
 }
 
-function fail(msg, id, scope) {
+function fail(
+  msg: string,
+  id = inferCheckId(msg),
+  scope = inferScope(msg),
+): void {
   failures.push(msg);
   record('FAIL', msg, id, scope);
 }
 
-function pass(msg, id, scope) {
+function pass(
+  msg: string,
+  id = inferCheckId(msg),
+  scope = inferScope(msg),
+): void {
   passes.push(msg);
   record('PASS', msg, id, scope);
 }
 
-function sliceHasFailure(name, ...prefixes) {
+function sliceHasFailure(name: string, ...prefixes: string[]): boolean {
   return failures.some((m) => prefixes.some((p) => m.startsWith(`${name} ${p}`)));
 }
 
@@ -192,20 +293,20 @@ function sliceHasFailure(name, ...prefixes) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function range(a, b) {
-  const out = [];
+function range(a: number, b: number): number[] {
+  const out: number[] = [];
   for (let i = a; i <= b; i++) out.push(i);
   return out;
 }
 
-function readMaybe(path) {
+function readMaybe(path: string): string | null {
   if (!existsSync(path)) return null;
   return readFileSync(path, 'utf8');
 }
 
-function parseIdList(value) {
+function parseIdList(value: string): string[] {
   if (!value || !value.trim()) throw new Error('empty id list');
-  const ids = [];
+  const ids: string[] = [];
   for (const part of value.split(',').map((item) => item.trim())) {
     const match = part.match(/^([A-Z]+)-(\d+)(?:\.\.([A-Z]+)-(\d+))?$/);
     if (!match) throw new Error(`malformed id or range "${part}"`);
@@ -232,7 +333,7 @@ function parseIdList(value) {
   return ids;
 }
 
-function parseFixtureDeclaration(name, dir) {
+function parseFixtureDeclaration(name: string, dir: string): FixtureDeclaration | null {
   const readme = readMaybe(join(dir, 'README.md'));
   if (readme === null) {
     fail(`${name} K1.1 (declaration): README.md is missing`, 'K1.1', name);
@@ -247,7 +348,7 @@ function parseFixtureDeclaration(name, dir) {
     );
     return null;
   }
-  const fields = new Map();
+  const fields = new Map<string, string>();
   for (const rawLine of blocks[0][1].split('\n')) {
     const line = rawLine.replace(/\s+#.*$/, '').trim();
     if (!line) continue;
@@ -267,21 +368,20 @@ function parseFixtureDeclaration(name, dir) {
     fail(`${name} K1.1 (declaration): required field "kind" is missing`, 'K1.1', name);
     return null;
   }
-  const validKinds = ['precis', 'run', 'evidence-role', 'routed', 'projection'];
-  if (!validKinds.includes(kind)) {
+  if (!isFixtureKind(kind)) {
     fail(`${name} K1.2 (unknown kind): "${kind}"`, 'K1.2', name);
     return null;
   }
 
-  let srcIds = [];
-  let claimIds = [];
-  let matrixIds = [];
+  let srcIds: string[] = [];
+  let claimIds: string[] = [];
+  let matrixIds: string[] = [];
   try {
-    if (fields.has('src_ids')) srcIds = parseIdList(fields.get('src_ids'));
-    if (fields.has('cc_ids')) claimIds = parseIdList(fields.get('cc_ids'));
-    if (fields.has('stm_rows')) matrixIds = parseIdList(fields.get('stm_rows'));
+    if (fields.has('src_ids')) srcIds = parseIdList(fields.get('src_ids') ?? '');
+    if (fields.has('cc_ids')) claimIds = parseIdList(fields.get('cc_ids') ?? '');
+    if (fields.has('stm_rows')) matrixIds = parseIdList(fields.get('stm_rows') ?? '');
   } catch (error) {
-    fail(`${name} K1.3 (range): ${error.message}`, 'K1.3', name);
+    fail(`${name} K1.3 (range): ${errorMessage(error)}`, 'K1.3', name);
     return null;
   }
 
@@ -307,19 +407,27 @@ function parseFixtureDeclaration(name, dir) {
     };
   }
 
-  return { name, dir, kind, fields, srcIds, claimIds, matrixIds };
+  return {
+    name,
+    dir,
+    kind,
+    fields,
+    srcIds,
+    claimIds,
+    matrixIds,
+  };
 }
 
-function discoverFixtures() {
-  let entries;
+function discoverFixtures(): DiscoveryResult {
+  let entries: Dirent[];
   try {
     entries = readdirSync(FIXTURES_DIR, { withFileTypes: true });
   } catch {
     return { precis: [], delegated: [] };
   }
   const legacy = new Set(SLICES.map((slice) => slice.name));
-  const precis = [];
-  const delegated = [];
+  const precis: PrecisFixture[] = [];
+  const delegated: DelegatedFixture[] = [];
   for (const entry of entries.filter((item) => item.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
     if (legacy.has(entry.name)) continue;
     const dir = join(FIXTURES_DIR, entry.name);
@@ -345,7 +453,7 @@ function discoverFixtures() {
 // missing outer pipe but an extra trailing cell (e.g.
 // "| a | b | c | d | extra") is NOT silently truncated to the expected width.
 // Returns null if the line is not a pipe-delimited row.
-function tableCells(line) {
+function tableCells(line: string): string[] | null {
   if (!line.includes('|')) return null;
   const raw = line.split('|');
   if (raw.length < 2) return null;
@@ -357,19 +465,19 @@ function tableCells(line) {
   return raw.map((c) => c.trim());
 }
 
-function isSeparatorRow(cells) {
+function isSeparatorRow(cells: readonly string[]): boolean {
   return cells.length > 0 && cells.every((c) => /^:?-{3,}:?$/.test(c.replace(/\s/g, '')) || /^-+$/.test(c));
 }
 
 // Return the body of numbered envelope section `n` (## n. ...) up to the next
 // "## " heading. Returns '' if not found.
-function envelopeSection(text, n) {
+function envelopeSection(text: string, n: number): string {
   return headingSection(text, new RegExp(`^##\\s+${n}\\.\\s`));
 }
 
 // Return the body of the first heading matching `startRe`, up to the next
 // same-or-higher-level "## " heading. Includes the heading line itself.
-function headingSection(text, startRe) {
+function headingSection(text: string, startRe: RegExp): string {
   const lines = text.split('\n');
   let start = -1;
   for (let i = 0; i < lines.length; i++) {
@@ -388,8 +496,8 @@ function headingSection(text, startRe) {
 // ---------------------------------------------------------------------------
 
 // FIX 1: require the EXACT file set — reject any extra direct entry (incl .md).
-function checkFilesPresentAndMarkdown(slice, dir) {
-  let entries = [];
+function checkFilesPresentAndMarkdown(slice: PrecisFixture, dir: string): void {
+  let entries: string[] = [];
   try { entries = readdirSync(dir); } catch {
     fail(`${slice.name} files: fixture directory "${dir}" is unreadable`);
     return;
@@ -417,7 +525,7 @@ function checkFilesPresentAndMarkdown(slice, dir) {
   }
 }
 
-function checkAbsoluteForbidden(slice, dir) {
+function checkAbsoluteForbidden(slice: PrecisFixture, dir: string): void {
   const entries = readdirSync(dir).filter((e) => e.endsWith('.md'));
   let hit = false;
   for (const e of entries) {
@@ -435,7 +543,7 @@ function checkAbsoluteForbidden(slice, dir) {
   if (!hit) pass(`${slice.name} forbidden tokens: zero Phase / Sensenet occurrences`);
 }
 
-function checkProjectionBoundary(slice, dir) {
+function checkProjectionBoundary(slice: PrecisFixture, dir: string): void {
   let hit = false;
   for (const f of ['precis.md', 'README.md']) {
     const text = readMaybe(join(dir, f));
@@ -468,7 +576,7 @@ function checkProjectionBoundary(slice, dir) {
   if (!hit) pass(`${slice.name} projection boundary: no downstream-projection generation / no real-export markers`);
 }
 
-function checkSchemaWording(slice, dir) {
+function checkSchemaWording(slice: PrecisFixture, dir: string): void {
   const precis = readMaybe(join(dir, 'precis.md')) || '';
   const readme = readMaybe(join(dir, 'README.md')) || '';
   const blob = `${precis}\n${readme}`;
@@ -480,7 +588,7 @@ function checkSchemaWording(slice, dir) {
   }
 }
 
-function checkCorpusBoundary(slice, dir) {
+function checkCorpusBoundary(slice: PrecisFixture, dir: string): void {
   const text = readMaybe(join(dir, 'corpus.md'));
   if (text === null) { fail(`${slice.name} corpus boundary: corpus.md missing`); return; }
   const lines = text.split('\n');
@@ -514,7 +622,7 @@ function checkCorpusBoundary(slice, dir) {
   if (!hit) pass(`${slice.name} corpus boundary: source IDs present; no answer-key/label leakage`);
 }
 
-function checkEnvelope17(slice, dir) {
+function checkEnvelope17(slice: PrecisFixture, dir: string): void {
   const text = readMaybe(join(dir, 'precis.md'));
   if (text === null) { fail(`${slice.name} envelope: precis.md missing`); return; }
   const present = new Set();
@@ -533,10 +641,10 @@ function checkEnvelope17(slice, dir) {
 // FIX 2: parse §4 inventory rows STRICTLY as 4-column Markdown table rows.
 // Reject too many / too few cells, missing/invalid disposition, or more than
 // one valid disposition appearing across the row's cells.
-function parseInventory(slice, precisText) {
+function parseInventory(slice: PrecisFixture, precisText: string): InventoryResult {
   const body = envelopeSection(precisText, 4);
-  const ids = [];
-  const map = new Map();
+  const ids: string[] = [];
+  const map = new Map<string, string>();
   for (const rawLine of body.split('\n')) {
     const cells = tableCells(rawLine);
     if (!cells) continue;
@@ -573,10 +681,10 @@ function parseInventory(slice, precisText) {
   return { ids, map };
 }
 
-function parseLedger(precisText) {
+function parseLedger(precisText: string): LedgerResult {
   const body = envelopeSection(precisText, 5);
-  const counts = new Map();
-  let declaredTotal = null;
+  const counts = new Map<string, number>();
+  let declaredTotal: number | null = null;
   for (const line of body.split('\n')) {
     const tot = line.match(/\|\s*\*\*total\*\*\s*\|\s*\*\*(\d+)\*\*/i);
     if (tot) { declaredTotal = Number(tot[1]); continue; }
@@ -588,7 +696,7 @@ function parseLedger(precisText) {
   return { declaredTotal, counts };
 }
 
-function checkInventoryAndAccounting(slice, dir) {
+function checkInventoryAndAccounting(slice: PrecisFixture, dir: string): void {
   const text = readMaybe(join(dir, 'precis.md'));
   if (text === null) { fail(`${slice.name} inventory: precis.md missing`); return; }
 
@@ -632,7 +740,7 @@ function checkInventoryAndAccounting(slice, dir) {
     fail(`${slice.name} accounting: ledger disposition counts sum to ${ledgerSum}, not inventory count ${invCount}`);
   }
 
-  const actual = new Map();
+  const actual = new Map<string, number>();
   for (const disp of map.values()) actual.set(disp, (actual.get(disp) || 0) + 1);
   for (const disp of VALID_DISPOSITIONS) {
     const declared = counts.get(disp) || 0;
@@ -648,7 +756,7 @@ function checkInventoryAndAccounting(slice, dir) {
 }
 
 // FIX 3: STM rows must be ACTUAL table rows inside the isolated matrix section.
-function checkStressMatrix(slice, dir) {
+function checkStressMatrix(slice: PrecisFixture, dir: string): void {
   if (!slice.requireMatrix) return;
   const text = readMaybe(join(dir, 'precis.md'));
   if (text === null) { fail(`${slice.name} matrix: precis.md missing`); return; }
@@ -660,7 +768,7 @@ function checkStressMatrix(slice, dir) {
   }
 
   // Collect STM ids that appear as the FIRST cell of a table row in the section.
-  const rowCounts = new Map();
+  const rowCounts = new Map<string, number>();
   for (const line of section.split('\n')) {
     const cells = tableCells(line);
     if (!cells || isSeparatorRow(cells)) continue;
@@ -696,10 +804,13 @@ function checkStressMatrix(slice, dir) {
 // the per-claim source provenance for the consistency checks). For each §4 table
 // row whose first cell is a bare CC-NNN, capture its id and the SRC-NNN tokens in
 // its source(s) column (col index 2).
-function collectInventory(precisText) {
+function collectInventory(precisText: string): {
+  idSet: Set<string>;
+  sources: Map<string, Set<string>>;
+} {
   const body = envelopeSection(precisText, 4);
-  const idSet = new Set();
-  const sources = new Map(); // CC-NNN -> Set(SRC-NNN)
+  const idSet = new Set<string>();
+  const sources = new Map<string, Set<string>>(); // CC-NNN -> Set(SRC-NNN)
   for (const line of body.split('\n')) {
     const cells = tableCells(line);
     if (!cells || isSeparatorRow(cells)) continue;
@@ -713,9 +824,9 @@ function collectInventory(precisText) {
 }
 
 // Declared source IDs from §2 source inventory (first column SRC-NNN rows).
-function collectSourceInventory(precisText) {
+function collectSourceInventory(precisText: string): Set<string> {
   const body = envelopeSection(precisText, 2);
-  const set = new Set();
+  const set = new Set<string>();
   for (const line of body.split('\n')) {
     const cells = tableCells(line);
     if (!cells || isSeparatorRow(cells)) continue;
@@ -727,9 +838,9 @@ function collectSourceInventory(precisText) {
 // §5 ledger rows -> [{ disposition, claimIds: [...] }]. Each data row is
 // "| <disposition> | <count> | <CC-NNN, CC-NNN, ...> |"; the **total** row and
 // the header row are skipped.
-function collectLedgerRows(precisText) {
+function collectLedgerRows(precisText: string): LedgerRow[] {
   const body = envelopeSection(precisText, 5);
-  const rows = [];
+  const rows: LedgerRow[] = [];
   for (const line of body.split('\n')) {
     const cells = tableCells(line);
     if (!cells || isSeparatorRow(cells)) continue;
@@ -744,9 +855,9 @@ function collectLedgerRows(precisText) {
 
 // §11 merge-map rows -> [{ canonical, absorbs: [...] }]. Columns:
 // "| canonical | absorbs | basis | provenance retained |".
-function collectMergeMap(precisText) {
+function collectMergeMap(precisText: string): MergeRow[] {
   const body = envelopeSection(precisText, 11);
-  const rows = [];
+  const rows: MergeRow[] = [];
   for (const line of body.split('\n')) {
     const cells = tableCells(line);
     if (!cells || isSeparatorRow(cells)) continue;
@@ -760,14 +871,14 @@ function collectMergeMap(precisText) {
 
 // Stress-test matrix rows with their dedicated CC / SRC reference columns,
 // located by HEADER NAME (not a fixed index) so column re-ordering can't fool it.
-function collectMatrixRefs(precisText) {
+function collectMatrixRefs(precisText: string): MatrixReferences {
   const section = headingSection(precisText, /^##\s+stress-test matrix\s*$/i);
   if (!section) return { present: false, ccRefs: [], srcRefs: [], stmRowIds: new Set() };
   const lines = section.split('\n');
   let ccCol = -1, srcCol = -1, headerSeen = false;
-  const ccRefs = []; // { stm, id }
-  const srcRefs = []; // { stm, id }
-  const stmRowIds = new Set();
+  const ccRefs: MatrixReference[] = []; // { stm, id }
+  const srcRefs: MatrixReference[] = []; // { stm, id }
+  const stmRowIds = new Set<string>();
   for (const line of lines) {
     const cells = tableCells(line);
     if (!cells || isSeparatorRow(cells)) continue;
@@ -795,7 +906,7 @@ function collectMatrixRefs(precisText) {
 // that a claim appears at least once OUTSIDE the inventory + ledger. Loose by
 // design: presence of the CC-NNN token anywhere outside §4/§5, no heading,
 // wording, or disposition-themed location is required.
-function textOutsideInventoryAndLedger(precisText) {
+function textOutsideInventoryAndLedger(precisText: string): string {
   const s4 = envelopeSection(precisText, 4);
   const s5 = envelopeSection(precisText, 5);
   let out = precisText;
@@ -804,7 +915,7 @@ function textOutsideInventoryAndLedger(precisText) {
   return out;
 }
 
-function checkCrossSectionConsistency(slice, dir) {
+function checkCrossSectionConsistency(slice: PrecisFixture, dir: string): void {
   const text = readMaybe(join(dir, 'precis.md'));
   if (text === null) { fail(`${slice.name} consistency: precis.md missing`); return; }
 
@@ -831,7 +942,7 @@ function checkCrossSectionConsistency(slice, dir) {
 
   // C3 — §5 ledger ↔ §4 disposition consistency + id-set equality.
   const ledgerRows = collectLedgerRows(text);
-  const ledgerIds = new Set();
+  const ledgerIds = new Set<string>();
   for (const row of ledgerRows) {
     for (const cid of row.claimIds) {
       ledgerIds.add(cid);
@@ -842,7 +953,7 @@ function checkCrossSectionConsistency(slice, dir) {
     }
   }
   // disposition agreement: build §4 id->disposition from the lenient §4 parse
-  const invDisp = new Map();
+  const invDisp = new Map<string, string>();
   {
     const body = envelopeSection(text, 4);
     for (const line of body.split('\n')) {

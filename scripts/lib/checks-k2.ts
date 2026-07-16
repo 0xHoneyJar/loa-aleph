@@ -15,7 +15,7 @@ import {
   reachedState,
   sha256,
   sourceFilePath,
-} from './check-helpers.mjs';
+} from './check-helpers.ts';
 import {
   envelopeSection,
   findTableByFirstHeader,
@@ -27,11 +27,27 @@ import {
   parseTables,
   tableCells,
   isSeparatorRow,
-} from './markdown.mjs';
-import { DISPOSITIONS } from './run-model.mjs';
+} from './markdown.ts';
+import { DISPOSITIONS } from './run-model.ts';
+import type {
+  IdentifierFamily,
+  MarkdownTableRow,
+} from './markdown.ts';
+import type { ResultCollector } from './results.ts';
+import type {
+  Disposition,
+  RunModel,
+  RunRow,
+} from './run-model.ts';
 
-const CLAIM_TYPES = ['factual', 'design-intent', 'constraint', 'preference', 'open-question'];
-const STATES = [
+const CLAIM_TYPES: readonly string[] = [
+  'factual',
+  'design-intent',
+  'constraint',
+  'preference',
+  'open-question',
+];
+const STATES: readonly string[] = [
   'DRAFT',
   'CORPUS-FROZEN',
   'DISTILLING',
@@ -41,17 +57,71 @@ const STATES = [
   'PROJECTING',
   'PROJECTION-ACCEPTED',
 ];
-const ID_FAMILIES = [
+const ID_FAMILIES: readonly IdentifierFamily[] = [
   'RUN', 'SRC', 'PKT', 'CC', 'PC', 'RC', 'REF', 'STM', 'VER', 'NB', 'PRJ',
 ];
 
-function existsPath(path, type = 'file') {
+interface PrecisInventoryEntry {
+  row: MarkdownTableRow;
+  id: string;
+  claim: string;
+  sources: string;
+  disposition: string;
+}
+
+type HomeFamily = 'PKT' | 'CC' | 'NB';
+type StatusTargetFamily = HomeFamily | 'SRC';
+
+const STATUS_TARGET_FAMILIES: readonly StatusTargetFamily[] = [
+  'PKT',
+  'CC',
+  'SRC',
+  'NB',
+];
+
+interface HomeValues {
+  status: string;
+  packetId?: string;
+  claimId?: string;
+  boundaryId?: string;
+}
+
+interface HomeStatusRow extends MarkdownTableRow {
+  values: HomeValues;
+  status: string;
+  id?: string;
+}
+
+function isDisposition(value: string): value is Disposition {
+  return (DISPOSITIONS as readonly string[]).includes(value);
+}
+
+function isStatusTargetFamily(value: string): value is StatusTargetFamily {
+  return (STATUS_TARGET_FAMILIES as readonly string[]).includes(value);
+}
+
+function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function stringProperty(value: unknown, property: string): string {
+  if (!isRecord(value)) return '';
+  const candidate = value[property];
+  return typeof candidate === 'string' ? candidate : '';
+}
+
+function definitionStatus(target: unknown): string {
+  const values = isRecord(target) ? target.values : null;
+  return stringProperty(values, 'status') || stringProperty(target, 'status') || 'active';
+}
+
+function existsPath(path: string, type: 'file' | 'directory' = 'file'): boolean {
   if (!existsSync(path)) return false;
   const stat = lstatSync(path);
   return type === 'directory' ? stat.isDirectory() : stat.isFile();
 }
 
-function checkLayout(results, model) {
+function checkLayout(results: ResultCollector, model: RunModel): void {
   results.run('K2.1', 'layout', (fail) => {
     const baseFiles = [
       'run-manifest.md',
@@ -106,11 +176,11 @@ function checkLayout(results, model) {
   });
 }
 
-function positiveDecision(value) {
+function positiveDecision(value: unknown): boolean {
   return /^(?:approved|accepted|fixture-simulated)(?:\b|:)/i.test(String(value || '').trim());
 }
 
-function checkManifest(results, model) {
+function checkManifest(results: ResultCollector, model: RunModel): void {
   results.run('K2.2', 'manifest', (fail) => {
     const manifest = model.manifest;
     if (!manifest) {
@@ -150,9 +220,9 @@ function checkManifest(results, model) {
       return 'manifest fields and state log are valid';
     }
 
-    let current = null;
-    let blockedFrom = null;
-    let previousTimestamp = null;
+    let current: string | null = null;
+    let blockedFrom: string | null = null;
+    let previousTimestamp: ReturnType<typeof parseTimestamp> = null;
     for (let i = 0; i < manifest.states.length; i++) {
       const row = manifest.states[i];
       const state = row.values.state.trim();
@@ -204,7 +274,7 @@ function checkManifest(results, model) {
       current = state;
     }
 
-    const hasStateAtOrAfter = (state) => {
+    const hasStateAtOrAfter = (state: string): boolean => {
       const threshold = STATES.indexOf(state);
       return manifest.states.some((row) => STATES.indexOf(row.values.state.trim()) >= threshold);
     };
@@ -219,7 +289,7 @@ function checkManifest(results, model) {
         if (!signed) {
           fail(`S0 sign-off has invalid date "${s0.values.date}"`);
         } else if (packetStart && compareTimestamp(signed, packetStart) > 0) {
-          fail(`S0 sign-off ${s0.values.date} occurs after first S2 entry ${firstS2.timestamp}`);
+          fail(`S0 sign-off ${s0.values.date} occurs after first S2 entry ${firstS2!.timestamp}`);
         }
       }
     }
@@ -247,13 +317,13 @@ function checkManifest(results, model) {
   });
 }
 
-function checkForbidden(results, model, root) {
+function checkForbidden(results: ResultCollector, model: RunModel, root: string): void {
   results.run('K2.3', 'forbidden tokens', (fail) => {
     const fixtureRoot = join(root, 'docs', 'fixtures');
     if (!pathIsWithin(fixtureRoot, model.runDir)) {
       return 'real run is exempt from fixture-only forbidden-token scanning';
     }
-    const tokens = [
+    const tokens: ReadonlyArray<readonly [label: string, pattern: RegExp]> = [
       ['Phase', /\bphase\b/i],
       ['Sensenet', /\bsensenet\b/i],
     ];
@@ -271,7 +341,7 @@ function checkForbidden(results, model, root) {
   });
 }
 
-function checkPackets(results, model) {
+function checkPackets(results: ResultCollector, model: RunModel): void {
   results.run('K2.4', 'packet resolution', (fail) => {
     const sources = makeIndexes(model).SRC;
     const unverified = new Set();
@@ -325,7 +395,7 @@ function checkPackets(results, model) {
   });
 }
 
-function checkIds(results, model) {
+function checkIds(results: ResultCollector, model: RunModel): void {
   results.run('K2.5', 'id integrity', (fail) => {
     const indexes = makeIndexes(model);
     const predecessorRun = model.manifest?.predecessorRun || '';
@@ -362,7 +432,7 @@ function checkIds(results, model) {
   });
 }
 
-function checkClaimShape(results, model) {
+function checkClaimShape(results: ResultCollector, model: RunModel): void {
   results.run('K2.6', 'claim table shape', (fail) => {
     const table = model.claimDocument
       ? findTableByFirstHeader(model.claimDocument.tables, 'claim id')
@@ -389,9 +459,9 @@ function checkClaimShape(results, model) {
         fail(`${claimId} claim_type "${claimType || '(blank)'}" is not in the five-value vocabulary`);
       }
       if (status === 'active') {
-        if (s5Entered && !DISPOSITIONS.includes(disposition)) {
+        if (s5Entered && !isDisposition(disposition)) {
           fail(`${claimId} active after S5 has invalid disposition "${disposition || '(blank)'}"`);
-        } else if (disposition && !DISPOSITIONS.includes(disposition)) {
+        } else if (disposition && !isDisposition(disposition)) {
           fail(`${claimId} has invalid disposition "${disposition}"`);
         }
       }
@@ -400,7 +470,7 @@ function checkClaimShape(results, model) {
         fail(`${claimId} packets is empty at ${location(claim)}`);
         continue;
       }
-      const derivedSources = new Set();
+      const derivedSources = new Set<string>();
       for (const packetId of packetIds) {
         const packet = packetIndex.get(packetId);
         if (packet) derivedSources.add(packet.values.sourceId);
@@ -418,20 +488,22 @@ function checkClaimShape(results, model) {
   });
 }
 
-function checkAccounting(results, model) {
+function checkAccounting(results: ResultCollector, model: RunModel): void {
   results.run('K2.7', 'accounting', (fail) => {
     const s5Entered = reachedState(model, 'ASSEMBLED') || Boolean(firstRunLogEntry(model.runLog, 'S5'));
     if (!s5Entered) return 'disposition accounting is not applicable before S5';
 
     const claims = activeClaims(model);
-    const actual = new Map(DISPOSITIONS.map((disposition) => [disposition, []]));
+    const actual = new Map<Disposition, string[]>(
+      DISPOSITIONS.map((disposition): [Disposition, string[]] => [disposition, []]),
+    );
     for (const claim of claims) {
-      if (actual.has(claim.values.disposition)) {
-        actual.get(claim.values.disposition).push(claim.values.claimId);
+      if (isDisposition(claim.values.disposition)) {
+        actual.get(claim.values.disposition)!.push(claim.values.claimId);
       }
     }
-    const rows = new Map();
-    let total = null;
+    const rows = new Map<string, RunModel['dispositionRows'][number]>();
+    let total: number | null = null;
     for (const row of model.dispositionRows) {
       const disposition = row.values.disposition.replace(/\*/g, '').trim();
       if (disposition.toLowerCase() === 'total') {
@@ -448,12 +520,12 @@ function checkAccounting(results, model) {
         continue;
       }
       const count = Number(row.values.count);
-      const expected = actual.get(disposition).length;
+      const expected = actual.get(disposition)!.length;
       if (!Number.isInteger(count) || count !== expected) {
         fail(`${disposition} declares ${row.values.count}, recomputed ${expected}`);
       }
       const declaredIds = new Set(idsIn(row.values.claimIds, 'CC'));
-      const expectedIds = new Set(actual.get(disposition));
+      const expectedIds = new Set<string>(actual.get(disposition)!);
       const drift = [...new Set([...declaredIds, ...expectedIds])]
         .filter((id) => declaredIds.has(id) !== expectedIds.has(id));
       if (drift.length) fail(`${disposition} claim_ids drift: ${drift.join(', ')}`);
@@ -465,7 +537,7 @@ function checkAccounting(results, model) {
   });
 }
 
-function checkMerges(results, model) {
+function checkMerges(results: ResultCollector, model: RunModel): void {
   results.run('K2.8', 'merge provenance', (fail) => {
     if (!model.mergeDocument) return 'merge map not yet applicable';
     const claims = makeIndexes(model).CC;
@@ -490,7 +562,7 @@ function checkMerges(results, model) {
   });
 }
 
-function checkCriteria(results, model) {
+function checkCriteria(results: ResultCollector, model: RunModel): void {
   results.run('K2.9', 'criteria precede packets', (fail) => {
     if (!model.criteria) {
       fail('extraction-criteria.md is missing');
@@ -529,19 +601,31 @@ function checkCriteria(results, model) {
   });
 }
 
-function checkStatuses(results, model) {
+function checkStatuses(results: ResultCollector, model: RunModel): void {
   results.run('K2.10', 'status discipline', (fail) => {
     const rows = allStatusRows(model);
     const indexes = makeIndexes(model);
-    const homeRows = new Map();
-    for (const [family, records, getId] of [
-      ['PKT', model.packets, (row) => row.values.packetId],
-      ['CC', model.claims, (row) => row.values.claimId],
-      ['NB', model.boundaries, (row) => row.values.boundaryId],
-    ]) {
-      const byId = new Map();
-      for (const row of records) {
-        const id = getId(row);
+    const homeRows = new Map<HomeFamily, Map<string, HomeStatusRow>>();
+    const homeDefinitions: Array<{
+      family: HomeFamily;
+      records: Array<{ id: string; row: RunRow<HomeValues> }>;
+    }> = [
+      {
+        family: 'PKT',
+        records: model.packets.map((row) => ({ id: row.values.packetId, row })),
+      },
+      {
+        family: 'CC',
+        records: model.claims.map((row) => ({ id: row.values.claimId, row })),
+      },
+      {
+        family: 'NB',
+        records: model.boundaries.map((row) => ({ id: row.values.boundaryId, row })),
+      },
+    ];
+    for (const { family, records } of homeDefinitions) {
+      const byId = new Map<string, HomeStatusRow>();
+      for (const { id, row } of records) {
         if (new RegExp(`^${family}-\\d+$`).test(id)) {
           byId.set(id, { ...row, status: row.values.status || '' });
         }
@@ -563,12 +647,16 @@ function checkStatuses(results, model) {
       if (!superseded) continue;
       const targetId = superseded[1];
       const family = targetId.split('-')[0];
-      const target = indexes[family]?.get(targetId);
+      if (!isStatusTargetFamily(family)) {
+        fail(`${row.id || 'row'} supersedes to missing ${targetId} at ${location(row)}`);
+        continue;
+      }
+      const target = indexes[family].get(targetId);
       if (!target) {
         fail(`${row.id || 'row'} supersedes to missing ${targetId} at ${location(row)}`);
         continue;
       }
-      const targetStatus = target.values?.status || target.status || 'active';
+      const targetStatus = definitionStatus(target);
       if (targetStatus.startsWith('retracted:')) {
         fail(`${row.id || 'row'} supersedes to retracted target ${targetId}`);
       }
@@ -618,7 +706,7 @@ const GENERATION_VERBS =
 const EXEMPTION_CUES =
   /\b(no|not|never|none|neither|nor|without|cannot|can't|don't|doesn't|won't|could|would|may|might|should not|stops?|stopped|refus\w*|defer(?:s|red|ring)?|projection-neutral)\b|out[ -]of[ -]scope/i;
 
-function inventoryFromPrecis(text) {
+function inventoryFromPrecis(text: string): PrecisInventoryEntry[] {
   const section = envelopeSection(text, 4);
   const table = findTableByFirstHeader(parseTables(section, 'precis.md'), 'claim id');
   if (!table) return [];
@@ -633,7 +721,7 @@ function inventoryFromPrecis(text) {
     }));
 }
 
-function checkPrecis(results, model) {
+function checkPrecis(results: ResultCollector, model: RunModel): void {
   results.run('K2.11', 'precis consistency', (fail) => {
     if (!model.precis) return 'precis.md not yet applicable';
     const text = model.precis.text;
@@ -715,14 +803,16 @@ function checkPrecis(results, model) {
     if (!ledgerTable) {
       fail('C3 ledger drift: §5 has no disposition table');
     } else {
-      const actualCounts = new Map(DISPOSITIONS.map((disposition) => [disposition, 0]));
+      const actualCounts = new Map<Disposition, number>(
+        DISPOSITIONS.map((disposition): [Disposition, number] => [disposition, 0]),
+      );
       for (const entry of precisRows) {
-        if (actualCounts.has(entry.disposition)) {
-          actualCounts.set(entry.disposition, actualCounts.get(entry.disposition) + 1);
+        if (isDisposition(entry.disposition)) {
+          actualCounts.set(entry.disposition, actualCounts.get(entry.disposition)! + 1);
         }
       }
-      const declared = new Map();
-      let declaredTotal = null;
+      const declared = new Map<Disposition, number>();
+      let declaredTotal: number | null = null;
       for (const row of ledgerTable.rows) {
         const disposition = normalizeHeader(row.cells[0] || '');
         const count = Number((row.cells[1] || '').replace(/\*/g, ''));
@@ -730,7 +820,7 @@ function checkPrecis(results, model) {
           declaredTotal = count;
           continue;
         }
-        if (!DISPOSITIONS.includes(disposition)) continue;
+        if (!isDisposition(disposition)) continue;
         if (declared.has(disposition)) {
           fail(`C3 ledger drift: §5 repeats ${disposition}`);
         }
@@ -765,12 +855,14 @@ function checkPrecis(results, model) {
       }
     }
 
-    const sourceIds = new Set(model.corpus.sources.map((source) => source.values.sourceId));
+    const sourceIds = new Set<string>(
+      model.corpus.sources.map((source) => source.values.sourceId),
+    );
     const sourceTable = findTableByFirstHeader(
       parseTables(envelopeSection(text, 2), 'precis.md'),
       'source id',
     );
-    const precisSourceIds = new Set();
+    const precisSourceIds = new Set<string>();
     if (!sourceTable) {
       fail('C4 source inventory: §2 has no source_id table');
     } else {
@@ -837,33 +929,56 @@ function checkPrecis(results, model) {
   });
 }
 
-function checkKernelReport(results, model) {
+function checkKernelReport(results: ResultCollector, model: RunModel): void {
   results.run('K2.12', 'kernel honesty', (fail) => {
     const reports = model.files
-      .filter((file) => /^verification\/kernel-report(?:-\d+)?\.md$/.test(file.relativePath));
-    let passing = false;
+      .filter((file) => /^verification\/kernel-report(?:-\d+)?\.md$/.test(file.relativePath))
+      .sort((left, right) => {
+        const ordinal = (path: string): number => {
+          const match = path.match(/kernel-report(?:-(\d+))?\.md$/);
+          return match?.[1] ? Number(match[1]) : 1;
+        };
+        return ordinal(left.relativePath) - ordinal(right.relativePath);
+      });
+    let passingTypeScriptReport = false;
     for (const report of reports) {
       const fields = parseBulletFields(report.text).fields;
       const command = fields.get('command') || '';
       const result = (fields.get('result') || '').toUpperCase();
-      if (!command.includes('validate-run.mjs')) {
-        fail(`${report.relativePath} command does not name validate-run.mjs`);
+      const recordRole = fields.get('record role') || '';
+      const namesTypeScriptChecker = command.includes('validate-run.ts');
+      const isSupersededJavaScriptHistory = (
+        command.includes('validate-run.mjs')
+        && /\b(?:historical|superseded)\b/i.test(recordRole)
+      );
+      if (!namesTypeScriptChecker && !isSupersededJavaScriptHistory) {
+        fail(
+          `${report.relativePath} command neither names validate-run.ts `
+          + 'nor records an explicitly superseded JavaScript checker',
+        );
       }
       if (!['PASS', 'FAIL'].includes(result)) {
         fail(`${report.relativePath} result is not PASS or FAIL`);
       }
-      if (result === 'PASS') passing = true;
+      if (namesTypeScriptChecker && result === 'PASS') passingTypeScriptReport = true;
     }
-    if (reachedState(model, 'VERIFIED') && !passing) {
-      fail('VERIFIED state requires a kernel report with result PASS');
+    const latest = reports.at(-1);
+    if (latest) {
+      const latestCommand = parseBulletFields(latest.text).fields.get('command') || '';
+      if (!latestCommand.includes('validate-run.ts')) {
+        fail(`${latest.relativePath} is the latest report but does not name validate-run.ts`);
+      }
+    }
+    if (reachedState(model, 'VERIFIED') && !passingTypeScriptReport) {
+      fail('VERIFIED state requires a TypeScript kernel report with result PASS');
     }
     return reports.length
-      ? `${reports.length} kernel report(s) name the real checker and use PASS/FAIL`
+      ? `${reports.length} kernel report(s) have valid results and the latest names the TypeScript checker`
       : 'kernel report not yet applicable';
   });
 }
 
-export function runK2(results, model, root) {
+export function runK2(results: ResultCollector, model: RunModel, root: string): void {
   checkLayout(results, model);
   checkManifest(results, model);
   checkForbidden(results, model, root);

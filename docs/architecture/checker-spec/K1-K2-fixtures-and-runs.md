@@ -1,6 +1,6 @@
 # Spec K1 + K2 — Discovered Fixtures and Run-Directory Mode
 
-## K1 — Discovered-fixtures mode (slice 12; `validate-precis-fixtures.mjs`)
+## K1 — Discovered-fixtures mode (slice 12; `validate-precis-fixtures.ts`)
 
 **Goal:** generalize from the hardcoded `SLICES` constant to any directory
 under `docs/fixtures/` that declares its expectations, with **zero behavior
@@ -42,7 +42,7 @@ inventory check fires with the declared set (proves expectations flow
 through); (3) unknown `kind` → K1.2; (4) malformed range → K1.3; (5) legacy
 slices untouched → green, byte-identical modulo the discovery line.
 
-## K2 — Run-directory mode (slice 9; new `validate-run.mjs`)
+## K2 — Run-directory mode (slice 9; new `validate-run.ts`)
 
 **Target tree:** a run directory per doc 02 §2 layout (the golden fixture
 lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
@@ -113,9 +113,10 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
   inventory), plus: §4 rows equal the 4-column projection of `active`
   inventory rows exactly (same ids, same dispositions).
 - K2.12 (`kernel honesty`, when `verification/kernel-report.md` exists):
-  report names a checker command containing `validate-run.mjs`; result field
-  is PASS/FAIL; a run whose manifest reached VERIFIED must have a PASS
-  report file.
+  the latest report names a checker command containing `validate-run.ts`;
+  every result field is PASS/FAIL; explicitly historical or superseded reports
+  may retain their retired JavaScript command; a run whose manifest reached
+  VERIFIED must have a PASS report from the TypeScript checker.
 
 **False-positive guards:** prose mentions like "no `CC-999` exists" are NOT
 exempt — same context-free strictness as the existing forbidden-token scan;

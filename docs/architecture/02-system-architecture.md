@@ -158,7 +158,7 @@ Three tiers with non-overlapping mandates
 
 | Tier | What | Nature | May block | May never do |
 |------|------|--------|-----------|--------------|
-| T1 | Conformance kernel (grows out of `scripts/validate-precis-fixtures.mjs`) | Deterministic, read-only, fail-closed | Any artifact with broken structure, accounting, references, or boundary violations | Judge semantic truth or research quality |
+| T1 | Conformance kernel (grows out of `scripts/validate-precis-fixtures.ts`) | Deterministic, read-only, fail-closed | Any artifact with broken structure, accounting, references, or boundary violations | Judge semantic truth or research quality |
 | T2 | Verification harness | Fresh-context adversarial model judges, quorum rules | Claims/merges/dispositions that fail refutation review → forced to `unresolved` or flagged | Approve acceptance; supply external facts; edit ledgers it audits |
 | T3 | Human authority | Judgment | Everything, at the checkpoints | Be bypassed on stance, external referents, acceptance, or anything irreversible |
 

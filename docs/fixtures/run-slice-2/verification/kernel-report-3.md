@@ -1,13 +1,12 @@
-# Projection Kernel Report - RUN-slice-2
+# TypeScript Migration Kernel Report — RUN-slice-2
 
-- checker_version: 2dc3549a0c6f3fed660b10743198409945c70b64
-- checker_base_sha: dab38ec4145cd2f4e68b2f39f605e1b5fce9caba
-- checker_content_sha256: sha256:c84f8b606b33f31615119ae46f100a719b09948db8fbbd058610ecb1845f1eca
-- record_role: superseded publication-ready JavaScript checker capture
-- superseded_by: kernel-report-3.md
-- publication_pin_status: checker scripts are committed at checker_version and the content digest matches that commit
-- command: `node scripts/validate-run.mjs --root . --run docs/fixtures/run-slice-2`
-- date: 2026-07-16 14:08 UTC
+- checker_version: UNPINNED-WORKTREE
+- checker_base_sha: 082d9bae0fb04ecdccee6e2ba5cf98f958204936
+- checker_content_sha256: unavailable; TypeScript migration worktree is not yet committed
+- record_role: prepublication TypeScript migration verification
+- publication_repin_required: commit the migration, rerun this command, and replace this report with the committed checker SHA and refreshed output
+- command: `node scripts/validate-run.ts --root . --run docs/fixtures/run-slice-2`
+- date: 2026-07-16 14:30 UTC
 - result: PASS
 
 ## Output (verbatim, complete)
@@ -28,7 +27,7 @@ PASS RUN-slice-2 K2.8 (merge provenance): canonical source sets retain absorbed 
 PASS RUN-slice-2 K2.9 (criteria precede packets): criteria timestamp precedes S2 and supersessions have re-extraction records
 PASS RUN-slice-2 K2.10 (status discipline): all append-ledger status cells and supersession chains are valid
 PASS RUN-slice-2 K2.11 (precis consistency): envelope, neutrality, exact §4 projection, and C1-C8 are consistent
-PASS RUN-slice-2 K2.12 (kernel honesty): 2 kernel report(s) name the real checker and use PASS/FAIL
+PASS RUN-slice-2 K2.12 (kernel honesty): 3 kernel report(s) have valid results and the latest names the TypeScript checker
 PASS RUN-slice-2 K3.1 (edge shape): edge rows have exactly 7 columns and closed vocabulary values
 PASS RUN-slice-2 K3.2 (edge resolution): every edge resolves to an active claim and corpus source
 PASS RUN-slice-2 K3.3 (removal effect presence): removal effects are present exactly on load-bearing edges
@@ -61,8 +60,7 @@ PASS RUN-slice-2 K6.10 (type contract): registered projection metadata and requi
 RESULT: PASS
 ```
 
-The accepted source Precis hash before and after both projection cycles was
-`sha256:13764f65dba08f7909377ab282c1b1d74020c809a490893f5957dab890a7a4e3`.
-This deterministic PASS proves only structural conformance of the fixture
-record. The committed checker pin does not prove semantic rendering quality,
-real independent review, real authority acceptance, agent mode, or system v1.
+This prepublication capture proves that the TypeScript checker preserves the
+golden fixture's deterministic K2-K6 result. It cannot support publication or
+replay claims until the migration is committed and this report is repinned to
+that commit.
