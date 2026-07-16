@@ -138,19 +138,12 @@ function runGit(
 }
 
 function sourceInventory(): string[] {
-  const deleted = new Set(runGit(
-    REPO_ROOT,
-    ['ls-files', '-z', '--deleted'],
-  )
-    .split('\0')
-    .filter(Boolean));
   return runGit(
     REPO_ROOT,
     ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
   )
     .split('\0')
     .filter(Boolean)
-    .filter((path) => !deleted.has(path))
     .sort(utf8Compare);
 }
 
@@ -445,13 +438,40 @@ function runCase(
 function expectSetVerificationFailure(
   bundleRoots: string[],
   pattern: RegExp,
+  expectedBundleIds: readonly string[] = [],
 ): void {
-  const report = verifyBundleSet(bundleRoots);
+  const report = verifyBundleSet(bundleRoots, expectedBundleIds);
   expectEqual(report.result, 'FAIL', 'release-set verification mutation result');
   const text = report.errors.join('; ');
   expect(
     pattern.test(text),
     `release-set verification failure did not match ${String(pattern)}: ${text}`,
+  );
+}
+
+function expectDefaultVerificationFailure(
+  output: string,
+  pattern: RegExp,
+): void {
+  const result = spawnSync(
+    process.execPath,
+    [
+      join(REPO_ROOT, 'scripts/assemble-bundles.ts'),
+      'verify',
+      '--output',
+      output,
+      '--json',
+    ],
+    {
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+    },
+  );
+  expectEqual(result.status, 1, 'default bundle verification mutation exit status');
+  const text = `${result.stdout}\n${result.stderr}`;
+  expect(
+    pattern.test(text),
+    `default verification failure did not match ${String(pattern)}: ${text}`,
   );
 }
 
@@ -714,6 +734,17 @@ function execute(): TestReport {
       );
     });
 
+    runCase(results, 'default verification rejects swapped host directories', () => {
+      const output = join(tempRoot, 'swapped-host-output');
+      mkdirSync(output, { recursive: true });
+      cloneBundle(baseline.hermes, join(output, 'aleph-for-loa'));
+      cloneBundle(baseline.loa, join(output, 'aleph-for-hermes'));
+      expectDefaultVerificationFailure(
+        output,
+        /expected bundle aleph-for-(loa|hermes), found aleph-for-(hermes|loa)/i,
+      );
+    });
+
     runCase(results, 'adapter Core override fails', () => {
       const source = copyFreshRepository(
         tempRoot,
@@ -746,6 +777,25 @@ function execute(): TestReport {
         source,
         join(tempRoot, 'unclassified-output'),
         /CB2|unclassified/i,
+      );
+    });
+
+    runCase(results, 'tracked source deletion cannot escape inventory', () => {
+      const source = copyFreshRepository(
+        tempRoot,
+        inventory,
+        frozenSource,
+        'tracked-deletion',
+      );
+      const deletedPath = 'docs/architecture/10-build-roadmap-slices.md';
+      rmSync(join(source, deletedPath));
+      const core = readCoreManifest(source);
+      core.files.core = core.files.core.filter((path) => path !== deletedPath);
+      writeCoreManifest(source, core);
+      expectAssemblyFailure(
+        source,
+        join(tempRoot, 'tracked-deletion-output'),
+        /CB2|tracked|missing|unclassified/i,
       );
     });
 
