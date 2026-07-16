@@ -1,32 +1,98 @@
-import { createHash } from 'node:crypto';
+import { createHash, type BinaryLike } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, normalize, relative, resolve } from 'node:path';
-import { idsIn, normalizeHeader } from './markdown.mjs';
+import { idsIn, normalizeHeader } from './markdown.ts';
+import type { IdentifierFamily, MarkdownTableRow } from './markdown.ts';
+import type { RouteCard, RunDocument, RunModel } from './run-model.ts';
 
-export function location(row) {
-  return `${row.file}:${row.line}`;
+export type TimestampParts = readonly [
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+];
+
+export interface SourceLocation {
+  file: string;
+  line: number;
 }
 
-export function pathIsWithin(parent, child) {
+export interface MdLineSpan {
+  bytes: Buffer | null;
+  lineCount: number;
+}
+
+type RunManifest = NonNullable<RunModel['manifest']>;
+
+export interface DefinitionIndexes {
+  RUN: Map<string, RunManifest['runIdRow']>;
+  SRC: Map<string, RunModel['corpus']['sources'][number]>;
+  PKT: Map<string, RunModel['packets'][number]>;
+  CC: Map<string, RunModel['claims'][number]>;
+  PC: Map<string, RunModel['tags'][number]>;
+  RC: Map<string, RunModel['cards'][number]>;
+  REF: Map<string, RunModel['referents'][number]>;
+  STM: Map<string, RunModel['matrix'][number]>;
+  VER: Map<string, SourceLocation>;
+  NB: Map<string, RunModel['boundaries'][number]>;
+  PRJ: Map<string, RunModel['projections'][number]['projectionIdRow']>;
+}
+
+type IndexValue<T> = T extends Map<string, infer TValue> ? TValue : never;
+type DefinitionSite = Exclude<IndexValue<DefinitionIndexes[keyof DefinitionIndexes]>, null>;
+
+export interface DuplicateDefinition {
+  family: IdentifierFamily;
+  id: string;
+  row: DefinitionSite;
+  first: DefinitionSite;
+}
+
+export interface StatusRow extends MarkdownTableRow {
+  id: string;
+  status: string;
+}
+
+export interface RunLogEntry {
+  timestamp: string;
+  event: string;
+  line: number;
+}
+
+export function location(row: SourceLocation | RouteCard): string {
+  const located = row as Partial<SourceLocation>;
+  return `${located.file}:${located.line}`;
+}
+
+export function pathIsWithin(parent: string, child: string): boolean {
   const rel = relative(resolve(parent), resolve(child));
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 }
 
-export function normalizeSha256(value) {
+export function normalizeSha256(value: unknown): string | null {
   const match = String(value || '').trim().match(/^(?:sha256:)?([a-fA-F0-9]{64})$/);
   return match ? match[1].toLowerCase() : null;
 }
 
-export function sha256(bytes) {
+export function sha256(bytes: BinaryLike): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-export function parseTimestamp(value) {
+export function parseTimestamp(value: unknown): TimestampParts | null {
   const match = String(value || '').trim().match(
     /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?(?:Z| UTC|[+-]\d{2}:\d{2})?$/,
   );
   if (!match) return null;
-  const parts = match.slice(1, 7).map((part) => Number(part || 0));
+  const parts = match.slice(1, 7).map((part) => Number(part || 0)) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
   const [year, month, day, hour, minute, second] = parts;
   if (
     month < 1 || month > 12 || day < 1 || day > 31
@@ -35,15 +101,18 @@ export function parseTimestamp(value) {
   return parts;
 }
 
-export function compareTimestamp(left, right) {
+export function compareTimestamp(
+  left: readonly number[],
+  right: readonly number[],
+): -1 | 0 | 1 {
   for (let i = 0; i < Math.max(left.length, right.length); i++) {
     const difference = (left[i] || 0) - (right[i] || 0);
-    if (difference !== 0) return Math.sign(difference);
+    if (difference !== 0) return Math.sign(difference) as -1 | 1;
   }
   return 0;
 }
 
-export function sourceFilePath(runDir, locus) {
+export function sourceFilePath(runDir: string, locus: unknown): string | null {
   const clean = String(locus || '').trim().replace(/^`|`$/g, '');
   if (!clean || isAbsolute(clean)) return null;
   const candidate = clean.startsWith('corpus/')
@@ -53,7 +122,7 @@ export function sourceFilePath(runDir, locus) {
   return pathIsWithin(join(runDir, 'corpus'), normalized) ? normalized : null;
 }
 
-export function mdLineSpan(path, start, end) {
+export function mdLineSpan(path: string, start: number, end: number): MdLineSpan | null {
   if (!existsSync(path)) return null;
   const bytes = readFileSync(path);
   const starts = [0];
@@ -78,8 +147,8 @@ export function mdLineSpan(path, start, end) {
   return { bytes: bytes.subarray(startOffset, endOffset), lineCount };
 }
 
-export function makeIndexes(model) {
-  const maps = {
+export function makeIndexes(model: RunModel): DefinitionIndexes {
+  const maps: DefinitionIndexes = {
     RUN: new Map(),
     SRC: new Map(),
     PKT: new Map(),
@@ -93,8 +162,9 @@ export function makeIndexes(model) {
     PRJ: new Map(),
   };
 
-  if (/^RUN-[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/.test(model.manifest?.runId || '')) {
-    maps.RUN.set(model.manifest.runId, model.manifest.runIdRow);
+  const manifest = model.manifest;
+  if (manifest && /^RUN-[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/.test(manifest.runId || '')) {
+    maps.RUN.set(manifest.runId, manifest.runIdRow);
   }
   for (const source of model.corpus.sources) {
     if (/^SRC-\d+$/.test(source.values.sourceId)) maps.SRC.set(source.values.sourceId, source);
@@ -136,64 +206,86 @@ export function makeIndexes(model) {
   return maps;
 }
 
-export function duplicateDefinitions(model) {
-  const families = [
-    ['SRC', model.corpus.sources, (row) => row.values.sourceId],
-    ['PKT', model.packets, (row) => row.values.packetId],
-    ['CC', model.claims, (row) => row.values.claimId],
-    ['PC', model.tags, (row) => row.values.tag],
-    ['REF', model.referents, (row) => row.values.refId],
-    ['STM', model.matrix, (row) => row.values.stmId],
-    ['NB', model.boundaries, (row) => row.values.boundaryId],
-    [
-      'PRJ',
-      model.projections
+export function duplicateDefinitions(model: RunModel): DuplicateDefinition[] {
+  const families: Array<{
+    family: IdentifierFamily;
+    definitions: Array<{ id: string; row: DefinitionSite }>;
+  }> = [
+    {
+      family: 'SRC',
+      definitions: model.corpus.sources.map((row) => ({ id: row.values.sourceId, row })),
+    },
+    {
+      family: 'PKT',
+      definitions: model.packets.map((row) => ({ id: row.values.packetId, row })),
+    },
+    {
+      family: 'CC',
+      definitions: model.claims.map((row) => ({ id: row.values.claimId, row })),
+    },
+    {
+      family: 'PC',
+      definitions: model.tags.map((row) => ({ id: row.values.tag, row })),
+    },
+    {
+      family: 'REF',
+      definitions: model.referents.map((row) => ({ id: row.values.refId, row })),
+    },
+    {
+      family: 'STM',
+      definitions: model.matrix.map((row) => ({ id: row.values.stmId, row })),
+    },
+    {
+      family: 'NB',
+      definitions: model.boundaries.map((row) => ({ id: row.values.boundaryId, row })),
+    },
+    {
+      family: 'PRJ',
+      definitions: model.projections
         .filter((projection) => projection.commission?.fieldTable)
-        .flatMap((projection) => projection.commission.fieldTable.table.rows
+        .flatMap((projection) => projection.commission!.fieldTable.table!.rows
           .filter((row) => normalizeHeader(row.cells[0]) === 'projection id')
           .map((row) => ({ row, id: row.cells[1] || '' }))),
-      (record) => record.id,
-      (record) => record.row,
-    ],
+    },
   ];
-  const duplicates = [];
-  for (const [family, rows, getId, getRow = (row) => row] of families) {
-    const seen = new Map();
-    for (const row of rows) {
-      const id = getId(row);
+  const duplicates: DuplicateDefinition[] = [];
+  for (const { family, definitions } of families) {
+    const seen = new Map<string, DefinitionSite>();
+    for (const { id, row } of definitions) {
       if (!new RegExp(`^${family}-\\d+$`).test(id)) continue;
-      const definition = getRow(row);
-      if (seen.has(id)) duplicates.push({
-        family, id, row: definition, first: seen.get(id),
+      const first = seen.get(id);
+      if (first) duplicates.push({
+        family, id, row, first,
       });
-      else seen.set(id, definition);
+      else seen.set(id, row);
     }
   }
-  const cards = new Map();
+  const cards = new Map<string, RouteCard>();
   for (const card of model.cards) {
     if (!card.id) continue;
-    if (cards.has(card.id)) duplicates.push({
-      family: 'RC', id: card.id, row: card, first: cards.get(card.id),
+    const first = cards.get(card.id);
+    if (first) duplicates.push({
+      family: 'RC', id: card.id, row: card, first,
     });
     else cards.set(card.id, card);
   }
   return duplicates;
 }
 
-export function activeClaims(model) {
+export function activeClaims(model: RunModel): RunModel['claims'] {
   return model.claims.filter((claim) => claim.values.status === 'active');
 }
 
-export function activeRows(rows) {
+export function activeRows<T extends { values: { status: string } }>(rows: readonly T[]): T[] {
   return rows.filter((row) => row.values.status === 'active');
 }
 
-export function fieldValue(card, name) {
+export function fieldValue(card: RouteCard, name: string): string {
   return card.fieldTable.fields.get(normalizeHeader(name)) || '';
 }
 
-export function allStatusRows(model) {
-  const rows = [];
+export function allStatusRows(model: RunModel): StatusRow[] {
+  const rows: StatusRow[] = [];
   const appendLedgerPaths = new Set([
     'ledgers/packet-index.md',
     'ledgers/claim-inventory.md',
@@ -220,7 +312,10 @@ export function allStatusRows(model) {
   return rows;
 }
 
-export function firstRunLogEntry(document, stage) {
+export function firstRunLogEntry(
+  document: RunDocument | null,
+  stage: string,
+): RunLogEntry | null {
   if (!document) return null;
   for (let i = 0; i < document.lines.length; i++) {
     const match = document.lines[i].match(
@@ -233,11 +328,11 @@ export function firstRunLogEntry(document, stage) {
   return null;
 }
 
-export function reachedState(model, state) {
+export function reachedState(model: RunModel, state: string): boolean {
   return Boolean(model.manifest?.states.some((row) => row.values.state.trim() === state));
 }
 
-export function resolveRenderedPath(runDir, value) {
+export function resolveRenderedPath(runDir: string, value: unknown): string | null {
   const clean = String(value || '').trim().replace(/^`|`$/g, '');
   if (!clean || isAbsolute(clean)) return null;
   const path = normalize(join(runDir, clean));

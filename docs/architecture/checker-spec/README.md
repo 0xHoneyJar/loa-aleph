@@ -37,9 +37,9 @@
 
 ## File layout decision (for the builder)
 
-Keep `scripts/validate-precis-fixtures.mjs` as-is for the fixture layer.
+Keep `scripts/validate-precis-fixtures.ts` as-is for the fixture layer.
 Implement run-directory mode as a **new sibling script**
-`scripts/validate-run.mjs` (invoked `node scripts/validate-run.mjs
+`scripts/validate-run.ts` (invoked `node scripts/validate-run.ts
 [--root <dir>] --run <path-to-run-dir>`), sharing nothing by copy-paste that
 can be shared by a small `scripts/lib/` module **only if** both scripts stay
 dependency-free and each remains runnable standalone. If sharing forces
@@ -56,7 +56,7 @@ exit and (b) the intended check-id appears in a `FAIL` line (grep the id,
 not just the exit code); finally run an unmutated copy and assert exit 0.
 Batteries are documented in the increment's PR description. This implementation
 also keeps the cross-group battery executable at
-`scripts/test-conformance-mutations.mjs` so future kernel changes can replay it
+`scripts/test-conformance-mutations.ts` so future kernel changes can replay it
 locally.
 
 ## Increment index

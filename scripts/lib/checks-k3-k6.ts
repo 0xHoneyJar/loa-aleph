@@ -9,10 +9,9 @@ import {
   pathIsWithin,
   parseTimestamp,
   compareTimestamp,
-  reachedState,
   resolveRenderedPath,
   sha256,
-} from './check-helpers.mjs';
+} from './check-helpers.ts';
 import {
   envelopeSection,
   findTableByFirstHeader,
@@ -24,9 +23,69 @@ import {
   renderedParagraphs,
   tableCells,
   isSeparatorRow,
-} from './markdown.mjs';
+} from './markdown.ts';
+import type {
+  FieldTable,
+  MarkdownDocument,
+} from './markdown.ts';
+import type { ResultCollector } from './results.ts';
+import type {
+  ClaimRow,
+  EvidenceEdgeRow,
+  EvidenceMarkerRow,
+  ProjectionModel,
+  ProjectionSelectionRow,
+  RouteCard,
+  RunFile,
+  RunModel,
+} from './run-model.ts';
 
-const ROLES = [
+interface ProjectionContract {
+  sections: string[];
+  fields: string[];
+}
+
+interface EvidenceState {
+  active: Map<string, ClaimRow>;
+  activeEdges: EvidenceEdgeRow[];
+  edgesByClaim: Map<string, EvidenceEdgeRow[]>;
+  markers: Map<string, EvidenceMarkerRow>;
+  targetClaims: ClaimRow[];
+  qualifying: Set<string>;
+  broad: Set<string>;
+  marked: Set<string>;
+  neither: Set<string>;
+}
+
+interface CardData {
+  card: RouteCard;
+  posture: string;
+  history: string;
+  packets: string[];
+  sources: string[];
+  claims: string[];
+  tags: string[];
+  refs: string[];
+  deps: string[];
+  impact: string;
+}
+
+type CardMap = Map<string, CardData>;
+type CardReferentMap = Map<string, Set<string>>;
+
+interface RoutingState {
+  cards: CardMap;
+  refs: ReturnType<typeof makeIndexes>['REF'];
+  cardRefs: CardReferentMap;
+  coneRefs: (id: string, visiting?: Set<string>) => Set<string>;
+  coneCards: (id: string, visiting?: Set<string>) => Set<string>;
+}
+
+type ProjectionFieldDocument = Pick<MarkdownDocument, 'text'> & {
+  fieldTable?: FieldTable;
+};
+
+const ROLES: readonly string[] = [
   'load-bearing',
   'corroborative',
   'contradictory',
@@ -34,20 +93,20 @@ const ROLES = [
   'decorative',
   'unresolved-source',
 ];
-const VERIFICATION = ['verified-primary', 'verified-secondary', 'unverifiable'];
-const REMOVAL_EFFECTS = [
+const VERIFICATION: readonly string[] = ['verified-primary', 'verified-secondary', 'unverifiable'];
+const REMOVAL_EFFECTS: readonly string[] = [
   'downgrades-to-unresolved',
   'confidence-decreases',
   'survives-independent-support',
   'must-be-excluded',
 ];
-const POSTURES = [
+const POSTURES: readonly string[] = [
   'adversarial-weighted',
   'convergent-weighted',
   'hybrid',
   'unrouted-pending-external-referent',
 ];
-const VECTOR_SIGNALS = [
+const VECTOR_SIGNALS: readonly string[] = [
   'contradiction density',
   'reference density',
   'invariant-bearing strength',
@@ -56,9 +115,9 @@ const VECTOR_SIGNALS = [
   'external-referent need',
   'doctrine-spine strength',
 ];
-const REF_STATUSES = ['unresolved', 'supplied', 'declined'];
-const TRACE_KINDS = ['load-bearing', 'boundary', 'open-item', 'gap', 'scaffolding'];
-const TYPE_CONTRACTS = new Map([
+const REF_STATUSES: readonly string[] = ['unresolved', 'supplied', 'declined'];
+const TRACE_KINDS: readonly string[] = ['load-bearing', 'boundary', 'open-item', 'gap', 'scaffolding'];
+const TYPE_CONTRACTS: ReadonlyMap<string, ProjectionContract> = new Map([
   ['product-doctrine', {
     sections: Array.from({ length: 8 }, (_, index) => String(index + 1)),
     fields: [
@@ -91,20 +150,24 @@ const TYPE_CONTRACTS = new Map([
   }],
 ]);
 
-function evidenceState(model) {
-  const active = new Map(activeClaims(model).map((claim) => [claim.values.claimId, claim]));
+function evidenceState(model: RunModel): EvidenceState {
+  const active = new Map<string, ClaimRow>(
+    activeClaims(model).map((claim) => [claim.values.claimId, claim]),
+  );
   const activeEdges = model.evidence.edges.filter((edge) => edge.values.status === 'active');
-  const edgesByClaim = new Map();
+  const edgesByClaim = new Map<string, EvidenceEdgeRow[]>();
   for (const edge of activeEdges) {
     if (!edgesByClaim.has(edge.values.claimId)) edgesByClaim.set(edge.values.claimId, []);
-    edgesByClaim.get(edge.values.claimId).push(edge);
+    edgesByClaim.get(edge.values.claimId)!.push(edge);
   }
-  const markers = new Map(model.evidence.markers.map((row) => [row.values.claimId, row]));
+  const markers = new Map<string, EvidenceMarkerRow>(
+    model.evidence.markers.map((row) => [row.values.claimId, row]),
+  );
   const targetClaims = [...active.values()].filter((claim) => (
     claim.values.disposition === 'carried' || claim.values.disposition === 'merged'
   ));
-  const qualifying = new Set();
-  const broad = new Set();
+  const qualifying = new Set<string>();
+  const broad = new Set<string>();
   for (const claim of targetClaims) {
     const edges = edgesByClaim.get(claim.values.claimId) || [];
     if (edges.some((edge) => ['load-bearing', 'corroborative'].includes(edge.values.role))) {
@@ -133,14 +196,14 @@ function evidenceState(model) {
   };
 }
 
-function accountingValue(model, prefix) {
+function accountingValue(model: RunModel, prefix: string): number | null {
   for (const [key, value] of model.evidence.accounting.entries()) {
     if (key.startsWith(prefix)) return value;
   }
   return null;
 }
 
-function runK3Checks(results, model) {
+function runK3Checks(results: ResultCollector, model: RunModel): void {
   results.run('K3.1', 'edge shape', (fail) => {
     const indexes = makeIndexes(model);
     const table = model.evidenceDocument
@@ -171,9 +234,13 @@ function runK3Checks(results, model) {
       }
       const superseded = edge.values.status.match(/^superseded-by:((?:CC|SRC)-\d+)$/);
       if (superseded) {
-        const family = superseded[1].split('-')[0];
+        const family: 'CC' | 'SRC' = superseded[1].startsWith('CC-') ? 'CC' : 'SRC';
         const target = indexes[family].get(superseded[1]);
-        if (!target || (family === 'CC' && target.values.status !== 'active')) {
+        const targetIsActive = (
+          family === 'SRC'
+          || indexes.CC.get(superseded[1])?.values.status === 'active'
+        );
+        if (!target || !targetIsActive) {
           fail(`row ${edge.line} supersession target ${superseded[1]} is not an active definition`);
         }
       }
@@ -183,7 +250,7 @@ function runK3Checks(results, model) {
 
   results.run('K3.2', 'edge resolution', (fail) => {
     const indexes = makeIndexes(model);
-    const active = new Set(activeClaims(model).map((claim) => claim.values.claimId));
+    const active = new Set<string>(activeClaims(model).map((claim) => claim.values.claimId));
     for (const edge of model.evidence.edges) {
       if (!active.has(edge.values.claimId)) {
         fail(`${edge.values.claimId || '(blank claim)'} is not an active inventory claim at ${location(edge)}`);
@@ -224,7 +291,7 @@ function runK3Checks(results, model) {
       inference: state.marked.size,
       neither: state.neither.size,
     };
-    for (const key of Object.keys(actual)) {
+    for (const key of Object.keys(actual) as Array<keyof typeof actual>) {
       if (declared[key] === null) fail(`coverage accounting is missing "${key}"`);
       else if (declared[key] !== actual[key]) {
         fail(`coverage accounting ${key} declares ${declared[key]}, recomputed ${actual[key]}`);
@@ -290,7 +357,9 @@ function runK3Checks(results, model) {
 
   results.run('K3.8', 'inference markers resolve', (fail) => {
     const indexes = makeIndexes(model);
-    const active = new Map(activeClaims(model).map((claim) => [claim.values.claimId, claim]));
+    const active = new Map<string, ClaimRow>(
+      activeClaims(model).map((claim) => [claim.values.claimId, claim]),
+    );
     for (const marker of model.evidence.markers) {
       const claim = active.get(marker.values.claimId);
       if (!claim || !['carried', 'merged'].includes(claim.values.disposition)) {
@@ -315,8 +384,8 @@ function runK3Checks(results, model) {
   });
 }
 
-function cardData(model) {
-  const byId = new Map();
+function cardData(model: RunModel): CardMap {
+  const byId = new Map<string, CardData>();
   for (const card of model.cards) {
     byId.set(card.id, {
       card,
@@ -334,24 +403,27 @@ function cardData(model) {
   return byId;
 }
 
-function cardReferentIds(model, cards) {
-  const byCard = new Map([...cards.keys()].map((id) => [id, new Set(cards.get(id).refs)]));
+function cardReferentIds(model: RunModel, cards: CardMap): CardReferentMap {
+  const byCard = new Map<string, Set<string>>();
+  for (const [id, data] of cards) {
+    byCard.set(id, new Set<string>(data.refs));
+  }
   for (const referent of model.referents) {
     const refId = referent.values.refId;
     for (const cardId of idsIn(referent.values.depends, 'RC')) {
-      if (byCard.has(cardId)) byCard.get(cardId).add(refId);
+      if (byCard.has(cardId)) byCard.get(cardId)!.add(refId);
     }
-    const claimIds = new Set(idsIn(referent.values.depends, 'CC'));
+    const claimIds = new Set<string>(idsIn(referent.values.depends, 'CC'));
     if (claimIds.size > 0) {
       for (const [cardId, data] of cards) {
-        if (data.claims.some((id) => claimIds.has(id))) byCard.get(cardId).add(refId);
+        if (data.claims.some((id) => claimIds.has(id))) byCard.get(cardId)!.add(refId);
       }
     }
   }
   return byCard;
 }
 
-function runK4Checks(results, model) {
+function runK4Checks(results: ResultCollector, model: RunModel): void {
   const cards = cardData(model);
   const cardRefs = cardReferentIds(model, cards);
   results.run('K4.1', 'card shape', (fail) => {
@@ -384,16 +456,17 @@ function runK4Checks(results, model) {
       const posture = fieldValue(card, 'Routing posture');
       if (!POSTURES.includes(posture)) fail(`${card.id} posture "${posture || '(blank)'}" is invalid`);
 
-      const vector = new Map();
+      const vector = new Map<string, string>();
       for (const row of card.vectorRows) {
         const signal = normalizeHeader(row.values.signal);
         if (vector.has(signal)) fail(`${card.id} repeats shape signal "${signal}"`);
         vector.set(signal, row.values.value);
       }
       for (const signal of VECTOR_SIGNALS) {
-        if (!vector.has(signal)) fail(`${card.id} is missing shape signal "${signal}"`);
-        else if (!['low', 'med', 'high'].includes(vector.get(signal))) {
-          fail(`${card.id} shape signal "${signal}" has invalid value "${vector.get(signal)}"`);
+        const value = vector.get(signal);
+        if (value === undefined) fail(`${card.id} is missing shape signal "${signal}"`);
+        else if (!['low', 'med', 'high'].includes(value)) {
+          fail(`${card.id} shape signal "${signal}" has invalid value "${value}"`);
         }
       }
       if (vector.size !== VECTOR_SIGNALS.length) {
@@ -407,14 +480,14 @@ function runK4Checks(results, model) {
     const indexes = makeIndexes(model);
     for (const data of cards.values()) {
       if (data.packets.length === 0) fail(`${data.card.id} lists no packet ids`);
-      for (const family of ['PKT', 'SRC', 'CC', 'PC', 'RC', 'REF']) {
+      for (const family of ['PKT', 'SRC', 'CC', 'PC', 'RC', 'REF'] as const) {
         for (const id of idsIn(data.card.text, family)) {
           if (!indexes[family].has(id)) fail(`${data.card.id} cites missing ${id}`);
         }
       }
     }
     for (const referent of model.referents) {
-      for (const family of ['RC', 'CC']) {
+      for (const family of ['RC', 'CC'] as const) {
         for (const id of idsIn(referent.values.depends, family)) {
           if (!indexes[family].has(id)) {
             fail(`${referent.values.refId || 'referent row'} depends on missing ${id}`);
@@ -450,7 +523,7 @@ function runK4Checks(results, model) {
           fail(`${data.card.id} cites unresolved ${id} but posture is ${data.posture}`);
         }
         if (['supplied', 'declined'].includes(ref.values.status)) {
-          const occurrences = [];
+          const occurrences: string[] = [];
           const pattern = new RegExp(`\\b(${POSTURES.join('|')})\\b`, 'g');
           for (const match of data.history.matchAll(pattern)) occurrences.push(match[1]);
           const pendingIndex = occurrences.lastIndexOf('unrouted-pending-external-referent');
@@ -492,7 +565,7 @@ function runK4Checks(results, model) {
 
   results.run('K4.5', 'dependency sanity', (fail) => {
     const indexes = makeIndexes(model);
-    const edges = [];
+    const edges: Array<{ from: string; to: string; mutual: boolean }> = [];
     for (const data of cards.values()) {
       const field = fieldValue(data.card, 'Depends on');
       for (const dependency of data.deps) {
@@ -502,11 +575,16 @@ function runK4Checks(results, model) {
         edges.push({ from: data.card.id, to: dependency, mutual });
       }
     }
-    const graph = new Map([...cards.keys()].map((id) => [id, []]));
+    const graph = new Map<string, string[]>();
+    for (const id of cards.keys()) graph.set(id, []);
     for (const edge of edges) {
-      if (graph.has(edge.from)) graph.get(edge.from).push(edge.to);
+      if (graph.has(edge.from)) graph.get(edge.from)!.push(edge.to);
     }
-    const reachable = (start, target, seen = new Set()) => {
+    const reachable = (
+      start: string,
+      target: string,
+      seen: Set<string> = new Set<string>(),
+    ): boolean => {
       if (start === target) return true;
       if (seen.has(start)) return false;
       seen.add(start);
@@ -522,7 +600,7 @@ function runK4Checks(results, model) {
 
   results.run('K4.6', 'posture history', (fail) => {
     for (const data of cards.values()) {
-      const occurrences = [];
+      const occurrences: string[] = [];
       const pattern = new RegExp(`\\b(${POSTURES.join('|')})\\b`, 'g');
       for (const match of data.history.matchAll(pattern)) occurrences.push(match[1]);
       if (occurrences.length === 0) fail(`${data.card.id} has no posture-history entry`);
@@ -534,43 +612,49 @@ function runK4Checks(results, model) {
   });
 }
 
-function routingState(model) {
+function routingState(model: RunModel): RoutingState {
   const cards = cardData(model);
   const refs = makeIndexes(model).REF;
   const cardRefs = cardReferentIds(model, cards);
-  const ownUnresolved = new Map();
+  const ownUnresolved = new Map<string, Set<string>>();
   for (const [id, data] of cards.entries()) {
     ownUnresolved.set(
       id,
-      new Set([...(cardRefs.get(id) || [])]
+      new Set<string>([...(cardRefs.get(id) || [])]
         .filter((refId) => refs.get(refId)?.values.status === 'unresolved')),
     );
   }
-  const memo = new Map();
-  const cardMemo = new Map();
-  const coneRefs = (id, visiting = new Set()) => {
-    if (memo.has(id)) return new Set(memo.get(id));
-    if (visiting.has(id)) return new Set(ownUnresolved.get(id) || []);
+  const memo = new Map<string, Set<string>>();
+  const cardMemo = new Map<string, Set<string>>();
+  const coneRefs = (
+    id: string,
+    visiting: Set<string> = new Set<string>(),
+  ): Set<string> => {
+    if (memo.has(id)) return new Set<string>(memo.get(id));
+    if (visiting.has(id)) return new Set<string>(ownUnresolved.get(id) || []);
     visiting.add(id);
-    const result = new Set(ownUnresolved.get(id) || []);
+    const result = new Set<string>(ownUnresolved.get(id) || []);
     for (const dependency of cards.get(id)?.deps || []) {
       for (const ref of coneRefs(dependency, visiting)) result.add(ref);
     }
     visiting.delete(id);
     memo.set(id, result);
-    return new Set(result);
+    return new Set<string>(result);
   };
-  const coneCards = (id, visiting = new Set()) => {
-    if (cardMemo.has(id)) return new Set(cardMemo.get(id));
-    if (visiting.has(id)) return new Set([id]);
+  const coneCards = (
+    id: string,
+    visiting: Set<string> = new Set<string>(),
+  ): Set<string> => {
+    if (cardMemo.has(id)) return new Set<string>(cardMemo.get(id));
+    if (visiting.has(id)) return new Set<string>([id]);
     visiting.add(id);
-    const result = new Set([id]);
+    const result = new Set<string>([id]);
     for (const dependency of cards.get(id)?.deps || []) {
       for (const cardId of coneCards(dependency, visiting)) result.add(cardId);
     }
     visiting.delete(id);
     cardMemo.set(id, result);
-    return new Set(result);
+    return new Set<string>(result);
   };
   for (const id of cards.keys()) coneRefs(id);
   for (const id of cards.keys()) coneCards(id);
@@ -583,18 +667,18 @@ function routingState(model) {
   };
 }
 
-function artifactCone(file, routing) {
-  const seeds = new Set(idsIn(file.text, 'RC'));
-  const claimIds = new Set(idsIn(file.text, 'CC'));
-  const packetIds = new Set(idsIn(file.text, 'PKT'));
+function artifactCone(file: RunFile, routing: RoutingState): Set<string> {
+  const seeds = new Set<string>(idsIn(file.text, 'RC'));
+  const claimIds = new Set<string>(idsIn(file.text, 'CC'));
+  const packetIds = new Set<string>(idsIn(file.text, 'PKT'));
   for (const [id, data] of routing.cards.entries()) {
     if (
       data.claims.some((claim) => claimIds.has(claim))
       || data.packets.some((packet) => packetIds.has(packet))
     ) seeds.add(id);
   }
-  const all = new Set();
-  const visit = (id) => {
+  const all = new Set<string>();
+  const visit = (id: string): void => {
     if (all.has(id)) return;
     all.add(id);
     for (const dependency of routing.cards.get(id)?.deps || []) visit(dependency);
@@ -603,7 +687,7 @@ function artifactCone(file, routing) {
   return all;
 }
 
-function runK5Checks(results, model) {
+function runK5Checks(results: ResultCollector, model: RunModel): void {
   const routing = routingState(model);
   results.run('K5.1', 'taint declaration', (fail) => {
     for (const [id, data] of routing.cards.entries()) {
@@ -639,9 +723,11 @@ function runK5Checks(results, model) {
 
   results.run('K5.3', 'Precis taint honesty', (fail) => {
     if (!model.precis) return 'precis.md not present; taint rendering not yet applicable';
-    const active = new Map(activeClaims(model).map((claim) => [claim.values.claimId, claim]));
-    const relevantRefs = new Set();
-    const declined = new Set();
+    const active = new Map<string, ClaimRow>(
+      activeClaims(model).map((claim) => [claim.values.claimId, claim]),
+    );
+    const relevantRefs = new Set<string>();
+    const declined = new Set<string>();
     for (const [id, data] of routing.cards.entries()) {
       const loadBearing = data.claims.some((claimId) => {
         const claim = active.get(claimId);
@@ -700,30 +786,36 @@ function runK5Checks(results, model) {
   });
 }
 
-function projectionFields(document) {
-  if (!document) return new Map();
+function projectionFields(
+  document: ProjectionFieldDocument | null | undefined,
+): Map<string, string> {
+  if (!document) return new Map<string, string>();
   return document.fieldTable?.fields || parseBulletFields(document.text).fields;
 }
 
-function acceptedTimestamp(model) {
+function acceptedTimestamp(model: RunModel): ReturnType<typeof parseTimestamp> {
   if (!model.manifest) return null;
   const rows = model.manifest.states.filter((row) => row.values.state === 'ACCEPTED');
   if (rows.length === 0) return null;
-  return parseTimestamp(rows.at(-1).values.entered);
+  return parseTimestamp(rows.at(-1)!.values.entered);
 }
 
-function traceDocumentPath(model, projection) {
+function traceDocumentPath(model: RunModel, projection: ProjectionModel): string | null {
   if (!projection.trace) return null;
   const bullets = projection.trace.bullets.fields;
   return resolveRenderedPath(model.runDir, bullets.get('renders') || '');
 }
 
-function runK6Checks(results, model) {
+function runK6Checks(results: ResultCollector, model: RunModel): void {
   const routing = routingState(model);
-  const active = new Map(activeClaims(model).map((claim) => [claim.values.claimId, claim]));
-  const activeBoundaries = new Map(model.boundaries
-    .filter((boundary) => boundary.values.status === 'active')
-    .map((boundary) => [boundary.values.boundaryId, boundary]));
+  const active = new Map<string, ClaimRow>(
+    activeClaims(model).map((claim) => [claim.values.claimId, claim]),
+  );
+  const activeBoundaries = new Map(
+    model.boundaries
+      .filter((boundary) => boundary.values.status === 'active')
+      .map((boundary) => [boundary.values.boundaryId, boundary] as const),
+  );
   const byType = model.projections;
 
   results.run('K6.1', 'commission', (fail) => {
@@ -737,7 +829,7 @@ function runK6Checks(results, model) {
     }
     const currentHash = sha256(Buffer.from(model.precis.text, 'utf8'));
     const accepted = acceptedTimestamp(model);
-    const projectionIds = new Map();
+    const projectionIds = new Map<string, string>();
     for (const projection of byType) {
       if (!projection.commission) {
         fail(`${projection.type} has no commission file`);
@@ -827,7 +919,7 @@ function runK6Checks(results, model) {
         fail(`${projection.type} has no selection ledger`);
         continue;
       }
-      const rows = new Map();
+      const rows = new Map<string, ProjectionSelectionRow>();
       for (const row of projection.selection.rows) {
         if (rows.has(row.values.claimId)) {
           fail(`${projection.type} selection repeats ${row.values.claimId}`);
@@ -881,12 +973,12 @@ function runK6Checks(results, model) {
         }
       }
 
-      const used = new Set(projection.selection.rows
+      const used = new Set<string>(projection.selection.rows
         .filter((row) => row.values.selection === 'used')
         .map((row) => row.values.claimId));
       const touchedCards = [...routing.cards.values()]
         .filter((card) => card.claims.some((id) => used.has(id)));
-      const openRequired = new Set();
+      const openRequired = new Set<string>();
       for (const card of touchedCards) {
         for (const id of card.claims) {
           const claim = active.get(id);
@@ -978,8 +1070,12 @@ function runK6Checks(results, model) {
         continue;
       }
       const text = readFileSync(path, 'utf8');
-      const paragraphs = new Set(renderedParagraphs(text).map((paragraph) => paragraph.anchor));
-      const anchors = new Set(projection.trace.rows.map((row) => row.values.anchor));
+      const paragraphs = new Set<string>(
+        renderedParagraphs(text).map((paragraph) => paragraph.anchor),
+      );
+      const anchors = new Set<string>(
+        projection.trace.rows.map((row) => row.values.anchor),
+      );
       for (const anchor of paragraphs) {
         if (!anchors.has(anchor)) fail(`${projection.type} rendered paragraph ${anchor} has no trace row`);
       }
@@ -1002,7 +1098,7 @@ function runK6Checks(results, model) {
   });
 
   results.run('K6.6', 'boundary honor', (fail) => {
-    const prohibited = new Set();
+    const prohibited = new Set<string>();
     for (const boundary of model.boundaries) {
       if (boundary.values.type === 'do-not-use-harm' && boundary.values.status === 'active') {
         for (const id of idsIn(boundary.values.governs, 'CC')) prohibited.add(id);
@@ -1025,10 +1121,13 @@ function runK6Checks(results, model) {
 
   results.run('K6.7', 'open voice', (fail) => {
     for (const projection of byType) {
-      const selections = new Map((projection.selection?.rows || [])
-        .map((row) => [row.values.claimId, row]));
-      const openRows = new Map([...selections]
-        .filter(([, row]) => row.values.selection === 'surfaced-as-open'));
+      const selections = new Map<string, ProjectionSelectionRow>(
+        (projection.selection?.rows || [])
+          .map((row) => [row.values.claimId, row]),
+      );
+      const openRows = new Map<string, ProjectionSelectionRow>(
+        [...selections].filter(([, row]) => row.values.selection === 'surfaced-as-open'),
+      );
       const openTraces = projection.trace?.rows.filter((row) => row.values.kind === 'open-item') || [];
 
       for (const trace of openTraces) {
@@ -1066,7 +1165,7 @@ function runK6Checks(results, model) {
 
   results.run('K6.8', 'taint propagation', (fail) => {
     for (const projection of byType) {
-      const used = new Set((projection.selection?.rows || [])
+      const used = new Set<string>((projection.selection?.rows || [])
         .filter((row) => row.values.selection === 'used')
         .map((row) => row.values.claimId));
       const tainted = [...routing.cards.entries()].some(([id, card]) => (
@@ -1161,15 +1260,15 @@ function runK6Checks(results, model) {
   });
 }
 
-export function runK3(results, model) {
+export function runK3(results: ResultCollector, model: RunModel): void {
   runK3Checks(results, model);
 }
 
-export function runK4K5(results, model) {
+export function runK4K5(results: ResultCollector, model: RunModel): void {
   runK4Checks(results, model);
   runK5Checks(results, model);
 }
 
-export function runK6(results, model) {
+export function runK6(results: ResultCollector, model: RunModel): void {
   runK6Checks(results, model);
 }

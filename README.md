@@ -121,9 +121,13 @@ not governance or output quality.
 Run the deterministic suite from the repository root:
 
 ```bash
-node scripts/validate-precis-fixtures.mjs
-node scripts/test-conformance-mutations.mjs
+npm install
+npm test
 ```
+
+The checker implementation is strict TypeScript. Node 22.18 or newer executes
+the `.ts` entrypoints directly; the npm test sequence also runs `tsc --noEmit`
+before the deterministic fixture and mutation checks.
 
 No endpoint is part of this product, and there is no final schema freeze beyond
 the accepted provisional v0 envelope.

@@ -28,7 +28,7 @@ performed later, under supervision, per the runbooks.
    `docs/decisions/0001…`, `0002…`, `docs/PRECIS-CONFORMANCE-CHECKER.md`.
 2. The accepted fixtures end to end: `docs/fixtures/slice-1/`, `slice-2/`
    (corpus → precis, README self-checks), and the checker source
-   `scripts/validate-precis-fixtures.mjs` (all of it — its style is the
+   `scripts/validate-precis-fixtures.ts` (all of it — its style is the
    style you will extend).
 3. This architecture tree in its README reading order (docs 01–12).
 4. The build kits: [`templates/`](templates/), [`prompts/`](prompts/),
@@ -38,7 +38,7 @@ performed later, under supervision, per the runbooks.
    worktree and must be reconciled or closed before publication. Issue #18
    supplies the evidence-role research implemented by WP4.
 
-Sanity check before starting: `node scripts/validate-precis-fixtures.mjs`
+Sanity check before starting: `node scripts/validate-precis-fixtures.ts`
 must print `RESULT: PASS`.
 
 ## 2. Governance you operate under
@@ -116,7 +116,7 @@ scope:** checker changes (same slice, next PR half — or same PR if the
 authority prefers strict lockstep in one PR; default: one PR for both
 halves, fixture commits first).
 
-### WP3 — Run-mode kernel (slice 9, code half): `scripts/validate-run.mjs`
+### WP3 — Run-mode kernel (slice 9, code half): `scripts/validate-run.ts`
 
 Implement [`checker-spec/K1-K2-fixtures-and-runs.md`](checker-spec/K1-K2-fixtures-and-runs.md)
 K2.1–K2.12 against the WP2 golden, under the constraints of

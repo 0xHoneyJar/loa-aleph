@@ -12,8 +12,8 @@
 - doctrine_amendments: none outside doctrine_sha
 - runbook: docs/architecture/09-runbook-manual-mode.md at doctrine_sha
 - publication_pin_status: doctrine, runbook, checker scripts, and fixture
-  contracts are pinned to the committed implementation; the latest kernel
-  report records the same checker SHA
+  contracts are pinned to committed implementations; the latest kernel report
+  records the TypeScript checker SHA and reproducible content digest
 
 ## Corpus binding
 

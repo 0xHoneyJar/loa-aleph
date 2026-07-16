@@ -1,0 +1,21 @@
+{
+  "name": "loa-aleph",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@10.9.4",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "validate": "node scripts/validate-precis-fixtures.ts",
+    "validate:run": "node scripts/validate-run.ts",
+    "test:mutations": "node scripts/test-conformance-mutations.ts",
+    "test": "npm run typecheck && npm run validate && node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial && node scripts/validate-run.ts --run docs/fixtures/projection-adversarial && node scripts/validate-run.ts --run docs/fixtures/run-slice-2 && npm run test:mutations"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "7.0.2"
+  }
+}

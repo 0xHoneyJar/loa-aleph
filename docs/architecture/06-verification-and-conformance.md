@@ -30,7 +30,7 @@ kernel — so the kernel never accretes brittle prose-policing.
 
 ## 2. Conformance-kernel roadmap
 
-The kernel starts from `scripts/validate-precis-fixtures.mjs` exactly as it
+The kernel starts from `scripts/validate-precis-fixtures.ts` exactly as it
 is. Growth is additive check groups, each landing **in lockstep with the
 fixture that motivates it** and each shipping with a negative battery run
 through the real checker via `--root` temp-copy mutation (the established
