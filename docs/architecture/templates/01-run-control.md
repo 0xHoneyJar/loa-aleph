@@ -10,8 +10,23 @@
 - predecessor_run: ⟨none | RUN-prior-slug⟩
 - mode: ⟨agent | manual | hybrid⟩
 - created: ⟨YYYY-MM-DD⟩
-- doctrine_sha: ⟨git SHA of loa-aleph main this run obeys⟩
-- runbook: ⟨path + version of the runbook followed⟩
+- core_id: aleph-core
+- core_version: ⟨exact version from bundle lock⟩
+- core_digest: ⟨sha256:… complete Core tree digest⟩
+- adapter_id: ⟨host adapter ID | core-manual⟩
+- adapter_version: ⟨exact version⟩
+- adapter_digest: ⟨sha256:… adapter tree or manual-binding digest⟩
+- bundle_id: ⟨immutable bundle ID⟩
+- bundle_digest: ⟨sha256:… complete bundle digest⟩
+- bundle_lock_ref: ⟨run-local path or content-addressed immutable reference⟩
+- checker_digest: ⟨sha256:… checker tree digest⟩
+- adapter_protocol_version: ⟨exact version⟩
+- run_format_version: ⟨exact version⟩
+- host_identity: ⟨exact host/runtime name | human-operator⟩
+- runtime_snapshot_ref: ⟨run-local immutable snapshot path⟩
+- runtime_snapshot_digest: ⟨sha256:…⟩
+- doctrine_sha: ⟨source-provenance commit containing these exact Core bytes⟩
+- runbook: ⟨Core path + version/digest of the runbook followed⟩
 
 ## Corpus binding
 - corpus_ref: corpus/manifest.md
@@ -23,7 +38,9 @@
 | field | value |
 |-------|-------|
 | model_ids (per role, exact strings; or "human") | ⟨…⟩ |
-| effort policy deviations from doc 05 §5 | ⟨none | list⟩ |
+| adapter profile ID + digest | ⟨… | n/a (core-manual)⟩ |
+| model/context/effort mapping actually used | ⟨exact mapping | n/a (manual)⟩ |
+| profile deviations | ⟨none | list⟩ |
 | fan-out limits | ⟨…⟩ |
 | budgets granted (per stage, tokens) | ⟨table or "n/a (manual)"⟩ |
 
@@ -46,9 +63,12 @@
 |---|------|-----|-------------|
 ```
 
-Rules: `model_ids` are exact (`claude-fable-5`), never aliases like "latest";
-a mid-run model change is itself a deviation row plus an authority sign-off;
-hybrid mode lists per-stage actors in the execution profile.
+Rules: every pin is exact; aliases such as `latest`, moving branches, or moving
+tags are forbidden. A Core, adapter, bundle, checker, model, or runtime change
+does not amend the current run: resume with the original lock/snapshot or start
+a successor run. Hybrid mode lists per-stage actors in the execution profile.
+Historical fixtures keep their recorded predecessor format and are not
+silently repinned to current bytes.
 
 ## T1.2 Run log → `runs/<run-id>/run-log.md`
 
@@ -80,8 +100,8 @@ tokens of the 600k budget.
 
 ```markdown
 # Kernel Report — ⟨RUN-slug⟩
-- checker_version: ⟨git SHA of scripts/ at run time⟩
-- checker_content_sha256: ⟨optional prepublication aggregate over scripts/*.ts⟩
+- checker_digest: ⟨required sha256 from the immutable bundle lock⟩
+- checker_source_provenance: ⟨commit/release reference, informational⟩
 - command: `⟨exact command line⟩`
 - date: ⟨YYYY-MM-DD HH:MM⟩
 - result: ⟨PASS | FAIL⟩
@@ -96,16 +116,16 @@ Rules: the pasted output is never edited or truncated; a FAIL report is
 committed too (it is evidence of the loop, not shame); one report file per
 invocation, numbered `kernel-report.md`, `kernel-report-2.md`, … with the
 latest linked from the run log. A local fixture developed in the same
-uncommitted change as its checker uses `checker_version:
+uncommitted change as its checker uses `checker_source_provenance:
 UNPINNED-WORKTREE`, records the last committed base separately, and records a
-publication-repin instruction. That marker is not a git SHA and cannot support
-publication, acceptance, or replay claims. Before publication, commit the
-checker, rerun the exact command, replace the marker with the resulting
-40-character git SHA, and refresh the complete output.
+publication-repin instruction. It must still record the exact checker content
+digest. The marker cannot support publication, acceptance, or replay claims.
+Before publication, freeze a bundle, rerun the exact command from it, record
+the lock's checker digest and provenance, and refresh the complete output.
 
-When a prepublication content pin is useful, compute
-`checker_content_sha256` by sorting every `scripts/**/*.ts` path, hashing each
+Compute `checker_digest` by sorting every checker path declared by
+`core.manifest.json`, hashing each
 file's exact bytes with SHA-256, joining records as
 `<repo-relative-path>\0<lowercase-file-digest>\n`, and hashing the joined bytes
-with SHA-256. This supplements the required publication git SHA; it never
-replaces it.
+with SHA-256. A source commit is provenance; it never replaces the content
+digest.

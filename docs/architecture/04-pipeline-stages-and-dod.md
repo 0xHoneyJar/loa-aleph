@@ -76,7 +76,9 @@ all ledgers final.
 - **DoD:**
   - [ ] ⚙ every raw file is under `corpus/sources/`, content-hashed, and
         listed in the draft manifest
-  - [ ] ⚙ run manifest exists with mode, doctrine SHA, model IDs / "human"
+  - [ ] ⚙ run manifest exists with mode; Core, adapter, bundle, checker,
+        protocol, and run-format pins; exact host/model identities (or
+        `core-manual` + `human`); and an immutable runtime-snapshot digest
   - [ ] 👤 authority approved the corpus scope statement and sensitivity
         rulings; approval recorded in the manifest
   - [ ] ⚙ corpus frozen: hashes recorded; run state = `CORPUS-FROZEN`

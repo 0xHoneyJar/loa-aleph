@@ -1,7 +1,9 @@
 # 08 — Runbook: Agent Mode
 
 > Status: ACCEPTED FOR SUPERVISED IMPLEMENTATION by
-> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md),
+> under the immutable Core/adapter boundary in
+> [`Decision 0004`](../decisions/0004-core-adapter-and-bundle-boundary.md).
 > **Agent mode is not yet a sanctioned path** — manual mode remains the only
 > sanctioned execution until the dry-run slice validates this runbook
 > ([`10-build-roadmap-slices.md`](10-build-roadmap-slices.md)). This document
@@ -15,17 +17,19 @@ You are the **orchestrator** of an Aleph distillation run. Your job is to
 drive a bounded corpus through the pipeline in
 [`04-pipeline-stages-and-dod.md`](04-pipeline-stages-and-dod.md) and deliver a
 run directory whose Précis passes the verification gate — while holding every
-invariant in the doctrine you have synced. You succeed when the run reaches
+invariant in the immutable Core bundle you were given. You succeed when the run reaches
 `ACCEPTED`, or when it reaches `BLOCKED` with a crisp statement of what only a
 human can unblock. You fail if anything load-bearing vanishes silently, if you
 invent an external fact, or if the run directory cannot speak for itself.
 
 ## 0. Before anything
 
-1. Sync `main`. Read, in order: `README.md`, `docs/precis-wedge.md`,
-   `docs/responsibility-map.md`, `docs/routing-and-clustering.md`,
-   `docs/decisions/`, and this architecture tree. Record the git SHA — that is
-   the doctrine version your run obeys, pinned in the manifest.
+1. Load one immutable bundle and verify its lock. Never sync or fetch mutable
+   `main`. Record the Core, adapter, bundle, checker, protocol, run-format,
+   host/model, and runtime-snapshot pins in the manifest. Read, in order:
+   `README.md`, `docs/precis-wedge.md`, `docs/responsibility-map.md`,
+   `docs/routing-and-clustering.md`, `docs/decisions/`, and this architecture
+   tree from those pinned Core bytes.
 2. Read `lessons.md` if present. Apply lessons; never let a lesson override
    doctrine.
 3. Confirm with the user: where the raw material is, what the research is
@@ -82,7 +86,8 @@ b. Assemble worker bundles per the role charter (doc 05 §2).
    The bundle IS the blind-context enforcement: what is not in it
    does not exist for the worker.
 c. Spawn workers with goal + constraints + output schema. No step
-   scripts. Effort per the policy table (doc 05 §5).
+   scripts. Capability/model/effort mapping comes from the selected
+   adapter profile; doc 05 §5 is only the Fable reference mapping.
 d. Validate outputs at the schema boundary; serialize appends into
    the ledgers yourself (single-writer rule).
 e. Run the stage's ⚙ self-checks (and the kernel where it applies).
@@ -147,11 +152,14 @@ Stage-specific amplifications (read with doc 04):
 
 ## 4. Resumption
 
-On waking into an existing run: read the manifest and run log; verify ledger
-hashes; find the first unmet DoD item; continue from there. If the directory
-contradicts the log, stop and flag — never reconcile by guessing. If you are a
+On waking into an existing run: restore and verify the exact original bundle
+lock and immutable runtime snapshot, then read the manifest and run log, verify
+ledger hashes, find the first unmet DoD item, and continue from there. Never
+substitute a newer Core, adapter, checker, model, or runtime in place. If the
+directory contradicts the log or the original execution identity is
+unavailable, stop and flag — never reconcile by guessing. If you are a
 different agent than the one that started the run, say so in the run log and
-carry on; the run directory, not your predecessor's memory, is the run.
+carry on; the pinned files, not your predecessor's memory, are the run.
 
 ## 5. Ending a turn
 

@@ -1,0 +1,103 @@
+{
+  "$schema": "../../adapter-protocol/adapter.schema.json",
+  "manifest_format": "aleph-adapter-manifest/v1",
+  "adapter": {
+    "id": "hermes",
+    "version": "0.0.0-planned",
+    "host": "hermes",
+    "protocol_version": "1.0.0-provisional",
+    "run_format_version": "1.0.0-provisional",
+    "lifecycle": "planned"
+  },
+  "core_consumption": {
+    "mode": "immutable-complete-core",
+    "allow_overrides": false,
+    "mutable_fetch": false,
+    "overrides": [],
+    "duplicates": [],
+    "transformations": []
+  },
+  "owned_paths": [
+    "adapters/hermes/adapter.manifest.json"
+  ],
+  "references": [
+    "adapter-protocol/README.md",
+    "adapter-protocol/capability-contract.md",
+    "docs/decisions/0004-core-adapter-and-bundle-boundary.md"
+  ],
+  "entrypoints": [
+    {
+      "id": "aleph",
+      "kind": "native-agent",
+      "state": "planned",
+      "path": null
+    }
+  ],
+  "installation": {
+    "state": "planned",
+    "path": null
+  },
+  "capabilities": {
+    "durable_file_io": {
+      "state": "planned",
+      "evidence": []
+    },
+    "frozen_corpus_snapshots": {
+      "state": "planned",
+      "evidence": []
+    },
+    "fresh_context_workers": {
+      "state": "planned",
+      "evidence": []
+    },
+    "blind_bundles": {
+      "state": "planned",
+      "evidence": []
+    },
+    "validated_structured_returns": {
+      "state": "planned",
+      "evidence": []
+    },
+    "single_writer_ledgers": {
+      "state": "planned",
+      "evidence": []
+    },
+    "deterministic_checker_invocation": {
+      "state": "planned",
+      "evidence": []
+    },
+    "human_authority_gates": {
+      "state": "planned",
+      "evidence": []
+    },
+    "durable_pause_resume": {
+      "state": "planned",
+      "evidence": []
+    },
+    "exact_model_identity": {
+      "state": "planned",
+      "evidence": []
+    },
+    "immutable_runtime_snapshot": {
+      "state": "planned",
+      "evidence": []
+    },
+    "host_model_effort_mapping": {
+      "state": "planned",
+      "evidence": []
+    },
+    "immutable_bundle_installation": {
+      "state": "planned",
+      "evidence": []
+    }
+  },
+  "full_mode": {
+    "claimed": false
+  },
+  "profiles": [],
+  "evidence": {
+    "implementation": [],
+    "validation": [],
+    "sanction": []
+  }
+}
