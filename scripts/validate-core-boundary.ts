@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { createHash } from 'node:crypto';
 import {
   existsSync,
   lstatSync,
@@ -9,6 +8,14 @@ import {
 import { spawnSync } from 'node:child_process';
 import { dirname, isAbsolute, join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  buildBundlePlan,
+  DIGEST_ALGORITHM,
+  sortedUnique,
+  stringLeaves,
+  treeDigest,
+} from './lib/bundle-format.ts';
+import type { BundleProvenance } from './lib/bundle-format.ts';
 import { ResultCollector } from './lib/results.ts';
 import type { CheckReport } from './lib/results.ts';
 
@@ -161,6 +168,7 @@ export type CoreBoundaryReport = CheckReport<{
 export interface ValidateCoreBoundaryOptions {
   root?: string;
   preflightAdapter?: string;
+  bundleProvenance?: Record<string, BundleProvenance>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -169,12 +177,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
-}
-
-function sortedUnique(values: string[]): string[] {
-  return [...new Set(values)].sort((a, b) => (
-    Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'))
-  ));
 }
 
 function sameStrings(left: string[], right: string[]): boolean {
@@ -186,121 +188,6 @@ function sameStrings(left: string[], right: string[]): boolean {
 function exactKeys(value: unknown, keys: readonly string[]): boolean {
   if (!isRecord(value)) return false;
   return sameStrings(Object.keys(value), [...keys]);
-}
-
-function sha256(value: string | Buffer): string {
-  return createHash('sha256').update(value).digest('hex');
-}
-
-function fileDigest(root: string, path: string): string {
-  return sha256(readFileSync(join(root, path)));
-}
-
-function digestEntries(entries: Array<{ path: string; digest: string }>): string {
-  const records = [...entries]
-    .sort((left, right) => (
-      Buffer.compare(Buffer.from(left.path, 'utf8'), Buffer.from(right.path, 'utf8'))
-    ))
-    .map(({ path, digest }) => `${path}\0${digest}\n`)
-    .join('');
-  return `sha256:${sha256(records)}`;
-}
-
-function treeDigest(root: string, paths: string[]): string {
-  return digestEntries(
-    sortedUnique(paths).map((path) => ({ path, digest: fileDigest(root, path) })),
-  );
-}
-
-function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  const record = value as Record<string, unknown>;
-  return `{${
-    sortedUnique(Object.keys(record))
-      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
-      .join(',')
-  }}`;
-}
-
-function bundleDigests(
-  root: string,
-  manifest: CoreManifest,
-  target: CoreManifest['bundle_targets'][number],
-  adapter: AdapterManifest,
-  adapterPaths: string[],
-  coreDigest: string,
-  checkerDigest: string,
-  adapterDigest: string,
-): {
-  payloadDigest: string;
-  lockProjectionDigest: string;
-  bundleDigest: string;
-} {
-  const payloadPaths = sortedUnique([...manifest.files.core, ...adapterPaths]);
-  const payloadEntries = payloadPaths.map((path) => ({
-    path,
-    digest: fileDigest(root, path),
-  }));
-  const payloadDigest = digestEntries(payloadEntries);
-  const sourceManifestProjection = {
-    manifest_format: manifest.manifest_format,
-    core: manifest.core,
-    files: {
-      core: sortedUnique(manifest.files.core),
-      adapter: {
-        [target.adapter_id]: sortedUnique(adapterPaths),
-      },
-    },
-    checker_paths: sortedUnique(manifest.checker_paths),
-    reference_documents: sortedUnique(manifest.reference_documents),
-    bundle_target: target,
-  };
-  const lockFields = {
-    lock_format: 'aleph-bundle-lock/v1',
-    bundle: {
-      id: target.id,
-      version: target.version,
-    },
-    core: {
-      id: manifest.core.id,
-      version: manifest.core.version,
-      tree_digest: coreDigest,
-    },
-    adapter: {
-      id: adapter.adapter.id,
-      version: adapter.adapter.version,
-      lifecycle: adapter.adapter.lifecycle,
-      tree_digest: adapterDigest,
-    },
-    checker_digest: checkerDigest,
-    adapter_protocol_version: manifest.core.adapter_protocol_version,
-    run_format_version: manifest.core.run_format_version,
-    provenance: {
-      source_manifest_projection_digest: `sha256:${
-        sha256(`${canonicalJson(sourceManifestProjection)}\n`)
-      }`,
-      assembly_tool: {
-        path: 'scripts/validate-core-boundary.ts',
-        digest: `sha256:${fileDigest(root, 'scripts/validate-core-boundary.ts')}`,
-      },
-      input_files: payloadEntries.map(({ path, digest }) => ({
-        path,
-        digest: `sha256:${digest}`,
-      })),
-    },
-  };
-  const lockBytes = Buffer.from(`${canonicalJson(lockFields)}\n`, 'utf8');
-  const lockFileDigest = sha256(lockBytes);
-  const bundleDigest = digestEntries([
-    ...payloadEntries,
-    { path: 'bundle.lock.json', digest: lockFileDigest },
-  ]);
-  return {
-    payloadDigest,
-    lockProjectionDigest: `sha256:${lockFileDigest}`,
-    bundleDigest,
-  };
 }
 
 function normalizedRepositoryPath(path: string): boolean {
@@ -376,23 +263,39 @@ function parseJson(path: string): unknown {
 }
 
 function gitInventory(root: string): { paths: string[]; error: string } {
-  const result = spawnSync(
+  const inventoryResult = spawnSync(
     'git',
     ['-C', root, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
     { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
   );
-  if (result.status !== 0) {
+  if (inventoryResult.status !== 0) {
     return {
       paths: [],
-      error: result.stderr.toString('utf8').trim()
-        || result.error?.message
-        || `git exited ${String(result.status)}`,
+      error: inventoryResult.stderr.toString('utf8').trim()
+        || inventoryResult.error?.message
+        || `git exited ${String(inventoryResult.status)}`,
     };
   }
-  const paths = result.stdout
+  const deletedResult = spawnSync(
+    'git',
+    ['-C', root, 'ls-files', '-z', '--deleted'],
+    { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
+  );
+  if (deletedResult.status !== 0) {
+    return {
+      paths: [],
+      error: deletedResult.stderr.toString('utf8').trim()
+        || deletedResult.error?.message
+        || `git exited ${String(deletedResult.status)}`,
+    };
+  }
+  const deleted = new Set(
+    deletedResult.stdout.toString('utf8').split('\0').filter(Boolean),
+  );
+  const paths = inventoryResult.stdout
     .toString('utf8')
     .split('\0')
-    .filter(Boolean);
+    .filter((path) => path && !deleted.has(path));
   return { paths: sortedUnique(paths), error: '' };
 }
 
@@ -898,7 +801,7 @@ function emptyReport(): Omit<CoreBoundaryReport, 'result' | 'checks'> {
       repositoryAdministration: 0,
     },
     digests: {
-      algorithm: 'sha256-path-file-digest-v1',
+      algorithm: DIGEST_ALGORITHM,
       core: '',
       checker: '',
       manualExecutionBinding: '',
@@ -1184,6 +1087,16 @@ export function validateCoreBoundary(
         if (foreignName.test(payload)) {
           fail(`${adapterId}: adapter payload names foreign adapter or host ${foreignId}`);
         }
+        for (const value of stringLeaves(adapter)) {
+          if (forbiddenPaths.some((token) => value.includes(token))
+            || foreignName.test(value)) {
+            fail(
+              `${adapterId}: decoded adapter manifest names foreign adapter or host `
+              + foreignId,
+            );
+            break;
+          }
+        }
         for (const path of allAdapterReferences(adapter)) {
           if (pathOwner(ownership, path)?.adapterId === foreignId) {
             fail(`${adapterId}: typed reference reaches foreign adapter ${foreignId}: ${path}`);
@@ -1233,27 +1146,24 @@ export function validateCoreBoundary(
         fail(`${target.id}: selected adapter ${target.adapter_id} is not registered`);
         continue;
       }
-      const targetCoreDigest = treeDigest(root, manifest.files.core);
-      const adapterDigest = treeDigest(root, adapterPaths);
-      const digests = bundleDigests(
+      const plan = buildBundlePlan(
         root,
         manifest,
         target,
         adapter,
-        adapterPaths,
-        targetCoreDigest,
-        checkerDigest,
-        adapterDigest,
+        options.bundleProvenance?.[target.id],
       );
+      const targetCoreDigest = plan.coreDigest;
+      const adapterDigest = plan.adapterDigest;
       coreDigests.push(targetCoreDigest);
       extra.digests.adapters[target.adapter_id] = adapterDigest;
       extra.digests.bundles[target.id] = {
         adapterId: target.adapter_id,
         coreDigest: targetCoreDigest,
         adapterDigest,
-        payloadDigest: digests.payloadDigest,
-        lockProjectionDigest: digests.lockProjectionDigest,
-        bundleDigest: digests.bundleDigest,
+        payloadDigest: plan.payloadDigest,
+        lockProjectionDigest: plan.lockDigest,
+        bundleDigest: plan.bundleDigest,
       };
     }
     if (new Set(coreDigests).size > 1) {

@@ -8,13 +8,16 @@
     "node": ">=22.18.0"
   },
   "scripts": {
+    "bundle:assemble": "node scripts/assemble-bundles.ts assemble",
+    "bundle:verify": "node scripts/assemble-bundles.ts verify",
     "typecheck": "tsc --noEmit",
     "validate:core": "node scripts/validate-core-boundary.ts",
     "validate": "node scripts/validate-precis-fixtures.ts",
     "validate:run": "node scripts/validate-run.ts",
+    "test:bundles": "node scripts/test-bundle-assembly.ts",
     "test:core-mutations": "node scripts/test-core-boundary-mutations.ts",
     "test:mutations": "node scripts/test-conformance-mutations.ts",
-    "test": "npm run typecheck && npm run validate:core && npm run validate && node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial && node scripts/validate-run.ts --run docs/fixtures/projection-adversarial && node scripts/validate-run.ts --run docs/fixtures/run-slice-2 && npm run test:mutations && npm run test:core-mutations"
+    "test": "npm run typecheck && npm run validate:core && npm run validate && node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial && node scripts/validate-run.ts --run docs/fixtures/projection-adversarial && node scripts/validate-run.ts --run docs/fixtures/run-slice-2 && npm run test:mutations && npm run test:core-mutations && npm run test:bundles"
   },
   "devDependencies": {
     "@types/node": "22.20.1",
