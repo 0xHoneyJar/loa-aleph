@@ -263,39 +263,23 @@ function parseJson(path: string): unknown {
 }
 
 function gitInventory(root: string): { paths: string[]; error: string } {
-  const inventoryResult = spawnSync(
+  const result = spawnSync(
     'git',
     ['-C', root, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
     { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
   );
-  if (inventoryResult.status !== 0) {
+  if (result.status !== 0) {
     return {
       paths: [],
-      error: inventoryResult.stderr.toString('utf8').trim()
-        || inventoryResult.error?.message
-        || `git exited ${String(inventoryResult.status)}`,
+      error: result.stderr.toString('utf8').trim()
+        || result.error?.message
+        || `git exited ${String(result.status)}`,
     };
   }
-  const deletedResult = spawnSync(
-    'git',
-    ['-C', root, 'ls-files', '-z', '--deleted'],
-    { encoding: 'buffer', maxBuffer: 32 * 1024 * 1024 },
-  );
-  if (deletedResult.status !== 0) {
-    return {
-      paths: [],
-      error: deletedResult.stderr.toString('utf8').trim()
-        || deletedResult.error?.message
-        || `git exited ${String(deletedResult.status)}`,
-    };
-  }
-  const deleted = new Set(
-    deletedResult.stdout.toString('utf8').split('\0').filter(Boolean),
-  );
-  const paths = inventoryResult.stdout
+  const paths = result.stdout
     .toString('utf8')
     .split('\0')
-    .filter((path) => path && !deleted.has(path));
+    .filter(Boolean);
   return { paths: sortedUnique(paths), error: '' };
 }
 

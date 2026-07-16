@@ -893,11 +893,28 @@ function compareEmittedCore(
   }
 }
 
-export function verifyBundleSet(bundlePaths: string[]): BundleSetVerificationReport {
+export function verifyBundleSet(
+  bundlePaths: string[],
+  expectedBundleIds: readonly string[] = [],
+): BundleSetVerificationReport {
   const reports = bundlePaths.map((path) => verifyBundle(path));
   const errors: string[] = [];
   for (const report of reports) {
     errors.push(...report.errors.map((error) => `${report.bundlePath}: ${error}`));
+  }
+  if (expectedBundleIds.length > 0) {
+    if (expectedBundleIds.length !== bundlePaths.length) {
+      errors.push('expected bundle ID count must match the bundle path count');
+    } else {
+      for (const [index, expectedId] of expectedBundleIds.entries()) {
+        const actualId = reports[index]?.summary?.id;
+        if (actualId && actualId !== expectedId) {
+          errors.push(
+            `${reports[index].bundlePath}: expected bundle ${expectedId}, found ${actualId}`,
+          );
+        }
+      }
+    }
   }
   if (bundlePaths.length === 2 && reports.every((report) => (
     report.result === 'PASS' && report.summary
@@ -1065,10 +1082,14 @@ function main(): void {
     }
     process.exit(report.result === 'PASS' ? 0 : 1);
   }
-  const paths = options.bundles.length
+  const explicitBundles = options.bundles.length > 0;
+  const paths = explicitBundles
     ? options.bundles
     : HOST_ADAPTER_IDS.map((id) => join(options.output, `aleph-for-${id}`));
-  const report = verifyBundleSet(paths);
+  const expectedBundleIds = explicitBundles
+    ? []
+    : HOST_ADAPTER_IDS.map((id) => `aleph-for-${id}`);
+  const report = verifyBundleSet(paths, expectedBundleIds);
   if (options.json) console.log(JSON.stringify(report, null, 2));
   else {
     for (const bundle of report.bundles) {
