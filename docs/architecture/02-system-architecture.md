@@ -325,6 +325,6 @@ Four boundaries the architecture treats as hard:
 3. **Distillation ↔ projection.** The projection engine has read-only access
    to a finished, accepted Précis. No back-edits, ever (T4).
 4. **Aleph ↔ the rest of the stack.** Business/market intelligence stays out
-   (Sensenet's future concern); product surfaces stay out (Freeside's). The
-   method may *record* that a cluster needs a competitor referent; supplying
-   competitive analysis is not its job.
+   (the concern of a future adjacent consumer); product surfaces stay out
+   (Freeside's). The method may *record* that a cluster needs a competitor
+   referent; supplying competitive analysis is not its job.

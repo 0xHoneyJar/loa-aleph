@@ -138,6 +138,7 @@ rendered doc, since the Précis itself never carried it).
 - No back-propagation: a projection discovering a Précis defect files it as a
   finding against the run (which may spawn a corrective distillation slice);
   it never patches the Précis in place.
-- No Sensenet scope-absorption: business/market projection types remain out of
-  Aleph until Sensenet's own contract exists; the plugin registry does not
-  quietly become a BI product.
+- No business/market-intelligence scope absorption: those projection types
+  remain outside Aleph unless separately authorized under an accepted contract
+  for that external consumer; the plugin registry does not quietly become a BI
+  product.

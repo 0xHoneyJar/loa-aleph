@@ -212,6 +212,13 @@ function requireFailure(result: SpawnSyncReturns<string>, id: string): CheckerRe
   return report;
 }
 
+function requireOutputOmits(result: SpawnSyncReturns<string>, token: string): void {
+  const combinedOutput = `${result.stdout}\n${result.stderr}`.toLowerCase();
+  if (combinedOutput.includes(token.toLowerCase())) {
+    throw new Error(`checker output exposed a redacted forbidden token`);
+  }
+}
+
 function requirePass(
   result: SpawnSyncReturns<string>,
   ids: readonly string[] = [],
@@ -242,7 +249,7 @@ function expectedLegacyHumanOutput(root: string): string {
   const passMessages = [
     'discovery: 2 fixture directories recognized; declarations valid',
     'slice-1 files: exactly README.md, corpus.md, precis.md present; Markdown-only',
-    'slice-1 forbidden tokens: zero Phase / Sensenet occurrences',
+    'slice-1 forbidden tokens: zero configured absolute-forbidden occurrences',
     'slice-1 projection boundary: no downstream-projection generation / no real-export markers',
     'slice-1 schema wording: explicitly rejects schema finality (provisional v0)',
     'slice-1 corpus boundary: source IDs present; no answer-key/label leakage',
@@ -250,7 +257,7 @@ function expectedLegacyHumanOutput(root: string): string {
     'slice-1 inventory & accounting: 10 unique claims, each exactly one valid disposition, all 7 dispositions covered, ledger balances (10=10)',
     'slice-1 cross-section consistency: no phantom/orphan CC·SRC·STM refs, §5↔§4 dispositions agree, matrix refs resolve, merge provenance retained (C1–C8)',
     'slice-2 files: exactly README.md, corpus.md, precis.md present; Markdown-only',
-    'slice-2 forbidden tokens: zero Phase / Sensenet occurrences',
+    'slice-2 forbidden tokens: zero configured absolute-forbidden occurrences',
     'slice-2 projection boundary: no downstream-projection generation / no real-export markers',
     'slice-2 schema wording: explicitly rejects schema finality (provisional v0)',
     'slice-2 corpus boundary: source IDs present; no answer-key/label leakage',
@@ -398,6 +405,14 @@ addCase('K1', 'legacy slices remain green', (root) => {
     invoke(PRECIS_CHECKER, ['--root', root]),
     root,
   );
+  const deferredBusinessIntelligenceConsumerName = ['sense', 'net'].join('');
+  appendFileSync(
+    join(root, 'docs', 'fixtures', 'slice-1', 'README.md'),
+    `\nForbidden deferred-consumer name: ${deferredBusinessIntelligenceConsumerName}\n`,
+  );
+  const forbiddenResult = runPrecis(root);
+  requireFailure(forbiddenResult, 'P2');
+  requireOutputOmits(forbiddenResult, deferredBusinessIntelligenceConsumerName);
 });
 
 // K2: one case per K2.1-K2.11, plus complete structured-ID family coverage.
@@ -462,11 +477,32 @@ addCase('K2', 'fixture forbidden token and real-run exemption', (root) => {
   appendFileSync(join(fixturePath, 'run-log.md'), '\nFixture-only token: Phase\n');
   requireFailure(runFixture(root, fixtureRelative), 'K2.3');
 
+  const deferredNameFixtureRelative =
+    join('docs', 'fixtures', 'run-slice-2-deferred-consumer-name');
+  const deferredNameFixturePath =
+    copyFixture('run-slice-2', root, deferredNameFixtureRelative);
+  const deferredBusinessIntelligenceConsumerName = ['sense', 'net'].join('');
+  appendFileSync(
+    join(deferredNameFixturePath, 'run-log.md'),
+    `\nFixture-only deferred-consumer name: ${deferredBusinessIntelligenceConsumerName}\n`,
+  );
+  const deferredNameForbiddenResult = runFixture(root, deferredNameFixtureRelative);
+  requireFailure(deferredNameForbiddenResult, 'K2.3');
+  requireOutputOmits(
+    deferredNameForbiddenResult,
+    deferredBusinessIntelligenceConsumerName,
+  );
+
   const realRelative = join('runs', 'run-slice-2');
   const realPath = copyFixture('run-slice-2', root, realRelative);
-  appendFileSync(join(realPath, 'run-log.md'), '\nCorpus-preserved token: Phase\n');
+  appendFileSync(
+    join(realPath, 'run-log.md'),
+    `\nCorpus-preserved tokens: Phase / ${deferredBusinessIntelligenceConsumerName}\n`,
+  );
   const patterns = new Map([['K2.3', /real run is exempt/]]);
-  requirePass(runFixture(root, realRelative), ['K2.3'], patterns);
+  const realRunResult = runFixture(root, realRelative);
+  requirePass(realRunResult, ['K2.3'], patterns);
+  requireOutputOmits(realRunResult, deferredBusinessIntelligenceConsumerName);
 });
 
 addFailureCase('K2', 'tampered source span', 'run-slice-2', 'K2.4', (path) => {

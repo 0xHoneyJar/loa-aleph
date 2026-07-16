@@ -52,12 +52,11 @@ not an implementation plan.
   downstream stage above, never folded into the Précis.
 - **Business / market intelligence.** Competitor analysis, market landscape,
   protocol/product viability, GTM, positioning, revenue path — these do not
-  belong to Aleph. Sensenet is a future adjacent stack-wide business/market-intelligence
-  consumer of Aleph Précis artifacts. It is expected to project Précis material
-  into business, market, competitor, GTM, protocol/product-viability, and
-  commercial-intelligence artifacts for Loa repos, but Sensenet's own
-  responsibility map, artifact contract, and wedge remain deferred until Aleph's
-  Précis contract is stable.
+  belong to Aleph. A future adjacent stack-wide business/market-intelligence
+  consumer may project Aleph Précis material into business, market, competitor,
+  GTM, protocol/product-viability, and commercial-intelligence artifacts for
+  Loa repos, but its own responsibility map, artifact contract, and wedge
+  remain outside Aleph and deferred until Aleph's Précis contract is stable.
 - **Product / platform surfaces.** Token gating, teams, growth loops,
   community/commercial utility — these belong to **Freeside** and peer product
   repos.
@@ -84,9 +83,9 @@ Aleph                                       (this repo)
        ↓
 ┌───────────────┬───────────────┬────────────────┐
 ↓               ↓               ↓
-Sensenet        Freeside        other Loa repos
-business/       product/        future consumers
-market intel    platform use
+business/       Freeside        other Loa repos
+market-intel    product/        future consumers
+consumers       platform use
 (may also project the neutral Précis themselves)
 ```
 
@@ -95,8 +94,9 @@ market intel    platform use
   projection stage — it may take the neutral Précis and project it itself. Aleph
   owning a projection stage adds a capability; it does not close the artifact off.
 - **Aleph fans out, it does not serialize.** The Précis is an adjacent input to
-  whichever consumers need it. Sensenet is an optional consumer / projection
-  layer, not a mandatory intermediary between Aleph and Freeside.
+  whichever consumers need it. An adjacent business/market-intelligence
+  consumer or projection layer is optional, not a mandatory intermediary
+  between Aleph and Freeside.
 - **Aleph → any repo:** the same contract holds for any consumer. Aleph does not
   privilege a particular downstream. Freeside is the first corpus context only
   because the current research happens to be Freeside/token-gating related.
@@ -123,4 +123,5 @@ approves commits and pushes.
 - The **Précis never generates a projection**; projection lives only in the
   separate downstream stage.
 - No final schema freeze beyond the v0 acceptance envelope.
-- No Sensenet formalization until the Aleph Précis contract is stable.
+- No formalization of an adjacent business/market-intelligence consumer until
+  the Aleph Précis contract is stable.

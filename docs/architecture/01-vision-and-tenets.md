@@ -176,8 +176,8 @@ honestly be called v1 — is the conjunction of:
    load-bearing statement traces to claim IDs.
 6. **Honesty preserved.** The known-limits sections still exist and are still
    true: anything unvalidated is still marked unvalidated; the do-not-build
-   list is intact; no silent scope growth into Sensenet's or Freeside's
-   territory occurred.
+   list is intact; no silent scope growth into business/market-intelligence
+   territory or Freeside's product/platform territory occurred.
 
 Anything less is not v1; it is a slice on the way there — which is fine,
 because slices are how this repo moves.
