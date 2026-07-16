@@ -1,9 +1,11 @@
 # 07 — The Projection Stage
 
-> Status: PROPOSED (see [`README.md`](README.md)). ADR 0001 declared the
-> projection stage and its two tiers; this document gives it an architecture.
-> Nothing runs until the projection slices in
-> [`10-build-roadmap-slices.md`](10-build-roadmap-slices.md) land.
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> ADR 0001 declared the projection stage and its two tiers. The initial
+> product-doctrine and software-PRD packages, fixtures, and deterministic checks
+> now exist; real outputs still require independent audit and authority
+> acceptance.
 
 ## 1. Position and prime directive
 
@@ -69,10 +71,11 @@ of Done for adding a projection type**:
 
 Projections do not happen because a run finished; they happen because the
 authority **commissions** one: a short record (in the run's
-`projections/` area) naming the type(s), the intended consumer, and any
-type-specific parameters (e.g. PRD scope). Commissioning is where purpose
-enters the system — after the neutral artifact is sealed, never before. The
-runbooks make this a hard gate.
+`projections/` area) defining its unique `PRJ-NNN`, naming the type, intended
+consumer, exact trace path, and any type-specific parameters (e.g. PRD scope).
+That `projection_id` row is the ID's sole defining location; the rendering and
+trace cite it. Commissioning is where purpose enters the system — after the
+neutral artifact is sealed, never before. The runbooks make this a hard gate.
 
 ## 4. Rendering rules (both tiers)
 

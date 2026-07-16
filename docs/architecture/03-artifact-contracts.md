@@ -1,8 +1,10 @@
 # 03 — Artifact Contracts
 
-> Status: PROPOSED (see [`README.md`](README.md)). Field lists below are
-> **provisional shapes**, offered in the same spirit as the v0 acceptance
-> envelope: enough structure to build fixtures against, no schema freeze.
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> Field lists below are **provisional shapes**, offered in the same spirit as
+> the v0 acceptance envelope: enough structure to build fixtures against, no
+> schema freeze.
 > Format remains Markdown prose + tables (the portability contract); nothing
 > here requires JSON, YAML, or a database — though agent mode may additionally
 > emit machine-twin copies of any ledger (see §20).
@@ -19,7 +21,7 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
 - **Purpose:** the run's identity card — everything needed to interpret,
   reproduce, or audit the run.
 - **Producer → consumer:** S0 → everyone; appended at every state transition.
-- **Fields (provisional):** run id; mode (agent/manual/mixed); corpus
+- **Fields (provisional):** run id; mode (agent/manual/hybrid); corpus
   reference + content hash; declared corpus scope (prose); doctrine versions
   (git SHA of the repo docs the run obeyed); model identifiers and effort
   policy actually used (agent mode) or "human" (manual); budgets granted and
@@ -144,7 +146,7 @@ its own ledger so the accounting is checkable before the Précis is assembled.
   the source *for this claim* (verified-primary / verified-secondary /
   unverifiable); **declared removal effect** for load-bearing edges only — what
   happens to the claim if this source is removed (downgrades-to-unresolved /
-  confidence-decreases / survives-via-independent-support / must-be-excluded).
+  confidence-decreases / survives-independent-support / must-be-excluded).
 - **Invariants (the acceptance criteria of issue #18, restated):** every
   carried claim has ≥1 `load-bearing` or `corroborative` edge **or** is
   explicitly marked synthesis/inference with uncertainty; every edge references
@@ -163,7 +165,8 @@ its own ledger so the accounting is checkable before the Précis is assembled.
 Unchanged in spirit from Précis §12: out-of-scope declarations, not-evidence
 rules, harm-bearing do-not-use claims (each also excluded-with-reason in the
 inventory). Invariant: every negative boundary cites the claim/source IDs it
-governs, so projections can mechanically honor it.
+governs, so projections can mechanically honor it. Each row defines one
+run-local `NB-N` ID; later artifacts cite that row and never redefine the ID.
 
 ## 10. Pre-cluster tags (`clusters/pre-cluster-tags.md`)
 
@@ -202,18 +205,22 @@ mode never has to.
 
 - **Purpose:** make the compositional finalization gate (routing doctrine §8)
   computable and auditable: the corpus can reveal a *need* for an external
-  referent; only a human or an explicit research intake can *supply* one.
+  referent; only a recorded authority statement/sign-off can *supply* one
+  within the frozen current run. Research material can supply one only through
+  S0 intake in a successor run whose manifest names the prior run.
 - **Fields per record:** `REF-NN`; the need (what external fact is required,
   phrased as a question); the clusters/claims that depend on it; status
   (`unresolved` / `supplied` / `declined`); when supplied — the supplier
-  (authority or named intake), the intake reference (new `SRC` added to a
-  corpus extension, or an authority statement recorded verbatim), and date.
+  (authority or named intake), the intake reference (a new run containing the
+  supplied material as `SRC`, or an authority sign-off recorded verbatim), and
+  date.
 - **Invariants:** an output is "externally complete" only if every load-bearing
   cluster in its provenance cone has no `unresolved` referent (the gate);
   referent *resolutions* are never authored by pipeline workers; a supplied
-  referent that arrived as research material becomes corpus (a scoped intake
-  with its own `SRC` rows), so its claims flow through extraction like
-  everything else rather than bypassing the ledger.
+  referent that arrived as research material starts a successor run (the frozen
+  corpus is never extended in place) and becomes a scoped intake with its own
+  `SRC` rows, so its claims flow through extraction like everything else rather
+  than bypassing the ledger.
 
 ## 13. Arm outputs
 
@@ -282,6 +289,10 @@ future envelope-amendment slice with authority approval (open question #3 in
 - **Purpose:** extend traceability across the neutrality boundary: a rendered
   document must be auditable back to claims exactly as claims are auditable
   back to source.
+- **Projection identity:** P1 assigns one run-local `PRJ-NNN` in the
+  commission's `projection_id` row. That defining commission also records the
+  accepted Précis hash and exact projection-trace path. The trace and rendered
+  document repeat the ID only as citations to that definition.
 - **Selection ledger fields:** for the projection at hand — every carried /
   merged claim in the Précis, with `used` / `not-used` and a reason for
   `not-used` (out of this projection's scope / superseded by another claim /
@@ -323,7 +334,7 @@ mode never has to produce them.
 
 | # | Invariant | Today | Under this plan |
 |---|-----------|-------|-----------------|
-| X1 | Every ID resolves to its ledger; no phantoms, no orphans | C1–C7 for `CC`/`SRC`/`STM` in fixtures | generalized to `PKT`/`RC`/`REF`/`PRJ` across a run directory |
+| X1 | Every ID resolves to its fixed home; no phantoms, no duplicate definitions | C1–C7 for `CC`/`SRC`/`STM` in fixtures | generalized to `RUN`/`SRC`/`PKT`/`CC`/`NB`/`PC`/`RC`/`REF`/`STM`/`VER`/`PRJ` across a run directory |
 | X2 | Accounting balances (inventory ↔ ledger ↔ sections) | enforced | unchanged, plus evidence-role coverage accounting |
 | X3 | Corpus is blind; answer-key leakage fails | enforced | generalized: later-stage vocabulary may not leak into earlier-stage artifacts |
 | X4 | Merges retain provenance | C8 | unchanged, plus per-source roles retained |

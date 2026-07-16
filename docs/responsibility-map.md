@@ -12,8 +12,8 @@ not an implementation plan.
 > it never generates a finished document. Projection happens in a distinct stage
 > that consumes the neutral artifact without mutating it. Aleph's first wedge
 > proves only that a bounded corpus can become one projection-neutral Précis file
-> with a complete candidate-claim disposition trail; the projection stage is built
-> in its own later slices. See
+> with a complete candidate-claim disposition trail. The separately implemented,
+> acceptance-gated projection stage does not alter that wedge. See
 > `docs/decisions/0001-projection-as-separate-downstream-stage.md`.
 
 ## Aleph owns
@@ -41,8 +41,8 @@ not an implementation plan.
   - **Tier 2 — terminal renderings** (domain-specific, pluggable): e.g. PRD / SSD
     for software; series-bible / world-doctrine for creative work; GTM / ops
     manual for a business.
-- Each projection type carries its own template and its own conformance checks,
-  added in their own audited slices.
+- Each projection type carries its own template, fixture, and registered
+  conformance checks, added in lockstep.
 
 ## Aleph does not own
 
@@ -76,7 +76,7 @@ Aleph                                       (this repo)
   │    ↓
   │  projection-neutral Research Précis file   (this repo's core artifact)
   │    ↓
-  └─ Stage 2: projection stage                 (this repo, later slices)
+  └─ Stage 2: projection stage                 (this repo, acceptance-gated)
        ↓
      finished consumer documents
      (Tier 1: doctrine / primitive-map / responsibility / mvp-wedge;
@@ -119,8 +119,8 @@ approves commits and pushes.
 ## What is explicitly out of scope right now
 
 - No endpoint.
-- No implementation / code beyond the conformance checker.
+- No extractor, generator, served application, or autonomous acceptance path.
 - The **Précis never generates a projection**; projection lives only in the
-  separate downstream stage (built in its own later slices).
+  separate downstream stage.
 - No final schema freeze beyond the v0 acceptance envelope.
 - No Sensenet formalization until the Aleph Précis contract is stable.

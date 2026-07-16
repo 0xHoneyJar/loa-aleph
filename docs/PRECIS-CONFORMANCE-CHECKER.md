@@ -1,28 +1,41 @@
-# Précis Conformance Checker (Aleph Slices 3 + 4)
+# Aleph Conformance Checkers
 
-`scripts/validate-precis-fixtures.mjs`
+Primary entry points:
 
-A narrow, dependency-free, local conformance checker that validates the
-already-accepted Research Précis fixtures (Slice 1 and Slice 2) against the
-**accepted provisional v0 envelope**. **Slice 3** introduced the checker (fixture
-shape, forbidden tokens, projection boundary, corpus boundary, envelope,
-inventory/accounting, stress-test matrix). **Slice 4** adds **cross-section
-consistency** — proving the Précis is internally consistent across its sections
-(no phantom / orphan / drifting references) without becoming a semantic truth
-checker. It remains code-minimal: Node built-ins only, read-only, fail-closed.
+- `scripts/validate-precis-fixtures.mjs`: discovered-fixture dispatcher plus
+  the accepted Slice 1/Slice 2 Précis checks.
+- `scripts/validate-run.mjs`: import-safe K2-K6 validator for run and run-lite
+  directories.
+- `scripts/test-conformance-mutations.mjs`: temporary-copy fail-closed battery.
+
+All are dependency-free, local, and fail-closed. The two validators are
+read-only over their target artifacts. The mutation battery writes only
+disposable fixture copies beneath the operating system's temporary directory
+and never mutates repository state. The checkers prove structural, accounting,
+hash, reference, state, taint, and projection-trace invariants. They do not
+judge semantic truth or grant authority acceptance.
 
 ## How to run
 
-```
+```bash
 node scripts/validate-precis-fixtures.mjs
+node scripts/validate-run.mjs --run docs/fixtures/run-slice-2
+node scripts/test-conformance-mutations.mjs
 ```
 
-- Node built-ins only (`node:fs`, `node:path`, `node:url`). No dependencies, no
+- Node built-ins only. No dependencies, no
   `package.json`, no lockfile, no build step, no network.
-- Reads files only. Writes nothing. Mutates no repo state.
+- Both validation scripts read files only, write nothing, and mutate no repo
+  state.
+- The mutation battery copies fixtures beneath the operating system's temporary
+  directory, mutates only those copies, and removes its temporary root on exit.
 - Exit code `0` = all checks pass; non-zero = at least one invariant failed
   (**fail-closed**). Prints a per-check PASS list and, on failure, a `FAIL …`
   line naming what failed and where.
+
+Both validation scripts accept `--json`. Both accept `--root <dir>`;
+`validate-run.mjs` additionally requires `--run <path>` and optionally accepts
+`--kind run|evidence-role|routed|projection`.
 
 ## What it proves
 
@@ -109,6 +122,91 @@ All Slice 4 checks read `precis.md` only and emit `FAIL <slice> consistency
 C<n> (<label>): …` on violation. Matrix-dependent checks (C5/C6) and the matrix
 side of C7 only engage for a slice that has a matrix; C8 only engages when a §11
 merge-map row exists.
+
+## Discovered fixtures and run kernels
+
+Every non-legacy directory directly under `docs/fixtures/` declares one
+`aleph-fixture` block. K1 validates the declaration/ranges and dispatches by
+kind. The current suite contains:
+
+| fixture | kind | applicable checks |
+|---------|------|-------------------|
+| `slice-1`, `slice-2` | legacy Précis | P1-P10 and C1-C8 |
+| `evidence-role-adversarial` | `evidence-role` | K3.1-K3.8 |
+| `projection-adversarial` | `projection` | K6.1-K6.10 |
+| `run-slice-2` | `run` | K2.1-K6.10 |
+
+The run kernel checks:
+
+- **K2:** reached-state layout, manifest transitions/gates, fixture-only
+  forbidden tokens, source-span hashes, global `RUN` through `PRJ` ID integrity,
+  claim shape,
+  disposition accounting, merge provenance, criteria chronology, append-ledger
+  status chains, exact Précis projection, and kernel-report honesty.
+- **K3:** evidence-edge shape/resolution, removal effects, support coverage,
+  decorative/unresolved-source exclusions, contradiction preservation, and
+  inference-marker resolution.
+- **K4/K5:** route-card fields/vectors, packet/source reconstruction,
+  referent-ledger relations and reroute history, tag/dependency discipline,
+  transitive taint, finalization markers, Précis §17 honesty, and authorized
+  referent resolution.
+- **K6:** commissioned `PRJ-*`/trace/hash binding, exact selection/open-item coverage, trace
+  resolution and paragraph coverage, no-new-claim/boundary rules, taint
+  prominence, backwards-leak prevention, and registered type metadata/required
+  sections for product-doctrine and PRD.
+
+`validateRun({root, run, kind?})` exports the same run validation without
+printing, exiting, writing, spawning, or using the network. It returns:
+
+```json
+{
+  "result": "PASS",
+  "checks": [
+    {
+      "id": "K2.1",
+      "scope": "RUN-slice-2",
+      "status": "PASS",
+      "message": "(layout): required base and reached-state artifacts are present"
+    }
+  ]
+}
+```
+
+`result` is `PASS` only when every applicable record has `status: PASS`.
+Human mode prints the same records as `PASS/FAIL <scope> <id> <message>`.
+
+### Durable cross-group mutation record
+
+On 2026-07-16, the repository-level battery was run with:
+
+```bash
+node scripts/test-conformance-mutations.mjs --json
+```
+
+It returned `PASS` with 52/52 mutation cases and 3/3 clean baselines:
+
+| group | targeted mutations | result |
+|-------|--------------------|--------|
+| K1 discovery and declarations | 5 | PASS |
+| K2 run structure, global IDs, accounting, hashes, chronology, and status | 19 | PASS |
+| K3 evidence roles and removal effects | 8 | PASS |
+| K4/K5 cards, referents, routing, and taint | 9 | PASS |
+| K6 commissioned projection IDs, selections, claim/boundary traces, rendering, and type contracts | 11 | PASS |
+
+Each case copies only its target fixture to a fresh operating-system temporary
+root, injects one defect, invokes the real JSON checker through `--root`, and
+requires both a nonzero result and the intended failing check ID. The clean
+baselines are the complete golden run, evidence-role fixture, and isolated
+two-type projection fixture.
+
+The K1 legacy case compares complete human stdout byte-for-byte, including the
+terminal newline. With only `slice-1` and `slice-2` present, the sole permitted
+change from the pre-K1 checker is the added discovery PASS line. The expanded
+K2/K6 cases include duplicate run identity fields, malformed and externally
+declared predecessor runs,
+predecessor citations outside the manifest field, dangling `RUN-*`, `NB-*`, and
+`PRJ-*` references, duplicate `PRJ-*` definitions, and missing commissioned
+projection identity.
 
 ## What it does NOT prove
 
@@ -265,6 +363,4 @@ approved slice and a stable, false-positive-free pattern before adoption:
   allowed: "`CC-107` was correctly judged excluded.")
 - **Prose ↔ inventory wording match** — verifying the normalized claim text in §4
   matches its prose restatement. Deferred as overfitting to exact wording.
-- A `--json` machine-readable report mode.
 - CI wiring (intentionally omitted: no CI in this slice).
-- Generalizing beyond the two known fixtures to a discovered-fixtures mode.

@@ -1,7 +1,8 @@
 # 11 — Research Grounding
 
-> Status: PROPOSED (see [`README.md`](README.md)). This document records the
-> research this plan rests on and maps each finding to the design decision it
+> Status: ACCEPTED AS IMPLEMENTATION RATIONALE by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> This document records the research this plan rests on and maps each finding to the design decision it
 > grounds — so a future reader can re-audit the reasoning when the landscape
 > moves. Findings are dated July 2026. Single-source or paywalled items are
 > marked; treat them as weaker evidence.

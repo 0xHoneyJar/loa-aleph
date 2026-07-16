@@ -1,6 +1,8 @@
 # 02 — System Architecture
 
-> Status: PROPOSED (see [`README.md`](README.md)).
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md);
+> run files remain canonical and artifact shapes remain provisional.
 
 This document defines the layered architecture of the Aleph Method: the planes
 the system is made of, the run directory that carries all state, the identifier
@@ -123,8 +125,11 @@ Rules:
   superseding entries with reasons, not silent edits. (The Précis itself is
   assembled fresh each time from ledgers, so it may be regenerated.)
 - **The corpus freezes at S0.** After intake, source files are immutable for
-  the run. New material is a new corpus (and usually a new run) — this is what
-  keeps "bounded corpus" honest and keeps packet re-entry coordinates stable.
+  the run. Material received after freeze starts a successor run with a new
+  corpus and a manifest that names the prior run. Only an authority statement
+  or sign-off may resolve a referent in the current run without changing its
+  corpus. This keeps "bounded corpus" honest and packet re-entry coordinates
+  stable.
 - **Fixtures are miniature runs.** The existing `docs/fixtures/slice-*/`
   triples (corpus/precis/README) are the degenerate ancestor of this layout; a
   future fixture slice ships one full hand-authored run directory as the
@@ -139,8 +144,9 @@ Two engines, cleanly separated per ADR 0001:
   Owns everything up to and including the acceptance checkpoint of the Précis.
 - **Projection engine** — stages P1–P3, finished Précis → Tier-1 projections →
   Tier-2 terminal renderings, each with a projection trace. It consumes
-  `precis.md` and the ledgers read-only. It never runs unless the Précis
-  passed its gate.
+  `precis.md` and the ledgers read-only. Tier-2 may additionally consume a
+  Tier-1 projection whose trace resolves transitively to that Précis. It never
+  runs unless the Précis passed its gate.
 
 Both engines are *procedures*, not processes: in manual mode a human is the
 engine. Stage detail: [`04-pipeline-stages-and-dod.md`](04-pipeline-stages-and-dod.md).
@@ -210,17 +216,25 @@ Traceability is only as strong as the IDs. Proposed scheme (provisional):
 | `SRC-NNN` | a source in the corpus | S1 | a file (or file section) in `corpus/sources/` |
 | `PKT-NNNN` | a packet: a contiguous source span elevated during extraction | S2 | `SRC-NNN` + span locator + content hash |
 | `CC-NNN` | a candidate claim | S3 | ≥1 `PKT-NNNN` |
+| `NB-N` | a negative boundary | S5 | one row in `ledgers/negative-boundaries.md` |
 | `PC-N` | a structural pre-cluster tag | S7 | a tag written against packet/claim ids — never a document |
 | `RC-NN` | a route cluster | S8 | a sparse card listing exact `PKT`/`CC` ids |
 | `STM-N` | a stress-test matrix row | S9 | `CC`/`SRC` refs under test |
 | `REF-NN` | an external referent record | S8+ | need → intake → resolution |
 | `VER-…` | a verifier verdict | any judged stage | the artifact judged |
-| `PRJ-…` | a projection output | P1/P2 | `precis.md` + a projection trace |
+| `PRJ-NNN` | a projection output | P1 commission | the commission row binding `precis.md` + one projection trace |
 
 Rules (extending the wedge's existing `SRC`/`CC`/`STM` practice):
 
-1. **Every ID resolves.** A cited ID that does not exist in its ledger is a
+1. **Every ID resolves.** A cited ID that does not exist in its fixed home is a
    T1 failure (the existing C1/C4/C7 checks generalize to all ID families).
+   `RUN-*` is defined by the manifest `run_id`; `NB-*` by the negative-boundary
+   ledger; and `PRJ-*` by exactly one commission `projection_id` row. Rendered
+   projection metadata and traces cite, but do not redefine, that `PRJ-*`.
+   A successor manifest may name one `predecessor_run`; this is an explicit
+   cross-run reference, not a second local definition. The run-local kernel
+   validates its shape but does not claim to locate or hash-verify the prior
+   run directory.
 2. **Packet IDs are re-entry coordinates, not citations** (routing doctrine
    §9). A packet record must carry enough to *reopen the exact source span*:
    source ID, a span locator appropriate to the source format, and a content
@@ -244,6 +258,8 @@ timestamp and the actor.
 DRAFT ──► CORPUS-FROZEN ──► DISTILLING ──► ASSEMBLED ──► VERIFIED ──► ACCEPTED
                                  │              │            │           │
                                  │              │            │           └──► PROJECTING ──► PROJECTION-ACCEPTED
+                                 │              │            │                         ▲             │
+                                 │              │            │                         └─────────────┘
                                  │              │            │
                                  ▼              ▼            ▼
                               BLOCKED (external referent / authority gate / budget)
@@ -259,6 +275,12 @@ DRAFT ──► CORPUS-FROZEN ──► DISTILLING ──► ASSEMBLED ──►
 - `VERIFIED` — T1 kernel green and T2 harness report attached (S12).
 - `ACCEPTED` — authority accepted at the PR checkpoint (S13). Only now may the
   projection engine run.
+- `PROJECTING` — one authority-commissioned projection is being rendered and
+  verified. A run may re-enter this state from `PROJECTION-ACCEPTED` for a
+  later commission.
+- `PROJECTION-ACCEPTED` — the commissioned projection passed P3 audit and
+  authority acceptance. The accepted Précis remains immutable and another
+  projection may be commissioned.
 - `BLOCKED` — waiting on a human: unresolved external referent on a
   load-bearing cluster, an authority gate, or an exhausted budget. Blocking is
   a normal state, not a failure; the run log records what is awaited.

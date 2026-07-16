@@ -1,9 +1,9 @@
 # 06 — Verification and Conformance
 
-> Status: PROPOSED (see [`README.md`](README.md)). The existing checker and its
-> doc (`docs/PRECIS-CONFORMANCE-CHECKER.md`) are untouched by this plan; this
-> document describes how the verification stack *grows*, slice by slice, in
-> lockstep with fixtures — never ahead of them.
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> The implemented K1-K6 substrate extends the existing checker in lockstep
+> with fixtures; semantic judgment and authority remain outside T1.
 
 ## 1. The three tiers, and the boundary that matters
 
@@ -40,11 +40,11 @@ stay green).
 | Increment | Check group (names provisional) | Motivating fixture (doc 10 slice) | What it enforces |
 |-----------|--------------------------------|-----------------------------------|------------------|
 | K1 | discovered-fixtures mode | none (pure generalization) | today's checks over any `docs/fixtures/*/` set, per-fixture expectations declared in the fixture README rather than hardcoded — the checker doc already lists this as deferred |
-| K2 | `RUN-*`: run-directory mode | hand-authored golden run | layout present; manifest well-formed; state log ordered; ledger cross-references (X1/X2 generalized to `PKT`) |
+| K2 | `RUN-*`: run-directory mode | hand-authored golden run | layout present; manifest well-formed; state log ordered; fixed-home ID integrity across `RUN` through `PRJ`; ledger accounting |
 | K3 | `E-*`: evidence-role checks | evidence-role fixture | role-coverage accounting; bounded role vocabulary; decorative-never-counts; unresolved-source-never-confirms; removal-effect declarations present for load-bearing edges; merge keeps per-source roles |
 | K4 | `RC-*`: route-card checks | routed-corpus fixture | card invariants (≥1 packet ID; IDs resolve; closed posture set; pending-referent ⇒ `REF` row); tags-not-documents; the smallest manual-mode invariant, now enforced |
 | K5 | `G-*`: gate checks | same fixture as K4 | taint computation: no "externally complete" marker while an unresolved `REF` sits in the provenance cone |
-| K6 | `PT-*`: projection-trace checks | first projection fixture | selection-ledger coverage; statement→claim resolution; no-new-claims; negative-boundary honor; Précis hash unchanged |
+| K6 | `PT-*`: projection-trace checks | first projection fixture | commissioned `PRJ-*`/trace/hash binding; selection coverage; statement→claim resolution; no-new-claims; negative-boundary honor |
 | K7 | `--json` machine report + run-in-CI decision | with K2 | deferred items from the checker doc, picked up only when run mode makes them useful |
 
 Standing rules (unchanged from today's discipline):
@@ -152,6 +152,7 @@ scope from routing arms to pipeline capabilities. Illustrative future shape
 ```
 validated:
   - heavy adversarial arm                      (Straylight precedent; slice-2)
+  - deterministic projection trace contracts  (fixtures: run-slice-2 and projection-adversarial)
   - <capability>                               (replay: <golden>, <date>, PR #NN)
 
 not yet validated:
@@ -159,7 +160,7 @@ not yet validated:
   - known-category plus novel-delta hybrid
   - agent-mode extraction recall at corpus scale
   - manual↔agent mode equivalence
-  - projection traceability at Tier 2
+  - accepted real Tier-2 output traceability
   - every model/effort tier-down
 ```
 

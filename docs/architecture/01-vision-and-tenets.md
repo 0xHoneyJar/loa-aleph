@@ -1,7 +1,9 @@
 # 01 — Vision and Tenets
 
-> Status: PROPOSED (see [`README.md`](README.md)). Nothing here amends accepted
-> doctrine; where this document restates doctrine it cites it.
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> Nothing here amends accepted doctrine; where this document restates doctrine
+> it cites it.
 
 ## 1. The product goal
 
@@ -92,9 +94,12 @@ available; the dial is set per route cluster, never globally.
 
 **T6 — External facts are never invented.** Whether prior art, competitors, or
 reference architectures exist is not in the corpus. Externally-dependent
-outputs stay marked `external-referent unresolved` until a human or an explicit
-research intake supplies the referent, and the taint propagates compositionally
-up the provenance cone. (Doctrine: routing doctrine §1, §8.)
+outputs stay marked `external-referent unresolved` until either a recorded
+authority statement/sign-off resolves the referent in the current run or an
+explicit research intake supplies it in a successor run whose manifest names
+the prior run. Research material never extends a frozen corpus in place, and
+the taint propagates compositionally up the provenance cone. (Doctrine: routing
+doctrine §1, §8.)
 
 **T7 — Traceable reconstructability across modes.** Manual mode keeps sparse
 cards from which the full graph can be rebuilt; tool mode materializes the full

@@ -33,6 +33,10 @@ Column rules:
 - `admission note`: one line — why this source is inside the declared scope.
 - `external-research-intake` and `authority-statement` rows must cite the
   `REF-NN` they resolve (see T4.4).
+- Every source row is admitted before S0 freeze. Research material received
+  later belongs to a successor run whose manifest names this run; never append
+  it to the frozen corpus. A post-freeze authority resolution belongs in the
+  current run's manifest sign-off table, not in a new source row.
 
 <!-- example -->
 | SRC-101 | deep-research-output | sources/access-model.md | md-lines | sha256:9f31… | 2026-06 | model-generated | none | core access-model research named by scope |

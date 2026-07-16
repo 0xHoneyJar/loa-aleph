@@ -6,6 +6,9 @@
 - **Relates to:** `docs/precis-wedge.md` (refines the `cluster synthesis` step of the
   completeness trail), `docs/responsibility-map.md`, `docs/decisions/0001-projection-as-separate-downstream-stage.md`
 - **Companion doctrine:** `docs/routing-and-clustering.md` (the full model this ADR ratifies)
+- **Implementation update:** [Decision 0003](0003-architecture-build-kit-implementation.md)
+  authorized the fixture-backed K4/K5 checks after this decision's prerequisite
+  was met. This decision's routing doctrine remains in force.
 
 ## What "Accepted — provisional / known-limits recorded" means here
 
@@ -16,9 +19,11 @@ This status is deliberate and bounded. It means:
 - **NOT** accepted as proof that all routing arms are validated. The convergent-heavy arm
   remains explicitly unvalidated (see Known limits below and the validation ledger in the
   companion doc).
-- **NOT** accepted as a checker-enforceable schema. No conformance check enforces routing,
-  clustering, or derivation cards yet, and none may be added until a fixture / replay case
-  exists.
+- **NOT**, at this decision's acceptance date, accepted as a
+  checker-enforceable schema. No conformance check then enforced routing,
+  clustering, or derivation cards, and none could be added until a fixture /
+  replay case existed. The later fixture and K4/K5 implementation satisfy that
+  prerequisite without converting semantic routing judgment into T1 code.
 - **NOT** permission to build an extractor, generator, tooling, or any runtime. This ADR
   authorizes doctrine only.
 
@@ -64,8 +69,10 @@ is specified in `docs/routing-and-clustering.md`.
 
 - **Future doctrine slices may depend on this model.** It is the ratified refinement of the
   wedge's `cluster synthesis` step.
-- **Future checker / tooling slices may NOT enforce it** until a fixture / replay case
-  exists. Routing/clustering has no conformance check today, by decision.
+- **Future checker / tooling slices could not enforce it** until a fixture /
+  replay case existed. That gate was subsequently satisfied; K4/K5 now enforce
+  card, reference, taint, and gate structure, while routing judgment remains
+  outside deterministic conformance.
 - **Convergent-heavy routing remains explicitly unvalidated.** The only golden precedent
   (Loa-Straylight) exercised a heavy adversarial arm and only a *light* convergent
   constraint. Heavy convergent reconciliation and the known-category-plus-novel-delta hybrid

@@ -6,6 +6,9 @@
 - **Supersedes:** the original "Aleph stops at the neutral Précis; it generates no
   downstream projection" constraint as stated in `README.md`,
   `docs/responsibility-map.md`, and `docs/precis-wedge.md` (Phase 0/1 framing).
+- **Implemented by:** [Decision 0003](0003-architecture-build-kit-implementation.md)
+  for the initial `product-doctrine` and `prd` packages; real projection
+  acceptance remains separately gated.
 
 ## Context
 
@@ -93,12 +96,11 @@ Tier 2.
   sits in the stack" diagram, and the Status note; the blunt "no downstream
   projection generation" lines elsewhere are replaced with the precise rule:
   *the Précis never generates a projection; a separate projection stage does.*
-- A `projections/` concern will be added with per-tier templates and per-projection
-  conformance checks, in their own audited slices.
-- The conformance checker needs **no change for this decision**: it scans only
-  the per-fixture directories under `docs/fixtures/*/` (their `precis.md`,
-  `README.md`, and `corpus.md`), enforcing neutrality and corpus-boundary rules at
-  the fixture/Précis layer alone. It never reads the top-level docs amended here
-  and does not touch a future `projections/` tree. A later slice that adds
-  projection fixtures will extend the checker deliberately, in lockstep with those
-  fixtures.
+- At this decision's acceptance date, a `projections/` concern was still to be
+  added with per-tier templates and per-projection conformance checks. Decision
+  0003 later authorized the initial product-doctrine and PRD packages, fixtures,
+  and K6 implementation.
+- This decision itself required **no checker change**: the then-current checker
+  scanned only the accepted Précis fixtures and continued enforcing neutrality
+  there. The later K6 slice extends discovery deliberately and in lockstep with
+  projection fixtures; it does not weaken the Précis neutrality boundary.

@@ -1,8 +1,9 @@
 # 08 — Runbook: Agent Mode
 
-> Status: PROPOSED (see [`README.md`](README.md)). **Agent mode is not yet a
-> sanctioned path** — manual mode remains the only sanctioned execution until
-> the dry-run slice validates this runbook
+> Status: ACCEPTED FOR SUPERVISED IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md).
+> **Agent mode is not yet a sanctioned path** — manual mode remains the only
+> sanctioned execution until the dry-run slice validates this runbook
 > ([`10-build-roadmap-slices.md`](10-build-roadmap-slices.md)). This document
 > is the operating manual that slice will test: written to an agent, in the
 > imperative, complete enough to execute without asking questions the
@@ -47,9 +48,12 @@ invent an external fact, or if the run directory cannot speak for itself.
   exists outside the corpus — a competitor, prior art, a reference
   architecture — the output is a `REF-NN` need, not an answer. This includes
   *your own trained knowledge*: you may know a similar system exists; the
-  corpus does not, so the run does not. When the authority supplies research
-  material to resolve a referent, intake it as new corpus (scoped extension
-  with its own `SRC` rows) — never paste it into a judgment.
+  corpus does not, so the run does not. If research material arrives after
+  freeze, leave the current run's referent tainted and start a successor run
+  whose manifest names this run; admit the material there at S0 with its own
+  `SRC` rows. Only a recorded authority statement/sign-off may resolve the
+  referent within the current run without changing its corpus. Never paste
+  supplied material into a judgment.
 - **You do not grade your own work.** Every ⚖ DoD item is executed by
   fresh-context verifier subagents with refute-first prompts. You assemble
   their bundles per the blind-context rules; you apply their consequences as
@@ -132,10 +136,12 @@ Stage-specific amplifications (read with doc 04):
 
 ## 3. Projection duty (only after ACCEPTED, only when commissioned)
 
-1. Wait for a commission naming type(s) and consumer. No commission, no
-   projection — finishing the Précis is a complete, successful run.
+1. Wait for a commission defining a unique `PRJ-NNN`, type, consumer, and
+   trace path. No commission, no projection — finishing the Précis is a
+   complete, successful run.
 2. Per type: complete the selection ledger first; render second; trace as you
-   render (statement → claim IDs), not retroactively.
+   render (statement → claim IDs), not retroactively. Cite the commissioned
+   `PRJ-NNN` in the rendered metadata and trace; do not redefine it.
 3. Run the type's kernel checks; dispatch the rendering-quality review; open
    the P3 PR per type. The Précis hash must verify untouched at P3.
 

@@ -1,6 +1,8 @@
 # 04 — Pipeline Stages and Definitions of Done
 
-> Status: PROPOSED (see [`README.md`](README.md)).
+> Status: ACCEPTED FOR IMPLEMENTATION by
+> [`Decision 0003`](../decisions/0003-architecture-build-kit-implementation.md);
+> capability claims still require their named replay evidence.
 
 This document turns the wedge's completeness trail and the routing doctrine
 into an executable stage graph. It refines — never replaces — the accepted
@@ -225,7 +227,9 @@ all ledgers final.
 - **Actor:** Router; **authority gate** whenever a load-bearing cluster is
   `unrouted-pending-external-referent` — the run may proceed elsewhere
   (the gate is compositional, not total) but the affected cone is tainted
-  until a human supplies or declines the referent.
+  until the authority supplies a recorded statement/sign-off or declines the
+  referent. Research material received after S0 does not change this run; it
+  starts a successor run whose manifest names this one.
 - **DoD:**
   - [ ] ⚙ every card satisfies the card invariants (≥1 packet ID; IDs resolve;
         posture from the closed set; referrent-pending ⇒ `REF` record)
@@ -259,8 +263,12 @@ all ledgers final.
 
 - **Purpose:** reconcile clusters weighted convergent against supplied
   referents (prior art, existing systems, constraints).
-- **Gate (hard):** runs only over `supplied` referents. No referent, no
-  reconciliation — the arm idles rather than inventing.
+- **Gate (hard):** runs only over `supplied` referent material already present
+  when this run's corpus froze at S0. No referent, no reconciliation — the arm
+  idles rather than inventing. A post-freeze authority statement/sign-off may
+  resolve the current run's gate but does not become research material;
+  post-freeze research can be reconciled only in the successor run that admits
+  it at S0.
 - **Outputs:** `arms/reconciliations/…` per cluster.
 - **Honesty note:** the convergent-heavy shape has **no replay case** yet
   (validation ledger). Until the second golden corpus exists, S9b runs are
@@ -328,10 +336,14 @@ all ledgers final.
 ## P1 — Tier-1 projections
 
 - **Inputs:** the ACCEPTED `precis.md` + ledgers, read-only; a **projection
-  commission** from the authority naming the projection type(s) wanted.
-- **Outputs:** `projections/tier-1/<type>.md` + trace + selection ledger.
+  commission** from the authority defining a unique `PRJ-NNN`, the type, and
+  exact trace path.
+- **Outputs:** the commissioned `PRJ-NNN` at
+  `projections/tier-1/<type>.md` + trace + selection ledger.
 - **DoD (per projection):**
   - [ ] ⚙ selection ledger covers every carried/merged claim
+  - [ ] ⚙ commission, trace, and rendered metadata agree on `PRJ-NNN` and
+        trace path
   - [ ] ⚙ trace: no load-bearing statement without claim backing; no new
         claims; negative boundaries honored; taint markers propagated
   - [ ] ⚖ rendering-quality review against the type's template rubric
