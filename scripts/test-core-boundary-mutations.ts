@@ -211,7 +211,7 @@ const cases: MutationCase[] = [
     },
   },
   {
-    name: 'planned adapter claims sanctioned',
+    name: 'adapter claims sanctioned without matching evidence',
     expectedCheck: 'CB6',
     mutate: (root) => {
       const { path, value } = adapterManifest(root, 'loa');

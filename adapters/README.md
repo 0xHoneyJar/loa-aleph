@@ -7,12 +7,15 @@ and the [adapter protocol](../adapter-protocol/README.md).
 
 | Adapter | Manifest | Lifecycle | Runnable entrypoint | Installation | Full mode |
 |---------|----------|-----------|---------------------|--------------|-----------|
-| Loa | [`loa/adapter.manifest.json`](loa/adapter.manifest.json) | `planned` | none | none | not claimed |
+| Loa | [`loa/adapter.manifest.json`](loa/adapter.manifest.json) | `implemented` | `/loa-aleph` command + verifying launcher | offline verified-bundle installer | structurally claimed; not validated or sanctioned |
 | Hermes | [`hermes/adapter.manifest.json`](hermes/adapter.manifest.json) | `planned` | none | none | not claimed |
 
-These manifests reserve future host-native integration surfaces. Neither
-manifest implements a runner, proves a capability, or sanctions agent mode.
-Manual mode remains the only sanctioned Aleph execution path.
+The [Loa package](loa/README.md) implements all thirteen host mechanics and
+passes a synthetic structural preflight. Its fixture-simulated workers and
+authority responses are implementation evidence only: they do not establish a
+real replay, validation, sanction, or agent-mode permission. The other
+reservation remains planned. Manual mode remains the only sanctioned Aleph
+execution path.
 
 ## Adapter rules
 
@@ -30,7 +33,11 @@ An adapter:
 - is distributed only in the immutable host bundle defined by the
   [packaging contract](../packaging/README.md).
 
-A future implementation must update only its own manifest and owned paths,
-supply a real entrypoint and installation, pass all thirteen capability
-preflights, and add accepted evidence before advancing lifecycle state. No
-planned path or documented intention counts as implementation.
+Adapter mechanics and host-specific evidence stay within the paths owned by its
+manifest. Shared inventory and status documents may classify and report that
+implementation without absorbing its mechanics into Core. An implementation
+supplies a real entrypoint and installation and passes the structural preflight
+covering all thirteen capabilities. Advancing to `validated` requires accepted
+replay evidence; advancing to `sanctioned` additionally requires explicit
+authority evidence. No planned path, documented intention, or simulated fixture
+counts as validation or sanction.

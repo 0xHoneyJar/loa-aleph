@@ -33,8 +33,10 @@ import type {
 } from './lib/bundle-format.ts';
 import {
   assembleBundles,
+  humanVerificationPrefix,
   verifyBundle,
   verifyBundleSet,
+  verifyDefaultBundleOutput,
 } from './assemble-bundles.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
@@ -413,6 +415,18 @@ function expectVerificationFailure(
 ): void {
   const report = verifyBundle(bundleRoot);
   expectEqual(report.result, 'FAIL', 'bundle verification mutation result');
+  if (report.summary) {
+    expectEqual(
+      report.summary.preflight,
+      'NOT-READY',
+      'failed bundle verification preflight',
+    );
+  }
+  expectEqual(
+    humanVerificationPrefix(report),
+    null,
+    'failed bundle human CLI verification prefix',
+  );
   const text = report.errors.join('; ');
   expect(text.length > 0, 'failed bundle verification omitted diagnostics');
   expect(pattern.test(text), `verification failure did not match ${String(pattern)}: ${text}`);
@@ -453,22 +467,9 @@ function expectDefaultVerificationFailure(
   output: string,
   pattern: RegExp,
 ): void {
-  const result = spawnSync(
-    process.execPath,
-    [
-      join(REPO_ROOT, 'scripts/assemble-bundles.ts'),
-      'verify',
-      '--output',
-      output,
-      '--json',
-    ],
-    {
-      encoding: 'utf8',
-      maxBuffer: 32 * 1024 * 1024,
-    },
-  );
-  expectEqual(result.status, 1, 'default bundle verification mutation exit status');
-  const text = `${result.stdout}\n${result.stderr}`;
+  const result = verifyDefaultBundleOutput(output);
+  expectEqual(result.result, 'FAIL', 'default bundle verification mutation result');
+  const text = result.errors.join('; ');
   expect(
     pattern.test(text),
     `default verification failure did not match ${String(pattern)}: ${text}`,
@@ -657,11 +658,20 @@ function execute(): TestReport {
     });
 
     runCase(results, 'independent verification accepts both baseline bundles', () => {
-      for (const path of [baseline.loa, baseline.hermes]) {
+      for (const [path, preflight] of [
+        [baseline.loa, 'READY'],
+        [baseline.hermes, 'NOT-READY'],
+      ] as const) {
         const report = verifyBundle(path);
         if (report.result !== 'PASS') {
           fail(`${path}: ${report.errors.join('; ')}`);
         }
+        expectEqual(report.summary?.preflight, preflight, `${path} preflight`);
+        expectEqual(
+          humanVerificationPrefix(report),
+          'VERIFIED',
+          `${path} human CLI verification prefix`,
+        );
       }
     });
 
@@ -841,6 +851,20 @@ function execute(): TestReport {
       expectVerificationFailure(bundle, /modified bundle file|digest mismatch/i);
     });
 
+    runCase(results, 'failed implemented bundle is not READY or VERIFIED', () => {
+      const bundle = cloneBundle(
+        baseline.loa,
+        join(tempRoot, 'bundle-failed-preflight'),
+      );
+      expectEqual(
+        readLock(bundle).adapter.lifecycle,
+        'implemented',
+        'failed-preflight fixture lifecycle',
+      );
+      appendBytes(join(bundle, 'README.md'), '\nmodified for failed preflight\n');
+      expectVerificationFailure(bundle, /modified bundle file|digest mismatch/i);
+    });
+
     runCase(results, 'renamed emitted file fails verification', () => {
       const bundle = cloneBundle(
         baseline.loa,
@@ -910,7 +934,9 @@ function execute(): TestReport {
         join(tempRoot, 'bundle-lifecycle-mismatch'),
       );
       mutateResealedLock(bundle, (lock) => {
-        lock.adapter.lifecycle = 'implemented';
+        lock.adapter.lifecycle = lock.adapter.lifecycle === 'implemented'
+          ? 'validated'
+          : 'implemented';
       });
       expectVerificationFailure(
         bundle,

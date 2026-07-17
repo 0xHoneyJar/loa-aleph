@@ -111,8 +111,10 @@ authority gates, or what must be true at the end.
   `aleph-for-loa` and `aleph-for-hermes` bundles must contain byte-identical
   complete Core trees plus only their selected adapter. Core equality and
   foreign adapter-owned payload/dependency exclusion are release-blocking.
-- Loa and Hermes adapters remain planned manifests only. Neither provides a
-  native entrypoint or installation, and neither changes manual-only sanction.
+- The Loa adapter now provides a structurally implemented native entrypoint and
+  offline installation; it has no accepted replay, validation, or sanction.
+  The other registered adapter remains planned, and manual-only sanction is
+  unchanged.
 - This plan is not capability evidence. Agent mode, real-output quality,
   mode equivalence, convergent-heavy routing, and v1 remain gated by the
   replays, audits, and authority decisions named here.

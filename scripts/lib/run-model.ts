@@ -4,7 +4,7 @@ import {
   readFileSync,
   readdirSync,
 } from 'node:fs';
-import { basename, join, relative } from 'node:path';
+import { basename, join, relative, sep } from 'node:path';
 import {
   findTable,
   findTableByFirstHeader,
@@ -322,6 +322,11 @@ export function walkFiles(root: string): string[] {
   return files;
 }
 
+function isCoreRunArtifact(runDir: string, path: string): boolean {
+  const [topLevel] = relative(runDir, path).split(sep);
+  return topLevel !== 'control';
+}
+
 function readDocument(runDir: string, relativePath: string): RunDocument | null {
   const path = join(runDir, relativePath);
   if (!existsSync(path) || !lstatSync(path).isFile()) return null;
@@ -578,7 +583,11 @@ export function loadRun(runDir: string): RunModel {
     if (!documents.has(path)) documents.set(path, readDocument(runDir, path));
     return documents.get(path) ?? null;
   };
-  const filePaths = walkFiles(runDir);
+  // Host adapters may retain their immutable runtime, dispatch checkpoints,
+  // and other resume mechanics under the top-level control/ directory. Those
+  // bytes are part of the durable run record, but they are not canonical Core
+  // artifacts and must not participate in K2-K6 discovery or identifier scans.
+  const filePaths = walkFiles(runDir).filter((path) => isCoreRunArtifact(runDir, path));
   const files = filePaths.map((path) => ({
     path,
     relativePath: relative(runDir, path),

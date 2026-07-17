@@ -94,6 +94,12 @@ export interface BundleSetVerificationReport {
   errors: string[];
 }
 
+export function humanVerificationPrefix(
+  report: BundleVerificationReport,
+): 'VERIFIED' | null {
+  return report.result === 'PASS' && report.summary ? 'VERIFIED' : null;
+}
+
 interface CliOptions {
   command: 'assemble' | 'verify' | '';
   root: string;
@@ -844,11 +850,14 @@ export function verifyBundle(bundlePath: string): BundleVerificationReport {
     }
   }
   const lifecycle = lock.adapter.lifecycle;
+  const verificationPassed = errors.length === 0;
   const summary: BundleSummary = {
     id: lock.bundle.id,
     path: bundleRoot,
     lifecycle,
-    preflight: lifecycle === 'planned' ? 'NOT-READY' : 'READY',
+    preflight: verificationPassed && lifecycle !== 'planned'
+      ? 'READY'
+      : 'NOT-READY',
     coreDigest: lock.core.tree_digest,
     adapterDigest: lock.adapter.tree_digest,
     checkerDigest: lock.checker_digest,
@@ -858,7 +867,7 @@ export function verifyBundle(bundlePath: string): BundleVerificationReport {
     fileCount: lock.files.length,
   };
   return {
-    result: errors.length ? 'FAIL' : 'PASS',
+    result: verificationPassed ? 'PASS' : 'FAIL',
     bundlePath: bundleRoot,
     errors: sortedUnique(errors),
     summary,
@@ -951,6 +960,14 @@ export function verifyBundleSet(
     bundles: reports,
     errors: sortedUnique(errors),
   };
+}
+
+export function verifyDefaultBundleOutput(
+  outputRoot = DEFAULT_OUTPUT,
+): BundleSetVerificationReport {
+  const paths = HOST_ADAPTER_IDS.map((id) => join(outputRoot, `aleph-for-${id}`));
+  const expectedBundleIds = HOST_ADAPTER_IDS.map((id) => `aleph-for-${id}`);
+  return verifyBundleSet(paths, expectedBundleIds);
 }
 
 function sourceStillMatches(
@@ -1066,11 +1083,12 @@ function main(): void {
       + '  node scripts/assemble-bundles.ts verify '
       + '[--output <dir>] [--bundle <dir> ...] [--json]',
     );
-    process.exit(0);
+    return;
   }
   if (options.error || !options.command) {
     console.error(options.error || 'assemble or verify command is required');
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
   if (options.command === 'assemble') {
     const report = assembleBundles(options.root, options.output);
@@ -1080,20 +1098,20 @@ function main(): void {
       for (const error of report.errors) console.error(`FAIL ${error}`);
       console.log(`RESULT: ${report.result}`);
     }
-    process.exit(report.result === 'PASS' ? 0 : 1);
+    process.exitCode = report.result === 'PASS' ? 0 : 1;
+    return;
   }
   const explicitBundles = options.bundles.length > 0;
-  const paths = explicitBundles
-    ? options.bundles
-    : HOST_ADAPTER_IDS.map((id) => join(options.output, `aleph-for-${id}`));
-  const expectedBundleIds = explicitBundles
-    ? []
-    : HOST_ADAPTER_IDS.map((id) => `aleph-for-${id}`);
-  const report = verifyBundleSet(paths, expectedBundleIds);
+  const report = explicitBundles
+    ? verifyBundleSet(options.bundles)
+    : verifyDefaultBundleOutput(options.output);
   if (options.json) console.log(JSON.stringify(report, null, 2));
   else {
     for (const bundle of report.bundles) {
-      if (bundle.summary) printBundleSummary('VERIFIED', bundle.summary);
+      const prefix = humanVerificationPrefix(bundle);
+      if (prefix && bundle.summary) {
+        printBundleSummary(prefix, bundle.summary);
+      }
       for (const error of bundle.errors) {
         console.error(`FAIL ${bundle.bundlePath}: ${error}`);
       }
@@ -1101,7 +1119,7 @@ function main(): void {
     for (const error of report.errors) console.error(`FAIL ${error}`);
     console.log(`RESULT: ${report.result}`);
   }
-  process.exit(report.result === 'PASS' ? 0 : 1);
+  process.exitCode = report.result === 'PASS' ? 0 : 1;
 }
 
 if (resolve(process.argv[1] || '') === SCRIPT_PATH) main();

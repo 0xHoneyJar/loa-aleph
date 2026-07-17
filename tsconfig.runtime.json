@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "rootDir": ".",
+    "outDir": "runtime-js",
+    "noEmit": false,
+    "noEmitOnError": true,
+    "rewriteRelativeImportExtensions": true,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "files": [
+    "adapters/loa/src/cli.ts",
+    "adapters/loa/src/launcher.ts",
+    "adapters/loa/src/worker-dispatch.ts",
+    "scripts/validate-run.ts"
+  ],
+  "include": []
+}

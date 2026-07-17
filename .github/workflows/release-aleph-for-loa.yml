@@ -1,0 +1,608 @@
+name: Release Aleph for Loa
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-aleph-for-loa
+  cancel-in-progress: false
+
+env:
+  BUILD_NODE_VERSION: "22.18.0"
+
+jobs:
+  build:
+    name: Build structural prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
+      bundle_digest: ${{ steps.package.outputs.bundle_digest }}
+      build_commit: ${{ steps.package.outputs.build_commit }}
+      release_tag: ${{ steps.package.outputs.release_tag }}
+      release_version: ${{ steps.package.outputs.release_version }}
+    steps:
+      - name: Require the main branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+
+      - name: Check out the triggering commit with complete history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Use build Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.BUILD_NODE_VERSION }}
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run repository validation
+        run: npm test
+
+      - name: Read the Loa bundle version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const manifest = JSON.parse(readFileSync('core.manifest.json', 'utf8'));
+          const target = manifest.bundle_targets?.find(({ id }) => id === 'aleph-for-loa');
+          if (!target || !/^[0-9A-Za-z][0-9A-Za-z.-]*$/.test(target.version)) {
+            throw new Error('core manifest has no safe aleph-for-loa bundle version');
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, `version=${target.version}\n`);
+          NODE
+
+      - name: Package and independently verify the release
+        id: package
+        shell: bash
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          output_root="$RUNNER_TEMP/aleph-loa-release"
+          package_report="$RUNNER_TEMP/aleph-loa-package-report.json"
+          verify_report="$RUNNER_TEMP/aleph-loa-verify-report.json"
+          node packaging/package-loa-release.ts package \
+            --root "$GITHUB_WORKSPACE" \
+            --output "$output_root" \
+            --version "$RELEASE_VERSION" \
+            --json > "$package_report"
+          release_path="$(REPORT_PATH="$package_report" node --input-type=module -e \
+            'import { readFileSync } from "node:fs"; const report = JSON.parse(readFileSync(process.env.REPORT_PATH, "utf8")); if (report.result !== "PASS" || !report.releasePath) throw new Error(`packaging failed: ${JSON.stringify(report.errors)}`); process.stdout.write(report.releasePath);')"
+          node packaging/package-loa-release.ts verify \
+            --release "$release_path" \
+            --json > "$verify_report"
+          REPORT_PATH="$package_report" VERIFY_PATH="$verify_report" node --input-type=module <<'NODE'
+          import {
+            appendFileSync,
+            lstatSync,
+            readFileSync,
+            readdirSync,
+          } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+          import { relative, resolve } from 'node:path';
+
+          const report = JSON.parse(readFileSync(process.env.REPORT_PATH, 'utf8'));
+          const verified = JSON.parse(readFileSync(process.env.VERIFY_PATH, 'utf8'));
+          if (report.result !== 'PASS' || verified.result !== 'PASS') {
+            throw new Error(`release verification failed: ${JSON.stringify({ report, verified })}`);
+          }
+          if (resolve(report.releasePath) !== resolve(verified.releasePath)) {
+            throw new Error('package and verify reports disagree on release path');
+          }
+          const outside = relative(resolve(process.env.GITHUB_WORKSPACE), resolve(report.releasePath));
+          if (outside === '' || (!outside.startsWith('..') && !outside.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`))) {
+            throw new Error('release package was not emitted outside the repository');
+          }
+          const names = readdirSync(report.releasePath).sort();
+          if (names.length !== 3
+            || names.filter((name) => name.endsWith('.tar.gz')).length !== 1
+            || names.filter((name) => name.endsWith('.sha256')).length !== 1
+            || names.filter((name) => name.endsWith('.release.json')).length !== 1
+            || names.some((name) => !lstatSync(`${report.releasePath}/${name}`).isFile())) {
+            throw new Error(`release inventory is not exact: ${JSON.stringify(names)}`);
+          }
+          const metadata = JSON.parse(readFileSync(report.metadataPath, 'utf8'));
+          const bundleDigest = metadata.bundle?.digest;
+          const buildCommit = metadata.source?.build_commit;
+          const ancestry = typeof buildCommit === 'string'
+            ? spawnSync('git', [
+                'merge-base',
+                '--is-ancestor',
+                buildCommit,
+                process.env.EXPECTED_COMMIT,
+              ])
+            : { status: null };
+          if (metadata.format !== 'aleph-loa-release/v1'
+            || metadata.release?.id !== 'aleph-for-loa'
+            || metadata.release?.version !== process.env.RELEASE_VERSION
+            || metadata.release?.maturity !== 'structural-prerelease'
+            || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(buildCommit)
+            || metadata.source?.dependency_closure_commit !== buildCommit
+            || ancestry.status !== 0
+            || !/^sha256:[0-9a-f]{64}$/.test(bundleDigest)
+            || report.bundleDigest !== bundleDigest
+            || verified.bundleDigest !== bundleDigest) {
+            throw new Error(`release metadata disagrees with the build: ${JSON.stringify(metadata)}`);
+          }
+          const digestHex = bundleDigest.slice('sha256:'.length);
+          const releaseTag = `aleph-for-loa-sha256-${digestHex}`;
+          appendFileSync(process.env.GITHUB_OUTPUT, [
+            `artifact_name=${releaseTag}`,
+            `bundle_digest=${bundleDigest}`,
+            `build_commit=${buildCommit}`,
+            `release_path=${resolve(report.releasePath)}`,
+            `release_tag=${releaseTag}`,
+            `release_version=${process.env.RELEASE_VERSION}`,
+            '',
+          ].join('\n'));
+          NODE
+
+      - name: Upload the exact release payload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.package.outputs.artifact_name }}
+          path: ${{ steps.package.outputs.release_path }}/*
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    name: Publish immutable structural prerelease
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Use publish Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.BUILD_NODE_VERSION }}
+
+      - name: Download the verified release payload
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: ${{ runner.temp }}/aleph-loa-publish
+
+      - name: Create or verify the immutable release
+        shell: bash
+        env:
+          ASSET_DIRECTORY: ${{ runner.temp }}/aleph-loa-publish
+          BUILD_COMMIT: ${{ needs.build.outputs.build_commit }}
+          BUNDLE_DIGEST: ${{ needs.build.outputs.bundle_digest }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+          RELEASE_VERSION: ${{ needs.build.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import {
+            lstatSync,
+            readFileSync,
+            readdirSync,
+            statSync,
+          } from 'node:fs';
+          import { join } from 'node:path';
+
+          const requiredEnvironment = [
+            'ASSET_DIRECTORY',
+            'BUILD_COMMIT',
+            'BUNDLE_DIGEST',
+            'GH_TOKEN',
+            'GITHUB_API_URL',
+            'GITHUB_REPOSITORY',
+            'RELEASE_TAG',
+            'RELEASE_VERSION',
+          ];
+          for (const name of requiredEnvironment) {
+            if (!process.env[name]) throw new Error(`missing required environment ${name}`);
+          }
+
+          const directory = process.env.ASSET_DIRECTORY;
+          const buildCommit = process.env.BUILD_COMMIT;
+          const bundleDigest = process.env.BUNDLE_DIGEST;
+          const repository = process.env.GITHUB_REPOSITORY;
+          const releaseTag = process.env.RELEASE_TAG;
+          const releaseVersion = process.env.RELEASE_VERSION;
+          const apiBase = process.env.GITHUB_API_URL.replace(/\/$/, '');
+          const token = process.env.GH_TOKEN;
+          const sha256Pattern = /^sha256:[0-9a-f]{64}$/;
+          const commitPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+
+          function assert(condition, message) {
+            if (!condition) throw new Error(message);
+          }
+
+          function canonicalJson(value) {
+            if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+              return JSON.stringify(value);
+            }
+            if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
+            if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+            if (value && typeof value === 'object') {
+              return `{${Object.keys(value).sort().map((key) => (
+                `${JSON.stringify(key)}:${canonicalJson(value[key])}`
+              )).join(',')}}`;
+            }
+            throw new Error(`unsupported canonical JSON value: ${typeof value}`);
+          }
+
+          function fileDigest(path) {
+            return `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}`;
+          }
+
+          const names = readdirSync(directory).sort();
+          assert(names.length === 3, `release artifact must contain exactly three files: ${names}`);
+          for (const name of names) {
+            const stat = lstatSync(join(directory, name));
+            assert(stat.isFile() && !stat.isSymbolicLink(), `release asset is not a regular file: ${name}`);
+          }
+          const archiveName = names.find((name) => name.endsWith('.tar.gz'));
+          const checksumName = names.find((name) => name.endsWith('.sha256'));
+          const metadataName = names.find((name) => name.endsWith('.release.json'));
+          assert(archiveName && checksumName && metadataName, 'release artifact has the wrong file kinds');
+          assert(names.filter((name) => name.endsWith('.tar.gz')).length === 1
+            && names.filter((name) => name.endsWith('.sha256')).length === 1
+            && names.filter((name) => name.endsWith('.release.json')).length === 1,
+          'release artifact file kinds are not unique');
+
+          const metadataPath = join(directory, metadataName);
+          const metadataBytes = readFileSync(metadataPath);
+          const metadata = JSON.parse(metadataBytes.toString('utf8'));
+          assert(metadataBytes.equals(Buffer.from(`${canonicalJson(metadata)}\n`, 'utf8')),
+            'release metadata is not canonical JSON plus one LF');
+          assert(metadata.format === 'aleph-loa-release/v1'
+            && metadata.release?.id === 'aleph-for-loa'
+            && metadata.release?.version === releaseVersion
+            && metadata.release?.maturity === 'structural-prerelease',
+          'release identity, version, or maturity is invalid');
+          assert(metadata.source?.build_commit === buildCommit
+            && metadata.source?.dependency_closure_commit === buildCommit
+            && commitPattern.test(buildCommit),
+            'release source commit is invalid');
+          assert(metadata.bundle?.digest === bundleDigest && sha256Pattern.test(bundleDigest),
+            'release bundle digest is invalid');
+          assert(metadata.asset?.filename === archiveName
+            && metadata.asset?.checksum_filename === checksumName,
+          'release metadata asset names are invalid');
+
+          const expectedBase = `aleph-for-loa-${releaseVersion}-${bundleDigest.replace(':', '-')}`;
+          assert(archiveName === `${expectedBase}.tar.gz`
+            && checksumName === `${expectedBase}.sha256`
+            && metadataName === `${expectedBase}.release.json`,
+          'release filenames do not encode the exact version and bundle digest');
+          const archiveDigest = fileDigest(join(directory, archiveName));
+          assert(metadata.asset.digest === archiveDigest,
+            'release archive digest disagrees with metadata');
+          assert(readFileSync(join(directory, checksumName), 'utf8')
+            === `${archiveDigest.slice('sha256:'.length)}  ${archiveName}\n`,
+          'release checksum sidecar is invalid');
+          assert(releaseTag === `aleph-for-loa-sha256-${bundleDigest.slice('sha256:'.length)}`,
+            'release tag is not keyed by the full bundle digest');
+
+          const localAssets = names.map((name) => ({
+            digest: fileDigest(join(directory, name)),
+            name,
+            size: statSync(join(directory, name)).size,
+            state: 'uploaded',
+          })).sort((left, right) => left.name.localeCompare(right.name));
+
+          const title = `Aleph for Loa ${releaseVersion} (${bundleDigest})`;
+          const body = [
+            'Structural prerelease for `aleph-for-loa`.',
+            '',
+            `- Version: \`${releaseVersion}\``,
+            `- Bundle digest: \`${bundleDigest}\``,
+            `- Source commit: \`${buildCommit}\``,
+            '',
+            'This is structural implementation evidence only. It does not claim accepted replay, real-corpus validation, sanction, or authority to make agent mode a sanctioned Aleph execution path.',
+          ].join('\n');
+
+          const commonHeaders = {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'loa-aleph-release-workflow',
+            'X-GitHub-Api-Version': '2026-03-10',
+          };
+
+          async function request(url, {
+            method = 'GET',
+            json,
+            body: requestBody,
+            headers = {},
+            allow404 = false,
+            expected = [200],
+          } = {}) {
+            const requestHeaders = { ...commonHeaders, ...headers };
+            let payload = requestBody;
+            if (json !== undefined) {
+              requestHeaders['Content-Type'] = 'application/json';
+              payload = JSON.stringify(json);
+            }
+            let response;
+            try {
+              response = await fetch(url, { method, headers: requestHeaders, body: payload });
+            } catch (error) {
+              throw new Error(`GitHub API ${method} ${url} failed before a response: ${error.message}`);
+            }
+            const text = await response.text();
+            if (allow404 && response.status === 404) return null;
+            if (!expected.includes(response.status)) {
+              throw new Error(`GitHub API ${method} ${url} returned HTTP ${response.status}: ${text.slice(0, 1000)}`);
+            }
+            if (!text) return null;
+            try {
+              return JSON.parse(text);
+            } catch {
+              throw new Error(`GitHub API ${method} ${url} returned non-JSON success data`);
+            }
+          }
+
+          function api(path, options) {
+            return request(`${apiBase}${path}`, options);
+          }
+
+          async function tagRef() {
+            return api(`/repos/${repository}/git/ref/tags/${encodeURIComponent(releaseTag)}`, {
+              allow404: true,
+            });
+          }
+
+          async function releaseByTag() {
+            return api(`/repos/${repository}/releases/tags/${encodeURIComponent(releaseTag)}`, {
+              allow404: true,
+            });
+          }
+
+          async function resolveTagCommit(ref) {
+            let object = ref?.object;
+            const seen = new Set();
+            for (let depth = 0; depth < 8; depth += 1) {
+              assert(object && typeof object.sha === 'string' && typeof object.type === 'string',
+                'tag reference has no resolvable Git object');
+              assert(!seen.has(object.sha), 'tag reference contains a cycle');
+              seen.add(object.sha);
+              if (object.type === 'commit') return object.sha;
+              assert(object.type === 'tag', `tag resolves to unsupported object type ${object.type}`);
+              const annotated = await api(`/repos/${repository}/git/tags/${object.sha}`);
+              object = annotated.object;
+            }
+            throw new Error('tag annotation chain is too deep');
+          }
+
+          async function releaseAssets(releaseId) {
+            const assets = await api(`/repos/${repository}/releases/${releaseId}/assets?per_page=4`);
+            assert(Array.isArray(assets), 'release asset response is malformed');
+            return assets;
+          }
+
+          function assertRelease(release, { draft, immutable }) {
+            assert(release && Number.isInteger(release.id), 'release response is malformed');
+            assert(release.tag_name === releaseTag, 'release tag name mismatch');
+            assert(release.target_commitish === buildCommit, 'release target commit mismatch');
+            assert(release.name === title, 'release title mismatch');
+            assert(release.body === body, 'release body mismatch');
+            assert(release.draft === draft, 'release draft state mismatch');
+            assert(release.prerelease === true, 'release is not a prerelease');
+            if (immutable !== undefined) {
+              assert(release.immutable === immutable, `release immutable state must be ${immutable}`);
+            }
+          }
+
+          function assertAssets(assets) {
+            const remoteAssets = assets.map((asset) => ({
+              digest: asset.digest,
+              name: asset.name,
+              size: asset.size,
+              state: asset.state,
+            })).sort((left, right) => left.name.localeCompare(right.name));
+            assert(JSON.stringify(remoteAssets) === JSON.stringify(localAssets),
+              `release assets differ from the verified payload: ${JSON.stringify(remoteAssets)}`);
+          }
+
+          const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+          async function waitForAssets(releaseId) {
+            let lastError;
+            for (let attempt = 0; attempt < 10; attempt += 1) {
+              try {
+                const assets = await releaseAssets(releaseId);
+                assertAssets(assets);
+                return;
+              } catch (error) {
+                lastError = error;
+                await delay(1000);
+              }
+            }
+            throw lastError;
+          }
+
+          async function assertFinalRelease(release, ref) {
+            assertRelease(release, { draft: false, immutable: true });
+            assert(await resolveTagCommit(ref) === buildCommit,
+              'release tag does not resolve to the exact build commit');
+            assertAssets(await releaseAssets(release.id));
+          }
+
+          async function matchingDraft() {
+            const matches = [];
+            for (let page = 1; page <= 100; page += 1) {
+              const releases = await api(
+                `/repos/${repository}/releases?per_page=100&page=${page}`,
+              );
+              assert(Array.isArray(releases), 'release listing response is malformed');
+              matches.push(...releases.filter((release) => (
+                release?.draft === true && release?.tag_name === releaseTag
+              )));
+              assert(matches.length <= 1,
+                'multiple draft releases use the content-addressed tag');
+              if (releases.length < 100) return matches[0] || null;
+            }
+            throw new Error('release listing exceeded the fail-closed pagination bound');
+          }
+
+          async function exactPartialAssetNames(releaseId) {
+            let lastError;
+            for (let attempt = 0; attempt < 10; attempt += 1) {
+              try {
+                const assets = await releaseAssets(releaseId);
+                const expected = new Map(localAssets.map((asset) => [asset.name, asset]));
+                const seen = new Set();
+                for (const asset of assets) {
+                  assert(!seen.has(asset.name), `draft has duplicate asset ${asset.name}`);
+                  seen.add(asset.name);
+                  const local = expected.get(asset.name);
+                  assert(local, `draft has unexpected asset ${asset.name}`);
+                  assert(asset.digest === local.digest
+                    && asset.size === local.size
+                    && asset.state === local.state,
+                  `draft asset differs from verified payload: ${asset.name}`);
+                }
+                return seen;
+              } catch (error) {
+                lastError = error;
+                await delay(1000);
+              }
+            }
+            throw lastError;
+          }
+
+          async function removeExactMutableRelease(release, ref) {
+            assertRelease(release, { draft: false, immutable: false });
+            assert(ref && await resolveTagCommit(ref) === buildCommit,
+              'mutable release tag does not resolve to the exact build commit');
+            assertAssets(await releaseAssets(release.id));
+            await api(`/repos/${repository}/releases/${release.id}`, {
+              method: 'DELETE',
+              expected: [204],
+            });
+            await api(`/repos/${repository}/git/refs/tags/${encodeURIComponent(releaseTag)}`, {
+              method: 'DELETE',
+              expected: [204],
+              allow404: true,
+            });
+            assert(await releaseByTag() === null && await tagRef() === null,
+              'mutable release cleanup did not remove both release and tag');
+            throw new Error(
+              'GitHub published the release without immutability; exact mutable release and tag were removed',
+            );
+          }
+
+          async function waitForImmutablePublication(releaseId) {
+            let lastError;
+            for (let attempt = 0; attempt < 20; attempt += 1) {
+              try {
+                const release = await api(`/repos/${repository}/releases/${releaseId}`);
+                const ref = await tagRef();
+                assert(ref, 'published release tag is missing');
+                await assertFinalRelease(release, ref);
+                return;
+              } catch (error) {
+                lastError = error;
+                await delay(1000);
+              }
+            }
+            const release = await api(`/repos/${repository}/releases/${releaseId}`);
+            const ref = await tagRef();
+            if (release?.immutable === true) {
+              await assertFinalRelease(release, ref);
+              return;
+            }
+            if (release?.draft === false && release?.immutable === false) {
+              await removeExactMutableRelease(release, ref);
+            }
+            throw lastError;
+          }
+
+          async function main() {
+            const existingRef = await tagRef();
+            const existingRelease = await releaseByTag();
+            const existingDraft = await matchingDraft();
+            assert(!(existingRelease && existingDraft),
+              'published and draft releases share the content-addressed tag');
+            if (existingRelease) {
+              assert(existingRef, 'published release exists without its tag');
+              if (existingRelease.immutable === false) {
+                assertRelease(existingRelease, { draft: false, immutable: false });
+                assert(await resolveTagCommit(existingRef) === buildCommit,
+                  'pre-existing mutable release tag does not resolve to the build commit');
+                assertAssets(await releaseAssets(existingRelease.id));
+                throw new Error(
+                  'pre-existing exact release is mutable; refusing to delete state not created by this run',
+                );
+              }
+              await assertFinalRelease(existingRelease, existingRef);
+              console.log(`Exact immutable release already exists: ${releaseTag}`);
+              return;
+            }
+            assert(!existingRef || existingDraft,
+              'content-addressed tag exists without a matching release or resumable draft');
+
+            const draft = existingDraft || await api(`/repos/${repository}/releases`, {
+              method: 'POST',
+              expected: [201],
+              json: {
+                tag_name: releaseTag,
+                target_commitish: buildCommit,
+                name: title,
+                body,
+                draft: true,
+                prerelease: true,
+                generate_release_notes: false,
+                make_latest: 'false',
+              },
+            });
+            assertRelease(draft, { draft: true });
+            const draftRef = await tagRef();
+            if (draftRef) {
+              assert(await resolveTagCommit(draftRef) === buildCommit,
+                'draft release tag does not resolve to the exact build commit');
+            }
+
+            const presentAssets = await exactPartialAssetNames(draft.id);
+            for (const asset of localAssets) {
+              if (presentAssets.has(asset.name)) continue;
+              const uploadBase = draft.upload_url.replace(/\{.*$/, '');
+              await request(`${uploadBase}?name=${encodeURIComponent(asset.name)}`, {
+                method: 'POST',
+                expected: [201],
+                headers: { 'Content-Type': 'application/octet-stream' },
+                body: readFileSync(join(directory, asset.name)),
+              });
+            }
+            await waitForAssets(draft.id);
+            const checkedDraft = await api(`/repos/${repository}/releases/${draft.id}`);
+            assertRelease(checkedDraft, { draft: true });
+
+            await api(`/repos/${repository}/releases/${draft.id}`, {
+              method: 'PATCH',
+              json: { draft: false },
+            });
+            await waitForImmutablePublication(draft.id);
+            console.log(`Published exact immutable structural prerelease: ${releaseTag}`);
+          }
+
+          await main();
+          NODE

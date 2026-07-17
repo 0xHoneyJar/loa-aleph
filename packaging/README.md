@@ -196,11 +196,59 @@ existing Core-boundary validator against the emitted inventory and selected
 manifest projection. `verify` without `--bundle` checks both default target
 directories; repeat `--bundle` to check explicit bundle directories.
 
-Both current adapter manifests remain `planned`, so successful assembly and
-verification report `PREFLIGHT ... NOT-READY lifecycle=planned`. This machinery
-does not implement a host runner, installation, worker, synchronization flow,
-or runnable Loa or Hermes integration; it does not sanction agent mode or
-publish a release.
+The Loa adapter is `implemented`, so a verified `aleph-for-loa` bundle reports
+`PREFLIGHT loa READY lifecycle=implemented`. The other registered host remains
+`planned` and reports `NOT-READY`. Bundle readiness proves packaging and
+structural implementation only; it does not validate a replay, sanction agent
+mode, publish a release, or make a fixture-simulated run accepted evidence.
+
+## Loa release artifact
+
+A publishable Loa artifact is produced only from a globally clean, full-history
+Git checkout after the source commit has landed. The release packager assembles
+and independently verifies both host bundles, rechecks their common Core, and
+publishes only the verified `aleph-for-loa` tree:
+
+```bash
+npm run release:loa:package -- --output <outside-repo-dir> --version 0.1.0-provisional
+npm run release:loa:verify -- --release <release-dir>
+npm run test:release-package
+```
+
+The release directory contains exactly three regular files whose basename is
+bound to the full bundle digest: a deterministic `ustar` plus gzip archive, a
+SHA-256 sidecar, and canonical `aleph-loa-release/v1` metadata. Archive paths,
+ordering, file modes, owners, timestamps, gzip headers, and bytes are
+normalized. Verification rejects links, devices, duplicate or traversing
+paths, extra entries, noncanonical metadata, digest drift, and any archive
+inventory that differs from `bundle.lock.json`; it extracts privately and
+reruns the independent bundle verifier before returning success.
+
+Release output is atomic and never overwrites an existing digest identity.
+Published GitHub releases use content-addressed tags, attach all three files,
+and remain prereleases while adapter validation and sanction evidence are
+empty. The tag, release, and assets must be immutable; rollback selects a
+previous immutable digest in Loa rather than editing or deleting an artifact.
+Structural `implemented` maturity is not replay validation or sanction.
+
+## Node 20 runtime projection
+
+The bundle retains the complete authoritative TypeScript source and also locks
+a deterministic ES2022 ESM projection under `runtime-js/`. Generate and verify
+it with:
+
+```bash
+npm run runtime:build
+npm run runtime:check
+npm run test:runtime
+```
+
+`runtime-js/package.json` fixes the ESM package scope. The installed launcher
+is exposed as `.claude/aleph/bin/loa-aleph.mjs`; its CLI, worker dispatcher,
+installer, and pinned checker all execute the locked `.js` projection. This
+keeps the installed Loa surface compatible with Node 20 without Bun, `tsx`, a
+runtime package install, or network access. Release validation rejects any
+source/projection drift before packaging.
 
 ## Assembly and installation boundary
 
@@ -213,6 +261,23 @@ the network.
 The adapter may invoke Core files in place from the verified bundle. It may not
 generate host-local summaries, rewritten prompts, alternate templates,
 checker forks, or doctrine overlays as installation products.
+
+The Loa installer is an adapter-owned offline consumer of an already verified
+`aleph-for-loa` directory. It snapshots and verifies the input before copying,
+installs the complete payload and original lock below
+`.claude/aleph/runtime/bundle/`, exposes only the declared command, skill, and
+launcher mappings, and records a canonical managed-file receipt. Reinstalling
+replaces the complete managed runtime and deletes stale paths named by the
+prior valid receipt while preserving unmanaged files and every retained run.
+The transient names `.claude/aleph-install.writer.lock*` and
+`.claude/aleph-install.transaction*` are reserved adapter-owned coordination
+paths, not unmanaged operator space. They are excluded from the final managed
+receipt and removed after successful or recovered installation.
+This serialization covers cooperating installers. The pure Node adapter rejects
+observed symlinks and detects parent replacement, but does not claim protection
+from a malicious same-identity process racing pathname syscalls.
+It performs no assembly, repository synchronization, mutable fetch, or network
+fallback.
 
 ## Run pins and updates
 
