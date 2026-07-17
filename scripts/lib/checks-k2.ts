@@ -945,40 +945,43 @@ function checkKernelReport(results: ResultCollector, model: RunModel): void {
         };
         return ordinal(left.relativePath) - ordinal(right.relativePath);
       });
-    let passingTypeScriptReport = false;
+    let passingCanonicalReport = false;
     for (const report of reports) {
       const fields = parseBulletFields(report.text).fields;
       const command = fields.get('command') || '';
       const result = (fields.get('result') || '').toUpperCase();
       const recordRole = fields.get('record role') || '';
-      const namesTypeScriptChecker = command.includes('validate-run.ts');
+      const namesSourceChecker = command.includes('validate-run.ts');
+      const namesCompiledChecker = command.includes('runtime-js/scripts/validate-run.js');
+      const namesCanonicalChecker = namesSourceChecker || namesCompiledChecker;
       const isSupersededJavaScriptHistory = (
         command.includes('validate-run.mjs')
         && /\b(?:historical|superseded)\b/i.test(recordRole)
       );
-      if (!namesTypeScriptChecker && !isSupersededJavaScriptHistory) {
+      if (!namesCanonicalChecker && !isSupersededJavaScriptHistory) {
         fail(
-          `${report.relativePath} command neither names validate-run.ts `
+          `${report.relativePath} command neither names a canonical validate-run entrypoint `
           + 'nor records an explicitly superseded JavaScript checker',
         );
       }
       if (!['PASS', 'FAIL'].includes(result)) {
         fail(`${report.relativePath} result is not PASS or FAIL`);
       }
-      if (namesTypeScriptChecker && result === 'PASS') passingTypeScriptReport = true;
+      if (namesCanonicalChecker && result === 'PASS') passingCanonicalReport = true;
     }
     const latest = reports.at(-1);
     if (latest) {
       const latestCommand = parseBulletFields(latest.text).fields.get('command') || '';
-      if (!latestCommand.includes('validate-run.ts')) {
-        fail(`${latest.relativePath} is the latest report but does not name validate-run.ts`);
+      if (!latestCommand.includes('validate-run.ts')
+        && !latestCommand.includes('runtime-js/scripts/validate-run.js')) {
+        fail(`${latest.relativePath} is the latest report but does not name a canonical validate-run entrypoint`);
       }
     }
-    if (reachedState(model, 'VERIFIED') && !passingTypeScriptReport) {
-      fail('VERIFIED state requires a TypeScript kernel report with result PASS');
+    if (reachedState(model, 'VERIFIED') && !passingCanonicalReport) {
+      fail('VERIFIED state requires a canonical kernel report with result PASS');
     }
     return reports.length
-      ? `${reports.length} kernel report(s) have valid results and the latest names the TypeScript checker`
+      ? `${reports.length} kernel report(s) have valid results and the latest names a canonical checker`
       : 'kernel report not yet applicable';
   });
 }

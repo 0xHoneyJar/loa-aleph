@@ -47,6 +47,13 @@ slices untouched → green, byte-identical modulo the discovery line.
 **Target tree:** a run directory per doc 02 §2 layout (the golden fixture
 lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
 
+The top-level `control/` subtree is reserved for host-adapter runtime snapshots
+and durable resume/dispatch mechanics. It is retained with the run but excluded
+from canonical Core artifact discovery and K2-K6 content/identifier scans; it
+cannot define or satisfy a Core artifact. Only the top-level subtree has this
+status, so a directory named `control` below any canonical surface remains in
+scope.
+
 **Checks (scope = run id):**
 
 - K2.1 (`layout`): required paths exist: `run-manifest.md`, `run-log.md`,
@@ -71,7 +78,7 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
   migrated; the first new-format run fixture must extend K2.2 in lockstep.
 - K2.3 (`forbidden tokens`, fixture runs only): the fixture-layer
   absolute-forbidden token scan (same zero-tolerance semantics, same token
-  list as the existing checker) applied to every file of a run directory
+  list as the existing checker) applied to every canonical Core file of a run directory
   that lives under `docs/fixtures/` — the tokens exist to catch answer-key
   leakage in *generated* fixtures. Real run directories are exempt: an
   arbitrary user corpus may legitimately contain those words, and S0
@@ -83,7 +90,7 @@ lives at `docs/fixtures/run-slice-2/` and carries `kind: run`).
   ints); its `span_hash` equals sha256 of the located span bytes
   (`node:crypto` is a built-in — allowed).
 - K2.5 (`id integrity`): every `RUN-`/`SRC-`/`PKT-`/`CC-`/`NB-`/`PC-`/`RC-`
-  /`REF-`/`STM-`/`VER-`/`PRJ-` token anywhere in the run directory resolves
+  /`REF-`/`STM-`/`VER-`/`PRJ-` token anywhere on the canonical Core run surface resolves
   to exactly one definition (generalizes C1/C4/C7). Fixed homes are:
   `run-manifest.md`'s `run_id`, corpus manifest, packet index, claim inventory,
   negative-boundary ledger, pre-cluster tags, route-card files, external-
@@ -133,6 +140,9 @@ new schemes get verification when their fixture arrives.
 ASSEMBLED before CORPUS-FROZEN → K2.2; forbidden token in a fixture run's
 `run-log.md` → K2.3, while the same token in a run directory outside
 `docs/fixtures/` → no finding (exemption proven, not assumed);
+arbitrary canonical-looking bytes under top-level `control/runtime/` → no
+finding, followed by the same dangling identifier in canonical nested
+`verification/control/` and `run-log.md` paths → K2.5;
 tampered span (hash mismatch) → K2.4; dangling `PKT-*`, `RUN-*`, `NB-*`, or
 `PRJ-*` citation, or duplicate `PRJ-*` commission definition → K2.5;
 inventory row with two dispositions → K2.6; ledger total off by one

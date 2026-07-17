@@ -157,6 +157,13 @@ kind. The current suite contains:
 
 The run kernel checks:
 
+Top-level `control/` is reserved for host-adapter mechanics such as immutable
+runtime snapshots and durable dispatch checkpoints. The run loader deliberately
+excludes that subtree from canonical Core artifact discovery and all K2-K6
+content/identifier scans. The bytes remain in the durable run directory, but
+cannot themselves define or satisfy a Core artifact or participate in those
+scans; a `control/` directory nested anywhere else is not excluded.
+
 - **K2:** reached-state layout, manifest transitions/gates, fixture-only
   forbidden tokens, source-span hashes, global `RUN` through `PRJ` ID integrity,
   claim shape,
@@ -202,12 +209,12 @@ On 2026-07-16, the repository-level battery was run with:
 node scripts/test-conformance-mutations.ts --json
 ```
 
-It returned `PASS` with 52/52 mutation cases and 3/3 clean baselines:
+It returned `PASS` with 53/53 mutation cases and 3/3 clean baselines:
 
 | group | targeted mutations | result |
 |-------|--------------------|--------|
 | K1 discovery and declarations | 5 | PASS |
-| K2 run structure, global IDs, accounting, hashes, chronology, and status | 19 | PASS |
+| K2 run structure, global IDs, accounting, hashes, chronology, status, and adapter-control isolation | 20 | PASS |
 | K3 evidence roles and removal effects | 8 | PASS |
 | K4/K5 cards, referents, routing, and taint | 9 | PASS |
 | K6 commissioned projection IDs, selections, claim/boundary traces, rendering, and type contracts | 11 | PASS |
@@ -225,7 +232,10 @@ K2/K6 cases include duplicate run identity fields, malformed and externally
 declared predecessor runs,
 predecessor citations outside the manifest field, dangling `RUN-*`, `NB-*`, and
 `PRJ-*` references, duplicate `PRJ-*` definitions, and missing commissioned
-projection identity.
+projection identity. The K2 control-boundary case first proves that arbitrary
+retained bytes under top-level `control/runtime/` do not enter canonical
+discovery, then introduces the same dangling identifier into canonical
+`verification/control/` and `run-log.md` paths and requires K2.5 to fail.
 
 ## What it does NOT prove
 

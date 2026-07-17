@@ -21,8 +21,8 @@ pins, not a mutable branch checkout, define the bytes an execution obeys; see
 | Accepted doctrine | Present in the root docs and `docs/decisions/` |
 | Architecture and build kits | Accepted for implementation by [Decision 0003](docs/decisions/0003-architecture-build-kit-implementation.md); artifact shapes remain provisional |
 | Core/adapter boundary | Accepted by [Decision 0004](docs/decisions/0004-core-adapter-and-bundle-boundary.md); exact source inventory is in `core.manifest.json` |
-| Host adapters | Loa and Hermes manifests are planned only; neither native runner or installation exists |
-| Immutable bundles | Dependency-free local assembly and independent verification are implemented; default outputs are ignored under `.aleph-bundles/`, both planned adapters remain `NOT-READY`, and no Loa or Hermes release bundle is claimed |
+| Host adapters | The Loa package is structurally implemented with a native command, skill, runtime, and offline installer, but is not validated or sanctioned; Hermes remains planned only |
+| Immutable bundles | Dependency-free local assembly and independent verification are implemented; default outputs are ignored under `.aleph-bundles/`, Loa reports structural `READY`, Hermes remains `NOT-READY`, and no release bundle is claimed |
 | Accepted Precis fixtures | Present under `docs/fixtures/slice-1/` and `docs/fixtures/slice-2/` |
 | Fixture conformance checker | Implemented in TypeScript at `scripts/validate-precis-fixtures.ts` |
 | Run-directory kernel | K1-K6 and registered projection-type checks are implemented; the discovered fixture suite is deterministic-clean |
@@ -74,8 +74,9 @@ boundaries, known incompleteness, independent audit, or authority acceptance.
 ## Agent mode
 
 Agent mode is available as a reviewed Core design and prompt pack, not as a
-proven autonomous path. No Loa or Hermes native adapter exists. Use a future
-adapter only in an explicitly supervised evaluation until its golden replay
+proven autonomous path. The Loa adapter is structurally implemented but has no
+accepted replay or sanction; the Hermes adapter remains planned. Use the Loa
+package only in an explicitly supervised evaluation until its golden replay
 and real-corpus evidence are accepted.
 
 Read the manual-mode list above, then:
@@ -159,7 +160,7 @@ independent audit, and stop for P3 authority acceptance.
 ## Conformance
 
 Install the development-only typechecker, then run the strict TypeScript gate
-and every deterministic check surface from the repository root:
+and every Core deterministic check surface from the repository root:
 
 ```bash
 npm install
@@ -174,6 +175,8 @@ node scripts/validate-run.ts --run docs/fixtures/run-slice-2
 node scripts/test-conformance-mutations.ts
 node scripts/test-core-boundary-mutations.ts
 node scripts/test-bundle-assembly.ts
+npm run test:runtime
+npm run test:release-package
 ```
 
 Node 22.18 or newer executes these `.ts` entrypoints directly through native
@@ -194,10 +197,19 @@ targets. The same bundle commands are exposed as `npm run bundle:assemble`,
 part of `npm test`. Add `--json` to validation and bundle commands for
 machine-readable reports. Full Précis/run checker scope and exclusions are
 documented in
-[Précis Conformance Checker](docs/PRECIS-CONFORMANCE-CHECKER.md).
+[Précis Conformance Checker](docs/PRECIS-CONFORMANCE-CHECKER.md). Adapter-owned
+synthetic preflight and implementation surfaces are documented and run
+separately in the selected package under `adapters/<adapter-id>/`.
+
+Repository tooling retains the Node 22.18 floor for direct TypeScript
+execution. Published Loa bundles additionally carry the locked, drift-checked
+ES2022 projection under `runtime-js/`; the installed `.mjs`/`.js` entrypoints
+run on Node 20 without a loader or dependency installation. A release is a
+structural prerelease unless and until the separate replay, validation, and
+sanction evidence exists.
 
 A green deterministic command does not validate a semantic judgment, a
-projection rendering, either planned host adapter, agent mode, or v1 unless
+projection rendering, a host adapter, agent mode, or v1 unless
 the corresponding implementation, fixture, replay, audit, and authority
 evidence also exist.
 
@@ -229,8 +241,8 @@ AGENTS.md                              This front door
 core.manifest.json                     Exact Core/adapter/package/admin inventory
 adapter-protocol/                      Host-neutral adapter capability contract
 adapters/
-  README.md                            Planned adapter catalog
-  loa/                                 Planned Loa adapter manifest; no runner
+  README.md                            Adapter catalog and lifecycle boundaries
+  loa/                                 Implemented Loa host package; unvalidated and unsanctioned
   hermes/                              Planned Hermes adapter manifest; no runner
 packaging/README.md                    Immutable bundle and lock contract
 docs/

@@ -22,7 +22,7 @@ const PRECIS_CHECKER = join(REPO_ROOT, 'scripts', 'validate-precis-fixtures.ts')
 const RUN_CHECKER = join(REPO_ROOT, 'scripts', 'validate-run.ts');
 const EXPECTED_CASES = new Map<string, number>([
   ['K1', 5],
-  ['K2', 19],
+  ['K2', 20],
   ['K3', 8],
   ['K4/K5', 9],
   ['K6', 11],
@@ -417,6 +417,30 @@ addCase('K1', 'legacy slices remain green', (root) => {
 
 // K2: one case per K2.1-K2.11, plus complete structured-ID family coverage.
 // K2.3 proves both sides of fixture scoping.
+addCase('K2', 'top-level adapter control is outside canonical discovery', (root) => {
+  const relativePath = join('docs', 'fixtures', 'run-slice-2');
+  const path = copyFixture('run-slice-2', root, relativePath);
+  const runtime = join(path, 'control', 'runtime', 'bundle');
+  mkdirSync(runtime, { recursive: true });
+  writeFileSync(
+    join(runtime, 'run-manifest.md'),
+    '# Retained runtime bytes\n\n'
+      + 'Fixture-only token: Phase\n'
+      + 'Canonical-looking but adapter-owned IDs: RUN-shadow CC-999.\n',
+  );
+
+  requirePass(runFixture(root, relativePath), ['K2.3', 'K2.5']);
+
+  const nestedControl = join(path, 'verification', 'control', 'canonical.md');
+  mkdirSync(dirname(nestedControl), { recursive: true });
+  writeFileSync(nestedControl, 'Canonical nested control ID: RUN-shadow.\n');
+  requireFailure(runFixture(root, relativePath), 'K2.5');
+  rmSync(nestedControl);
+
+  appendFileSync(join(path, 'run-log.md'), '\nCanonical dangling ID: RUN-shadow.\n');
+  requireFailure(runFixture(root, relativePath), 'K2.5');
+});
+
 addFailureCase('K2', 'missing run manifest', 'run-slice-2', 'K2.1', (path) => {
   rmSync(join(path, 'run-manifest.md'));
 });

@@ -1,0 +1,105 @@
+name: Aleph CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aleph-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_NODE_VERSION: "22.18.0"
+  INSTALLED_NODE_VERSION: "20.19.5"
+
+jobs:
+  validate:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out complete source history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use build Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.BUILD_NODE_VERSION }}
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run repository validation
+        run: npm test
+
+      - name: Reject generated tracked drift
+        run: git diff --exit-code -- .
+
+  installed-runtime-node20:
+    name: Installed Loa runtime on Node 20
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out complete source history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use build Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.BUILD_NODE_VERSION }}
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Assemble the Loa bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_root="$RUNNER_TEMP/aleph-node20-bundles"
+          target_root="$RUNNER_TEMP/aleph-node20-target"
+          node scripts/assemble-bundles.ts assemble --output "$bundle_root"
+          printf 'ALEPH_SMOKE_BUNDLE=%s\n' "$bundle_root/aleph-for-loa" >> "$GITHUB_ENV"
+          printf 'ALEPH_SMOKE_TARGET=%s\n' "$target_root" >> "$GITHUB_ENV"
+
+      - name: Use installed-runtime Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.INSTALLED_NODE_VERSION }}
+
+      - name: Install and smoke-test the shipped JavaScript runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'process.versions.node.split(".")[0]')" = "20"
+          installer="$ALEPH_SMOKE_BUNDLE/runtime-js/adapters/loa/src/installer.js"
+          node "$installer" install \
+            --bundle "$ALEPH_SMOKE_BUNDLE" \
+            --target "$ALEPH_SMOKE_TARGET"
+          node "$installer" verify-install --target "$ALEPH_SMOKE_TARGET"
+          cd "$ALEPH_SMOKE_TARGET"
+          status_json="$(node .claude/aleph/bin/loa-aleph.mjs --json status)"
+          STATUS_JSON="$status_json" node --input-type=module <<'NODE'
+          const report = JSON.parse(process.env.STATUS_JSON);
+          if (report.format !== 'aleph-loa-command-result/v1'
+            || report.command !== 'status'
+            || report.result !== 'PASS'
+            || !report.details
+            || !Array.isArray(report.details.runs)
+            || report.errors.length !== 0) {
+            throw new Error(`installed Node 20 smoke failed: ${JSON.stringify(report)}`);
+          }
+          NODE

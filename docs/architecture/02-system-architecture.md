@@ -77,7 +77,7 @@ directory. Everything the run knows is in that directory; nothing the run
 produced is real if it is not in that directory. This is the single most
 important structural decision in the plan, because it is what makes runs
 resumable, auditable, diffable, checkpointable by PR, and identical in shape
-across modes.
+across modes on the canonical Core surface.
 
 Proposed layout (names provisional; frozen only by the slice that first ships
 a run fixture):
@@ -120,6 +120,16 @@ runs/<run-id>/
     tier-2/…
     traces/…                 # projection traces + selection ledgers
 ```
+
+The tree above is the canonical Core artifact surface. A host adapter may also
+retain a top-level `control/` subtree in the run directory for immutable runtime
+snapshots, dispatch and authority journals, checker records, and other durable
+resume mechanics. That optional subtree is adapter-owned bookkeeping, not a
+Core artifact: it cannot define or satisfy one and is excluded from K2-K6
+canonical discovery and content/identifier scans. Only the top-level subtree
+has this status; a directory named `control` below a canonical surface remains
+in Core-checker scope. Manual mode does not have to create adapter control
+bookkeeping.
 
 Rules:
 

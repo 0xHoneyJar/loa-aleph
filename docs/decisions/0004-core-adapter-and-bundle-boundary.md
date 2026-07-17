@@ -1,7 +1,7 @@
 # Decision 0004 — One immutable Aleph Core with host-only adapters
 
-- **Status:** Accepted for implementation; Loa and Hermes adapters remain
-  planned, not implemented
+- **Status:** Accepted for implementation; at this decision's 2026-07-16
+  baseline, Loa and Hermes adapters were planned, not implemented
 - **Date:** 2026-07-16
 - **Authority:** Eileen (product / architecture authority), explicit direction
   to establish the Core/adapter/bundle foundation
@@ -11,6 +11,16 @@
   sanction boundary
 - **Narrowly supersedes:** mutable-`main` delivery language and any reading of
   the Fable 5 profile as universal Core runner doctrine
+
+## Implementation-status note — 2026-07-17
+
+The boundary and lifecycle decision below are unchanged. Since the decision
+baseline, the Loa adapter has advanced to `implemented` on structural
+implementation evidence only. It has no accepted replay, validation, sanction,
+or authority permission to make agent mode a sanctioned execution path. The
+Hermes adapter remains `planned`, and manual mode remains the only sanctioned
+execution path. This note records implementation progress; it does not advance
+either adapter beyond its evidence-gated lifecycle state.
 
 ## Context
 
@@ -102,9 +112,11 @@ A lifecycle label may not run ahead of its entrypoint, installation,
 capabilities, or evidence. Missing full-mode capabilities fail preflight. A
 partial or degraded execution may not be called full Aleph.
 
-The Loa and Hermes manifests are both `planned`. Neither native runner is
-implemented, validated, or sanctioned. Manual mode remains the only currently
-sanctioned execution path.
+At this decision's 2026-07-16 baseline, the Loa and Hermes manifests were both
+`planned`. Neither native runner was implemented, validated, or sanctioned,
+and manual mode was the only sanctioned execution path. The dated
+implementation-status note above records later lifecycle progress without
+changing that sanction boundary.
 
 ### 4. Distribution uses immutable host bundles
 
@@ -187,5 +199,7 @@ original bundle and runtime snapshot, even after newer bundles exist.
   adapter reference profile.
 - Decision 0001's product goal remains, but “sync `main`” is no longer an
   allowed delivery mechanism.
-- Manual mode remains sanctioned. The planned Loa and Hermes manifests reserve
-  future integration surfaces without implementing either runner.
+- At the decision baseline, manual mode remained sanctioned while the planned
+  Loa and Hermes manifests reserved future integration surfaces without
+  implementing either runner. The dated implementation-status note above
+  records subsequent structural progress separately.

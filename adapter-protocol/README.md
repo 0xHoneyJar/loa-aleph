@@ -3,8 +3,8 @@
 > **Protocol version:** `1.0.0-provisional`
 >
 > **Run-format version:** `1.0.0-provisional`
-> **Status:** accepted foundation; no native host adapter is implemented,
-> validated, or sanctioned
+> **Status:** accepted foundation; the Loa host adapter is implemented but not
+> validated or sanctioned, while the other registered host remains planned
 
 This directory defines the boundary between the one complete,
 harness-neutral Aleph Core and a host adapter. It implements the boundary
@@ -80,8 +80,10 @@ capability states, replay evidence, or authority evidence. A planned manifest
 therefore uses null executable and installation paths, empty evidence, planned
 capability states, and `full_mode.claimed: false`.
 
-Manual mode remains the only sanctioned execution path. The current host
-manifests reserve future integration surfaces only.
+Manual mode remains the only sanctioned execution path. The Loa manifest now
+records structural implementation only; it carries no accepted replay,
+validation, or sanction evidence. The other host manifest remains a planned
+reservation.
 
 ## Run identity and resumption
 

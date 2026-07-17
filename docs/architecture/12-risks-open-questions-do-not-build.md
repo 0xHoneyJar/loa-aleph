@@ -41,7 +41,7 @@
 | Q9 | **Verifier quorum/sampling defaults** — the doc 06 §3 numbers are placeholders | doc 06 | slice 13 sets, slice 14 confirms |
 | Q10 | **Hybrid-mode manifest conventions** — per-stage actor recording when humans and agents split a run | doc 09 §5 | slice 15 |
 | Q11 | **RESOLVED by Decision 0003:** verdict files are run-internal portable companions; Précis §16 carries summary and sampling honesty. | artifacts 15/17; portability contract | implemented by the golden run |
-| Q12 | **RESOLVED by Decision 0004:** Aleph ships one complete immutable, harness-neutral Core plus one host adapter. Prompt packs remain Core; harness-native entrypoints and model/runtime mappings remain adapter/profile mechanics. Adapters may invoke but never fork, restate, or weaken Core. | Decision 0004; adapter protocol; packaging contract | implemented by the Core manifest, planned adapter manifests, and bundle validator; agent-mode sanction remains separately evidence-gated |
+| Q12 | **RESOLVED by Decision 0004:** Aleph ships one complete immutable, harness-neutral Core plus one host adapter. Prompt packs remain Core; harness-native entrypoints and model/runtime mappings remain adapter/profile mechanics. Adapters may invoke but never fork, restate, or weaken Core. | Decision 0004; adapter protocol; packaging contract | implemented by the Core manifest and bundle validator; Loa is structurally `implemented` only, Hermes remains `planned`, and adapter validation plus agent-mode sanction remain separately evidence-gated |
 
 ## 3. Do-not-build (consolidated, standing)
 
