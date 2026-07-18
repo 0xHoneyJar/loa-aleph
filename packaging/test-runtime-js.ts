@@ -20,6 +20,7 @@ import {
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
 const JAVASCRIPT_EXTENSION = /\.(?:[cm]?js|jsx)$/u;
+const TYPESCRIPT_EXTENSION = /\.ts$/u;
 
 function expect(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -32,6 +33,15 @@ function trackedJavaScriptPaths(root: string): string[] {
   })
     .split('\0')
     .filter((path) => JAVASCRIPT_EXTENSION.test(path));
+}
+
+function trackedTypeScriptPaths(root: string): string[] {
+  return execFileSync('git', ['-C', root, 'ls-files', '-z'], {
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
+  })
+    .split('\0')
+    .filter((path) => TYPESCRIPT_EXTENSION.test(path));
 }
 
 function main(): void {
@@ -84,6 +94,30 @@ function main(): void {
       const report = checkRuntimeProjection(REPO_ROOT);
       expect(report.result === 'PASS', report.errors.join('; '));
       expect(report.files > 0, 'runtime projection is empty');
+    });
+
+    run('tracked TypeScript is classified as TypeScript', () => {
+      const trackedTypeScript = trackedTypeScriptPaths(REPO_ROOT);
+      expect(trackedTypeScript.length > 0, 'tracked TypeScript source is empty');
+      const attributes = execFileSync(
+        'git',
+        [
+          '-C',
+          REPO_ROOT,
+          'check-attr',
+          'linguist-language',
+          '--',
+          ...trackedTypeScript,
+        ],
+        { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
+      ).trimEnd().split('\n');
+      const unclassified = attributes.filter(
+        (line) => !line.endsWith(': linguist-language: TypeScript'),
+      );
+      expect(
+        attributes.length === trackedTypeScript.length && unclassified.length === 0,
+        `tracked TypeScript lacks its language override: ${unclassified.join(', ')}`,
+      );
     });
 
     const first = join(tempRoot, 'first');

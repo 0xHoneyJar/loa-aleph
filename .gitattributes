@@ -1,2 +1,3 @@
 # Node 20 release runtime generated deterministically from authoritative TypeScript.
+*.ts linguist-language=TypeScript
 runtime-js/** linguist-generated=true
