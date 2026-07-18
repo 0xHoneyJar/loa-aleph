@@ -12,6 +12,7 @@
   },
   "files": [
     "adapters/loa/src/cli.ts",
+    "adapters/loa/src/host-attestation.ts",
     "adapters/loa/src/launcher.ts",
     "adapters/loa/src/worker-dispatch.ts",
     "scripts/validate-run.ts"
