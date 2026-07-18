@@ -255,6 +255,7 @@
       "tsconfig.runtime.json"
     ],
     "repository_administration": [
+      ".gitattributes",
       ".github/CODEOWNERS",
       ".github/workflows/ci.yml",
       ".github/workflows/release-aleph-for-loa.yml",
