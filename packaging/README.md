@@ -243,6 +243,11 @@ npm run runtime:check
 npm run test:runtime
 ```
 
+The repository contains no authored JavaScript. `.gitattributes` classifies
+the tracked projection as generated for language indexers, and the runtime test
+rejects any JavaScript path outside `runtime-js/` or any generated-language
+attribute or source/projection drift.
+
 `runtime-js/package.json` fixes the ESM package scope. The installed launcher
 is exposed as `.claude/aleph/bin/loa-aleph.mjs`; its CLI, worker dispatcher,
 installer, and pinned checker all execute the locked `.js` projection. This

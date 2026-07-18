@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { execFileSync } from 'node:child_process';
 import {
   cpSync,
   mkdtempSync,
@@ -18,9 +19,19 @@ import {
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
+const JAVASCRIPT_EXTENSION = /\.(?:[cm]?js|jsx)$/u;
 
 function expect(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
+}
+
+function trackedJavaScriptPaths(root: string): string[] {
+  return execFileSync('git', ['-C', root, 'ls-files', '-z'], {
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
+  })
+    .split('\0')
+    .filter((path) => JAVASCRIPT_EXTENSION.test(path));
 }
 
 function main(): void {
@@ -39,7 +50,37 @@ function main(): void {
     }
   };
   try {
-    run('committed projection exactly matches TypeScript emit', () => {
+    run('tracked JavaScript is generated TypeScript emit', () => {
+      const trackedJavaScript = trackedJavaScriptPaths(REPO_ROOT);
+      expect(trackedJavaScript.length > 0, 'tracked runtime projection is empty');
+      const outsideProjection = trackedJavaScript.filter(
+        (path) => !path.startsWith('runtime-js/'),
+      );
+      expect(
+        outsideProjection.length === 0,
+        `authored JavaScript is forbidden: ${outsideProjection.join(', ')}`,
+      );
+
+      const attributes = execFileSync(
+        'git',
+        [
+          '-C',
+          REPO_ROOT,
+          'check-attr',
+          'linguist-generated',
+          '--',
+          ...trackedJavaScript,
+        ],
+        { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
+      ).trimEnd().split('\n');
+      const unclassified = attributes.filter(
+        (line) => !line.endsWith(': linguist-generated: true'),
+      );
+      expect(
+        attributes.length === trackedJavaScript.length && unclassified.length === 0,
+        `tracked JavaScript is not classified as generated: ${unclassified.join(', ')}`,
+      );
+
       const report = checkRuntimeProjection(REPO_ROOT);
       expect(report.result === 'PASS', report.errors.join('; '));
       expect(report.files > 0, 'runtime projection is empty');
