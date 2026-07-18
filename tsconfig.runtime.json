@@ -15,7 +15,8 @@
     "adapters/loa/src/host-attestation.ts",
     "adapters/loa/src/launcher.ts",
     "adapters/loa/src/worker-dispatch.ts",
-    "scripts/validate-run.ts"
+    "scripts/validate-run.ts",
+    "scripts/validate-worker-return.ts"
   ],
   "include": []
 }
