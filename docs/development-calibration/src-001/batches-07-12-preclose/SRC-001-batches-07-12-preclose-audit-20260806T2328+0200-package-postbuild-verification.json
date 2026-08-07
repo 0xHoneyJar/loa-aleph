@@ -1,0 +1,22 @@
+{
+  "artifact_type": "SRC-001-batches-07-12-preclose-audit-package-postbuild-verification",
+  "timestamp": "20260806T2328+0200",
+  "package": "SRC-001-batches-07-12-preclose-audit-20260806T2328+0200-package.zip",
+  "package_bytes": 3263491,
+  "package_sha256": "7efd857315502630c91f612b2a4aff1c9299883608c4adb2a8dfe777c9f41dec",
+  "archive_members": 108,
+  "duplicate_member_names": 0,
+  "zip_test": "PASS",
+  "zip_test_first_bad_member": null,
+  "checksum_entries": 107,
+  "checksum_pass": 107,
+  "checksum_failures": [],
+  "json_parse_pass": 35,
+  "json_parse_failures": [],
+  "result": "PASS",
+  "status_boundary": {
+    "src_001": "OPEN",
+    "src_002": "NOT_AUTHORIZED",
+    "package_class": "PRE_CLOSE_EVIDENCE_ONLY"
+  }
+}
