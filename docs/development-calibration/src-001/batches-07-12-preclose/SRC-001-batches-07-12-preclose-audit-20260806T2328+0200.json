@@ -1,0 +1,172 @@
+{
+  "artifact_type": "SRC-001-batches-07-12-preclose-audit-summary",
+  "timestamp": "20260806T2328+0200",
+  "scope": {
+    "batches": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "source_lines": "L469-L792",
+    "original_candidates": "C-146-C-206",
+    "gaps": "G-027-G-043"
+  },
+  "verdict": {
+    "batch_07_12_edit_add_integrity": "PASS",
+    "preclose_download_ready": true,
+    "final_closed_package_ready": false,
+    "src_001_status": "OPEN",
+    "src_002_status": "NOT_AUTHORIZED"
+  },
+  "audit_totals": {
+    "mechanical": {
+      "total": 227,
+      "pass": 226,
+      "fail": 0,
+      "warn": 1
+    },
+    "semantic_structural": {
+      "total": 1142,
+      "pass": 1142,
+      "fail": 0,
+      "warn": 0
+    },
+    "combined": {
+      "total": 1369,
+      "pass": 1368,
+      "fail": 0,
+      "warn": 1
+    }
+  },
+  "sole_segment_warning": {
+    "scope": "CHAIN",
+    "check": "transfer-manifest pin is uniform",
+    "status": "WARN",
+    "detail": {
+      "7": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+      "8": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+      "9": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+      "10": "5633fa28f809bb84e7c41e8e34a9348a6686d6f9e83d5e2161fe8d926526af0a",
+      "11": "5633fa28f809bb84e7c41e8e34a9348a6686d6f9e83d5e2161fe8d926526af0a",
+      "12": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2"
+    }
+  },
+  "batch_results": [
+    {
+      "batch": 7,
+      "coverage": "L469–L518",
+      "original_candidates": "C-146–C-162",
+      "gaps": "G-027–G-032",
+      "edits_or_additions": "S-147a/b; S-158a/b/c; S-160a/b; E-003",
+      "result": "PASS",
+      "checkpoint_sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+      "attestation_gate": "CLOSED_BY_EXPLICIT_HUMAN_ATTESTATION"
+    },
+    {
+      "batch": 8,
+      "coverage": "L519–L568",
+      "original_candidates": "C-163–C-183",
+      "gaps": "G-033–G-036",
+      "edits_or_additions": "S-167a/b; append-only B08A/B metadata corrections",
+      "result": "PASS",
+      "checkpoint_sha256": "8e2653ecaaa703acbb8e70cfe04316c0e3041148ec00b2204ba5a544a24ab667",
+      "attestation_gate": "CLOSED_BY_EXPLICIT_HUMAN_ATTESTATION"
+    },
+    {
+      "batch": 9,
+      "coverage": "L569–L618",
+      "original_candidates": "C-184–C-204",
+      "gaps": "G-037–G-039",
+      "edits_or_additions": "S-190a/b; S-192a/b; append-only B09D boundary correction",
+      "result": "PASS",
+      "checkpoint_sha256": "b3c1b7db15acfed98df79086c190aadb527c9c9541d16b22690bc65bbabc8501",
+      "attestation_gate": "CLOSED_BY_EXPLICIT_HUMAN_ATTESTATION"
+    },
+    {
+      "batch": 10,
+      "coverage": "L619–L668",
+      "original_candidates": "C-205–C-206",
+      "gaps": "G-040–G-041",
+      "edits_or_additions": "Figure 4 review closed; Table 2 review opened",
+      "result": "PASS",
+      "checkpoint_sha256": "0f15e53f851f6b79192841233a88baa81d95d53da7de9e891b859e5004bc04fc",
+      "attestation_gate": "CLOSED_BY_EXPLICIT_HUMAN_ATTESTATION"
+    },
+    {
+      "batch": 11,
+      "coverage": "L669–L688",
+      "original_candidates": "none",
+      "gaps": "G-042",
+      "edits_or_additions": "T2-000–T2-012; Table 2 review closed",
+      "result": "PASS",
+      "checkpoint_sha256": "5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb",
+      "attestation_gate": "CLOSED_BY_EXPLICIT_HUMAN_ATTESTATION"
+    },
+    {
+      "batch": 12,
+      "coverage": "L689–L792",
+      "original_candidates": "none",
+      "gaps": "G-043",
+      "edits_or_additions": "No added units; source-order adjudication complete",
+      "result": "PASS",
+      "checkpoint_sha256": "0f19d221c6c6b73ddc9a5b82fdfcf2e19eede8e3e092575eee6ea0fe2a8eae70",
+      "attestation_gate": "CLOSED_BY_EXPLICIT_HUMAN_ATTESTATION"
+    }
+  ],
+  "inventory": {
+    "original_candidates": 61,
+    "gaps": 17,
+    "added_or_replacement_units": 27
+  },
+  "unresolved_findings": [
+    {
+      "id": "TRANSFER-MANIFEST-PIN-DRIFT-B10-B11",
+      "effect": "BLOCKS FINAL PACKAGING",
+      "detail": "Batches 10–11 serialize transfer-manifest digest 5633fa28f809bb84e7c41e8e34a9348a6686d6f9e83d5e2161fe8d926526af0a, while Batches 7–9 and 12 retain pinned digest 5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2. Preserve existing checkpoints and close additively against exact transfer-manifest bytes."
+    },
+    {
+      "id": "WHOLE-SOURCE-CONSISTENCY",
+      "effect": "REQUIRED BEFORE CLOSE",
+      "detail": "This audit covers Batches 07–12 and their continuity. The mandated whole-source pass across Batches 01–12 is still separate work."
+    },
+    {
+      "id": "SRC-001-EXPLICIT-CLOSE-DECISION",
+      "effect": "REQUIRED BEFORE CLOSE",
+      "detail": "SRC-001 remains OPEN; SRC-002 remains NOT AUTHORIZED."
+    },
+    {
+      "id": "PACKAGING-RISK",
+      "effect": "CARRY FORWARD",
+      "detail": "Final calibration packaging must include the exact immutable transfer bundle and all additive corrections/receipts."
+    },
+    {
+      "id": "C-186-SOURCE-INTERNAL-LSTM-REFERENT",
+      "effect": "SEMANTIC OPEN FINDING",
+      "detail": "The source says “same CNN and LSTM,” but the exact LSTM antecedent is not supplied by the immediately preceding Sort-of-CLEVR configuration."
+    },
+    {
+      "id": "AUDIT-B02-BYTES",
+      "effect": "CARRY FORWARD",
+      "detail": "Earlier-batch finding outside the Batch 07–12 segment."
+    },
+    {
+      "id": "NORM-19",
+      "effect": "CARRY FORWARD",
+      "detail": "Earlier normalization finding outside the Batch 07–12 segment."
+    },
+    {
+      "id": "MISSING-INTERNAL-AUDIT-JSON",
+      "effect": "CARRY FORWARD",
+      "detail": "Known non-load-bearing missing audit JSON remains visible and must not be reconstructed."
+    }
+  ],
+  "required_before_final_package": [
+    "Close TRANSFER-MANIFEST-PIN-DRIFT-B10-B11 additively against exact transfer-manifest bytes.",
+    "Complete and record WHOLE-SOURCE-CONSISTENCY across Batches 01-12.",
+    "Obtain a separate explicit human SRC-001 close decision.",
+    "Keep SRC-002 unauthorized until explicit close."
+  ]
+}
