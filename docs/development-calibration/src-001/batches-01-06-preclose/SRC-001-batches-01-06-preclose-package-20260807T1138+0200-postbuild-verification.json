@@ -1,0 +1,21 @@
+{
+  "record_type": "postbuild_internal_structural_verification",
+  "package": "SRC-001-batches-01-06-preclose-package-20260807T1138+0200.zip",
+  "package_bytes": 1224120,
+  "package_sha256": "91fa83596426b9cf52843934db5562ac50cb869db4c86d040f5df67200bed964",
+  "member_count": 80,
+  "checksum_entry_count": 79,
+  "all_checksums_pass": true,
+  "result": "PASS",
+  "errors": [],
+  "known_missing_inventoried_file": {
+    "path": "SRC-001-internal-audit-through-batch-06-20260805T1756+0200.json",
+    "bytes": 10070,
+    "sha256": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+    "category": "internal audit artifact",
+    "top_level": true
+  },
+  "limits": [
+    "Internal structural/byte verification only; not independent audit or semantic validation."
+  ]
+}
