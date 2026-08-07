@@ -270,7 +270,13 @@
       ".github/CODEOWNERS",
       ".github/workflows/ci.yml",
       ".github/workflows/release-aleph-for-loa.yml",
-      ".gitignore"
+      ".gitignore",
+      "docs/development-calibration/src-001/batches-07-12-preclose/CHECKSUMS.sha256",
+      "docs/development-calibration/src-001/batches-07-12-preclose/README.md",
+      "docs/development-calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200-package-postbuild-verification.json",
+      "docs/development-calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200-package.zip.sha256",
+      "docs/development-calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200.json",
+      "docs/development-calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200.md"
     ]
   },
   "checker_paths": [
