@@ -1,0 +1,80 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "12A",
+  "recorded_at": "2026-08-06T22:59:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\n\nG-043 — L689-L792\n\nDecision: no packet appropriate.\n\nSource partition:\nL689 is the References section heading.\nL690-L739 contains bibliography entries [1] through [23].\nL740 is the extracted printed page number 15.\nL741 is a blank line.\nL742-L791 contains bibliography entries [24] through [48].\nL792 is the extracted printed page number 16.\n\nL689 decision: no packet appropriate.\n\nL689 exclusion class: document-administration.\n\nL690-L739 decision: no packet appropriate.\n\nL690-L739 exclusion class: bibliography-and-index.\n\nL740-L741 decision: no packet appropriate.\n\nL740-L741 exclusion class: document-administration.\n\nL742-L791 decision: no packet appropriate.\n\nL742-L791 exclusion class: bibliography-and-index.\n\nL792 decision: no packet appropriate.\n\nL792 exclusion class: document-administration.\n\nMissing-packet decision: none.\n\nDependencies: none.\n\nCitation treatment: none.\n\nPrior-response treatment: The earlier statement “No admitted spans in L689-L792. Walked through L792; SRC-001 complete.” has no recorded semantic reason or human approval. Do not adopt it as an authority record. This decision supplies the independent semantic review of G-043.\n\nBibliography treatment: Bibliographic authors, titles, publication venues, years, identifiers, and other citation metadata are locators and credits rather than independent subject-matter assertions by SRC-001.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve the complete L689-L792 source provenance.\nDo not admit a bibliography entry merely because its title contains terminology relevant to the corpus.\nDo not infer that citation of a work constitutes endorsement of every claim in that work.\nDo not infer findings, methods, comparisons, or conclusions from bibliographic titles.\nDo not treat publication metadata as evidence for SRC-001’s substantive claims.\nDo not convert the References heading, printed page numbers, or blank line into packets.\nDo not discard, rewrite, normalize, or reorder the frozen bibliography bytes.\n\nCoverage treatment: Adoption accounts for every source line through L792 and completes the source-order adjudication of SRC-001.\n\nClosure restriction: Completing source-order adjudication does not close SRC-001. A whole-source consistency pass, preservation of unresolved findings, a checkpoint and exact-byte attestation, and a separate explicit human close decision remain required.\n\nSRC-001 status after adoption: OPEN pending checkpoint construction, exact-byte attestation, whole-source consistency review, and explicit human close decision.\n\nSRC-002 status after adoption: NOT AUTHORIZED.\n\nCriteria observations: none from Batch 12. No criteria change is proposed or applied.\n\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.",
+  "decision_block_line_endings": "LF as received; no final newline",
+  "decision_block_utf8_sha256": "d5ed689b0b0356b4910e42b7a884982dc0d5c69402ca64980d3c9285d15a3d14",
+  "adopted_ids": [
+    "G-043"
+  ],
+  "decisions": {
+    "G-043": {
+      "locator": "L689-L792",
+      "decision": "no packet appropriate",
+      "partitions": [
+        {
+          "locator": "L689",
+          "material": "References section heading",
+          "decision": "no packet appropriate",
+          "exclusion_class": "document-administration"
+        },
+        {
+          "locator": "L690-L739",
+          "material": "bibliography entries [1] through [23]",
+          "decision": "no packet appropriate",
+          "exclusion_class": "bibliography-and-index"
+        },
+        {
+          "locator": "L740-L741",
+          "material": "printed page number 15 and blank line",
+          "decision": "no packet appropriate",
+          "exclusion_class": "document-administration"
+        },
+        {
+          "locator": "L742-L791",
+          "material": "bibliography entries [24] through [48]",
+          "decision": "no packet appropriate",
+          "exclusion_class": "bibliography-and-index"
+        },
+        {
+          "locator": "L792",
+          "material": "printed page number 16",
+          "decision": "no packet appropriate",
+          "exclusion_class": "document-administration"
+        }
+      ],
+      "missing_packet_decision": "none",
+      "source_order_adjudication_complete": true,
+      "src001_after_adoption": "OPEN",
+      "src002_after_adoption": "NOT AUTHORIZED"
+    }
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-206",
+    "original_candidate_inventory_complete": true,
+    "last_gap_adjudicated": "G-043",
+    "last_fully_accounted_source_line": "L792",
+    "source_order_adjudication_complete": true,
+    "next_source_line": null,
+    "next_source_order_item": null,
+    "next_original_candidate": null,
+    "next_gap": null,
+    "next_required_phase": "WHOLE-SOURCE-CONSISTENCY after checkpoint exact-byte attestation",
+    "src001": "OPEN",
+    "src002": "NOT AUTHORIZED"
+  },
+  "pins": {
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "proposal_sha256": "4d9a2004026edb465b3c748822959b1cffb93c118459ed5f5ff4e3f55b1cafe7",
+    "predecessor_checkpoint_sha256": "5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb"
+  }
+}

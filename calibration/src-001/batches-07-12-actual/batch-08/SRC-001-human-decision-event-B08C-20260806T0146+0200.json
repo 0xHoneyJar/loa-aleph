@@ -1,0 +1,127 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "08C",
+  "recorded_at": "2026-08-06T01:46:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\n\nC-173 — L540-L541\n\nDisposition: edit.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nWe used a 256 unit LSTM\nfor question processing and word-lookup embeddings of size 32.\n\nNormalized wording: For the CLEVR state-description model anchored by C-172, question processing used a 256-unit LSTM and word-lookup embeddings of size 32.\n\nDependencies: C-172.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with C-101’s 32-unit word-lookup-embedding detail for the CLEVR-from-pixels model. Preserve C-173 as the state-description configuration and retain its provenance, but do not treat the repeated embedding size as independent corroboration.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve the distinction between the 256-unit LSTM and word-lookup embeddings of size 32.\nDo not import C-101’s 128-unit LSTM into this configuration.\nDo not infer vocabulary size, embedding initialization, tokenization, sequence length, or whether the embeddings were pretrained.\nDo not infer that 256 is the embedding dimension.\n\nC-174 — L541-L543\n\nDisposition: edit.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nFor the RN we used a four-layer\nMLP with 512 units per layer, with ReLU non-linearities for gθ. A three-layer MLP consisting of\n512, 1024 (with 2% dropout) and 29 units with ReLU non-linearities was used for fθ.\n\nNormalized wording: For the C-172 state-description model, the RN used a four-layer MLP with 512 units per layer and ReLU nonlinearities for gθ, plus a three-layer 512/1024/29-unit MLP with 2% dropout at the 1024-unit layer and ReLU nonlinearities for the function rendered as fφ in the PDF but extracted as fθ in the frozen text.\n\nDependencies: C-172.\n\nCitation treatment: none.\n\nContextual-overlap treatment: Record contextual overlap with C-102 and C-103, which configure the corresponding RN functions for the CLEVR-from-pixels model using different dimensions and dropout. Preserve the task-specific configurations separately and do not treat them as duplicates.\n\nGranularity treatment: Retain both MLP descriptions as one coordinated RN configuration for the C-172 model.\n\nDegradation flag: The frozen evidence reads “fθ”; the exact PDF visually reads “fφ”. Preserve “fθ” in the frozen exact evidence and keep the discrepancy explicit. Do not silently repair the quote.\n\nRestrictions:\nPreserve four layers and 512 units per layer for gθ.\nPreserve the three-layer dimensions 512, 1024, and 29.\nPreserve 2% dropout as associated with the 1024-unit layer.\nPreserve ReLU nonlinearities.\nDo not infer that the two MLPs share parameters.\nDo not infer dropout on every layer or on gθ.\nDo not infer the output meaning of the 29 units from this passage alone.\nDo not silently replace the frozen symbol.\n\nC-175 — L543-L545\n\nDisposition: edit.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nTo train the\nmodel we used 10 distributed workers that synchronously updated a central parameter server. Each\nworker learned with mini-batches of size 64, using the Adam optimizer and a learning rate of 1 e−4.\n\nNormalized wording: Training the C-172 CLEVR state-description model used 10 distributed workers synchronously updating a central parameter server; each worker used mini-batches of size 64, Adam, and a learning rate of 1e−4.\n\nDependencies: C-172.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with C-165 and C-105 for the worker, parameter-server, and mini-batch configuration. Preserve C-175 as the state-description training configuration. Its learning rate differs and must remain distinct.\n\nDegradation flag: The frozen evidence contains “1 e−4”; the exact PDF is readable as “1e−4”. Preserve the frozen spacing.\n\nRestrictions:\nPreserve 10 distributed workers.\nPreserve synchronous updates to a central parameter server.\nPreserve that each worker used mini-batches of size 64.\nPreserve the Adam optimizer and the stated learning rate.\nDo not infer aggregate batch size.\nDo not substitute C-165’s learning rate of 2 .5e−4.\nDo not infer hardware, communication protocol, replicated parameter servers, or asynchronous behavior.\nDo not generalize this configuration to the pixel or Sort-of-CLEVR models.\n\nG-035 — L546\n\nDecision: no packet appropriate.\n\nExact frozen evidence:\nD Sort-of-CLEVR\n\nExclusion reason: The line is a section heading. It establishes the organizational scope for C-176 onward but makes no independent dataset, architecture, training, or empirical assertion.\n\nExclusion class: document-administration.\n\nMissing-packet decision: none.\n\nDependencies: none.\n\nCitation treatment: none.\n\nDegradation flags: none.\n\nRestriction: Do not admit the heading itself as evidence about Sort-of-CLEVR.\n\nC-176 — L547-L548\n\nDisposition: calibration-accept.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nThe Sort-of-CLEVR dataset contains 10000 images of size 75 × 75, 200 of which were withheld for\nvalidation. There were 20 questions generated per image (10 relational and 10 non-relational).\n\nNormalized wording: The Sort-of-CLEVR dataset contains 10000 images of size 75 × 75, with 200 images withheld for validation, and 20 generated questions per image divided evenly between 10 relational and 10 non-relational questions.\n\nDependencies: none.\n\nAnchor treatment: C-176 supplies the Sort-of-CLEVR dataset and task scope for C-177 through C-183.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with C-061’s earlier statement that each image has 10 relational and 10 non-relational questions. Preserve both occurrences and their provenance, but do not treat the repeated balance as independent corroboration.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve 10000 images.\nPreserve image size 75 × 75.\nPreserve that 200 images were withheld for validation.\nPreserve 20 questions per image, divided into 10 relational and 10 non-relational questions.\nDo not infer the number of training images by subtraction as an authorized source value.\nDo not infer a test split.\nDo not infer whether validation images shared question templates with training images.\nDo not infer a total question count unless separately stated by the source.\n\nC-177 — L549-L551\n\nDisposition: calibration-accept.\n\nCriterion: 1.\n\nAuthorized exact evidence:\nNon-relational questions are split into three categories: (i) query shape, e.g. “ What is the shape\nof the red object? ”; (ii) query horizontal position, e.g. “ Is the red object on the left or right of the\nimage?”; (iii) query vertical position, e.g. “ Is the red object on the top or bottom of the image? ”.\n\nNormalized wording: In Sort-of-CLEVR, non-relational questions are divided into query-shape, query-horizontal-position, and query-vertical-position categories, with the source’s respective examples concerning a red object.\n\nDependencies: C-176, which supplies the Sort-of-CLEVR dataset scope.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with C-063’s earlier non-relational examples. C-177 adds an explicit three-category taxonomy. Preserve both occurrences, but do not treat repeated examples as independent evidence.\n\nDegradation flag: The frozen extraction contains spacing inside several quotation marks that is absent in the readable PDF. Preserve the frozen exact evidence unchanged.\n\nRestrictions:\nPreserve all three categories and all three examples.\nPreserve “image?” exactly where it occurs in the frozen evidence.\nDo not treat the example color red as a requirement that all such questions concern red objects.\nDo not infer that the examples exhaust all possible question phrasings.\nDo not infer why the categories are non-relational; that explanation belongs to C-178.\nDo not merge C-177 with C-178.\n\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.",
+  "decision_block_utf8_sha256": "98a105ce5c87c67aa30f13ec1fd83624b837596066b0037b900148837d33b992",
+  "adopted_ids": [
+    "C-173",
+    "C-174",
+    "C-175",
+    "G-035",
+    "C-176",
+    "C-177"
+  ],
+  "decisions": {
+    "C-173": {
+      "locator": "L540-L541",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-172"
+      ],
+      "partial_overlaps": [
+        "C-101"
+      ]
+    },
+    "C-174": {
+      "locator": "L541-L543",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-172"
+      ],
+      "contextual_overlaps": [
+        "C-102",
+        "C-103"
+      ],
+      "degradation_flags": [
+        "fθ_in_frozen_vs_fφ_in_pdf"
+      ]
+    },
+    "C-175": {
+      "locator": "L543-L545",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-172"
+      ],
+      "partial_overlaps": [
+        "C-165",
+        "C-105"
+      ],
+      "degradation_flags": [
+        "1 e−4_in_frozen_vs_1e−4_in_pdf"
+      ]
+    },
+    "G-035": {
+      "locator": "L546",
+      "decision": "no packet appropriate",
+      "exclusion_class": "document-administration",
+      "missing_packet": "none"
+    },
+    "C-176": {
+      "locator": "L547-L548",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "anchor_for": [
+        "C-177",
+        "C-178",
+        "C-179",
+        "C-180",
+        "C-181",
+        "C-182",
+        "C-183"
+      ],
+      "partial_overlaps": [
+        "C-061"
+      ]
+    },
+    "C-177": {
+      "locator": "L549-L551",
+      "disposition": "calibration-accept",
+      "criterion": 1,
+      "dependencies": [
+        "C-176"
+      ],
+      "partial_overlaps": [
+        "C-063"
+      ],
+      "degradation_flags": [
+        "quotation_spacing_differs_from_pdf"
+      ]
+    }
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-177",
+    "last_gap_adjudicated": "G-035",
+    "last_fully_accounted_source_line": "L551",
+    "next_source_line": "L552",
+    "next_candidate": "C-178",
+    "next_candidate_locator": "L552-L553",
+    "next_gap": "G-036",
+    "current_batch": "Batch 08"
+  },
+  "pins": {
+    "checkpoint_through_batch_07_zip_sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+    "batch07_attestation_receipt_markdown_sha256": "96922b8a4f494b58239fcd37a43c4bb29f344228cb07c4a46889061e4456725c",
+    "batch07_attestation_receipt_json_sha256": "dec0bfe56547af5f86f51e78809239cfe176f4ab73e35334cdb269ae29a6a7f6",
+    "batch08_proposal_sha256": "420934551436cbf1956f88937b91deb80960355dd6a9ffd8c81a3434ce2b54c7",
+    "transfer_manifest_sha256": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "normalized_criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "handoff_sha256": "81764a109ce30e92b4661506d8f18a96a17ed81b309fcf614da993461f2783ca",
+    "exact_pdf_sha256": "c115123a511418ab46f04c4f9f78b6a569712960dbe9ca596d4edd6f0686d521",
+    "predecessor_event_B08B_markdown_sha256": "7a53a6bedd5cf7e00d3c55c71ab30727d6cbd97e03736cd09a6994027ee01ddd",
+    "predecessor_event_B08B_json_sha256": "34749d5ead195a1775d5d7f33e97564de324bddaa75e02703aede8f28f8eff53",
+    "predecessor_resume_correction_B08B_markdown_sha256": "c9e2e6aa2faf7d10669575b5eb633b08d82bd8921adab23532a5b45b025404b2",
+    "predecessor_resume_correction_B08B_json_sha256": "07da73bbd94fd92593d71ae4c1dd4c2efb6d4c8493c6455b0308382a9ffc5e49"
+  }
+}

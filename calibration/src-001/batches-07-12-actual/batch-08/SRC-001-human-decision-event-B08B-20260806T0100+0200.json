@@ -1,0 +1,121 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "08B",
+  "recorded_at": "2026-08-06T01:00:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\n\nC-169 — L528-L530\n\nDisposition: edit.\n\nCriterion: 5.\n\nAuthorized exact evidence:\nIn general, we found that smaller models\nperformed best. For example, 128 hidden unit LSTMs performed better than 256 or 512, and CNNs\nwith 24 kernels were better than CNNs with more kernels, such as 32, 64, or more.\n\nNormalized wording: For the C-163 CLEVR-from-pixels model, the authors report that smaller models generally performed best: LSTMs with 128 hidden units outperformed those with 256 or 512 hidden units, and CNNs with 24 kernels outperformed CNNs with larger kernel counts such as 32, 64, or more.\n\nDependencies: C-163.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with S-167a’s 24-kernel best-performing convolutional configuration and earlier CLEVR-from-pixels convolutional-configuration material. Preserve C-169 as the explicit model-size comparison and retain its provenance, but do not treat the repeated 24-kernel detail as independent corroboration.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve “In general.”\nPreserve “found” as the authors’ empirical attribution.\nPreserve “performed best” without inventing a performance metric.\nPreserve both comparator sets: 128 hidden units against 256 or 512, and 24 kernels against larger counts such as 32, 64, or more.\nDo not infer parameter counts from hidden-unit or kernel counts.\nDo not infer that performance decreases monotonically with model size.\nDo not infer a numerical margin, confidence interval, metric, or statistical significance.\nDo not generalize the comparison to other datasets, architectures, tasks, or training regimes.\nDo not convert “smaller models performed best” into a universal recommendation that smaller models are always superior.\n\nG-033 — L531\n\nDecision: no packet appropriate.\n\nExact frozen evidence:\nFailure cases\n\nExclusion reason: The line is a subsection heading. It supplies organizational scope for C-170 and C-171 but makes no independent claim about failure frequency, causes, or severity.\n\nExclusion class: document-administration.\n\nMissing-packet decision: none.\n\nDependencies: none.\n\nCitation treatment: none.\n\nDegradation flags: none.\n\nRestriction: Do not convert the heading into an assertion that the architecture has any particular failure mode.\n\nC-170 — L532-L534\n\nDisposition: calibration-accept.\n\nCriterion: 6.\n\nAuthorized exact evidence:\nAlthough our model gets most answers correct, a closer examination of the failure cases help us to\nidentify limitations of our architecture. In Table 2, we show some examples of CLEVR questions that\nour model fails to answer correctly, along with the ground-truth answers.\n\nNormalized wording: Although the C-163 CLEVR-from-pixels model answers most questions correctly, the authors state that examining its failures helps identify architecture limitations; Table 2 presents examples of incorrectly answered CLEVR questions together with their ground-truth answers.\n\nDependencies:\nC-163, which resolves “our model” and supplies the CLEVR-from-pixels model scope.\nTABLE-2-FORMAL-MATERIAL-REVIEW, a forward dependency requiring later adjudication of the table’s caption, examples, predictions, and ground-truth answers.\n\nForward-dependency restriction: No proposed T2-* unit is adopted through C-170. Individual Table 2 questions, images, RN predictions, and ground-truth answers remain pending their later formal-material review.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve “most answers correct” as an unquantified statement.\nDo not substitute C-168’s 96.8% validation accuracy or C-109’s test accuracy for “most.”\nPreserve “help us to identify”; do not state that every limitation has been identified.\nPreserve Table 2 as the stated evidence surface.\nDo not infer failure frequencies from the number of displayed examples.\nDo not treat the displayed examples as representative sampling unless separately stated.\nDo not infer that Table 2 exhaustively lists the model’s failure modes.\nDo not pre-adjudicate individual Table 2 formal material.\n\nC-171 — L534-L537\n\nDisposition: calibration-accept.\n\nCriterion: 6.\n\nAuthorized exact evidence:\nBased on our observations,\nwe hypothesize that our architecture fails especially when objects are heavily occluded, or whenever\na high precision object position representation is required. We also observe that many failure cases\nfor our model are also challenging for humans.\n\nNormalized wording: Based on the failure-case observations described in C-170, the authors hypothesize that the architecture fails especially when objects are heavily occluded or when high-precision object-position representations are required; they also observe that many of the model’s failure cases are challenging for humans.\n\nDependencies: C-170, which supplies the failure-case observations and resolves the model and architecture context.\n\nInherited dependency: C-163 is inherited through C-170 and need not be duplicated as a direct dependency.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nGranularity treatment: Retain the two sentences as one coherent failure-analysis unit. The human-difficulty observation directly qualifies the same failure-case population underlying the authors’ hypothesis and does not introduce a separate architecture, experiment, or metric.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve “Based on our observations.”\nPreserve “hypothesize”; do not state the proposed failure conditions as proven causes.\nPreserve both alternative conditions: heavy object occlusion and a requirement for high-precision object-position representation.\nPreserve “especially”; do not convert the conditions into necessary or sufficient conditions for failure.\nPreserve “many”; do not broaden it to all failure cases.\nPreserve “also challenging for humans” as a qualitative observation.\nDo not infer a human-performance metric, experiment, sample size, or controlled comparison.\nDo not infer that human difficulty explains every model failure.\nDo not infer that the two stated conditions are the architecture’s only limitations.\nDo not convert the hypothesis into a demonstrated causal mechanism.\n\nG-034 — L538\n\nDecision: no packet appropriate.\n\nExact frozen evidence:\nC CLEVR from state descriptions\n\nExclusion reason: The line is a section heading. It establishes organizational scope for C-172 through C-175 but makes no independent architecture, training, or empirical assertion.\n\nExclusion class: document-administration.\n\nMissing-packet decision: none.\n\nDependencies: none.\n\nCitation treatment: none.\n\nDegradation flags: none.\n\nRestriction: Do not treat the heading itself as evidence of an architecture, training configuration, or empirical result.\n\nC-172 — L539-L540\n\nDisposition: calibration-accept.\n\nCriterion: 2.\n\nAuthorized exact evidence:\nThe model that we train on the state description version of CLEVR is similar to the model trained\non the pixel version of CLEVR, but without the vision processing module.\n\nNormalized wording: The authors state that the CLEVR state-description model is similar to the CLEVR-from-pixels model anchored by C-163, except that it omits the vision-processing module.\n\nDependencies: C-163, which identifies the pixel-version comparator model.\n\nAnchor treatment: C-172 supplies the state-description task and model scope for C-173 through C-175.\n\nCitation treatment: none.\n\nContextual-overlap treatment: Record contextual overlap with C-117’s state-description CLEVR result and C-118’s interpretation of that result. Preserve C-172 as a distinct supplementary architecture statement, and do not treat the repeated task context as independent empirical or interpretive evidence.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve “similar.”\nPreserve “without the vision processing module” as the stated architectural difference.\nDo not claim that the two models are otherwise byte-for-byte or component-for-component identical.\nDo not infer shared weights, identical optimization, identical hyperparameters, identical inputs, or identical performance.\nDo not infer that the vision-processing module is the only difference without preserving the qualified word “similar.”\nDo not infer that raw state descriptions require no preprocessing.\nDo not infer a causal performance effect from removing the vision-processing module.\n\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.",
+  "adopted_ids": [
+    "C-169",
+    "G-033",
+    "C-170",
+    "C-171",
+    "G-034",
+    "C-172"
+  ],
+  "decisions": {
+    "C-169": {
+      "locator": "L528-L530",
+      "disposition": "edit",
+      "criterion": 5,
+      "dependencies": [
+        "C-163"
+      ],
+      "partial_overlaps": [
+        "S-167a"
+      ]
+    },
+    "G-033": {
+      "locator": "L531",
+      "decision": "no packet appropriate",
+      "exclusion_class": "document-administration",
+      "missing_packet": "none"
+    },
+    "C-170": {
+      "locator": "L532-L534",
+      "disposition": "calibration-accept",
+      "criterion": 6,
+      "dependencies": [
+        "C-163",
+        "TABLE-2-FORMAL-MATERIAL-REVIEW"
+      ]
+    },
+    "C-171": {
+      "locator": "L534-L537",
+      "disposition": "calibration-accept",
+      "criterion": 6,
+      "dependencies": [
+        "C-170"
+      ],
+      "inherited_dependencies": [
+        "C-163"
+      ]
+    },
+    "G-034": {
+      "locator": "L538",
+      "decision": "no packet appropriate",
+      "exclusion_class": "document-administration",
+      "missing_packet": "none"
+    },
+    "C-172": {
+      "locator": "L539-L540",
+      "disposition": "calibration-accept",
+      "criterion": 2,
+      "dependencies": [
+        "C-163"
+      ],
+      "anchor_for": [
+        "C-173",
+        "C-174",
+        "C-175"
+      ],
+      "contextual_overlaps": [
+        "C-117",
+        "C-118"
+      ]
+    }
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-172",
+    "last_gap_adjudicated": "G-034",
+    "last_fully_accounted_source_line": "L540",
+    "next_source_line": "L541",
+    "next_candidate": "C-173",
+    "next_candidate_locator": "L541-L542",
+    "next_gap": "G-035",
+    "current_batch": "Batch 08"
+  },
+  "pins": {
+    "checkpoint_through_batch_07_zip_sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+    "batch07_attestation_receipt_markdown_sha256": "96922b8a4f494b58239fcd37a43c4bb29f344228cb07c4a46889061e4456725c",
+    "batch07_attestation_receipt_json_sha256": "dec0bfe56547af5f86f51e78809239cfe176f4ab73e35334cdb269ae29a6a7f6",
+    "batch08_proposal_sha256": "420934551436cbf1956f88937b91deb80960355dd6a9ffd8c81a3434ce2b54c7",
+    "transfer_manifest_sha256": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "normalized_criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "handoff_sha256": "81764a109ce30e92b4661506d8f18a96a17ed81b309fcf614da993461f2783ca",
+    "exact_pdf_sha256": "c115123a511418ab46f04c4f9f78b6a569712960dbe9ca596d4edd6f0686d521",
+    "predecessor_event_B08A_markdown_sha256": "9bf80aa0ccc22662e51816a61c9d0ac57efe6bced9c237c0ea8968706858afb8",
+    "predecessor_event_B08A_json_sha256": "55f43af482351b2d61ef9f20992a83dbab98f5baf86f1415ca0a819bf5614d03",
+    "B08A_metadata_correction_markdown_sha256": "b5ca43d22c54f10063c749500d59ec439d5f1814fc1f55799548d72a5752db25",
+    "B08A_metadata_correction_json_sha256": "5802e6ca822848e140a9a694879f07d5343c56c1cf54225e25f168c0641298a6"
+  },
+  "open_findings_carried_forward": [
+    "AUDIT-B02-BYTES",
+    "NORM-19",
+    "WHOLE-SOURCE-CONSISTENCY",
+    "PACKAGING-RISK",
+    "TABLE-2-FORMAL-MATERIAL-REVIEW"
+  ],
+  "criteria_change_authorized": false,
+  "missing_internal_audit_json": {
+    "sha256_recorded": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+    "status": "not locally available; not reconstructed",
+    "load_bearing_for_this_event": false
+  }
+}

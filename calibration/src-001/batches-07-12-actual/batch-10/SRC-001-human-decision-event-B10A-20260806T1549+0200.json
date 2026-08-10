@@ -1,0 +1,124 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "10A",
+  "recorded_at": "2026-08-06T15:49:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\n\nG-040 — L619-L656\n\nDecision: no standalone packet appropriate.\n\nSource treatment: L619-L656 contains Figure 4 example-question labels, answer labels, axis and tick labels, category labels, and the CNN+RN/CNN+MLP legend. C-205 supplies the illustrated-example assertion and C-206 supplies the empirical comparison. The labels add no independent prose assertion or exact numeric result.\n\nExclusion class: figure-examples-and-labels-without-independent-assertion.\n\nMissing-packet decision: none.\n\nDependencies: none.\n\nFormal-material treatment: Preserve L619-L656 as provenance within FIGURE-4-FORMAL-MATERIAL-REVIEW. On adoption of G-040, C-205, and C-206, close FIGURE-4-FORMAL-MATERIAL-REVIEW.\n\nCitation treatment: none.\n\nDegradation flags: none.\n\nRestrictions:\nDo not infer exact numeric results from Figure 4 bar heights.\nDo not treat isolated axis or tick labels as reported results.\nDo not treat individual illustrated questions or answers as dataset-wide definitions or empirical measurements.\nDo not manufacture claims by concatenating Figure 4 labels according to frozen extraction order.\nDo not discard their source provenance.\n\nC-205 — L657-L659\n\nDisposition: calibration-accept.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nFigure 4: “Sort-of-CLEVR” task: examples and results. The Sort-of-CLEVR example here\nconsists of an image of six objects and two questions – a relational question, and a non-relational\nquestion – along with the corresponding answers.\n\nNormalized wording: Figure 4’s illustrated Sort-of-CLEVR example consists of an image containing six objects, one relational question, one non-relational question, and the corresponding answers.\n\nDependencies: none.\n\nFigure context: G-040 supplies the associated visual examples and labels but is not independent evidence.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with C-059’s earlier six-object Sort-of-CLEVR construction and earlier relational and non-relational question-example material. Preserve C-205 as the caption-level description of the illustrated example, but do not treat repeated task details as independent corroboration.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve Figure 4 attribution.\nPreserve six objects.\nPreserve two questions.\nPreserve one relational question and one non-relational question.\nPreserve the corresponding-answer condition.\nDo not infer that the Sort-of-CLEVR dataset contains only two questions per image. C-205 describes the illustrated example, while C-176 separately records 20 generated questions per image.\nDo not infer that all Sort-of-CLEVR images use the exact questions or answers shown.\nDo not broaden the six-object condition beyond the stated illustrated example and separately supported Sort-of-CLEVR construction.\nDo not convert the example caption into an empirical performance claim.\nDo not admit individual Figure 4 cells as additional packets solely because they instantiate the caption.\n\nC-206 — L659-L662\n\nDisposition: calibration-accept.\n\nCriterion: 5.\n\nAuthorized exact evidence:\nThe fraction of correctly answered relational\nquestions (inset bar plot) for our model (CNN+RN) is much larger than the comparable MLP\nbased model (CNN+MLP), whereas both models have similar performance levels for non-relational\nquestions.\n\nNormalized wording: Figure 4 reports that CNN+RN correctly answered a much larger fraction of relational questions than the comparable CNN+MLP model, while the two models had similar performance on non-relational questions.\n\nDependencies: none. The caption names both models, the metric, and both evaluation conditions.\n\nFigure context: G-040 supplies the associated inset bar plot and labels.\n\nCitation treatment: none.\n\nOverlap treatment: Record semantic overlap with C-123’s exact numeric Sort-of-CLEVR result. Preserve C-206 as the caption-level qualitative comparison, but do not treat it as independent corroboration of the same experiment.\n\nComparator context:\nC-186 identifies the CNN+MLP comparator experiment.\nC-188 records that the CNN+MLP comparator has more parameters.\nPreserve the C-188 caveat; C-206 does not establish parameter equality.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve fraction correctly answered as the metric.\nPreserve the relational-question condition.\nPreserve CNN+RN and the comparable CNN+MLP model.\nPreserve “much larger.”\nPreserve similar performance for non-relational questions.\nDo not replace the qualitative caption with exact percentages from C-123.\nDo not infer exact values from the bars.\nDo not infer confidence intervals, statistical significance, sample size, evaluation split, or variance.\nDo not normalize “comparable” to equal parameters, compute, capacity, or training conditions.\nDo not infer that the architecture difference alone causally explains the result from this caption.\nDo not broaden the comparison beyond Sort-of-CLEVR.\n\nG-041 — L663-L668\n\nDecision: no-candidate status is not fully appropriate.\n\nSource partition:\nL663-L664 are the extracted printed page number and blank line.\nL665-L668 begin substantive Table 2 formal material, containing failure questions and RN-predicted answers whose ground-truth rows and additional examples continue through L688.\n\nL663-L664 decision: no packet appropriate.\n\nL663-L664 exclusion class: document-administration.\n\nL665-L668 decision: do not exclude. Preserve as the beginning of substantive Table 2 formal material.\n\nCross-batch formal review: Create B10-001.\n\nB10-001 scope:\nFormal material: Table 2.\nFrozen source span: L665-L688.\nEvidence role: examples of CLEVR questions answered incorrectly by the RN, with RN-predicted and ground-truth answers.\nDependency: C-170 introduces Table 2 as failure evidence.\nContextual relationship: C-171 records the authors’ hypothesized failure conditions.\n\nB10-001 status after adoption: OPEN_PENDING_BATCH_11_EXAMPLE_LEVEL_ADJUDICATION.\n\nMissing-packet decision: unresolved until Batch 11.\n\nFormal-material restriction: No T2-* unit is adopted through this Batch 10 decision. Batch 11 must independently reopen L669-L688, including L669, and decide the exact caption and example-level units.\n\nCitation treatment: none.\n\nDegradation and layout flag: Table 2 is multi-column formal material whose PDF reading order differs from the frozen extraction order. Preserve the frozen bytes and do not silently reconstruct aligned rows.\n\nRestrictions:\nExclude only L663-L664.\nDo not exclude L665-L668 as document administration, figure labels, or uninterpreted noise.\nDo not infer that the displayed examples are representative or exhaustive.\nDo not infer failure frequencies from the number of displayed examples.\nDo not treat an RN answer without its aligned question and ground-truth answer as a complete standalone unit.\nDo not use the examples to prove C-171’s hypothesized failure causes.\nDo not reconstruct PDF-aligned Table 2 rows by guessing from frozen multi-column extraction order.\nDo not discard the source provenance of any Table 2 text.\n\nFormal-review closure:\nClose FIGURE-4-FORMAL-MATERIAL-REVIEW through the adopted G-040, C-205, and C-206 decisions.\nKeep TABLE-2-FORMAL-MATERIAL-REVIEW open through B10-001 pending Batch 11.\n\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.",
+  "decision_block_line_endings": "LF as received; no final newline",
+  "decision_block_utf8_sha256": "4cf1535fb248d64fc69db9e1bd2137a022ab433f52a745f877d75d96dbb806c3",
+  "adopted_ids": [
+    "G-040",
+    "C-205",
+    "C-206",
+    "G-041"
+  ],
+  "decisions": {
+    "G-040": {
+      "locator": "L619-L656",
+      "decision": "no standalone packet appropriate",
+      "exclusion_class": "figure-examples-and-labels-without-independent-assertion",
+      "missing_packet_decision": "none",
+      "formal_material_review": "FIGURE-4-FORMAL-MATERIAL-REVIEW",
+      "formal_material_status": "CLOSED_BY_HUMAN_ADOPTION_OF_G-040_C-205_C-206"
+    },
+    "C-205": {
+      "locator": "L657-L659",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "figure_context": [
+        "G-040"
+      ],
+      "partial_overlaps": [
+        "C-059",
+        "earlier_relational_and_non_relational_question_example_material"
+      ]
+    },
+    "C-206": {
+      "locator": "L659-L662",
+      "disposition": "calibration-accept",
+      "criterion": 5,
+      "figure_context": [
+        "G-040"
+      ],
+      "semantic_overlaps": [
+        "C-123"
+      ],
+      "comparator_context": [
+        "C-186",
+        "C-188"
+      ]
+    },
+    "G-041": {
+      "locator": "L663-L668",
+      "decision": "no-candidate status is not fully appropriate",
+      "partitions": [
+        {
+          "locator": "L663-L664",
+          "decision": "no packet appropriate",
+          "exclusion_class": "document-administration"
+        },
+        {
+          "locator": "L665-L668",
+          "decision": "do not exclude",
+          "treatment": "substantive Table 2 formal material"
+        }
+      ],
+      "cross_batch_formal_review": "B10-001",
+      "formal_material": "Table 2",
+      "formal_material_span": "L665-L688",
+      "dependencies": [
+        "C-170"
+      ],
+      "contextual_relationships": [
+        "C-171"
+      ],
+      "status": "OPEN_PENDING_BATCH_11_EXAMPLE_LEVEL_ADJUDICATION",
+      "missing_packet_decision": "unresolved_until_batch_11",
+      "adopted_units": []
+    }
+  },
+  "formal_material_state": {
+    "closed": [
+      "FIGURE-4-FORMAL-MATERIAL-REVIEW"
+    ],
+    "open": [
+      {
+        "id": "B10-001",
+        "alias": "TABLE-2-FORMAL-MATERIAL-REVIEW",
+        "status": "OPEN_PENDING_BATCH_11_EXAMPLE_LEVEL_ADJUDICATION",
+        "span": "L665-L688"
+      }
+    ]
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-206",
+    "last_gap_adjudicated": "G-041",
+    "last_fully_accounted_source_line": "L668",
+    "next_source_line": "L669",
+    "next_source_order_item": {
+      "id": "G-042",
+      "locator": "L669-L688",
+      "coverage_batch": "11"
+    },
+    "next_original_candidate": null,
+    "next_gap": {
+      "id": "G-042",
+      "locator": "L669-L688",
+      "coverage_batch": "11"
+    },
+    "src001": "OPEN",
+    "src002": "NOT AUTHORIZED"
+  },
+  "pins": {
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "proposal_sha256": "b7551e6d65f8a881f0fa6b0192ebae7b7df03fc188451195c4c75e4a46acd282",
+    "predecessor_checkpoint_sha256": "b3c1b7db15acfed98df79086c190aadb527c9c9541d16b22690bc65bbabc8501"
+  }
+}

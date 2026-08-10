@@ -1,0 +1,161 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "09A",
+  "recorded_at": "2026-08-06T13:16:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\r\n\r\nC-184 — L569-L570\r\n\r\nDisposition: edit.\r\n\r\nCriterion: 3.\r\n\r\nAuthorized exact evidence:\r\nand a four-layer MLP consisting of 2000, 1000, 500, and 100 units with ReLU non-linearities used for\r\nfφ. An additional ﬁnal linear layer produced logits for a softmax over the possible answers.\r\n\r\nNormalized wording: As part of the Sort-of-CLEVR model configuration begun in C-182 and continued in C-183, fφ used a four-layer MLP with 2000, 1000, 500, and 100 units and ReLU nonlinearities; an additional final linear layer produced logits for a softmax over the possible answers.\r\n\r\nDependencies:\r\nC-176, which supplies the Sort-of-CLEVR task scope.\r\nC-182, which supplies the model-configuration sentence and earlier components.\r\nC-183, which supplies the immediately preceding gθ configuration item.\r\n\r\nCross-batch repair treatment: Close B8-001. C-184 completes the Sort-of-CLEVR configuration continuation that remained open at the Batch 08 boundary.\r\n\r\nCitation treatment: none.\r\n\r\nContextual-overlap treatment: Record contextual overlap with C-103 and C-174, which describe different task-specific fφ configurations. Preserve all configurations separately and do not treat them as duplicates.\r\n\r\nDegradation flag: The frozen evidence contains “ﬁnal”; the exact PDF is readable as “final”. Preserve the frozen ligature.\r\n\r\nFragment treatment: Preserve the initial lowercase “and” as part of the exact source continuation. Do not remove it from the exact evidence.\r\n\r\nRestrictions:\r\nPreserve four layers.\r\nPreserve dimensions 2000, 1000, 500, and 100.\r\nPreserve ReLU nonlinearities.\r\nPreserve assignment to fφ.\r\nPreserve that an additional final linear layer produced logits.\r\nPreserve the softmax-over-possible-answers condition.\r\nDo not infer that the additional final linear layer is one of the four listed MLP layers.\r\nDo not infer dropout, parameter sharing with gθ, answer-vocabulary size, or exact answer categories.\r\nDo not treat C-184 as an independent complete model description.\r\n\r\n\r\nC-185 — L570-L572\r\n\r\nDisposition: edit.\r\n\r\nCriterion: 3.\r\n\r\nAuthorized exact evidence:\r\nThe\r\nsoftmax output was optimized with a cross-entropy loss function using the Adam optimizer with a\r\nlearning rate of 1e−4 and mini-batches of size 64.\r\n\r\nNormalized wording: For the Sort-of-CLEVR model configured in C-182 through C-184, the softmax output was optimized using cross-entropy loss, Adam, a learning rate of 1e−4, and mini-batches of size 64.\r\n\r\nDependencies:\r\nC-176, which supplies the Sort-of-CLEVR task scope.\r\nC-182, C-183, and C-184, which supply the model and output configuration.\r\n\r\nCitation treatment: none.\r\n\r\nOverlap treatment: Record partial semantic overlap with C-104’s softmax, cross-entropy, and Adam configuration and with C-165 and C-175’s optimizer, learning-rate, and batch details. Preserve C-185 as the Sort-of-CLEVR configuration, but do not treat repeated configuration details as independent corroboration.\r\n\r\nDegradation flags: none.\r\n\r\nRestrictions:\r\nPreserve the softmax-output scope.\r\nPreserve cross-entropy loss.\r\nPreserve Adam.\r\nPreserve learning rate 1e−4.\r\nPreserve mini-batches of size 64.\r\nDo not infer whether size 64 is a global, per-worker, or per-device batch size.\r\nDo not import distributed-worker or parameter-server details from other task configurations.\r\nDo not infer weight decay, optimizer betas, learning-rate scheduling, update count, or stopping criteria.\r\nDo not generalize this configuration to the CLEVR or bAbI models.\r\n\r\n\r\nC-186 — L573-L575\r\n\r\nDisposition: calibration-accept.\r\n\r\nCriterion: 3.\r\n\r\nAuthorized exact evidence:\r\nWe also trained a comparable MLP based model (CNN+MLP model) on the Sort-of-CLEVR\r\ntask, to explore the extent to which a standard model can learn to answer relational questions. We\r\nused the same CNN and LSTM, trained end-to-end, as described above.\r\n\r\nNormalized wording: The authors trained a comparable CNN+MLP model on Sort-of-CLEVR to examine how well a standard model could answer relational questions, using what the source describes as the same CNN and LSTM and training them end-to-end.\r\n\r\nDependencies: C-176, which supplies the established Sort-of-CLEVR dataset context.\r\n\r\nConfiguration context: C-182 through C-185 supply the immediately preceding Sort-of-CLEVR model configuration.\r\n\r\nAnchor treatment: C-186 identifies the CNN+MLP comparator for C-187 and C-188.\r\n\r\nCitation treatment: none.\r\n\r\nDuplicate or overlap treatment: none.\r\n\r\nSource-internal referent flag:\r\nC-182 clearly identifies the preceding Sort-of-CLEVR CNN configuration.\r\nC-182 states that fixed-length binary question strings were passed directly to the RN.\r\nC-182 through C-185 do not identify an exact preceding LSTM configuration.\r\nPreserve the source’s statement that it used “the same CNN and LSTM,” but do not silently supply the missing LSTM referent from another task.\r\n\r\nDegradation flags: none.\r\n\r\nRestrictions:\r\nPreserve “comparable.”\r\nPreserve “to explore” as experimental purpose rather than a result.\r\nPreserve “standard model” as the authors’ characterization.\r\nPreserve “the same CNN and LSTM” as the source’s exact assertion.\r\nPreserve “trained end-to-end.”\r\nDo not select an LSTM from the CLEVR-from-pixels, state-description, or bAbI configurations to resolve the missing referent.\r\nDo not reinterpret “LSTM” as “MLP.”\r\nDo not infer performance, success, failure, or superiority from this candidate.\r\nDo not claim that the comparator was parameter-identical to the RN model.\r\nDo not claim that the comparator differed from the RN model only in the later substitution without retaining C-188’s parameter caveat.\r\n\r\n\r\nC-187 — L575-L576\r\n\r\nDisposition: edit.\r\n\r\nCriterion: 3.\r\n\r\nAuthorized exact evidence:\r\nHowever, this time we\r\nreplaced the RN with an MLP with the same number of layers and number of units per layer.\r\n\r\nNormalized wording: In the C-186 CNN+MLP comparator, the authors replaced the RN with an MLP described as having the same number of layers and the same number of units per layer as the referenced RN configuration.\r\n\r\nDependencies:\r\nC-186, which resolves “this time” and identifies the comparator.\r\nC-182, C-183, and C-184, which supply the preceding RN configuration.\r\n\r\nCitation treatment: none.\r\n\r\nDuplicate or overlap treatment: none.\r\n\r\nDegradation flags: none.\r\n\r\nRestrictions:\r\nPreserve replacement of the RN by an MLP.\r\nPreserve the same-number-of-layers condition.\r\nPreserve the same-number-of-units-per-layer condition.\r\nDo not infer exactly how the comparator MLP maps onto the separate gθ, fφ, and output-layer components.\r\nDo not infer equality of total parameter count.\r\nDo not infer identical activations, initialization, optimization, input dimensionality, computation, or effective capacity.\r\nPreserve “However” as contrast with C-186.\r\nDo not represent the architectural matching as a perfectly controlled ablation.\r\n\r\n\r\nC-188 — L576-L578\r\n\r\nDisposition: edit.\r\n\r\nCriterion: 6.\r\n\r\nAuthorized exact evidence:\r\nNote\r\nthat there are more parameters in this model because the input layer of the MLP connects to the\r\nfull CNN image embedding.\r\n\r\nNormalized wording: The authors caution that the C-186/C-187 CNN+MLP comparator has more parameters because its MLP input layer connects to the full CNN image embedding.\r\n\r\nDependencies:\r\nC-186, which identifies the CNN+MLP comparator.\r\nC-187, which identifies the replacement MLP.\r\n\r\nCitation treatment: none.\r\n\r\nDuplicate or overlap treatment: none.\r\n\r\nDegradation flags: none.\r\n\r\nRestrictions:\r\nPreserve the greater-parameter caveat.\r\nPreserve the authors’ causal explanation.\r\nPreserve the MLP input-layer scope.\r\nPreserve connection to the full CNN image embedding.\r\nPreserve “Note” as an explicit qualification of the comparator.\r\nDo not infer the number or proportion of additional parameters.\r\nDo not infer that the models were matched for compute, memory use, training time, or effective capacity.\r\nDo not infer that the additional parameters improved or harmed performance.\r\nDo not reverse the causal direction stated by the source.\r\nDo not treat C-187’s matched layers and units as total parameter matching.\r\n\r\n\r\nG-037 — L579\r\n\r\nDecision: no packet appropriate.\r\n\r\nExact frozen evidence:\r\nE bAbI model for language understanding\r\n\r\nExclusion reason: The line is a section heading. It establishes organizational scope for C-189 through C-192 but makes no independent architecture, training, dataset, or empirical assertion.\r\n\r\nExclusion class: document-administration.\r\n\r\nMissing-packet decision: none.\r\n\r\nDependencies: none.\r\n\r\nCitation treatment: none.\r\n\r\nDegradation flags: none.\r\n\r\nRestriction: Do not admit the heading itself as a definition of bAbI, a model configuration, or a language-understanding result.\r\n\r\n\r\nC-189 — L580-L581\r\n\r\nDisposition: calibration-accept.\r\n\r\nCriterion: 3.\r\n\r\nAuthorized exact evidence:\r\nFor the bAbI task, each of the 20 sentences in the support set was processed through a 32 unit LSTM\r\nto produce an object.\r\n\r\nNormalized wording: For the bAbI task, each of the 20 support-set sentences was processed through a 32-unit LSTM to produce an object.\r\n\r\nDependencies: none.\r\n\r\nAnchor treatment: C-189 supplies the bAbI task, model, and object-construction scope for C-190 through C-192.\r\n\r\nCitation treatment: none.\r\n\r\nOverlap treatment: Record partial semantic overlap with C-095’s earlier sentence-selection and shared-LSTM processing statement and C-098’s statement that the sentence-processing LSTM final state is considered an object. C-189 adds the supplementary configuration’s exact 32-unit dimension. Preserve all occurrences and their provenance, but do not treat the repeated sentence-to-object construction as independent corroboration.\r\n\r\nDegradation flags: none.\r\n\r\nRestrictions:\r\nPreserve bAbI task scope.\r\nPreserve each of the 20 support-set sentences.\r\nPreserve the 32-unit LSTM.\r\nPreserve that processing produces an object.\r\nDo not infer sentence length, tokenization, vocabulary, embedding size, or LSTM directionality.\r\nDo not infer whether 20 is a maximum, padding length, or invariant across every raw bAbI example beyond this source statement.\r\nDo not infer which LSTM state or output becomes the object from C-189 alone.\r\nDo not conflate the sentence-processing LSTM with the separate 32-unit question-processing LSTM handled later through C-192.\r\nDo not infer parameter sharing between the sentence-processing and question-processing LSTMs.\r\n\r\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.",
+  "decision_block_line_endings": "CRLF as supplied in uploaded human block; no final newline",
+  "decision_block_utf8_sha256": "6b3bf0aacefb606c54cd8ae52cab6958aed42f9b84ce8049d66f6b0deb6cf636",
+  "adopted_ids": [
+    "C-184",
+    "C-185",
+    "C-186",
+    "C-187",
+    "C-188",
+    "G-037",
+    "C-189"
+  ],
+  "decisions": {
+    "C-184": {
+      "locator": "L569-L570",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-176",
+        "C-182",
+        "C-183"
+      ],
+      "cross_batch_repair_closed": [
+        "B8-001"
+      ],
+      "contextual_overlaps": [
+        "C-103",
+        "C-174"
+      ],
+      "degradation_flags": [
+        "ﬁnal_in_frozen_vs_final_in_pdf"
+      ]
+    },
+    "C-185": {
+      "locator": "L570-L572",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-176",
+        "C-182",
+        "C-183",
+        "C-184"
+      ],
+      "partial_overlaps": [
+        "C-104",
+        "C-165",
+        "C-175"
+      ]
+    },
+    "C-186": {
+      "locator": "L573-L575",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "dependencies": [
+        "C-176"
+      ],
+      "configuration_context": [
+        "C-182",
+        "C-183",
+        "C-184",
+        "C-185"
+      ],
+      "anchor_for": [
+        "C-187",
+        "C-188"
+      ],
+      "source_internal_referent_flag": "same LSTM has no exact preceding Sort-of-CLEVR referent in C-182 through C-185"
+    },
+    "C-187": {
+      "locator": "L575-L576",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-186",
+        "C-182",
+        "C-183",
+        "C-184"
+      ]
+    },
+    "C-188": {
+      "locator": "L576-L578",
+      "disposition": "edit",
+      "criterion": 6,
+      "dependencies": [
+        "C-186",
+        "C-187"
+      ]
+    },
+    "G-037": {
+      "locator": "L579",
+      "decision": "no packet appropriate",
+      "exclusion_class": "document-administration",
+      "missing_packet_decision": "none"
+    },
+    "C-189": {
+      "locator": "L580-L581",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "anchor_for": [
+        "C-190",
+        "C-191",
+        "C-192"
+      ],
+      "partial_overlaps": [
+        "C-095",
+        "C-098"
+      ]
+    }
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-189",
+    "last_gap_adjudicated": "G-037",
+    "last_fully_accounted_source_line": "L580",
+    "next_source_line": "L581",
+    "next_candidate": "C-190",
+    "next_candidate_locator": "L581-L583",
+    "next_gap": "G-038",
+    "current_batch": "Batch 09"
+  },
+  "pins": {
+    "checkpoint_through_batch_08_zip_sha256": "8e2653ecaaa703acbb8e70cfe04316c0e3041148ec00b2204ba5a544a24ab667",
+    "batch08_attestation_receipt_markdown_sha256": "bb55b2c0d4d74a8761f549422355f631ed067ef6ae9a5e401bc202cc32231037",
+    "batch08_attestation_receipt_json_sha256": "0bff3f736529efa9bc23360b9d8d4d9228b42ddd953b123520e1cd8643bc64a4",
+    "batch09_proposal_sha256": "15f7870a120aebacbbe696ec11553cf522feaee3f9e1f96014001949dd3f0754",
+    "transfer_manifest_sha256": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "normalized_criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "handoff_sha256": "81764a109ce30e92b4661506d8f18a96a17ed81b309fcf614da993461f2783ca",
+    "exact_pdf_sha256": "c115123a511418ab46f04c4f9f78b6a569712960dbe9ca596d4edd6f0686d521",
+    "predecessor_event_B08D_markdown_sha256": "8dcd2622aa5e3c299f143fe1af2fd51b4076026ef8c6c24db1cf219e5b29045b",
+    "predecessor_event_B08D_json_sha256": "0007b8e1df5e40257d5f17f01d080600519a6c8dd93d2b65c3c349a479b35d0c"
+  },
+  "open_findings_carried_forward": [
+    "AUDIT-B02-BYTES",
+    "NORM-19",
+    "TABLE-2-FORMAL-MATERIAL-REVIEW",
+    "WHOLE-SOURCE-CONSISTENCY",
+    "PACKAGING-RISK",
+    "MISSING-INTERNAL-AUDIT-JSON"
+  ],
+  "cross_batch_repairs": {
+    "B8-001": "CLOSED_BY_HUMAN_ADOPTION_OF_C-184"
+  },
+  "criteria_change_authorized": false,
+  "missing_internal_audit_json": {
+    "sha256_recorded": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+    "status": "not locally available; not reconstructed",
+    "load_bearing_for_this_event": false
+  }
+}

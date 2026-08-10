@@ -1,0 +1,33 @@
+{
+  "record_type": "append_only_event_metadata_correction",
+  "source_id": "SRC-001",
+  "batch": "09D",
+  "recorded_at": "2026-08-06T13:32:00+02:00",
+  "target_event": "SRC-001-human-decision-event-B09D-20260806T1332+0200.json",
+  "target_event_sha256": "0d7e620ce41b96e018f8ba58db4bba0950d0145331450713b3709486e18ab8c6",
+  "human_decision_block_changed": false,
+  "semantic_decisions_changed": false,
+  "prior_artifacts_mutated": false,
+  "error": {
+    "field": "resume.next_candidate_locator",
+    "recorded": "L619-L625",
+    "correct": "L657-L659",
+    "reason": "The handoff assigns C-205 to L657-L659. Batch 10 begins at L619 with G-040 covering L619-L656 before C-205."
+  },
+  "correct_resume": {
+    "last_original_candidate_adjudicated": "C-204",
+    "last_gap_adjudicated": "G-039",
+    "last_fully_accounted_source_line": "L618",
+    "next_source_line": "L619",
+    "next_source_order_item": "G-040",
+    "next_gap": "G-040",
+    "next_gap_locator": "L619-L656",
+    "next_candidate": "C-205",
+    "next_candidate_locator": "L657-L659",
+    "current_batch": "Batch 10"
+  },
+  "state": {
+    "src001": "OPEN",
+    "src002": "NOT AUTHORIZED"
+  }
+}

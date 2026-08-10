@@ -1,0 +1,135 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "09C",
+  "recorded_at": "2026-08-06T13:27:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\n\nC-195 — L590-L592\n\nDisposition: edit.\n\nCriterion: 4.\n\nAuthorized exact evidence:\nIt is important to point out that in the ﬁrst task the\nsupervision signal provided by the targets explicitly informs about the relations that need to be\ncomputed.\n\nNormalized wording: For the connection-inference task described in C-193, the authors emphasize that the target-based supervision signal explicitly informs the model about the relations that need to be computed.\n\nDependencies: C-193, which resolves “the first task” as connection inference and supplies its target context.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flag: The frozen evidence contains “ﬁrst”; the exact PDF is readable as “first”. Preserve the frozen ligature.\n\nRestrictions:\nPreserve “It is important to point out” as source emphasis.\nPreserve that the information comes from the supervision signal provided by the targets.\nPreserve “explicitly informs.”\nPreserve “relations that need to be computed.”\nDo not state that the targets are supplied as model inputs.\nDo not infer that the targets specify an internal algorithm or architecture.\nDo not infer that explicit target supervision guarantees correct relation inference.\nDo not generalize the statement beyond the connection-inference task.\n\n\nC-196 — L592-L594\n\nDisposition: edit.\n\nCriterion: 4.\n\nAuthorized exact evidence:\nIn the second task, the supervision signal (counts of systems) do not provide explicit\ninformation about the kind of relations that need to be computed. Therefore, the models that solve\nthe counting task must successfully infer the relations implicitly.\n\nNormalized wording: In the counting task described in C-194, the supervision signal consists of system counts and does not explicitly specify the relations to compute; the source therefore states that models solving the task must infer those relations implicitly.\n\nDependencies:\nC-194, which resolves “the second task” and supplies the count target.\nC-195, which supplies the contrast with explicit relational supervision in the first task.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve the parenthetical scope “counts of systems.”\nPreserve “do not provide explicit information.”\nPreserve the inferential transition “Therefore.”\nPreserve “must successfully infer the relations implicitly.”\nPreserve the source’s grammatical form unchanged in exact evidence.\nDo not infer what specific relation types the model learns.\nDo not infer that relations are represented symbolically or explicitly inside the model.\nDo not treat successful task performance as proof of a human-equivalent reasoning process.\nDo not generalize the implicit-supervision claim beyond the counting task.\n\n\nC-197 — L595-L598\n\nDisposition: calibration-accept.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nInputs to the RN were state descriptions. Each row of a state description matrix provided\ninformation about a particular object (i.e. ball), including its coordinate position and color. Since\nthe system was dynamic, and hence evolved through time, each row contained object property\ndescriptions for 16 consecutive time-frames.\n\nNormalized wording: The RN received state-description matrices in which each row represented a particular ball through coordinate-position and color information, with object properties recorded across 16 consecutive time frames.\n\nDependencies: none.\n\nAnchor treatment: C-197 supplies the state-description row and temporal context for C-198 and C-199.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve state descriptions as RN inputs.\nPreserve one row per particular object or ball.\nPreserve coordinate position and color.\nPreserve the dynamic-system context.\nPreserve 16 consecutive time-frames.\nDo not infer the number of objects or matrix rows.\nDo not infer that coordinate position and color are the only possible fields beyond the described configuration.\nDo not infer sampling frequency or physical duration from 16 frames.\nDo not infer preprocessing, normalization, missing-value handling, or row ordering.\nDo not merge this representation statement with C-198’s specific 33-float example.\n\n\nC-198 — L598-L600\n\nDisposition: calibration-accept.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nFor example, a row could be comprised of 33 ﬂoats:\n16 for the object’s x coordinate position across 16 frames, 16 for the object’s y coordinate position\nacross 16 frames, and 1 for the object’s color.\n\nNormalized wording: As an example of the C-197 state-description representation, a row could contain 33 floats: 16 x-coordinate values across 16 frames, 16 y-coordinate values across 16 frames, and one color value.\n\nDependencies: C-197, which resolves “a row” as a row of the dynamic state-description matrix.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flag: The frozen evidence contains “ﬂoats”; the exact PDF is readable as “floats”. Preserve the frozen ligature.\n\nRestrictions:\nPreserve “For example” and “could be.”\nPreserve 33 floats.\nPreserve 16 x-coordinate values across 16 frames.\nPreserve 16 y-coordinate values across 16 frames.\nPreserve one color value.\nDo not infer coordinate ranges, units, normalization, or numerical precision.\nDo not infer how the color value maps to colors.\nDo not infer z coordinates, velocity, acceleration, or other properties.\nDo not broaden the example to every dynamic-system input representation.\n\n\nC-199 — L600-L602\n\nDisposition: calibration-accept.\n\nCriterion: 4.\n\nAuthorized exact evidence:\nThe RN treated each row in this state description\nmatrix as an object. Thus, it had to infer an object description contained information of the object’s\nproperties evolving through time.\n\nNormalized wording: Because the RN treated each row of the C-197 state-description matrix as an object, it had to infer from an object description containing information about properties that evolved through time.\n\nDependencies: C-197, which resolves “this state description matrix” and supplies the temporal row representation.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nSource-language flag: The exact source sentence has awkward grammar. Preserve the exact evidence unchanged and repair grammar only in normalized wording.\n\nRestrictions:\nPreserve the row-as-object treatment.\nPreserve the transition expressed by “Thus.”\nPreserve the time-evolving object-property scope.\nDo not infer a specific temporal-reasoning algorithm.\nDo not infer that the RN decomposes the row into separate per-frame objects.\nDo not infer recurrence, memory, attention, or temporal convolution from this passage.\nDo not convert the design explanation into an empirical performance result.\n\n\nC-200 — L603-L604\n\nDisposition: calibration-accept.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nFor the connection inference task, the RN’s gθ was a four-layer MLP consisting of three layers\nwith 1000 units and one layer with 500 units.\n\nNormalized wording: For the connection-inference task, the RN’s gθ was a four-layer MLP with three 1000-unit layers and one 500-unit layer.\n\nDependencies: none. The task and component scope are explicit.\n\nContext link: C-193 supplies the target representation for the same task but is not required to make C-200 grammatically or semantically complete.\n\nAnchor treatment: C-200 supplies the connection-inference RN and model scope for C-201 through C-204.\n\nCitation treatment: none.\n\nContextual-overlap treatment: Record contextual overlap with C-102, C-174, C-183, and S-190a, which describe other task-specific gθ configurations. Preserve all configurations separately and do not treat them as duplicates.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve connection-inference task scope.\nPreserve assignment to gθ.\nPreserve four total layers.\nPreserve three layers with 1000 units and one layer with 500 units.\nDo not infer which layer is the 500-unit layer.\nDo not infer activation functions, dropout, parameter sharing, input dimensions, or output dimensions.\nDo not infer that the architecture applies unchanged to the counting task; C-203 addresses that relationship.\nDo not infer performance or causal benefit from the architecture alone.\n\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.",
+  "decision_block_line_endings": "LF as received in direct human block; no final newline",
+  "decision_block_utf8_sha256": "756eb6b6c0139d7f1268345c324a3e8c63ced7537eabcaea4588cea2164fc408",
+  "adopted_ids": [
+    "C-195",
+    "C-196",
+    "C-197",
+    "C-198",
+    "C-199",
+    "C-200"
+  ],
+  "decisions": {
+    "C-195": {
+      "locator": "L590-L592",
+      "disposition": "edit",
+      "criterion": 4,
+      "dependencies": [
+        "C-193"
+      ],
+      "degradation_flags": [
+        "ﬁrst_in_frozen_vs_first_in_pdf"
+      ]
+    },
+    "C-196": {
+      "locator": "L592-L594",
+      "disposition": "edit",
+      "criterion": 4,
+      "dependencies": [
+        "C-194",
+        "C-195"
+      ]
+    },
+    "C-197": {
+      "locator": "L595-L598",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "anchors": [
+        "C-198",
+        "C-199"
+      ]
+    },
+    "C-198": {
+      "locator": "L598-L600",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "dependencies": [
+        "C-197"
+      ],
+      "degradation_flags": [
+        "ﬂoats_in_frozen_vs_floats_in_pdf"
+      ]
+    },
+    "C-199": {
+      "locator": "L600-L602",
+      "disposition": "calibration-accept",
+      "criterion": 4,
+      "dependencies": [
+        "C-197"
+      ],
+      "source_language_flags": [
+        "awkward_grammar_preserved"
+      ]
+    },
+    "C-200": {
+      "locator": "L603-L604",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "context_links": [
+        "C-193"
+      ],
+      "anchors": [
+        "C-201",
+        "C-202",
+        "C-203",
+        "C-204"
+      ],
+      "contextual_overlaps": [
+        "C-102",
+        "C-174",
+        "C-183",
+        "S-190a"
+      ]
+    }
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-200",
+    "last_gap_adjudicated": "G-038",
+    "last_fully_accounted_source_line": "L603",
+    "next_source_line": "L604",
+    "next_candidate": "C-201",
+    "next_candidate_locator": "L604-L606",
+    "next_gap": "G-039",
+    "current_batch": "Batch 09"
+  },
+  "pins": {
+    "checkpoint_through_batch_08_zip_sha256": "8e2653ecaaa703acbb8e70cfe04316c0e3041148ec00b2204ba5a544a24ab667",
+    "batch08_attestation_receipt_markdown_sha256": "bb55b2c0d4d74a8761f549422355f631ed067ef6ae9a5e401bc202cc32231037",
+    "batch08_attestation_receipt_json_sha256": "0bff3f736529efa9bc23360b9d8d4d9228b42ddd953b123520e1cd8643bc64a4",
+    "batch09_proposal_sha256": "15f7870a120aebacbbe696ec11553cf522feaee3f9e1f96014001949dd3f0754",
+    "transfer_manifest_sha256": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "handoff_sha256": "81764a109ce30e92b4661506d8f18a96a17ed81b309fcf614da993461f2783ca",
+    "pdf_sha256": "c115123a511418ab46f04c4f9f78b6a569712960dbe9ca596d4edd6f0686d521"
+  },
+  "open_findings_carried_forward": [
+    "AUDIT-B02-BYTES",
+    "NORM-19",
+    "TABLE-2-FORMAL-MATERIAL-REVIEW",
+    "WHOLE-SOURCE-CONSISTENCY",
+    "PACKAGING-RISK",
+    "MISSING-INTERNAL-AUDIT-JSON",
+    "C-186-SOURCE-INTERNAL-LSTM-REFERENT"
+  ],
+  "cross_batch_repairs": {
+    "B8-001": "CLOSED_BY_HUMAN_ADOPTION_OF_C-184"
+  },
+  "criteria_change_authorized": false,
+  "missing_internal_audit_json": {
+    "sha256_recorded": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+    "status": "not locally available; not reconstructed",
+    "load_bearing_for_this_event": false
+  }
+}

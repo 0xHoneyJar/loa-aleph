@@ -1,0 +1,209 @@
+{
+  "record_type": "noncanonical_human_exact_byte_attestation_receipt",
+  "source_id": "SRC-001",
+  "recorded_at": "2026-08-06T22:14:00+02:00",
+  "authority": "human",
+  "attestation_text_exact": "I attest the exact bytes of the SRC-001 checkpoint through Batch 11 with SHA-256 5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb. Preserve the checkpoint through Batch 10, its exact-byte attestation receipt, the exact Batch 11 proposal, all Batch 11 human decision events, this checkpoint, and all immutable inputs unchanged.",
+  "attestation_text_sha256_utf8": "f7be0329016e213b4a2ef3e748c7c607ab705c94b07d0522d7ea4d4d6bc88cae",
+  "verified_objects": {
+    "checkpoint_through_batch_11": {
+      "filename": "SRC-001-checkpoint-through-batch-11-20260806T2036+0200.zip",
+      "sha256": "5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb",
+      "expected_sha256": "5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb",
+      "match": true
+    },
+    "checkpoint_through_batch_11_sidecar": {
+      "filename": "SRC-001-checkpoint-through-batch-11-20260806T2036+0200.zip.sha256",
+      "sha256": "33d320ab42dfd47df7ecfd024e5e8ccedb0935e7fd53f1bb31f0bee16490fd52",
+      "expected_sha256": "33d320ab42dfd47df7ecfd024e5e8ccedb0935e7fd53f1bb31f0bee16490fd52",
+      "match": true,
+      "checkpoint_digest_present": true
+    },
+    "checkpoint_through_batch_11_postbuild_verification": {
+      "filename": "SRC-001-checkpoint-through-batch-11-postbuild-verification-20260806T2036+0200.json",
+      "sha256": "d11b17fc524893a398898a5d0d92c9e76657c1e62ee47599befd10ed087c4f17",
+      "expected_sha256": "d11b17fc524893a398898a5d0d92c9e76657c1e62ee47599befd10ed087c4f17",
+      "match": true
+    },
+    "external_batch_11_proposal": {
+      "filename": "SRC-001-adjudication-batch-11-proposals.md",
+      "sha256": "59edbbb65d55bc1779b1943c2170a10ef64a3156f63bc5f3e55a4832f875cc37",
+      "expected_sha256": "59edbbb65d55bc1779b1943c2170a10ef64a3156f63bc5f3e55a4832f875cc37",
+      "match": true
+    },
+    "checkpoint_internal_verification": {
+      "archive_members": 31,
+      "duplicate_names": 0,
+      "checksum_entries": 30,
+      "checksum_failures": [],
+      "all_internal_checksums_pass": true,
+      "json_files_parsed": 15,
+      "json_parse_failures": [],
+      "all_json_parse_checks_pass": true,
+      "embedded_external_byte_identity": {
+        "immutable-inputs/SRC-001-checkpoint-through-batch-10-20260806T1552+0200.zip": true,
+        "immutable-inputs/SRC-001-checkpoint-through-batch-10-20260806T1552+0200.zip.sha256": true,
+        "predecessor-verification/SRC-001-checkpoint-through-batch-10-postbuild-verification-20260806T1552+0200.json": true,
+        "immutable-inputs/SRC-001-adjudication-batch-11-proposals.md": true,
+        "decision-events/SRC-001-human-decision-event-B11A-20260806T2032+0200.md": true,
+        "decision-events/SRC-001-human-decision-event-B11A-20260806T2032+0200.json": true,
+        "decision-events/SRC-001-human-decision-event-B11A-20260806T2032+0200.sha256": true,
+        "receipts/SRC-001-human-attestation-receipt-through-batch-10-20260806T1643+0200.md": true,
+        "receipts/SRC-001-human-attestation-receipt-through-batch-10-20260806T1643+0200.json": true,
+        "receipts/SRC-001-human-attestation-receipt-through-batch-10-20260806T1643+0200.sha256": true
+      },
+      "deterministic_rebuild_byte_identical": true
+    },
+    "preserved_predecessor_objects": {
+      "checkpoint_through_batch_10": {
+        "filename": "SRC-001-checkpoint-through-batch-10-20260806T1552+0200.zip",
+        "sha256": "0f15e53f851f6b79192841233a88baa81d95d53da7de9e891b859e5004bc04fc",
+        "expected_sha256": "0f15e53f851f6b79192841233a88baa81d95d53da7de9e891b859e5004bc04fc",
+        "match": true
+      },
+      "checkpoint_through_batch_10_sidecar": {
+        "filename": "SRC-001-checkpoint-through-batch-10-20260806T1552+0200.zip.sha256",
+        "sha256": "939f254ead91221e7f79f323f253f656496270710ad5b8e01faa33ee769f3291",
+        "expected_sha256": "939f254ead91221e7f79f323f253f656496270710ad5b8e01faa33ee769f3291",
+        "match": true
+      },
+      "checkpoint_through_batch_10_postbuild_verification": {
+        "filename": "SRC-001-checkpoint-through-batch-10-postbuild-verification-20260806T1552+0200.json",
+        "sha256": "5c48f5e11c5be3d5894a8ac8801391bf4a1a5c4337e2877438d82f9bd8cbb502",
+        "expected_sha256": "5c48f5e11c5be3d5894a8ac8801391bf4a1a5c4337e2877438d82f9bd8cbb502",
+        "match": true
+      },
+      "batch_10_attestation_md": {
+        "filename": "SRC-001-human-attestation-receipt-through-batch-10-20260806T1643+0200.md",
+        "sha256": "a90d7db4244be349d46187fbfd96dee7ba229ab303c37dff17fd50ad8a63a6b8",
+        "expected_sha256": "a90d7db4244be349d46187fbfd96dee7ba229ab303c37dff17fd50ad8a63a6b8",
+        "match": true
+      },
+      "batch_10_attestation_json": {
+        "filename": "SRC-001-human-attestation-receipt-through-batch-10-20260806T1643+0200.json",
+        "sha256": "a93f182fe11fc1468e2a81cfad229a314262dd293eec7f9bab8df2cf449745c4",
+        "expected_sha256": "a93f182fe11fc1468e2a81cfad229a314262dd293eec7f9bab8df2cf449745c4",
+        "match": true
+      },
+      "batch_10_attestation_sidecar": {
+        "filename": "SRC-001-human-attestation-receipt-through-batch-10-20260806T1643+0200.sha256",
+        "sha256": "7ba28f75529b45e03f71b38ca68b29c460d21d4d639eda97e683053b29738414",
+        "expected_sha256": "7ba28f75529b45e03f71b38ca68b29c460d21d4d639eda97e683053b29738414",
+        "match": true
+      }
+    },
+    "batch_11_human_decision_events": {
+      "B11A": {
+        "markdown": {
+          "filename": "SRC-001-human-decision-event-B11A-20260806T2032+0200.md",
+          "sha256": "2198de010dbaeca3f42dd63726db8274a7de0f8abf5e13fda51ff70ed2962486",
+          "expected_sha256": "2198de010dbaeca3f42dd63726db8274a7de0f8abf5e13fda51ff70ed2962486",
+          "match": true
+        },
+        "json": {
+          "filename": "SRC-001-human-decision-event-B11A-20260806T2032+0200.json",
+          "sha256": "82b588c9d94c2bf3a7614eb646751840b5fde76173e1e9b35c6139c75f647056",
+          "expected_sha256": "82b588c9d94c2bf3a7614eb646751840b5fde76173e1e9b35c6139c75f647056",
+          "match": true
+        },
+        "sidecar": {
+          "filename": "SRC-001-human-decision-event-B11A-20260806T2032+0200.sha256",
+          "sha256": "74a7e8e92138ee410d04d38aa67bcb52953e20c9ebe19377944dad484f3ddc76",
+          "expected_sha256": "74a7e8e92138ee410d04d38aa67bcb52953e20c9ebe19377944dad484f3ddc76",
+          "match": true
+        }
+      }
+    }
+  },
+  "closed_findings": [
+    {
+      "id": "CHECKPOINT-B11-ATTESTATION",
+      "finding": "SRC-001 checkpoint through Batch 11 exact-byte human attestation",
+      "status": "CLOSED_BY_EXPLICIT_HUMAN_ATTESTATION"
+    }
+  ],
+  "continuation_authority": {
+    "checkpoint_through_batch_10_preserved_unchanged": true,
+    "batch_10_exact_byte_attestation_receipt_preserved_unchanged": true,
+    "batch_11_proposal_preserved_unchanged": true,
+    "batch_11_human_decision_events_preserved_unchanged": true,
+    "batch_11_checkpoint_preserved_unchanged": true,
+    "immutable_inputs_preserved_unchanged": true,
+    "B10-001": "CLOSED_BY_HUMAN_ADOPTION_OF_T2-000_THROUGH_T2-012",
+    "TABLE-2-FORMAL-MATERIAL-REVIEW": "CLOSED_BY_HUMAN_ADOPTION_OF_T2-000_THROUGH_T2-012",
+    "C-170-TABLE-2-FORWARD-DEPENDENCY": "RESOLVED_THROUGH_T2-000_THROUGH_T2-012"
+  },
+  "remaining_open_findings": [
+    {
+      "id": "AUDIT-B02-BYTES",
+      "status": "OPEN",
+      "finding": "Exact Batch 02 proposal bytes were absent during the internal audit."
+    },
+    {
+      "id": "NORM-19",
+      "status": "OPEN",
+      "finding": "Nineteen mechanical-only normalizations require dedicated human review before any golden-example status."
+    },
+    {
+      "id": "WHOLE-SOURCE-CONSISTENCY",
+      "status": "DEFERRED",
+      "finding": "Whole-source consistency review remains required after all SRC-001 batches."
+    },
+    {
+      "id": "PACKAGING-RISK",
+      "status": "OPEN",
+      "finding": "The final calibration package must retain the exact immutable transfer bundle alongside the checkpoint chain."
+    },
+    {
+      "id": "MISSING-INTERNAL-AUDIT-JSON",
+      "status": "VISIBLE_NON_LOAD_BEARING_ABSENCE",
+      "recorded_sha256": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa"
+    },
+    {
+      "id": "C-186-SOURCE-INTERNAL-LSTM-REFERENT",
+      "status": "OPEN_VISIBLE_SOURCE_REFERENT_GAP",
+      "finding": "C-186 states that the comparator used the same CNN and LSTM as described above, but C-182 through C-185 do not identify an exact preceding LSTM referent."
+    },
+    {
+      "id": "G-043-SOURCE-REVIEW",
+      "status": "PENDING_BATCH_12_HUMAN_ADJUDICATION",
+      "span": "L689-L792",
+      "finding": "The prior no-admission statement has no recorded semantic reason or human approval and must be independently reviewed."
+    }
+  ],
+  "immutable_build_time_state_note": {
+    "checkpoint_internal_attestation_state": "PENDING",
+    "effect": "The external append-only receipt closes CHECKPOINT-B11-ATTESTATION without rewriting the checkpoint internal build-time state.",
+    "predecessor_state_note": "The predecessor Batch 10 attestation remains closed by its external append-only receipt and is preserved unchanged."
+  },
+  "resume": {
+    "src001": "OPEN",
+    "src002": "NOT AUTHORIZED",
+    "last_source_line_adjudicated": "L688",
+    "last_original_candidate_adjudicated": "C-206",
+    "original_candidate_inventory_complete": true,
+    "last_gap_adjudicated": "G-042",
+    "next_source_order_item": "G-043",
+    "next_source_order_item_locator": "L689-L792",
+    "next_original_candidate": null,
+    "next_gap": "G-043",
+    "next_proposal_file": "SRC-001-adjudication-batch-12-proposals.md",
+    "next_proposal_expected_sha256": "4d9a2004026edb465b3c748822959b1cffb93c118459ed5f5ff4e3f55b1cafe7",
+    "next_proposal_expected_bytes": 1871,
+    "next_proposal_expected_lines": 44,
+    "next_proposal_coverage": "L689-L792; G-043",
+    "next_gate": "EXACT BATCH 12 PROPOSAL PIN VERIFICATION"
+  },
+  "claims_not_made": [
+    "live Aleph run",
+    "canonical packet ledger",
+    "accepted fixture",
+    "replay",
+    "validation",
+    "sanction",
+    "independent audit",
+    "acceptance",
+    "v1"
+  ],
+  "mutation_statement": "This receipt is append-only. The attested checkpoint and every earlier artifact remain unchanged."
+}

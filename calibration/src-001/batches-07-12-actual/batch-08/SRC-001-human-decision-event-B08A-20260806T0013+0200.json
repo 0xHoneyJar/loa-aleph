@@ -1,0 +1,147 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "08A",
+  "recorded_at": "2026-08-06T00:13:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\n\nC-163 — L519-L520\n\nDisposition: calibration-accept.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nOur model (described in Section 4 of the main text) was trained on 70000 scenes from the CLEVR\ndataset and a total of 699989 questions.\n\nNormalized wording: In the CLEVR-from-pixels supplementary section, the authors state that their model was trained on 70000 CLEVR scenes and a total of 699989 questions.\n\nContext dependency: G-032 / L518 supplies the “CLEVR from pixels” section scope.\n\nContext restriction: G-032 remains a no-packet document-administration decision. Using the heading to establish section scope does not admit it as independent evidence.\n\nAnchor treatment: C-163 supplies the task and evaluated-model scope for C-164 through C-169.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve both exact quantities.\nDo not infer a per-scene question count by dividing the quantities.\nDo not infer that the stated quantities include validation or test material.\nDo not infer that every scene or question was unique.\nDo not replace this training-corpus statement with the validation result in C-168.\n\nC-164 — L520-L522\n\nDisposition: edit.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nImages were ﬁrst down-sampled to size 128 × 128, then\npre-processed with padding to size 136 × 136, followed by random cropping back to size 128 × 128\nand slight random rotations between −0.05 and 0.05 rads.\n\nNormalized wording: For the CLEVR-from-pixels model anchored by C-163, images were down-sampled to 128 × 128, padded to 136 × 136, randomly cropped back to 128 × 128, and subjected to slight random rotations between −0.05 and 0.05 radians.\n\nDependencies: C-163.\n\nInherited context: G-032 / L518 supplies the CLEVR-from-pixels section scope through C-163.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flag: The frozen evidence contains “ﬁrst”; the exact PDF is readable as “first”. Preserve the frozen ligature.\n\nRestrictions:\nPreserve the operation order: down-sampling, padding, random cropping, then slight random rotation.\nPreserve all dimensions and the rotation range.\nDo not infer the probability distribution used for rotations.\nDo not infer padding values, interpolation method, crop-sampling policy, or whether augmentation was applied during validation or testing.\nDo not broaden “Images” beyond the C-163 model and task configuration.\n\nC-165 — L522-L524\n\nDisposition: edit.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nWe used 10 distributed workers that\nsynchronously updated a central parameter server. Each worker learned with mini-batches of size\n64, using the Adam optimizer and a learning rate of 2 .5e−4.\n\nNormalized wording: For the C-163 CLEVR-from-pixels model, training used 10 distributed workers that synchronously updated a central parameter server; each worker used mini-batches of size 64, the Adam optimizer, and a learning rate of 2.5e−4.\n\nDependencies: C-163.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with C-104 and C-105. C-104 records Adam with the same learning rate in the earlier CLEVR-from-pixels configuration, and C-105 records mini-batches of size 64 and 10 workers synchronously updating a central parameter server. Preserve C-165 as a distinct supplementary occurrence and retain its provenance, but do not treat the repeated configuration as independent corroboration.\n\nDegradation flag: The frozen evidence contains “2 .5e−4”; the exact PDF is readable as “2.5e−4”. Preserve the frozen spacing.\n\nRestrictions:\nPreserve 10 distributed workers.\nPreserve synchronous updates to a central parameter server.\nPreserve that each worker used mini-batches of size 64.\nPreserve the Adam optimizer and learning rate.\nDo not infer aggregate batch size unless the source states how worker batches were combined.\nDo not infer asynchronous fallback, replicated parameter servers, hardware type, or communication protocol.\nDo not generalize this configuration to the state-description or Sort-of-CLEVR models.\n\nC-166 — L524-L525\n\nDisposition: edit.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nDropout of 50% was used on the\npenultimate layer of the RN.\n\nNormalized wording: For the C-163 CLEVR-from-pixels model, 50% dropout was used on the RN’s penultimate layer.\n\nDependencies: C-163.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with C-103’s earlier 50% dropout configuration. Preserve both occurrences and their provenance, but do not treat the repeated dropout detail as independent evidence.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve 50%.\nPreserve “penultimate layer.”\nPreserve the source scope “of the RN.”\nDo not infer dropout on recurrent connections, convolutional layers, every RN layer, or the final output layer.\nDo not silently identify the penultimate layer as a more specific component than this source sentence states.\nDo not infer that dropout remained enabled during evaluation.\nDo not infer a causal contribution to performance.\n\nC-167 — L525-L527\n\nDisposition: too-broad.\n\nReason: C-167 combines an architecture configuration for the best-performing model with a separate observation about the point at which performance stopped improving and training was concluded. Replace C-167 with S-167a and S-167b.\n\nS-167a\n\nDisposition: calibration-accept.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nIn our best performing model each convolutional layer used 24 kernels of\nsize 3× 3 and stride 2, batch normalization, and rectiﬁed linear units.\n\nNormalized wording: In the best-performing C-163 model, each convolutional layer used 24 kernels of size 3 × 3 with stride 2, batch normalization, and rectified linear units.\n\nDependencies: C-163.\n\nCitation treatment: none.\n\nOverlap treatment: Record partial semantic overlap with earlier CLEVR-from-pixels configuration material, including C-101. Preserve this supplementary occurrence and its provenance, but do not treat repeated convolutional-configuration details as independent corroboration.\n\nDegradation flags:\nThe frozen evidence contains “3× 3”; the exact PDF is readable as “3 × 3”.\nThe frozen evidence contains “rectiﬁed”; the exact PDF is readable as “rectified”.\nPreserve the frozen exact evidence unchanged.\n\nRestrictions:\nPreserve “best performing” as the authors’ configuration label.\nPreserve that the configuration applies to each convolutional layer.\nPreserve 24 kernels, size 3× 3, stride 2, batch normalization, and rectiﬁed linear units.\nDo not infer the number of convolutional layers from this fragment alone.\nDo not infer padding, channel depth, initialization, or convolution direction.\nDo not infer the performance margin associated with “best performing.”\nDo not claim that any individual listed component caused the model’s performance.\n\nS-167b\n\nDisposition: calibration-accept.\n\nCriterion: 3.\n\nAuthorized exact evidence:\nThe model stopped improving\nin performance after approximately 1.4 million iterations, at which point training was concluded.\n\nNormalized wording: The source reports that the C-163 model stopped improving after approximately 1.4 million iterations, at which point training was concluded.\n\nDependencies: C-163.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve “stopped improving.”\nPreserve “approximately.”\nPreserve the stated relationship between the observed lack of further improvement and the conclusion of training.\nDo not normalize the observation into formal convergence.\nDo not infer which metric was monitored.\nDo not infer an early-stopping algorithm, patience interval, validation schedule, or checkpoint-selection rule.\nDo not infer global or local optimality.\nDo not infer that every training run stopped at the same iteration.\nDo not reinterpret 1.4 million iterations as epochs, examples, gradient updates, or worker-local steps beyond what the source states.\n\nC-168 — L528\n\nDisposition: edit.\n\nCriterion: 5.\n\nAuthorized exact evidence:\nThe model achieved 96.8% accuracy on the validation set.\n\nNormalized wording: The C-163 CLEVR-from-pixels model achieved 96.8% accuracy on the validation set.\n\nDependencies: C-163.\n\nCitation treatment: none.\n\nResult-boundary treatment: Preserve this result separately from C-109’s 95.5% CLEVR test-set result. The two values apply to different evaluation splits and are neither duplicates nor a contradiction.\n\nDegradation flags: none.\n\nRestrictions:\nPreserve 96.8%.\nPreserve accuracy as the metric.\nPreserve the validation-set condition.\nDo not substitute the 95.5% test-set result for this value or this value for the test-set result.\nDo not infer test accuracy from this sentence.\nDo not infer a comparator, confidence interval, statistical significance, state-of-the-art status, or human comparison.\nDo not infer that this was necessarily the checkpoint used for every later reported result.\n\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.",
+  "adopted_ids": [
+    "C-163",
+    "C-164",
+    "C-165",
+    "C-166",
+    "C-167",
+    "S-167a",
+    "S-167b",
+    "C-168"
+  ],
+  "decisions": {
+    "C-163": {
+      "locator": "L519-L520",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "context_dependencies": [
+        "G-032"
+      ],
+      "anchor_for": [
+        "C-164",
+        "C-165",
+        "C-166",
+        "C-167",
+        "C-168",
+        "C-169"
+      ]
+    },
+    "C-164": {
+      "locator": "L520-L522",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-163"
+      ]
+    },
+    "C-165": {
+      "locator": "L522-L524",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-163"
+      ],
+      "partial_overlaps": [
+        "C-104",
+        "C-105"
+      ]
+    },
+    "C-166": {
+      "locator": "L524-L525",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-163"
+      ],
+      "partial_overlaps": [
+        "C-103"
+      ]
+    },
+    "C-167": {
+      "locator": "L525-L527",
+      "disposition": "too-broad",
+      "replaced_by": [
+        "S-167a",
+        "S-167b"
+      ]
+    },
+    "S-167a": {
+      "source_candidate": "C-167",
+      "locator": "L525-L526",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "dependencies": [
+        "C-163"
+      ],
+      "partial_overlaps": [
+        "C-101"
+      ]
+    },
+    "S-167b": {
+      "source_candidate": "C-167",
+      "locator": "L526-L527",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "dependencies": [
+        "C-163"
+      ]
+    },
+    "C-168": {
+      "locator": "L528",
+      "disposition": "edit",
+      "criterion": 5,
+      "dependencies": [
+        "C-163"
+      ],
+      "result_boundary_distinct_from": [
+        "C-109"
+      ]
+    }
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-168",
+    "last_gap_adjudicated": "G-032",
+    "last_fully_accounted_source_line": "L528",
+    "next_source_line": "L529",
+    "next_candidate": "C-169",
+    "next_candidate_locator": "L529-L530",
+    "next_gap": "G-033",
+    "current_batch": "Batch 08"
+  },
+  "pins": {
+    "checkpoint_through_batch_07_zip_sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+    "batch07_attestation_receipt_markdown_sha256": "96922b8a4f494b58239fcd37a43c4bb29f344228cb07c4a46889061e4456725c",
+    "batch07_attestation_receipt_json_sha256": "dec0bfe56547af5f86f51e78809239cfe176f4ab73e35334cdb269ae29a6a7f6",
+    "batch08_proposal_sha256": "420934551436cbf1956f88937b91deb80960355dd6a9ffd8c81a3434ce2b54c7",
+    "transfer_manifest_sha256": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "normalized_criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "handoff_sha256": "81764a109ce30e92b4661506d8f18a96a17ed81b309fcf614da993461f2783ca",
+    "exact_pdf_sha256": "c115123a511418ab46f04c4f9f78b6a569712960dbe9ca596d4edd6f0686d521",
+    "predecessor_event_B07E_markdown_sha256": "cf44a179ac08a86aeffbce1197d735002aab22c14ae0f28d2f88ec6995909160",
+    "predecessor_event_B07E_json_sha256": "88f87069e34d415030c98f010074cdff37af5e226a772083888308fc3deb1641"
+  },
+  "open_findings_carried_forward": [
+    "AUDIT-B02-BYTES",
+    "NORM-19",
+    "WHOLE-SOURCE-CONSISTENCY",
+    "PACKAGING-RISK"
+  ],
+  "criteria_change_authorized": false,
+  "missing_internal_audit_json": {
+    "sha256_recorded": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+    "status": "not locally available; not reconstructed",
+    "load_bearing_for_this_event": false
+  }
+}

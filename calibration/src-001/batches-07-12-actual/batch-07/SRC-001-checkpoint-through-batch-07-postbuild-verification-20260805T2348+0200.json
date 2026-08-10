@@ -1,0 +1,497 @@
+{
+  "record_type": "noncanonical_checkpoint_postbuild_verification",
+  "checkpoint_id": "SRC-001-CHECKPOINT-THROUGH-BATCH-07-20260805T2348+0200",
+  "created_local_time": "2026-08-05T23:48:00+02:00",
+  "zip": {
+    "filename": "SRC-001-checkpoint-through-batch-07-20260805T2348+0200.zip",
+    "bytes": 297121,
+    "sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4"
+  },
+  "archive": {
+    "member_count": 36,
+    "duplicate_names": [],
+    "member_names": [
+      "CHECKSUMS.sha256",
+      "README.md",
+      "SRC-001-coverage-state-through-batch-07.json",
+      "SRC-001-coverage-state-through-batch-07.md",
+      "SRC-001-human-checkpoint-receipt-through-batch-07.json",
+      "SRC-001-human-checkpoint-receipt-through-batch-07.md",
+      "SRC-001-human-decisions-through-batch-07.json",
+      "SRC-001-human-decisions-through-batch-07.md",
+      "SRC-001-provisional-criteria-observations-through-batch-07.md",
+      "SRC-001-resume-state-through-batch-07.json",
+      "SRC-001-serialization-audit-through-batch-07.json",
+      "SRC-001-serialization-audit-through-batch-07.md",
+      "SRC-001-unresolved-findings-through-batch-07.json",
+      "SRC-001-unresolved-findings-through-batch-07.md",
+      "checkpoint-manifest.json",
+      "continuation-authority/SRC-001-internal-audit-through-batch-06-20260805T1756+0200.md",
+      "continuation-authority/SRC-001-internal-audit-through-batch-06-20260805T1756+0200.sha256",
+      "decision-events/SRC-001-human-decision-event-B07A-20260805T2159+0200.json",
+      "decision-events/SRC-001-human-decision-event-B07A-20260805T2159+0200.md",
+      "decision-events/SRC-001-human-decision-event-B07B-20260805T2206+0200.json",
+      "decision-events/SRC-001-human-decision-event-B07B-20260805T2206+0200.md",
+      "decision-events/SRC-001-human-decision-event-B07C-20260805T2248+0200.json",
+      "decision-events/SRC-001-human-decision-event-B07C-20260805T2248+0200.md",
+      "decision-events/SRC-001-human-decision-event-B07D-20260805T2329+0200.json",
+      "decision-events/SRC-001-human-decision-event-B07D-20260805T2329+0200.md",
+      "decision-events/SRC-001-human-decision-event-B07E-20260805T2346+0200.json",
+      "decision-events/SRC-001-human-decision-event-B07E-20260805T2346+0200.md",
+      "immutable-inputs/SRC-001-adjudication-batch-07-proposals.md",
+      "immutable-inputs/SRC-001-checkpoint-through-batch-06.zip",
+      "receipts/SRC-001-exact-evidence-correction-and-audit-receipt-20260805T1821+0200.sha256",
+      "receipts/SRC-001-human-attestation-receipt-through-batch-06-20260805T1733+0200.json",
+      "receipts/SRC-001-human-attestation-receipt-through-batch-06-20260805T1733+0200.md",
+      "receipts/SRC-001-human-exact-evidence-correction-through-batch-06-20260805T1821+0200.json",
+      "receipts/SRC-001-human-exact-evidence-correction-through-batch-06-20260805T1821+0200.md",
+      "receipts/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.json",
+      "receipts/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.md"
+    ]
+  },
+  "internal_checksums": {
+    "entry_count": 35,
+    "all_pass": true,
+    "results": [
+      {
+        "filename": "README.md",
+        "expected": "e4ff3992312efbf17f6ff4365c81d34709dad5062ab8f9b98a4865e610962869",
+        "observed": "e4ff3992312efbf17f6ff4365c81d34709dad5062ab8f9b98a4865e610962869",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-coverage-state-through-batch-07.json",
+        "expected": "2c57dafab1ca0e3c5fd7cba6324e8c453198a39f13bcf9dc9b347280b4e97ab3",
+        "observed": "2c57dafab1ca0e3c5fd7cba6324e8c453198a39f13bcf9dc9b347280b4e97ab3",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-coverage-state-through-batch-07.md",
+        "expected": "3c48d9f88ca4671d2bfa21df68ea831c13c1ef5b6af0a8bf0ce88eb00b724001",
+        "observed": "3c48d9f88ca4671d2bfa21df68ea831c13c1ef5b6af0a8bf0ce88eb00b724001",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-human-checkpoint-receipt-through-batch-07.json",
+        "expected": "ba50716bc72a1e655094aa10a974ffca13d28762b966ca0237d4ebdbbea81c04",
+        "observed": "ba50716bc72a1e655094aa10a974ffca13d28762b966ca0237d4ebdbbea81c04",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-human-checkpoint-receipt-through-batch-07.md",
+        "expected": "236e4b577337f7e8d5ecccc1fd3c2f42a5fbceebc13baf18163026dc280f0476",
+        "observed": "236e4b577337f7e8d5ecccc1fd3c2f42a5fbceebc13baf18163026dc280f0476",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-human-decisions-through-batch-07.json",
+        "expected": "e602efd96281bdc6735d7d72913b8b79feb5f3dddf2b7bdcb60998faacf75d81",
+        "observed": "e602efd96281bdc6735d7d72913b8b79feb5f3dddf2b7bdcb60998faacf75d81",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-human-decisions-through-batch-07.md",
+        "expected": "8d5dfd9442ea7e8da4f4e406cb5a4f4aee8aad746749d21297156c68f21ca417",
+        "observed": "8d5dfd9442ea7e8da4f4e406cb5a4f4aee8aad746749d21297156c68f21ca417",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-provisional-criteria-observations-through-batch-07.md",
+        "expected": "acc9afc7e22e94b5f2737996d10232cfa375d096f7cf9f3c0af680c9fb32dfba",
+        "observed": "acc9afc7e22e94b5f2737996d10232cfa375d096f7cf9f3c0af680c9fb32dfba",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-resume-state-through-batch-07.json",
+        "expected": "9a4ae38f9988003ab2d8af7b7cea04e6a9b2526753093845365d51f2d87554b8",
+        "observed": "9a4ae38f9988003ab2d8af7b7cea04e6a9b2526753093845365d51f2d87554b8",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-serialization-audit-through-batch-07.json",
+        "expected": "0427b171925dcfe7be7088731a9539253967f96fa0e41b072f093e272351a4ac",
+        "observed": "0427b171925dcfe7be7088731a9539253967f96fa0e41b072f093e272351a4ac",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-serialization-audit-through-batch-07.md",
+        "expected": "dc19b6bc034bee6ab5d47f7976bb79d8c16b5218f4b86859f3b4e016d8120ab1",
+        "observed": "dc19b6bc034bee6ab5d47f7976bb79d8c16b5218f4b86859f3b4e016d8120ab1",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-unresolved-findings-through-batch-07.json",
+        "expected": "4ba08dd7586c6be7da1b2dd9a88e133ed1a6949e5ccd4549cbe3d9f4133ca20d",
+        "observed": "4ba08dd7586c6be7da1b2dd9a88e133ed1a6949e5ccd4549cbe3d9f4133ca20d",
+        "pass": true
+      },
+      {
+        "filename": "SRC-001-unresolved-findings-through-batch-07.md",
+        "expected": "5d60f224f195330ae9a80df1dabf473dc5ce0ecbca945d15b42f631c3d5c2991",
+        "observed": "5d60f224f195330ae9a80df1dabf473dc5ce0ecbca945d15b42f631c3d5c2991",
+        "pass": true
+      },
+      {
+        "filename": "checkpoint-manifest.json",
+        "expected": "2eaeffc408e2b8424c16e72a14363d32626b289191181dd58dfb67aa51ab657d",
+        "observed": "2eaeffc408e2b8424c16e72a14363d32626b289191181dd58dfb67aa51ab657d",
+        "pass": true
+      },
+      {
+        "filename": "continuation-authority/SRC-001-internal-audit-through-batch-06-20260805T1756+0200.md",
+        "expected": "a9721b1bb9e718c2c3973b300ae635ba81708c3d72d6339ea3d4bfbabdf8a29b",
+        "observed": "a9721b1bb9e718c2c3973b300ae635ba81708c3d72d6339ea3d4bfbabdf8a29b",
+        "pass": true
+      },
+      {
+        "filename": "continuation-authority/SRC-001-internal-audit-through-batch-06-20260805T1756+0200.sha256",
+        "expected": "e1c5d9215131d8aaf2032fd6208869b9323e3078cc8d26944c288230bb07f5ce",
+        "observed": "e1c5d9215131d8aaf2032fd6208869b9323e3078cc8d26944c288230bb07f5ce",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07A-20260805T2159+0200.json",
+        "expected": "4958ed499da13941264da66074e9a11baeab4d56c9705ffb98a1201d34488d9a",
+        "observed": "4958ed499da13941264da66074e9a11baeab4d56c9705ffb98a1201d34488d9a",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07A-20260805T2159+0200.md",
+        "expected": "e007a31678960e0d00806e3f6b82afcc167e7282fba043723f0ea438beea105f",
+        "observed": "e007a31678960e0d00806e3f6b82afcc167e7282fba043723f0ea438beea105f",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07B-20260805T2206+0200.json",
+        "expected": "ec07ca53c7db78acf0fc92aa4bddcd49d9ae14b977472b91a7a52352d79d7652",
+        "observed": "ec07ca53c7db78acf0fc92aa4bddcd49d9ae14b977472b91a7a52352d79d7652",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07B-20260805T2206+0200.md",
+        "expected": "abfe938d92715fac4a9fc626d18bf93eb41911e004a6f891aaa2249b751c6f56",
+        "observed": "abfe938d92715fac4a9fc626d18bf93eb41911e004a6f891aaa2249b751c6f56",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07C-20260805T2248+0200.json",
+        "expected": "9c3ea3238b38a54236e9efb00360b594ee7cd96a60a3f1cf77e6fc241a52e3b6",
+        "observed": "9c3ea3238b38a54236e9efb00360b594ee7cd96a60a3f1cf77e6fc241a52e3b6",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07C-20260805T2248+0200.md",
+        "expected": "2e4ac6765c1a738c924e198d5209a4d756ab3f870e651dfd27ebfdae4262151b",
+        "observed": "2e4ac6765c1a738c924e198d5209a4d756ab3f870e651dfd27ebfdae4262151b",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07D-20260805T2329+0200.json",
+        "expected": "7292171b668ae94bae9fa2341f1e795700417140245517da76af9d469a4d4453",
+        "observed": "7292171b668ae94bae9fa2341f1e795700417140245517da76af9d469a4d4453",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07D-20260805T2329+0200.md",
+        "expected": "1e07e290ee10462a74bf3dfec901d7f9f9cfcefa4a676ce3a6ff59536581e7d3",
+        "observed": "1e07e290ee10462a74bf3dfec901d7f9f9cfcefa4a676ce3a6ff59536581e7d3",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07E-20260805T2346+0200.json",
+        "expected": "88f87069e34d415030c98f010074cdff37af5e226a772083888308fc3deb1641",
+        "observed": "88f87069e34d415030c98f010074cdff37af5e226a772083888308fc3deb1641",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07E-20260805T2346+0200.md",
+        "expected": "cf44a179ac08a86aeffbce1197d735002aab22c14ae0f28d2f88ec6995909160",
+        "observed": "cf44a179ac08a86aeffbce1197d735002aab22c14ae0f28d2f88ec6995909160",
+        "pass": true
+      },
+      {
+        "filename": "immutable-inputs/SRC-001-adjudication-batch-07-proposals.md",
+        "expected": "23e23b089c032bd1269b248fefb9663799d4d0792762db83caa8b7ccb3f490d6",
+        "observed": "23e23b089c032bd1269b248fefb9663799d4d0792762db83caa8b7ccb3f490d6",
+        "pass": true
+      },
+      {
+        "filename": "immutable-inputs/SRC-001-checkpoint-through-batch-06.zip",
+        "expected": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec",
+        "observed": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-exact-evidence-correction-and-audit-receipt-20260805T1821+0200.sha256",
+        "expected": "7d97d626c96c0d92e33a23b8c406c5146251df25bd9d8c9d6b679cabf52e175f",
+        "observed": "7d97d626c96c0d92e33a23b8c406c5146251df25bd9d8c9d6b679cabf52e175f",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-human-attestation-receipt-through-batch-06-20260805T1733+0200.json",
+        "expected": "85a6e1411e140fad14cac69dd38fd38f1737152f288dcf0e9ee5421325c41141",
+        "observed": "85a6e1411e140fad14cac69dd38fd38f1737152f288dcf0e9ee5421325c41141",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-human-attestation-receipt-through-batch-06-20260805T1733+0200.md",
+        "expected": "4ac759426646d76d8b80d6b41c64c145a7c404d02082bf5eee345c1fc4b915a2",
+        "observed": "4ac759426646d76d8b80d6b41c64c145a7c404d02082bf5eee345c1fc4b915a2",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-human-exact-evidence-correction-through-batch-06-20260805T1821+0200.json",
+        "expected": "dadd9a3c66c63b565b5bb7cd412f553e4bbf2e6e45c671057e56af0be30d77b6",
+        "observed": "dadd9a3c66c63b565b5bb7cd412f553e4bbf2e6e45c671057e56af0be30d77b6",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-human-exact-evidence-correction-through-batch-06-20260805T1821+0200.md",
+        "expected": "e32058ae3fe019f94dba3768db0b83b1d71357a4b2d4a747abd07aba92f1654f",
+        "observed": "e32058ae3fe019f94dba3768db0b83b1d71357a4b2d4a747abd07aba92f1654f",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.json",
+        "expected": "bfdbe17e6fb1d1a61c92a8145b0faad546c8110856cec1b207e3b27d7a92300e",
+        "observed": "bfdbe17e6fb1d1a61c92a8145b0faad546c8110856cec1b207e3b27d7a92300e",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.md",
+        "expected": "38cad23d7ddf4d22b429cba8fff26960a43f1a901475cc24a9849b3bf433844b",
+        "observed": "38cad23d7ddf4d22b429cba8fff26960a43f1a901475cc24a9849b3bf433844b",
+        "pass": true
+      }
+    ]
+  },
+  "json_parsing": {
+    "file_count": 15,
+    "all_pass": true,
+    "results": [
+      {
+        "filename": "SRC-001-coverage-state-through-batch-07.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "SRC-001-human-checkpoint-receipt-through-batch-07.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "SRC-001-human-decisions-through-batch-07.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "SRC-001-resume-state-through-batch-07.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "SRC-001-serialization-audit-through-batch-07.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "SRC-001-unresolved-findings-through-batch-07.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "checkpoint-manifest.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07A-20260805T2159+0200.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07B-20260805T2206+0200.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07C-20260805T2248+0200.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07D-20260805T2329+0200.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07E-20260805T2346+0200.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "receipts/SRC-001-human-attestation-receipt-through-batch-06-20260805T1733+0200.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "receipts/SRC-001-human-exact-evidence-correction-through-batch-06-20260805T1821+0200.json",
+        "pass": true,
+        "error": null
+      },
+      {
+        "filename": "receipts/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.json",
+        "pass": true,
+        "error": null
+      }
+    ]
+  },
+  "byte_identity": {
+    "all_pass": true,
+    "results": [
+      {
+        "filename": "immutable-inputs/SRC-001-checkpoint-through-batch-06.zip",
+        "expected_sha256": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec",
+        "observed_sha256": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec",
+        "pass": true
+      },
+      {
+        "filename": "immutable-inputs/SRC-001-adjudication-batch-07-proposals.md",
+        "expected_sha256": "23e23b089c032bd1269b248fefb9663799d4d0792762db83caa8b7ccb3f490d6",
+        "observed_sha256": "23e23b089c032bd1269b248fefb9663799d4d0792762db83caa8b7ccb3f490d6",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07A-20260805T2159+0200.json",
+        "expected_sha256": "4958ed499da13941264da66074e9a11baeab4d56c9705ffb98a1201d34488d9a",
+        "observed_sha256": "4958ed499da13941264da66074e9a11baeab4d56c9705ffb98a1201d34488d9a",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07A-20260805T2159+0200.md",
+        "expected_sha256": "e007a31678960e0d00806e3f6b82afcc167e7282fba043723f0ea438beea105f",
+        "observed_sha256": "e007a31678960e0d00806e3f6b82afcc167e7282fba043723f0ea438beea105f",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07B-20260805T2206+0200.json",
+        "expected_sha256": "ec07ca53c7db78acf0fc92aa4bddcd49d9ae14b977472b91a7a52352d79d7652",
+        "observed_sha256": "ec07ca53c7db78acf0fc92aa4bddcd49d9ae14b977472b91a7a52352d79d7652",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07B-20260805T2206+0200.md",
+        "expected_sha256": "abfe938d92715fac4a9fc626d18bf93eb41911e004a6f891aaa2249b751c6f56",
+        "observed_sha256": "abfe938d92715fac4a9fc626d18bf93eb41911e004a6f891aaa2249b751c6f56",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07C-20260805T2248+0200.json",
+        "expected_sha256": "9c3ea3238b38a54236e9efb00360b594ee7cd96a60a3f1cf77e6fc241a52e3b6",
+        "observed_sha256": "9c3ea3238b38a54236e9efb00360b594ee7cd96a60a3f1cf77e6fc241a52e3b6",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07C-20260805T2248+0200.md",
+        "expected_sha256": "2e4ac6765c1a738c924e198d5209a4d756ab3f870e651dfd27ebfdae4262151b",
+        "observed_sha256": "2e4ac6765c1a738c924e198d5209a4d756ab3f870e651dfd27ebfdae4262151b",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07D-20260805T2329+0200.json",
+        "expected_sha256": "7292171b668ae94bae9fa2341f1e795700417140245517da76af9d469a4d4453",
+        "observed_sha256": "7292171b668ae94bae9fa2341f1e795700417140245517da76af9d469a4d4453",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07D-20260805T2329+0200.md",
+        "expected_sha256": "1e07e290ee10462a74bf3dfec901d7f9f9cfcefa4a676ce3a6ff59536581e7d3",
+        "observed_sha256": "1e07e290ee10462a74bf3dfec901d7f9f9cfcefa4a676ce3a6ff59536581e7d3",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07E-20260805T2346+0200.json",
+        "expected_sha256": "88f87069e34d415030c98f010074cdff37af5e226a772083888308fc3deb1641",
+        "observed_sha256": "88f87069e34d415030c98f010074cdff37af5e226a772083888308fc3deb1641",
+        "pass": true
+      },
+      {
+        "filename": "decision-events/SRC-001-human-decision-event-B07E-20260805T2346+0200.md",
+        "expected_sha256": "cf44a179ac08a86aeffbce1197d735002aab22c14ae0f28d2f88ec6995909160",
+        "observed_sha256": "cf44a179ac08a86aeffbce1197d735002aab22c14ae0f28d2f88ec6995909160",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-human-attestation-receipt-through-batch-06-20260805T1733+0200.md",
+        "expected_sha256": "4ac759426646d76d8b80d6b41c64c145a7c404d02082bf5eee345c1fc4b915a2",
+        "observed_sha256": "4ac759426646d76d8b80d6b41c64c145a7c404d02082bf5eee345c1fc4b915a2",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-human-attestation-receipt-through-batch-06-20260805T1733+0200.json",
+        "expected_sha256": "85a6e1411e140fad14cac69dd38fd38f1737152f288dcf0e9ee5421325c41141",
+        "observed_sha256": "85a6e1411e140fad14cac69dd38fd38f1737152f288dcf0e9ee5421325c41141",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-human-exact-evidence-correction-through-batch-06-20260805T1821+0200.md",
+        "expected_sha256": "e32058ae3fe019f94dba3768db0b83b1d71357a4b2d4a747abd07aba92f1654f",
+        "observed_sha256": "e32058ae3fe019f94dba3768db0b83b1d71357a4b2d4a747abd07aba92f1654f",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-human-exact-evidence-correction-through-batch-06-20260805T1821+0200.json",
+        "expected_sha256": "dadd9a3c66c63b565b5bb7cd412f553e4bbf2e6e45c671057e56af0be30d77b6",
+        "observed_sha256": "dadd9a3c66c63b565b5bb7cd412f553e4bbf2e6e45c671057e56af0be30d77b6",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.md",
+        "expected_sha256": "38cad23d7ddf4d22b429cba8fff26960a43f1a901475cc24a9849b3bf433844b",
+        "observed_sha256": "38cad23d7ddf4d22b429cba8fff26960a43f1a901475cc24a9849b3bf433844b",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.json",
+        "expected_sha256": "bfdbe17e6fb1d1a61c92a8145b0faad546c8110856cec1b207e3b27d7a92300e",
+        "observed_sha256": "bfdbe17e6fb1d1a61c92a8145b0faad546c8110856cec1b207e3b27d7a92300e",
+        "pass": true
+      },
+      {
+        "filename": "receipts/SRC-001-exact-evidence-correction-and-audit-receipt-20260805T1821+0200.sha256",
+        "expected_sha256": "7d97d626c96c0d92e33a23b8c406c5146251df25bd9d8c9d6b679cabf52e175f",
+        "observed_sha256": "7d97d626c96c0d92e33a23b8c406c5146251df25bd9d8c9d6b679cabf52e175f",
+        "pass": true
+      }
+    ]
+  },
+  "structural_reconciliation": {
+    "candidate_ids_exact_C146_C162": true,
+    "gap_ids_exact_G027_G032": true,
+    "disposition_counts": {
+      "edit": 2,
+      "too-broad": 3,
+      "calibration-accept": 11,
+      "reject": 1
+    },
+    "disposition_count_total": 17,
+    "disposition_counts_reconcile": true,
+    "added_units_exact": true,
+    "E003_repair_closed": true,
+    "no_cross_batch_repairs_open": true,
+    "coverage_L1_L518": true,
+    "resume_L519_C163_G033": true,
+    "src001_open": true,
+    "src002_not_authorized": true,
+    "criteria_unchanged": true,
+    "A01_A03_closed_additively": true,
+    "batch06_not_mutated": true,
+    "missing_audit_json_visible_non_load_bearing": true
+  },
+  "overall_pass": true,
+  "status_limits": [
+    "Structural verification only.",
+    "Not semantic validation, replay, sanction, independent audit, acceptance, or v1 evidence."
+  ],
+  "checkpoint_gate": "PENDING EXACT-BYTE HUMAN ATTESTATION"
+}
