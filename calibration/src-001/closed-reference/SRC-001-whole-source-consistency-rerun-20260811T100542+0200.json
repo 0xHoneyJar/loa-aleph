@@ -1,0 +1,166 @@
+{
+  "record_type": "noncanonical_src001_whole_source_consistency_rerun_and_packaging_readiness_assessment",
+  "source_id": "SRC-001",
+  "recorded_at": "2026-08-11T10:05:42+02:00",
+  "record_scope": "development-calibration diagnostic only",
+  "authority_effect": "No semantic decision, source, criterion, predecessor artifact, status boundary, or Loa-Aleph Core state is changed by this record.",
+  "whole_source_consistency": {
+    "result": "PASS",
+    "meaning": "SRC-001 whole-source development-calibration consistency audit passed.",
+    "rerun_scope": "Complete evidence state from the beginning through Batch 12 plus all applicable append-only correction and closure layers; not limited to the three corrected comparisons.",
+    "counts": {
+      "checks": 1670,
+      "passed": 1670,
+      "failed": 0,
+      "immutable_transfer_inputs": 18,
+      "checkpoint_archives": 11,
+      "checkpoint_internal_checksum_entries": 333,
+      "checkpoint_json_files_parsed": 155,
+      "event_blocks_hashed": 9,
+      "event_exact_evidence_sections_checked": 46,
+      "ledger_exact_evidence_values_checked": 151,
+      "original_candidates": 206,
+      "gaps": 43
+    },
+    "check_families": {
+      "frozen_source_identity_and_line_count": "PASS",
+      "immutable_transfer_input_hashes": "PASS",
+      "handoff_candidate_and_gap_sequences": "PASS",
+      "handoff_exact_evidence_and_complete_line_coverage": "PASS",
+      "all_twelve_proposal_batches_and_unchanged_criteria_pins": "PASS",
+      "all_eleven_checkpoint_archive_hashes_and_decompression_tests": "PASS",
+      "all_checkpoint_internal_checksums": "PASS",
+      "all_checkpoint_json_parse_checks": "PASS",
+      "checkpoint_predecessor_and_human_attestation_bindings": "PASS",
+      "human_decision_event_block_hashes": "PASS",
+      "human_decision_event_exact_evidence_sections": "PASS",
+      "all_206_original_candidate_decisions": "PASS",
+      "all_43_gap_decisions": "PASS",
+      "disposition_count_reconciliation": "PASS",
+      "replacement_split_duplicate_and_dependency_resolution": "PASS",
+      "effective_exact_evidence_after_all_correction_layers": "PASS",
+      "non_independent_overlap_treatment": "PASS",
+      "formal_material_and_source_order_closures": "PASS",
+      "prior_append_only_preclose_closures": "PASS",
+      "known_absence_visibility_and_authority_boundaries": "PASS"
+    },
+    "execution_evidence": {
+      "temporary_harness_path": "/tmp/src001-whole-source-rerun-20260811-Eag0ND/whole-source-audit.mjs",
+      "temporary_harness_sha256": "787c6ca8d893b177999dea863191525bd87783a0d5087b94aeb883285463d36d",
+      "temporary_full_result_path": "/tmp/src001-whole-source-rerun-20260811-Eag0ND/audit-output.json",
+      "temporary_full_result_sha256": "b206ccabc95576387d7e75d9dd47b97d92a43e9a2f15258ad887897131cc952f",
+      "full_result_false_check_count": 0,
+      "archive_test": "All eleven checkpoint ZIPs independently passed unzip decompression tests before the final harness invocation."
+    }
+  },
+  "exact_evidence_correction_layer": {
+    "nature": "MECHANICAL_EXACT_EVIDENCE_BYTE_RESTORATION",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "correction_record": {
+      "path": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+      "sha256": "d412a71c3a8a0f9f054a6f5062ffce86229e71bd3ffee009f7ba612cd8f3f357"
+    },
+    "closure_receipt": {
+      "path": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-closure-receipt-20260811T093402+0200.json",
+      "sha256": "e4da8650404ecc001c5febb4c88ec59e83cfe355ef1e69ddfb407af1371a3b83"
+    },
+    "closed_findings": [
+      "EXACT-EVIDENCE-QUOTE-DRIFT-C120",
+      "EXACT-EVIDENCE-QUOTE-DRIFT-C125",
+      "EXACT-EVIDENCE-QUOTE-DRIFT-C128"
+    ],
+    "verification": {
+      "incorrect_predecessor_values_remain_visible_and_immutable": true,
+      "old_values_bound_by_sha256": true,
+      "corrected_values_bound_by_sha256": true,
+      "corrected_values_exactly_match_authorized_source_spans": true,
+      "source_double_quotation_marks_preserved": true,
+      "non_evidence_field_hashes_unchanged": true,
+      "semantic_decisions_changed": false
+    }
+  },
+  "whole_source_reconciliations": {
+    "C-082_forward_evidence_map": {
+      "mapped_retained_result_units": [
+        "T1-007",
+        "C-109",
+        "C-120",
+        "C-123",
+        "C-125",
+        "C-127",
+        "C-128",
+        "E-002",
+        "C-133",
+        "C-137"
+      ],
+      "scope": "Evidence-basis bookkeeping for the source-attributed forward-results statement only; no new claim, dependency, or causal proof is created.",
+      "C-140": "Duplicate of C-082 and not independent evidence."
+    },
+    "C-073_and_C-197": {
+      "treatment": "Distinct frozen-source occurrences with different contextual roles; the repeated state-description proposition is not counted as independent corroboration.",
+      "C-073_locator": "L201-L204",
+      "C-197_locator": "L595-L598"
+    },
+    "explicit_non_independent_overlap_links": [
+      "C-149/C-080",
+      "C-176/C-061",
+      "C-177/C-063",
+      "C-179/C-062"
+    ]
+  },
+  "packaging_readiness_assessment": {
+    "package_created": false,
+    "ready_for_final_packaging": false,
+    "referenced_absent_B02_v1_checkpoint": {
+      "sha256": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+      "classification": "A",
+      "classification_text": "Required load-bearing bytes that must be recovered before final packaging.",
+      "authority_chain_basis": [
+        {
+          "path": "SRC-001-checkpoint-through-batch-02-v2/SRC-001-checkpoint-through-batch-02-v2/SRC-001-human-checkpoint-receipt-through-batch-02.json",
+          "sha256": "3b0624303f94b7f9617e6bf7a1cfa1a145cd4feb82a5fb09b14780b35e607955",
+          "effect": "Authorizes corrected checkpoint v2 as append-only while requiring the original checkpoint and all immutable inputs to remain preserved unchanged."
+        },
+        {
+          "path": "SRC-001-checkpoint-through-batch-02-v2/SRC-001-checkpoint-through-batch-02-v2/checkpoint-manifest.json",
+          "sha256": "77ef545b2ea279e051739aeb540273c51549e511ce1e6c7c2143423a4d624105",
+          "effect": "Identifies B02-v1 by exact archive and manifest hashes and records preservation as UNCHANGED."
+        }
+      ],
+      "reason": "B02-v2 preserves the corrected semantic state but is explicitly an additive correction layer over exact predecessor bytes. Later authority does not release the requirement to preserve B02-v1, so its absence cannot be silently downgraded to a non-load-bearing predecessor identity.",
+      "bytes_present": false,
+      "reconstructed": false,
+      "contents_inferred_from_B02_v2": false,
+      "required_next_condition": "Recover the exact checkpoint archive matching the recorded SHA-256 before final packaging."
+    },
+    "known_unavailable_internal_audit_json": {
+      "filename": "SRC-001-internal-audit-through-batch-06-20260805T1756+0200.json",
+      "sha256": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+      "status": "KNOWN_ABSENCE_NOT_RECONSTRUCTED",
+      "load_bearing": false,
+      "visibility_preserved": true,
+      "status_changed": false
+    }
+  },
+  "state_after_assessment": {
+    "src001": "OPEN",
+    "src002": "NOT AUTHORIZED",
+    "ready_for_src001_close_decision": false,
+    "blocking_condition": "The authority chain makes absent B02-v1 exact bytes load-bearing for final packaging.",
+    "loa_aleph_core_modified": false,
+    "criteria_modified": false,
+    "prior_artifacts_modified": false,
+    "package_created": false,
+    "src001_closed_for_calibration": false
+  },
+  "pass_does_not_mean": [
+    "Loa-Aleph validation",
+    "sanction",
+    "acceptance",
+    "golden promotion",
+    "production readiness",
+    "v1 evidence",
+    "SRC-001 closure",
+    "SRC-002 authorization"
+  ]
+}

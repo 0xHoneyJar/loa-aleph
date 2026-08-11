@@ -1,0 +1,36 @@
+{
+  "record_type": "noncanonical_event_metadata_correction",
+  "source_id": "SRC-001",
+  "batch": "08A",
+  "recorded_at": "2026-08-06T00:14:00+02:00",
+  "authority": "internal_mechanical_correction",
+  "semantic_authority": false,
+  "affected_event": {
+    "markdown_filename": "SRC-001-human-decision-event-B08A-20260806T0013+0200.md",
+    "markdown_sha256": "9bf80aa0ccc22662e51816a61c9d0ac57efe6bced9c237c0ea8968706858afb8",
+    "json_filename": "SRC-001-human-decision-event-B08A-20260806T0013+0200.json",
+    "json_sha256": "55f43af482351b2d61ef9f20992a83dbab98f5baf86f1415ca0a819bf5614d03"
+  },
+  "prior_artifacts_mutated": false,
+  "human_decision_text_changed": false,
+  "candidate_disposition_changed": false,
+  "criterion_changed": false,
+  "exact_evidence_changed": false,
+  "defect": "B08A generated resume metadata treated L528 as fully accounted and next source line L529 although C-169 begins on L528 after C-168.",
+  "superseded_metadata": {
+    "last_fully_accounted_source_line": "L528",
+    "next_source_line": "L529",
+    "next_candidate_locator": "L529-L530"
+  },
+  "corrected_resume": {
+    "last_original_candidate_adjudicated": "C-168",
+    "last_gap_adjudicated": "G-032",
+    "last_fully_accounted_source_line": "L527",
+    "next_source_line": "L528",
+    "next_candidate": "C-169",
+    "next_candidate_locator": "L528-L530",
+    "next_gap": "G-033",
+    "current_batch": "Batch 08"
+  },
+  "original_event_remains_immutable": true
+}

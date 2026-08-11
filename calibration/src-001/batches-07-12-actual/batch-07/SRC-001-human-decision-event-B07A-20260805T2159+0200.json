@@ -1,0 +1,66 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "07A",
+  "recorded_at": "2026-08-05T21:59:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\n\nG-027 — L469-L475\n\nDecision: no packet appropriate.\n\nExact frozen evidence:\nL469: empty LF line\nL470: Supplementary Material\nL471: Here we provide additional details on (A) related work, (B) CLEVR from pixels, (C) CLEVR from\nL472: state descriptions, (D) Sort-of-CLEVR, (E) bAbI, and (F) Dynamic physical system reasoning. For\nL473: each task, we provide additional information on the dataset, model architecture, training and results\nL474: where necessary.\nL475: A Related Work\n\nExclusion reason: L469 is blank administration; L470 and L475 are headings; and L471-L474 are a contents and navigation description. The passage does not state a substantive architecture, training method, empirical result, constraint, or design proposal. Mentioning the categories “dataset, model architecture, training and results” does not itself satisfy an admission criterion.\n\nExclusion class: document-administration.\n\nMissing-packet decision: none.\n\nDependencies: none.\n\nCitation treatment: none.\n\nDuplicate or overlap treatment: none.\n\nDegradation flags: none.\n\nRestriction: Do not convert the supplementary-contents description into a substantive claim that the supplement establishes any particular architecture, training procedure, or result.\n\nC-146 — L476-L478\n\nDisposition: edit.\n\nCriterion: 2.\n\nAuthorized retained exact evidence:\nSince the RN is highly versatile, it can be used for visual, text-based, and state-based tasks. As such,\nit touches upon a broad range of areas in machine learning, computer vision, and natural language\nunderstanding.\n\nExcluded exact evidence:\nHere, we provide a brief overview of some of the most relevant related work.\n\nReason: The first two sentences assert RN versatility, identify visual, text-based, and state-based application scopes, and state the associated disciplinary breadth. The final sentence only announces the related-work overview and is document navigation.\n\nNormalized wording: The source describes the RN as highly versatile and usable for visual, text-based, and state-based tasks, spanning areas in machine learning, computer vision, and natural language understanding.\n\nDependencies: none. “As such” resolves to the preceding retained sentence inside the same evidence span.\n\nCitation treatment: none.\n\nDuplicate treatment: no duplicate representative.\n\nOverlap treatment: preserve this occurrence and its provenance. Its specific task modalities and disciplinary scope are not silently merged into broader RN-versatility statements.\n\nEvidence role: architectural and application-scope assertion, not an empirical performance result.\n\nDegradation flags: none.\n\nRepair treatment: narrow C-146 in place. Do not create a new split unit or missing packet.\n\nRestrictions:\nDo not change “can be used” into demonstrated success across every listed task or field.\nDo not infer comparative superiority, generalization performance, or measured versatility.\nDo not count this prose as independent empirical evidence for results reported elsewhere.\nDo not retain the related-work announcement as substantive evidence.\n\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.",
+  "adopted_ids": [
+    "G-027",
+    "C-146"
+  ],
+  "decisions": {
+    "G-027": {
+      "locator": "L469-L475",
+      "decision": "no packet appropriate",
+      "exclusion_class": "document-administration",
+      "missing_packet_decision": "none"
+    },
+    "C-146": {
+      "locator": "L476-L478",
+      "disposition": "edit",
+      "criterion": 2,
+      "repair_treatment": "narrow in place; no split unit or missing packet"
+    }
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-146",
+    "last_gap_adjudicated": "G-027",
+    "last_fully_accounted_source_line": "L478",
+    "next_source_line": "L479",
+    "next_gap": "G-028",
+    "next_candidate": "C-147",
+    "next_candidate_locator": "L480-L481"
+  },
+  "pins": {
+    "continuation_authority_bundle_sha256": "3918bc49110365b956fd63b422c5d1988191c63239e74bffa02bf07eaccfb426",
+    "checkpoint_through_batch_06_zip_sha256": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec",
+    "batch06_attestation_receipt_markdown_sha256": "4ac759426646d76d8b80d6b41c64c145a7c404d02082bf5eee345c1fc4b915a2",
+    "batch06_attestation_receipt_json_sha256": "85a6e1411e140fad14cac69dd38fd38f1737152f288dcf0e9ee5421325c41141",
+    "batch07_proposal_sha256": "23e23b089c032bd1269b248fefb9663799d4d0792762db83caa8b7ccb3f490d6",
+    "transfer_manifest_sha256": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "normalized_criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "handoff_sha256": "81764a109ce30e92b4661506d8f18a96a17ed81b309fcf614da993461f2783ca",
+    "exact_pdf_sha256": "c115123a511418ab46f04c4f9f78b6a569712960dbe9ca596d4edd6f0686d521",
+    "human_exact_evidence_correction_json_sha256": "dadd9a3c66c63b565b5bb7cd412f553e4bbf2e6e45c671057e56af0be30d77b6",
+    "audit_corrective_action_receipt_json_sha256": "bfdbe17e6fb1d1a61c92a8145b0faad546c8110856cec1b207e3b27d7a92300e"
+  },
+  "open_findings_carried_forward": [
+    "AUDIT-B02-BYTES",
+    "NORM-19",
+    "WHOLE-SOURCE-CONSISTENCY",
+    "PACKAGING-RISK"
+  ],
+  "criteria_change_authorized": false,
+  "missing_internal_audit_json": {
+    "sha256_recorded": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+    "status": "not locally available; not reconstructed",
+    "load_bearing_for_this_event": false
+  }
+}

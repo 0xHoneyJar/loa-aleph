@@ -1,0 +1,148 @@
+{
+  "record_type": "noncanonical_human_decision_event",
+  "source_id": "SRC-001",
+  "batch": "08D",
+  "recorded_at": "2026-08-06T10:45:00+02:00",
+  "authority": "human",
+  "status": "authoritative_for_noncanonical_human_supervised_calibration",
+  "immutable_inputs_mutated": false,
+  "prior_artifacts_mutated": false,
+  "src001_closed": false,
+  "src002_started": false,
+  "decision_block_exact": "Adopt every decision in this block exactly as written\r\n\r\nC-178 — L552-L553\r\n\r\nDisposition: edit.\r\n\r\nCriterion: 4.\r\n\r\nAuthorized exact evidence:\r\nThese questions are non-relational because one can answer them by reasoning about the attributes\r\n(e.g. position, shape) of a single entity which is identiﬁed by its unique color (e.g. red).\r\n\r\nNormalized wording: In Sort-of-CLEVR, the non-relational question categories described in C-177 can be answered by reasoning about attributes such as position or shape of a single entity identified by its unique color.\r\n\r\nDependencies: C-177, which supplies the three non-relational question categories and the Sort-of-CLEVR context.\r\n\r\nInherited dependency: C-176 is inherited through C-177 and need not be duplicated as a direct dependency.\r\n\r\nCitation treatment: none.\r\n\r\nDuplicate or overlap treatment: none.\r\n\r\nDegradation flag: The frozen evidence contains “identiﬁed”; the exact PDF is readable as “identified”. Preserve the frozen ligature.\r\n\r\nRestrictions:\r\nPreserve “one can answer.”\r\nPreserve the single-entity condition.\r\nPreserve position, shape, and red as examples rather than exhaustive categories or required values.\r\nDo not generalize this Sort-of-CLEVR-specific explanation into a universal definition of non-relational reasoning.\r\nDo not merge C-178 with C-177. C-177 supplies the taxonomy, while C-178 explains the classification.\r\n\r\nC-179 — L554-L557\r\n\r\nDisposition: calibration-accept.\r\n\r\nCriterion: 1.\r\n\r\nAuthorized exact evidence:\r\nRelational questions are split into three categories: (i) closest-to, e.g. “ What is the shape of the\r\nobject that is closest to the green object? ”; (ii) furthest-from, e.g. “ What is the shape of the object\r\nthat is furthest from the green object? ”; (iii) count, e.g. “ How many objects have the shape of the\r\ngreen object?”.\r\n\r\nNormalized wording: In Sort-of-CLEVR, relational questions are divided into closest-to, furthest-from, and count categories, with the source’s corresponding examples involving a green reference object.\r\n\r\nDependencies: C-176, which supplies the Sort-of-CLEVR dataset scope.\r\n\r\nCitation treatment: none.\r\n\r\nOverlap treatment: Record partial semantic overlap with C-062’s earlier relational-question examples. C-179 adds an explicit three-category taxonomy. Preserve both occurrences and their provenance, but do not treat repeated examples as independent evidence.\r\n\r\nDegradation flag: The frozen extraction contains spacing inside several quotation marks that is absent in the readable PDF. Preserve the frozen exact evidence unchanged.\r\n\r\nRestrictions:\r\nPreserve all three categories and all three examples.\r\nDo not treat the example color green as a requirement that every relational question uses a green reference object.\r\nDo not infer that the examples exhaust all possible question phrasings.\r\nDo not import C-180’s explanation into C-179’s exact evidence.\r\nDo not merge C-179 with C-180.\r\n\r\nC-180 — L557-L559\r\n\r\nDisposition: edit.\r\n\r\nCriterion: 4.\r\n\r\nAuthorized exact evidence:\r\nWe consider these relational because answering them requires reasoning about the\r\nattributes of one or more objects that are deﬁned relative to the attributes of a reference object.\r\nThis reference object is uniquely identiﬁed by its color.\r\n\r\nNormalized wording: The authors classify the C-179 question categories as relational because answering them requires reasoning about attributes of one or more objects defined relative to a reference object, which the Sort-of-CLEVR construction uniquely identifies by color.\r\n\r\nDependencies: C-179, which resolves “these” as the closest-to, furthest-from, and count categories.\r\n\r\nCitation treatment: none.\r\n\r\nDuplicate or overlap treatment: none.\r\n\r\nDegradation flags:\r\nThe frozen evidence contains “deﬁned”; the exact PDF is readable as “defined”.\r\nThe frozen evidence contains “identiﬁed”; the exact PDF is readable as “identified”.\r\nPreserve the frozen ligatures.\r\n\r\nRestrictions:\r\nPreserve “We consider” as the authors’ attribution.\r\nPreserve “one or more objects.”\r\nPreserve the relative-definition relationship.\r\nPreserve unique color as the reference-identification condition in this dataset construction.\r\nDo not state that unique color is necessary for relational reasoning generally.\r\nDo not broaden the explanation beyond the C-179 Sort-of-CLEVR categories.\r\nDo not infer that color is the only possible reference-identification mechanism in other datasets.\r\n\r\nC-181 — L560-L562\r\n\r\nDisposition: calibration-accept.\r\n\r\nCriterion: 3.\r\n\r\nAuthorized exact evidence:\r\nQuestions were encoded as binary strings of length 11, where the ﬁrst 6 bits identiﬁed the color\r\nof the object to which the question referred, as a one-hot vector, and the last 5 bits identiﬁed the\r\nquestion type and subtype.\r\n\r\nNormalized wording: For Sort-of-CLEVR, questions were encoded as 11-bit binary strings: the first 6 bits formed a one-hot representation of the referenced object’s color, and the final 5 bits represented question type and subtype.\r\n\r\nDependencies: C-176, which supplies the Sort-of-CLEVR task scope.\r\n\r\nCitation treatment: none.\r\n\r\nOverlap treatment: Record partial semantic overlap with C-060’s earlier fixed-length binary-question representation. C-181 supplies the exact 11-bit allocation and remains a distinct implementation statement. Do not treat the repeated binary-encoding proposition as independent corroboration.\r\n\r\nDegradation flags: The frozen evidence contains “ﬁrst” and “identiﬁed”. Preserve the frozen ligatures.\r\n\r\nRestrictions:\r\nPreserve total length 11.\r\nPreserve the allocation of the first 6 bits and last 5 bits.\r\nPreserve color identity and the one-hot-vector condition.\r\nPreserve question type and subtype.\r\nDo not infer the exact mapping of individual bit positions to colors, types, or subtypes.\r\nDo not infer how many question types or subtypes are used solely from the five-bit capacity.\r\nDo not infer that the encoding was learned.\r\n\r\nG-036 — L563-L564\r\n\r\nDecision: no packet appropriate.\r\n\r\nExact frozen evidence:\r\nL563: 11\r\nL564: empty LF line\r\n\r\nExclusion reason: L563 is the extracted printed page number and L564 is a blank line. Neither line makes a substantive assertion.\r\n\r\nExclusion class: document-administration.\r\n\r\nMissing-packet decision: none.\r\n\r\nDependencies: none.\r\n\r\nCitation treatment: none.\r\n\r\nDegradation flags: none.\r\n\r\nRestrictions:\r\nDo not append the page number to C-181.\r\nDo not prepend the page number to C-182.\r\nDo not fabricate a contiguous quotation across the page administration.\r\n\r\nC-182 — L565-L568\r\n\r\nDisposition: edit.\r\n\r\nCriterion: 3.\r\n\r\nAuthorized exact evidence:\r\nIn this task our model used: four convolutional layers with 32, 64, 128 and 256 kernels, ReLU\r\nnon-linearities, and batch normalization; the questions, which were encoded as ﬁxed-length binary\r\nstrings, were treated as question embeddings and passed directly to the RN alongside the object\r\npairs;\r\n\r\nNormalized wording: For the Sort-of-CLEVR task anchored by C-176, the model used four convolutional layers with 32, 64, 128, and 256 kernels, ReLU nonlinearities, and batch normalization; fixed-length binary question strings were treated as question embeddings and passed directly to the RN alongside object pairs.\r\n\r\nDependencies: C-176, which resolves “this task” as Sort-of-CLEVR.\r\n\r\nRelated representation context: C-181 provides the exact encoding of the fixed-length binary questions but is not required to make C-182 grammatically complete.\r\n\r\nConfiguration-chain links:\r\nC-183 continues the same semicolon-delimited model-configuration list within Batch 08.\r\nC-184 continues the list at L569-L570 in Batch 09 and remains unadjudicated.\r\n\r\nCitation treatment: none.\r\n\r\nGranularity treatment: Retain the two coordinated configuration clauses as one portion of the source’s semicolon-delimited model list.\r\n\r\nDegradation flag: The frozen evidence contains “ﬁxed-length”; the exact PDF is readable as “fixed-length”. Preserve the frozen ligature.\r\n\r\nFragment treatment: Preserve the source semicolon at the endpoint. Do not add terminal punctuation.\r\n\r\nRestrictions:\r\nPreserve four convolutional layers.\r\nPreserve kernel counts 32, 64, 128, and 256.\r\nPreserve ReLU nonlinearities and batch normalization.\r\nPreserve treatment of fixed-length binary strings as question embeddings.\r\nPreserve that the question embeddings were passed directly to the RN alongside object pairs.\r\nDo not infer kernel size, stride, padding, image dimensions, or channel connectivity.\r\nDo not infer that the question embeddings were learned.\r\nDo not infer that the question input was processed by an LSTM.\r\nDo not treat C-182 as the complete Sort-of-CLEVR model configuration.\r\nDo not adjudicate C-184 through this decision.\r\n\r\nC-183 — L568\r\n\r\nDisposition: edit.\r\n\r\nCriterion: 3.\r\n\r\nAuthorized exact evidence:\r\na four-layer MLP consisting of 2000 units per layer with ReLU non-linearities was used for gθ;\r\n\r\nNormalized wording: As part of the C-176 Sort-of-CLEVR model configuration begun in C-182, gθ used a four-layer MLP with 2000 units per layer and ReLU nonlinearities.\r\n\r\nDependencies:\r\nC-176, which supplies the Sort-of-CLEVR task scope.\r\nC-182, which supplies the model-configuration sentence and preceding list context.\r\n\r\nForward continuation: C-184 continues the configuration list with the fφ and output-layer configuration at L569-L570. C-184 remains unadjudicated.\r\n\r\nCitation treatment: none.\r\n\r\nContextual-overlap treatment: Record contextual overlap with C-102 and C-174, which describe task-specific gθ MLP configurations with different dimensions. Preserve all configurations separately and do not treat them as duplicates.\r\n\r\nDegradation flags: none.\r\n\r\nFragment treatment: Preserve the initial lowercase “a” and final semicolon. Do not add a subject or terminal period inside the exact evidence.\r\n\r\nRestrictions:\r\nPreserve four layers.\r\nPreserve 2000 units per layer.\r\nPreserve ReLU nonlinearities.\r\nPreserve assignment to gθ.\r\nDo not infer parameter sharing with another MLP.\r\nDo not infer dropout, output dimensions, or the behavior of fφ from C-183.\r\nDo not treat C-183 as a complete standalone model description.\r\nDo not adjudicate C-184 through this decision.\r\n\r\nNo earlier event, checkpoint, proposal, receipt, correction record, or immutable input is modified by these decisions.\r\n",
+  "decision_block_line_endings": "CRLF as supplied in uploaded human block",
+  "decision_block_utf8_sha256": "16db6ad2fa0bce51beb8ba502c07716edfd36ad4708ef0542920c5e86acc708e",
+  "adopted_ids": [
+    "C-178",
+    "C-179",
+    "C-180",
+    "C-181",
+    "G-036",
+    "C-182",
+    "C-183"
+  ],
+  "decisions": {
+    "C-178": {
+      "locator": "L552-L553",
+      "disposition": "edit",
+      "criterion": 4,
+      "dependencies": [
+        "C-177"
+      ],
+      "inherited_dependencies": [
+        "C-176"
+      ],
+      "degradation_flags": [
+        "identiﬁed_in_frozen_vs_identified_in_pdf"
+      ]
+    },
+    "C-179": {
+      "locator": "L554-L557",
+      "disposition": "calibration-accept",
+      "criterion": 1,
+      "dependencies": [
+        "C-176"
+      ],
+      "partial_overlaps": [
+        "C-062"
+      ],
+      "degradation_flags": [
+        "quotation_spacing_differs_from_pdf"
+      ]
+    },
+    "C-180": {
+      "locator": "L557-L559",
+      "disposition": "edit",
+      "criterion": 4,
+      "dependencies": [
+        "C-179"
+      ],
+      "degradation_flags": [
+        "deﬁned_in_frozen_vs_defined_in_pdf",
+        "identiﬁed_in_frozen_vs_identified_in_pdf"
+      ]
+    },
+    "C-181": {
+      "locator": "L560-L562",
+      "disposition": "calibration-accept",
+      "criterion": 3,
+      "dependencies": [
+        "C-176"
+      ],
+      "partial_overlaps": [
+        "C-060"
+      ],
+      "degradation_flags": [
+        "ﬁrst_and_identiﬁed_ligatures_preserved"
+      ]
+    },
+    "G-036": {
+      "locator": "L563-L564",
+      "decision": "no packet appropriate",
+      "exclusion_class": "document-administration",
+      "missing_packet": "none",
+      "page_administration": [
+        "L563 printed page number 11",
+        "L564 blank line"
+      ]
+    },
+    "C-182": {
+      "locator": "L565-L568",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-176"
+      ],
+      "related_context": [
+        "C-181"
+      ],
+      "continuation_links": [
+        "C-183",
+        "C-184"
+      ],
+      "degradation_flags": [
+        "ﬁxed-length_in_frozen_vs_fixed-length_in_pdf"
+      ]
+    },
+    "C-183": {
+      "locator": "L568",
+      "disposition": "edit",
+      "criterion": 3,
+      "dependencies": [
+        "C-176",
+        "C-182"
+      ],
+      "forward_continuation": [
+        "C-184"
+      ],
+      "contextual_overlaps": [
+        "C-102",
+        "C-174"
+      ]
+    }
+  },
+  "resume": {
+    "last_original_candidate_adjudicated": "C-183",
+    "last_gap_adjudicated": "G-036",
+    "last_fully_accounted_source_line": "L568",
+    "next_source_line": "L569",
+    "next_candidate": "C-184",
+    "next_candidate_locator": "L569-L570",
+    "next_gap": "G-037",
+    "completed_batch": "Batch 08",
+    "next_batch": "Batch 09"
+  },
+  "pins": {
+    "checkpoint_through_batch_07_zip_sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+    "batch07_attestation_receipt_markdown_sha256": "96922b8a4f494b58239fcd37a43c4bb29f344228cb07c4a46889061e4456725c",
+    "batch07_attestation_receipt_json_sha256": "dec0bfe56547af5f86f51e78809239cfe176f4ab73e35334cdb269ae29a6a7f6",
+    "batch08_proposal_sha256": "420934551436cbf1956f88937b91deb80960355dd6a9ffd8c81a3434ce2b54c7",
+    "transfer_manifest_sha256": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a",
+    "normalized_criteria_sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8",
+    "handoff_sha256": "81764a109ce30e92b4661506d8f18a96a17ed81b309fcf614da993461f2783ca",
+    "exact_pdf_sha256": "c115123a511418ab46f04c4f9f78b6a569712960dbe9ca596d4edd6f0686d521",
+    "predecessor_event_B08C_markdown_sha256": "05f46fa0756ffd25fc971595e84dafe454341ac88c93d562b6148d373af7daf8",
+    "predecessor_event_B08C_json_sha256": "a9e4805f69cf1305558bff5b1f2b68aee11e9b896944b270d8838a157be154ac"
+  }
+}

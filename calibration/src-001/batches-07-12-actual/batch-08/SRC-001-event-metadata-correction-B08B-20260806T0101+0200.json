@@ -1,0 +1,34 @@
+{
+  "record_type": "append_only_event_metadata_correction",
+  "source_id": "SRC-001",
+  "batch": "08B",
+  "recorded_at": "2026-08-06T01:01:00+02:00",
+  "corrected_event": {
+    "markdown": "SRC-001-human-decision-event-B08B-20260806T0100+0200.md",
+    "markdown_sha256": "7a53a6bedd5cf7e00d3c55c71ab30727d6cbd97e03736cd09a6994027ee01ddd",
+    "json": "SRC-001-human-decision-event-B08B-20260806T0100+0200.json",
+    "json_sha256": "34749d5ead195a1775d5d7f33e97564de324bddaa75e02703aede8f28f8eff53"
+  },
+  "correction_scope": "generated_resume_metadata_only",
+  "human_decision_block_changed": false,
+  "semantic_decisions_changed": false,
+  "prior_artifact_mutated": false,
+  "finding": "C-172 occupies L539-L540 and C-173 begins on L540-L541, so L540 is shared and was not fully accounted by B08B.",
+  "incorrect_resume": {
+    "last_fully_accounted_source_line": "L540",
+    "next_source_line": "L541",
+    "next_candidate_locator": "L541-L542"
+  },
+  "corrected_resume": {
+    "last_original_candidate_adjudicated": "C-172",
+    "last_gap_adjudicated": "G-034",
+    "last_fully_accounted_source_line": "L539",
+    "next_source_line": "L540",
+    "next_candidate": "C-173",
+    "next_candidate_locator": "L540-L541",
+    "next_gap": "G-035",
+    "src001_closed": false,
+    "src002_started": false
+  },
+  "criteria_change_authorized": false
+}

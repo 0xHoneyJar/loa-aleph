@@ -1,0 +1,66 @@
+{
+  "record_type": "noncanonical_append_only_audit_finding_closure_receipt",
+  "source_id": "SRC-001",
+  "recorded_at": "2026-08-10T19:42:28+02:00",
+  "authority": "human",
+  "status": "authoritative_for_src001_development_calibration_only",
+  "authority_scope_text_exact": "This is human authority for SRC-001 development calibration only.\nIt is not acceptance of a Loa-Aleph run, semantic validation, sanction,\ngolden-standard promotion, criteria promotion, or v1 evidence.\n\nSRC-001 remains OPEN after these decisions.\nSRC-002 remains NOT AUTHORIZED.\nDo not run WHOLE-SOURCE-CONSISTENCY until the append-only records below\nhave been created and verified.",
+  "authority_decision_text_exact": "2. AUDIT-B02-BYTES / F-02\n\nAuthorize append-only closure of the missing Batch 02 proposal-byte finding.\n\nThe exact supplied Batch 02 proposal is:\n\nSRC-001-adjudication-batch-02-proposals.md\n\nSize: 8,791 bytes\nLF lines: 93\nSHA-256:\n\n11ec5faf437ae50b973b409baa62d3a64a6402935cf0b071d0a9435da199bfc3\n\nThe original finding concerned absence of the exact bytes during the audit,\nnot a competing proposal identity.\n\nPreserve the original audit finding and every predecessor artifact unchanged.\nCreate an append-only closure receipt binding the original finding and the\nnow-verified exact proposal identity.\n\nThis closes only the missing-byte finding and implies no semantic validation,\nwhole-source completion, golden status, or SRC-001 closure.",
+  "finding_ids": [
+    "AUDIT-B02-BYTES",
+    "F-02"
+  ],
+  "closure_status": "CLOSED_BY_APPEND_ONLY_EXACT_BYTE_VERIFICATION",
+  "original_finding_bindings": {
+    "audit_disposition_json": {
+      "path": "SRC-001-checkpoint-through-batch-02-v2/SRC-001-checkpoint-through-batch-02-v2/SRC-001-audit-disposition-through-batch-02.json",
+      "sha256": "5639ecf33ded18fcfd3070d14cca779ec27159bb157c875a3a89454b5b9582d4",
+      "finding_id": "F-02",
+      "original_status": "ADOPTED-OPEN"
+    },
+    "audit_disposition_markdown": {
+      "path": "SRC-001-checkpoint-through-batch-02-v2/SRC-001-checkpoint-through-batch-02-v2/SRC-001-audit-disposition-through-batch-02.md",
+      "sha256": "ccf9be0c69eb713ddf03f22ce2d47b879364e5ced0d2c0295054664bb7929733"
+    },
+    "later_append_only_requirement_json": {
+      "path": "SRC-001-calibration-files-through-B05A-20260804/SRC-001-human-attestation-receipt-through-batch-03-20260803T2327+0200.json",
+      "sha256": "0ca51db282de08d677e4884e157b6de0a989b58f8153c0250337f973542b0afd",
+      "required": "Supply and independently hash the exact Batch 02 proposal bytes against 11ec5faf437ae50b973b409baa62d3a64a6402935cf0b071d0a9435da199bfc3, then close additively."
+    },
+    "latest_open_finding_receipt_json": {
+      "path": "SRC-001-batches-07-12-actual-artifacts/batch-12/SRC-001-human-attestation-receipt-through-batch-12-20260806T2307+0200.json",
+      "sha256": "a84965292a9074a7987ca025ddcbdd20941de10d70e29e3cca689dcd16174f33"
+    }
+  },
+  "verified_proposal_identity": {
+    "path": "chat-transfer/SRC-001-adjudication-batch-02-proposals.md",
+    "filename": "SRC-001-adjudication-batch-02-proposals.md",
+    "bytes": 8791,
+    "lf_lines": 93,
+    "sha256": "11ec5faf437ae50b973b409baa62d3a64a6402935cf0b071d0a9435da199bfc3",
+    "matches_original_expected_digest": true,
+    "competing_proposal_identity_implicated": false
+  },
+  "closure_scope": "missing exact Batch 02 proposal bytes during the original audit only",
+  "mutation_statement": {
+    "original_finding_mutated": false,
+    "predecessor_artifacts_mutated": false,
+    "proposal_bytes_mutated": false
+  },
+  "semantic_validation": false,
+  "whole_source_completion": false,
+  "golden_status": false,
+  "src001": "OPEN",
+  "src002": "NOT AUTHORIZED",
+  "whole_source_consistency_performed": false,
+  "claims_not_made": [
+    "Loa-Aleph run acceptance",
+    "semantic validation",
+    "sanction",
+    "golden-standard promotion",
+    "criteria promotion",
+    "whole-source completion",
+    "SRC-001 closure",
+    "v1 evidence"
+  ]
+}
