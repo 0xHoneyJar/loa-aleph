@@ -1,0 +1,75 @@
+{
+  "record_type": "noncanonical_append_only_exact_byte_recovery_receipt",
+  "source_id": "SRC-001",
+  "recorded_at": "2026-08-11T12:03:37+02:00",
+  "record_scope": "development-calibration evidence retention only",
+  "authority": "human",
+  "authority_effect": "Authorizes additive retention and verification of the recovered exact B02-v1 checkpoint bytes only. This record is not an SRC-001 calibration-close decision and does not authorize SRC-002.",
+  "recovered_checkpoint": {
+    "authority_filename": "SRC-001-checkpoint-through-batch-02.zip",
+    "checkpoint_id": "SRC-001-CHECKPOINT-THROUGH-BATCH-02-20260803T1608+0200",
+    "bytes": 34978,
+    "sha256": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+    "source_cache_path": "/mnt/c/Users/Eileen/AppData/Local/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/Cache/Cache_Data/f_00218b",
+    "source_cache_mtime": "2026-08-03T16:30:07.810572900+02:00",
+    "durable_retained_path": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/recovered-evidence/b02-v1/SRC-001-checkpoint-through-batch-02.zip",
+    "source_destination_byte_compare": "IDENTICAL"
+  },
+  "source_verification_before_copy": {
+    "size_matches": true,
+    "sha256sum": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+    "openssl_sha256": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+    "independent_tool_hash_agreement": true,
+    "valid_zip": true,
+    "expected_member_count": 8,
+    "readable_member_count": 8,
+    "zip_crc_failures": 0,
+    "internal_checksum_entries": 7,
+    "internal_checksum_entries_passed": 7,
+    "internal_checksum_entries_failed": 0,
+    "internal_checksum_verification": "PASS",
+    "embedded_manifest_member": "SRC-001-checkpoint-through-batch-02/checkpoint-manifest.json",
+    "embedded_checkpoint_id": "SRC-001-CHECKPOINT-THROUGH-BATCH-02-20260803T1608+0200",
+    "embedded_manifest_sha256": "24bd0b3ae18bc41a78d4ea619a2907cb6759edfd9b584ea7289ff30079f14a4f"
+  },
+  "destination_verification_after_copy": {
+    "bytes": 34978,
+    "sha256sum": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+    "openssl_sha256": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+    "independent_tool_hash_agreement": true,
+    "source_destination_byte_compare": "IDENTICAL"
+  },
+  "source_cache_metadata": {
+    "request_cache_container_path": "/mnt/c/Users/Eileen/AppData/Local/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/Cache/Cache_Data/data_1",
+    "response_cache_container_path": "/mnt/c/Users/Eileen/AppData/Local/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/Cache/Cache_Data/data_2",
+    "http_status": 200,
+    "content_type": "application/zip",
+    "content_disposition_filename": "SRC-001-checkpoint-through-batch-02.zip",
+    "response_date": "2026-08-03T14:30:07Z",
+    "last_modified": "2026-08-03T14:16:22Z",
+    "observed_calendar_date": "August 3, 2026"
+  },
+  "distinct_b02_v2": {
+    "path": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/SRC-001-calibration-files-through-B05A-20260804/SRC-001-checkpoint-through-batch-02-v2.zip",
+    "bytes": 45064,
+    "sha256": "280231bef8b9e740a6959ac9e9b517ed067b3fc3882ebe5d94488b0006cd9041",
+    "same_as_recovered_b02_v1": false
+  },
+  "preservation_statement": {
+    "historical_artifact_reconstructed": false,
+    "historical_artifact_regenerated_from_b02_v2": false,
+    "historical_artifact_repacked": false,
+    "historical_artifact_recompressed": false,
+    "historical_artifact_normalized": false,
+    "source_cache_bytes_modified": false,
+    "prior_src001_artifact_modified": false,
+    "loa_aleph_core_modified": false,
+    "loa_modified": false
+  },
+  "state_boundaries": {
+    "src001": "OPEN",
+    "src002": "NOT AUTHORIZED",
+    "package_created": false,
+    "src001_closed_for_calibration": false
+  }
+}

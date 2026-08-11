@@ -1,0 +1,170 @@
+{
+  "record_type": "final_src001_package_postbuild_verification",
+  "package_name": "SRC-001-closed-development-calibration-reference-20260811T162619+0200",
+  "recorded_at": "2026-08-11T16:26:19+02:00",
+  "status": {
+    "SRC-001": "CLOSED_FOR_CALIBRATION",
+    "SRC-002": "NOT_AUTHORIZED"
+  },
+  "package_class": "closed human-supervised noncanonical development-calibration reference",
+  "not_evidence_of": [
+    "a production Loa-Aleph run",
+    "Loa-Aleph semantic validation",
+    "sanctioned agent execution",
+    "independent audit",
+    "Précis acceptance",
+    "golden-standard promotion",
+    "accepted extraction criteria",
+    "production readiness",
+    "v1 evidence"
+  ],
+  "outer_package": {
+    "path": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/final-package/SRC-001-closed-development-calibration-reference-20260811T162619+0200/SRC-001-closed-development-calibration-reference-20260811T162619+0200.zip",
+    "byte_size": 5539645,
+    "sha256": "f4c42e65d611395c9bacdb7ecf3ab7e4d01b1d21fd50c6c150b0cc6a8847a9f0",
+    "sha256_sidecar_path": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/final-package/SRC-001-closed-development-calibration-reference-20260811T162619+0200/SRC-001-closed-development-calibration-reference-20260811T162619+0200.zip.sha256",
+    "sha256_sidecar_sha256": "233db25706da19ebaed937c51d644ee9e54ff9dc82997c2559b84288c17c0192",
+    "mutated_after_hash_recording": false
+  },
+  "administration_records": {
+    "manifest": {
+      "path": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/final-package/SRC-001-closed-development-calibration-reference-20260811T162619+0200/SRC-001-closed-development-calibration-reference-20260811T162619+0200-manifest.json",
+      "sha256": "3bc9e618b98faef9f1aa4ebbca02c5c8d9c29e955d853b5b6e497a3d17cf9dcf"
+    },
+    "checksum_inventory": {
+      "path": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/final-package/SRC-001-closed-development-calibration-reference-20260811T162619+0200/SRC-001-closed-development-calibration-reference-20260811T162619+0200-members.sha256",
+      "sha256": "5fa9cf85ae9856f8e38e4f28188ec4692495de85d94b9f0075ddbee1b4ab66ec"
+    }
+  },
+  "verification": {
+    "archive_members_enumerated": 211,
+    "manifest_members_declared": 211,
+    "checksum_entries": 211,
+    "zip_crc": "PASS",
+    "manifest_member_set": "PASS",
+    "checksum_member_set": "PASS",
+    "member_sha256": "PASS",
+    "source_byte_identity": "PASS",
+    "source_artifacts_compared": 210,
+    "generated_administration_members_compared": 1,
+    "checkpoint_archives": [
+      {
+        "checkpoint": "B02-v1",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/recovered/b02-v1/SRC-001-checkpoint-through-batch-02.zip",
+        "expected_sha256": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+        "actual_sha256": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+        "match": true
+      },
+      {
+        "checkpoint": "B02-v2",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-checkpoint-through-batch-02-v2.zip",
+        "expected_sha256": "280231bef8b9e740a6959ac9e9b517ed067b3fc3882ebe5d94488b0006cd9041",
+        "actual_sha256": "280231bef8b9e740a6959ac9e9b517ed067b3fc3882ebe5d94488b0006cd9041",
+        "match": true
+      },
+      {
+        "checkpoint": "B03",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-checkpoint-through-batch-03.zip",
+        "expected_sha256": "84f50e8f697c382dfc436e2cbb6f22d8b999e8207de22ff29db7d51d39b45d32",
+        "actual_sha256": "84f50e8f697c382dfc436e2cbb6f22d8b999e8207de22ff29db7d51d39b45d32",
+        "match": true
+      },
+      {
+        "checkpoint": "B04",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-checkpoint-through-batch-04.zip",
+        "expected_sha256": "f980cf6e48001022bc2f8bfe716a7c385363e7adb4d5c967dd04a3c9e24fceac",
+        "actual_sha256": "f980cf6e48001022bc2f8bfe716a7c385363e7adb4d5c967dd04a3c9e24fceac",
+        "match": true
+      },
+      {
+        "checkpoint": "B05",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b05-b06/SRC-001-checkpoint-through-batch-05.zip",
+        "expected_sha256": "18bee5212a11efb5f9b8482d796a74dc2a1a9ab35069ad6eab88856e5b5a10b5",
+        "actual_sha256": "18bee5212a11efb5f9b8482d796a74dc2a1a9ab35069ad6eab88856e5b5a10b5",
+        "match": true
+      },
+      {
+        "checkpoint": "B06",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b05-b06/SRC-001-checkpoint-through-batch-06.zip",
+        "expected_sha256": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec",
+        "actual_sha256": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec",
+        "match": true
+      },
+      {
+        "checkpoint": "B07",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-07/SRC-001-checkpoint-through-batch-07-20260805T2348+0200.zip",
+        "expected_sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+        "actual_sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+        "match": true
+      },
+      {
+        "checkpoint": "B08",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-08/SRC-001-checkpoint-through-batch-08-20260806T1050+0200.zip",
+        "expected_sha256": "8e2653ecaaa703acbb8e70cfe04316c0e3041148ec00b2204ba5a544a24ab667",
+        "actual_sha256": "8e2653ecaaa703acbb8e70cfe04316c0e3041148ec00b2204ba5a544a24ab667",
+        "match": true
+      },
+      {
+        "checkpoint": "B09",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-09/SRC-001-checkpoint-through-batch-09-20260806T1332+0200.zip",
+        "expected_sha256": "b3c1b7db15acfed98df79086c190aadb527c9c9541d16b22690bc65bbabc8501",
+        "actual_sha256": "b3c1b7db15acfed98df79086c190aadb527c9c9541d16b22690bc65bbabc8501",
+        "match": true
+      },
+      {
+        "checkpoint": "B10",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-10/SRC-001-checkpoint-through-batch-10-20260806T1552+0200.zip",
+        "expected_sha256": "0f15e53f851f6b79192841233a88baa81d95d53da7de9e891b859e5004bc04fc",
+        "actual_sha256": "0f15e53f851f6b79192841233a88baa81d95d53da7de9e891b859e5004bc04fc",
+        "match": true
+      },
+      {
+        "checkpoint": "B11",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-11/SRC-001-checkpoint-through-batch-11-20260806T2036+0200.zip",
+        "expected_sha256": "5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb",
+        "actual_sha256": "5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb",
+        "match": true
+      },
+      {
+        "checkpoint": "B12",
+        "member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-12/SRC-001-checkpoint-through-batch-12-20260806T2302+0200.zip",
+        "expected_sha256": "0f19d221c6c6b73ddc9a5b82fdfcf2e19eede8e3e092575eee6ea0fe2a8eae70",
+        "actual_sha256": "0f19d221c6c6b73ddc9a5b82fdfcf2e19eede8e3e092575eee6ea0fe2a8eae70",
+        "match": true
+      }
+    ],
+    "all_12_checkpoint_archives": "PASS",
+    "close_event_sha256": {
+      "expected": "9a724a20342a25a45831c149b32a69dc5b3a608bb930d0afd3c0772f20e7d5d6",
+      "actual": "9a724a20342a25a45831c149b32a69dc5b3a608bb930d0afd3c0772f20e7d5d6",
+      "match": true
+    },
+    "recovered_b02_v1_sha256": {
+      "expected": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+      "actual": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+      "match": true
+    },
+    "whole_source_consistency_record_sha256": {
+      "expected": "764c96bf8a7ba01ac49e5f6d6a7fc3cda9ad3b93dfb1155a32ad7765723561bd",
+      "actual": "764c96bf8a7ba01ac49e5f6d6a7fc3cda9ad3b93dfb1155a32ad7765723561bd",
+      "match": true
+    },
+    "undeclared_files_present": false,
+    "known_absent_internal_audit_json_present": false,
+    "extraction_then_sha256_check": "PASS"
+  },
+  "declared_absences": [
+    {
+      "filename": "SRC-001-internal-audit-through-batch-06-20260805T1756+0200.json",
+      "recorded_sha256": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+      "status": "VISIBLE_NON_LOAD_BEARING_KNOWN_ABSENCE",
+      "reason": "original bytes unavailable; not reconstructed.",
+      "load_bearing": false,
+      "reconstructed": false,
+      "package_member": false
+    }
+  ],
+  "warnings": [],
+  "failures": [],
+  "ready_for_independent_verification": true
+}

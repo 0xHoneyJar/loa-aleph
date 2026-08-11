@@ -1,0 +1,266 @@
+{
+  "record_type": "noncanonical_human_append_only_preclose_decision_and_finding_closure",
+  "source_id": "SRC-001",
+  "recorded_at": "2026-08-10T19:42:28+02:00",
+  "authority": "human",
+  "status": "authoritative_for_src001_development_calibration_only",
+  "authority_scope_text_exact": "This is human authority for SRC-001 development calibration only.\nIt is not acceptance of a Loa-Aleph run, semantic validation, sanction,\ngolden-standard promotion, criteria promotion, or v1 evidence.\n\nSRC-001 remains OPEN after these decisions.\nSRC-002 remains NOT AUTHORIZED.\nDo not run WHOLE-SOURCE-CONSISTENCY until the append-only records below\nhave been created and verified.",
+  "authority_decision_text_exact": "3. NORM-19\n\nAuthorize the following dedicated normalization decisions.\n\nADOPT the current normalized wording for these LF-flattening cases:\n\nC-003\nC-006\nC-008\nC-011\nC-016\nC-023\nC-024\nC-027\n\nCONFIRM-NO-OP for:\n\nC-010\nC-017\n\nADOPT the current normalized wording for the following units while preserving\ntheir existing human-authorized semantic constraints, dependencies, scope,\nmodality, attribution, and citation treatment:\n\nC-004 — preserve the CLEVR-only scope of the performance qualifier.\nC-005 — preserve Sort-of-CLEVR scope and the contrast introduced by “but.”\nC-007 — preserve existing Figure 1 and citation treatment.\nC-009 — preserve its discourse/dependency relationship with C-008 without\n        changing the proposition.\nC-014 — preserve the source-internal antecedent and leading contrast; do not\n        expand or resolve it using external inference.\nC-015 — normalize line wrapping only; preserve caption status and source\n        spacing/content otherwise.\nC-019 — preserve the source's unresolved pronoun “it”; do not silently resolve\n        its antecedent.\nC-025 — preserve its already-authorized dependency treatment.\n\nFor C-029:\n\nRETAIN-NON-GOLD the current flattened normalized rendering.\n\nThe exact degraded formal evidence remains valid source evidence, but the\nnine-LF prose-flattened representation is not adopted as a gold normalization\nexample because it obscures the formal structure.\n\nDo not alter the underlying C-029 claim decision or evidence.\n\n4. C-186-SOURCE-INTERNAL-LSTM-REFERENT\n\nChoose RETAIN-ATTRIBUTED.\n\nPreserve the existing source-faithful formulation that the paper describes\nthe comparator as using “the same CNN and LSTM.”\n\nExplicitly record that the frozen source does not provide a compatible,\ndeterminable antecedent for that LSTM in the immediate Sort-of-CLEVR\nconfiguration.\n\nSelect no earlier LSTM as the antecedent.\n\nDo not substitute “question embedding,” a CLEVR LSTM, a bAbI LSTM, or any\nother inferred referent.\n\nClose the referent finding as an acknowledged visible source-internal\nambiguity.\n\nPreserve C-186 as comparator context for C-187, C-188, and C-206, with the\nambiguity/caveat carried wherever relevant.",
+  "evidence_bindings": {
+    "normalization_ledger": {
+      "path": "SRC-001-checkpoint-through-batch-02-v2/SRC-001-checkpoint-through-batch-02-v2/SRC-001-human-decisions-through-batch-02-v2.json",
+      "sha256": "e1c25718456798606650102b0d9252fb1355c46b8a022cedf853dcc86601102e",
+      "normalization_record_status": "mechanical-linewrap-only-checkpoint-transcription",
+      "matching_unit_count": 19
+    },
+    "frozen_source": {
+      "path": "chat-transfer/SRC-001-frozen-numbered.txt",
+      "sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a"
+    },
+    "c186_decision_event": {
+      "path": "SRC-001-batches-07-12-actual-artifacts/batch-09/SRC-001-human-decision-event-B09A-20260806T1316+0200.json",
+      "sha256": "a23ff51daa20532942fecde59ba5b7a44887bfe011bc40a12b37c4081a042c29"
+    },
+    "c206_comparator_context_event": {
+      "path": "SRC-001-batches-07-12-actual-artifacts/batch-10/SRC-001-human-decision-event-B10A-20260806T1549+0200.json",
+      "sha256": "374fcad112b0072bd7c20f74ad6e05c933aa509a91dd4b8267cb7c12921e4638"
+    },
+    "latest_open_finding_receipt": {
+      "path": "SRC-001-batches-07-12-actual-artifacts/batch-12/SRC-001-human-attestation-receipt-through-batch-12-20260806T2307+0200.json",
+      "sha256": "a84965292a9074a7987ca025ddcbdd20941de10d70e29e3cca689dcd16174f33"
+    }
+  },
+  "norm_19": {
+    "finding_id": "NORM-19",
+    "closure_status": "CLOSED_BY_DEDICATED_HUMAN_NORMALIZATION_REVIEW",
+    "decisions": [
+      {
+        "id": "C-003",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "In this paper we describe how to use Relation Networks (RNs) as a simple plug-and-play module to solve problems that fundamentally hinge on relational reasoning."
+      },
+      {
+        "id": "C-004",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "We tested RN-augmented networks on three tasks: visual question answering using a challenging dataset called CLEVR, on which we achieve state-of-the-art, super-human performance; text-based question answering using the bAbI suite of tasks; and complex reasoning about dynamic physical systems.",
+        "preserve": [
+          "CLEVR-only scope of the performance qualifier",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ]
+      },
+      {
+        "id": "C-005",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Then, using a curated dataset called Sort-of-CLEVR we show that powerful convolutional networks do not have a general capacity to solve relational questions, but can gain this capacity when augmented with RNs.",
+        "preserve": [
+          "Sort-of-CLEVR scope",
+          "contrast introduced by “but”",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ]
+      },
+      {
+        "id": "C-006",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Our work shows how a deep learning architecture equipped with an RN module can implicitly discover and learn to reason about entities and their relations."
+      },
+      {
+        "id": "C-007",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "The ability to reason about the relations between entities and their properties is central to generally intelligent behavior (Figure 1) [ 18, 15].",
+        "preserve": [
+          "existing Figure 1 treatment",
+          "existing citation treatment",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution"
+        ]
+      },
+      {
+        "id": "C-008",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Consider a child proposing a race between the two trees in the park that are furthest apart: the pairwise distances between every tree in the park must be inferred and compared to know where to run."
+      },
+      {
+        "id": "C-009",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Or, consider a reader piecing together evidence to predict the culprit in a murder-mystery novel: each clue must be considered in its broader context to build a plausible narrative and solve the mystery.",
+        "preserve": [
+          "discourse/dependency relationship with C-008",
+          "proposition unchanged",
+          "existing human-authorized semantic constraints",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ]
+      },
+      {
+        "id": "C-010",
+        "decision": "CONFIRM-NO-OP",
+        "normalized_wording": "Symbolic approaches to artiﬁcial intelligence are inherently relational [32, 11].",
+        "normalized_wording_equals_exact_evidence": true
+      },
+      {
+        "id": "C-011",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Practitioners deﬁne the relations between symbols using the language of logic and mathematics, and then reason about these relations using a multitude of powerful methods, including deduction, arithmetic, and algebra."
+      },
+      {
+        "id": "C-014",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "However, a number of these approaches, such as deep learning, often struggle in data-poor problems where the underlying structure is characterized by sparse but complex relations [ 7, 23].",
+        "preserve": [
+          "source-internal antecedent",
+          "leading contrast",
+          "no expansion or resolution using external inference",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ]
+      },
+      {
+        "id": "C-015",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Figure 1: An illustrative example from the CLEVR dataset of relational reasoning . An image containing four objects is shown alongside non-relational and relational questions. The relational question requires explicit reasoning about the relations between the four objects in the image, whereas the non-relational question requires reasoning about the attributes of a particular object.",
+        "preserve": [
+          "line-wrapping-only normalization",
+          "caption status",
+          "source spacing/content otherwise",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ]
+      },
+      {
+        "id": "C-016",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Here, we explore “Relation Networks” (RN) as a general solution to relational reasoning in neural networks."
+      },
+      {
+        "id": "C-017",
+        "decision": "CONFIRM-NO-OP",
+        "normalized_wording": "RNs are architectures whose computations focus explicitly on relational reasoning [ 35].",
+        "normalized_wording_equals_exact_evidence": true
+      },
+      {
+        "id": "C-019",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Moreover, through joint training RNs can inﬂuence and shape upstream representations in CNNs and LSTMs to produce implicit object-like representations that it can exploit for relational reasoning.",
+        "preserve": [
+          "source's unresolved pronoun “it”",
+          "no silent antecedent resolution",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ]
+      },
+      {
+        "id": "C-023",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "We also applied an RN-based architecture to the bAbI text-based QA suite [ 41] and solved 18/20 of the subtasks."
+      },
+      {
+        "id": "C-024",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "Finally, we trained an RN to make challenging relational inferences about complex physical systems and motion capture data."
+      },
+      {
+        "id": "C-025",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "The success of RNs across this set of substantially dissimilar task domains is testament to the general utility of RNs for solving problems that require relation reasoning.",
+        "preserve": [
+          "already-authorized dependency treatment",
+          "C-020a",
+          "C-021",
+          "C-022a",
+          "C-023",
+          "C-024",
+          "existing human-authorized semantic constraints",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ]
+      },
+      {
+        "id": "C-027",
+        "decision": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "normalized_wording": "The design philosophy behind RNs is to constrain the functional form of a neural network so that it captures the core common properties of relational reasoning."
+      },
+      {
+        "id": "C-029",
+        "decision": "RETAIN-NON-GOLD",
+        "normalized_wording": "In its simplest form the RN is a composite function: RN(O) =fφ  ∑ i,j gθ(oi,oj)  , (1) where the input is a set of “objects” O ={o1,o 2,...,o n}, oi∈ Rm is the ith object, and fφ and gθ are functions with parameters φ and θ, respectively.",
+        "exact_degraded_formal_evidence_remains_valid_source_evidence": true,
+        "gold_normalization_example": false,
+        "reason": "The nine-LF prose-flattened representation obscures the formal structure.",
+        "underlying_claim_decision_changed": false,
+        "underlying_evidence_changed": false
+      }
+    ]
+  },
+  "c_186_source_internal_lstm_referent": {
+    "finding_id": "C-186-SOURCE-INTERNAL-LSTM-REFERENT",
+    "decision": "RETAIN-ATTRIBUTED",
+    "closure_status": "CLOSED_AS_ACKNOWLEDGED_VISIBLE_SOURCE_INTERNAL_AMBIGUITY",
+    "source_faithful_formulation_preserved": "The authors trained a comparable CNN+MLP model on Sort-of-CLEVR to examine how well a standard model could answer relational questions, using what the source describes as the same CNN and LSTM and training them end-to-end.",
+    "exact_source_assertion_preserved": "the same CNN and LSTM",
+    "immediate_sort_of_clevr_lstm_antecedent": "NOT COMPATIBLY DETERMINABLE FROM THE FROZEN SOURCE",
+    "selected_antecedent": null,
+    "prohibited_substitutions": [
+      "question embedding",
+      "CLEVR LSTM",
+      "bAbI LSTM",
+      "any other inferred referent"
+    ],
+    "comparator_context_preserved_for": [
+      "C-187",
+      "C-188",
+      "C-206"
+    ],
+    "ambiguity_caveat_carries_where_relevant": true
+  },
+  "mutation_statement": {
+    "previous_proposals_mutated": false,
+    "previous_decision_events_mutated": false,
+    "previous_checkpoints_mutated": false,
+    "previous_receipts_mutated": false,
+    "previous_attestations_mutated": false,
+    "source_mutated": false,
+    "criteria_mutated": false,
+    "immutable_inputs_mutated": false
+  },
+  "src001": "OPEN",
+  "src002": "NOT AUTHORIZED",
+  "whole_source_consistency_performed": false,
+  "claims_not_made": [
+    "Loa-Aleph run acceptance",
+    "semantic validation",
+    "sanction",
+    "golden-standard promotion",
+    "criteria promotion",
+    "whole-source completion",
+    "SRC-001 closure",
+    "v1 evidence"
+  ]
+}

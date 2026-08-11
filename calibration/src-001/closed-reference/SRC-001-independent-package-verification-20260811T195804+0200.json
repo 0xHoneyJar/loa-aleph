@@ -1,0 +1,478 @@
+{
+  "record_type": "independent_src001_package_integrity_and_internal_consistency_verification",
+  "recorded_at": "2026-08-11T19:58:04+02:00",
+  "verifier": {
+    "role": "fresh-context independent package verifier",
+    "producer_report_used_as_proof": false,
+    "verification_basis": "actual package and administration-record bytes",
+    "semantic_human_adjudication_reperformed": false
+  },
+  "verified_package": {
+    "filename": "SRC-001-closed-development-calibration-reference-20260811T162619+0200.zip",
+    "byte_size": 5539645,
+    "sha256": "f4c42e65d611395c9bacdb7ecf3ab7e4d01b1d21fd50c6c150b0cc6a8847a9f0",
+    "hash_implementations": [
+      {
+        "implementation": "GNU sha256sum",
+        "command": "sha256sum",
+        "observed_sha256": "f4c42e65d611395c9bacdb7ecf3ab7e4d01b1d21fd50c6c150b0cc6a8847a9f0",
+        "matched_expected": true
+      },
+      {
+        "implementation": "OpenSSL",
+        "command": "openssl dgst -sha256",
+        "observed_sha256": "f4c42e65d611395c9bacdb7ecf3ab7e4d01b1d21fd50c6c150b0cc6a8847a9f0",
+        "matched_expected": true
+      }
+    ],
+    "hash_implementations_agreed": true,
+    "package_modified_by_verification": false
+  },
+  "administration_record_identities": {
+    "manifest": {
+      "filename": "SRC-001-closed-development-calibration-reference-20260811T162619+0200-manifest.json",
+      "byte_size": 215207,
+      "sha256": "3bc9e618b98faef9f1aa4ebbca02c5c8d9c29e955d853b5b6e497a3d17cf9dcf",
+      "matched_expected": true
+    },
+    "member_checksum_inventory": {
+      "filename": "SRC-001-closed-development-calibration-reference-20260811T162619+0200-members.sha256",
+      "byte_size": 42532,
+      "sha256": "5fa9cf85ae9856f8e38e4f28188ec4692495de85d94b9f0075ddbee1b4ab66ec",
+      "matched_expected": true
+    },
+    "post_build_verification": {
+      "filename": "SRC-001-closed-development-calibration-reference-20260811T162619+0200-postbuild-verification.json",
+      "byte_size": 8892,
+      "sha256": "d39867080f7ca3b33bfc84a04baff78dce2ebd6b27d8da7d72ebd79a4d677144",
+      "matched_expected": true
+    },
+    "package_sidecar": {
+      "filename": "SRC-001-closed-development-calibration-reference-20260811T162619+0200.zip.sha256",
+      "byte_size": 140,
+      "sha256": "233db25706da19ebaed937c51d644ee9e54ff9dc82997c2559b84288c17c0192",
+      "declared_package_sha256": "f4c42e65d611395c9bacdb7ecf3ab7e4d01b1d21fd50c6c150b0cc6a8847a9f0",
+      "independently_verified": true,
+      "matched_expected": true
+    }
+  },
+  "status_boundary": {
+    "SRC-001": "CLOSED_FOR_CALIBRATION",
+    "SRC-002": "NOT_AUTHORIZED",
+    "manifest_status_matched": true,
+    "stronger_status_claimed": false
+  },
+  "zip_structure": {
+    "expected_members": 211,
+    "observed_members": 211,
+    "unique_member_names": 211,
+    "readable_members": 211,
+    "result": "211/211 PASS",
+    "duplicate_archive_member_names": 0,
+    "undeclared_archive_members": 0,
+    "manifest_omitted_archive_members": 0,
+    "malformed_or_unsafe_paths": 0,
+    "absolute_paths": 0,
+    "traversal_paths": 0,
+    "backslash_paths": 0,
+    "control_character_paths": 0,
+    "casefold_or_normalization_collisions": 0,
+    "directory_entries": 0,
+    "symlink_entries": 0,
+    "encrypted_entries": 0,
+    "crc_or_integrity_failures": 0,
+    "zip_integrity": "PASS"
+  },
+  "member_checksum_verification": {
+    "expected_entries": 211,
+    "parsed_entries": 211,
+    "verified_entries": 211,
+    "result": "211/211 PASS",
+    "malformed_entries": 0,
+    "duplicate_references": 0,
+    "missing_members": 0,
+    "uncovered_members": 0,
+    "hash_mismatches": 0
+  },
+  "manifest_consistency": {
+    "expected_entries": 211,
+    "observed_entries": 211,
+    "verified_entries": 211,
+    "result": "211/211 PASS",
+    "path_mismatches": 0,
+    "byte_size_mismatches": 0,
+    "sha256_mismatches": 0,
+    "invalid_artifact_roles": 0,
+    "missing_or_invalid_load_bearing_flags": 0,
+    "duplicate_manifest_paths": 0,
+    "manifest_entries_without_members": 0,
+    "members_without_manifest_entries": 0,
+    "conflicting_source_identity_hashes": 0,
+    "orphan_predecessor_or_successor_relations": 0,
+    "relationship_cycles": 0
+  },
+  "controlling_identities": {
+    "expected": 10,
+    "verified": 10,
+    "result": "10/10 PASS",
+    "identities": [
+      {
+        "label": "frozen source",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-frozen-numbered.txt",
+        "sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a"
+      },
+      {
+        "label": "normalized criteria",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-extraction-criteria.normalized.md",
+        "sha256": "1df51f9872895a3a87a9face2bafe50db34cdfbfd73826e2a31f531c4c538df8"
+      },
+      {
+        "label": "transfer manifest",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/transfer/TRANSFER-MANIFEST.md",
+        "sha256": "5633fa28bbd51ad13d6b845172d47d99f7e733ebaff3a6d017c6b03231c619d2"
+      },
+      {
+        "label": "B12 terminal checkpoint",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-12/SRC-001-checkpoint-through-batch-12-20260806T2302+0200.zip",
+        "sha256": "0f19d221c6c6b73ddc9a5b82fdfcf2e19eede8e3e092575eee6ea0fe2a8eae70"
+      },
+      {
+        "label": "whole-source consistency PASS record",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/preclose/SRC-001-whole-source-consistency-rerun-20260811T100542+0200.json",
+        "sha256": "764c96bf8a7ba01ac49e5f6d6a7fc3cda9ad3b93dfb1155a32ad7765723561bd"
+      },
+      {
+        "label": "human calibration-close event",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/preclose/SRC-001-human-calibration-close-event-20260811T131300+0200.json",
+        "sha256": "9a724a20342a25a45831c149b32a69dc5b3a608bb930d0afd3c0772f20e7d5d6"
+      },
+      {
+        "label": "recovered B02-v1 checkpoint",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/recovered/b02-v1/SRC-001-checkpoint-through-batch-02.zip",
+        "sha256": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57"
+      },
+      {
+        "label": "B02-v1 recovery receipt",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/preclose/SRC-001-b02-v1-exact-byte-recovery-receipt-20260811T120337+0200.json",
+        "sha256": "821c467d96cea493440ee8587696b338776c55203ed7c1ccfcb03f96dd8f8949"
+      },
+      {
+        "label": "C120/C125/C128 restoration",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/preclose/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+        "sha256": "d412a71c3a8a0f9f054a6f5062ffce86229e71bd3ffee009f7ba612cd8f3f357"
+      },
+      {
+        "label": "restoration closure",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/preclose/SRC-001-exact-evidence-quote-restoration-closure-receipt-20260811T093402+0200.json",
+        "sha256": "e4da8650404ecc001c5febb4c88ec59e83cfe355ef1e69ddfb407af1371a3b83"
+      }
+    ]
+  },
+  "checkpoint_verification": {
+    "expected_archives": 12,
+    "verified_archives": 12,
+    "result": "12/12 PASS",
+    "B02_v1_and_B02_v2_distinct": true,
+    "internal_checksum_entries_expected": 340,
+    "internal_checksum_entries_verified": 340,
+    "internal_checksum_result": "340/340 PASS",
+    "internal_manifest_entries_expected": 328,
+    "internal_manifest_entries_verified": 328,
+    "internal_manifest_result": "328/328 PASS",
+    "checkpoint_sidecars_expected": 10,
+    "checkpoint_sidecars_verified": 10,
+    "checkpoint_sidecar_result": "10/10 PASS",
+    "predecessor_errors": 0,
+    "crc_or_integrity_failures": 0,
+    "archives": [
+      {
+        "checkpoint": "B02-v1",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/recovered/b02-v1/SRC-001-checkpoint-through-batch-02.zip",
+        "sha256": "fe34d99836896ec19ce011bd27b40ec715801b427797f090887909dfef5feb57",
+        "members": 8,
+        "internal_checksums_verified": 7,
+        "internal_manifest_entries_verified": 6,
+        "checkpoint_sidecar_present": false
+      },
+      {
+        "checkpoint": "B02-v2",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-checkpoint-through-batch-02-v2.zip",
+        "sha256": "280231bef8b9e740a6959ac9e9b517ed067b3fc3882ebe5d94488b0006cd9041",
+        "members": 12,
+        "internal_checksums_verified": 11,
+        "internal_manifest_entries_verified": 10,
+        "checkpoint_sidecar_present": false
+      },
+      {
+        "checkpoint": "B03",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-checkpoint-through-batch-03.zip",
+        "sha256": "84f50e8f697c382dfc436e2cbb6f22d8b999e8207de22ff29db7d51d39b45d32",
+        "members": 29,
+        "internal_checksums_verified": 28,
+        "internal_manifest_entries_verified": 27,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B04",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-checkpoint-through-batch-04.zip",
+        "sha256": "f980cf6e48001022bc2f8bfe716a7c385363e7adb4d5c967dd04a3c9e24fceac",
+        "members": 29,
+        "internal_checksums_verified": 28,
+        "internal_manifest_entries_verified": 27,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B05",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b05-b06/SRC-001-checkpoint-through-batch-05.zip",
+        "sha256": "18bee5212a11efb5f9b8482d796a74dc2a1a9ab35069ad6eab88856e5b5a10b5",
+        "members": 27,
+        "internal_checksums_verified": 26,
+        "internal_manifest_entries_verified": 25,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B06",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b05-b06/SRC-001-checkpoint-through-batch-06.zip",
+        "sha256": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec",
+        "members": 29,
+        "internal_checksums_verified": 28,
+        "internal_manifest_entries_verified": 27,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B07",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-07/SRC-001-checkpoint-through-batch-07-20260805T2348+0200.zip",
+        "sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+        "members": 36,
+        "internal_checksums_verified": 35,
+        "internal_manifest_entries_verified": 34,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B08",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-08/SRC-001-checkpoint-through-batch-08-20260806T1050+0200.zip",
+        "sha256": "8e2653ecaaa703acbb8e70cfe04316c0e3041148ec00b2204ba5a544a24ab667",
+        "members": 46,
+        "internal_checksums_verified": 45,
+        "internal_manifest_entries_verified": 44,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B09",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-09/SRC-001-checkpoint-through-batch-09-20260806T1332+0200.zip",
+        "sha256": "b3c1b7db15acfed98df79086c190aadb527c9c9541d16b22690bc65bbabc8501",
+        "members": 43,
+        "internal_checksums_verified": 42,
+        "internal_manifest_entries_verified": 41,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B10",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-10/SRC-001-checkpoint-through-batch-10-20260806T1552+0200.zip",
+        "sha256": "0f15e53f851f6b79192841233a88baa81d95d53da7de9e891b859e5004bc04fc",
+        "members": 31,
+        "internal_checksums_verified": 30,
+        "internal_manifest_entries_verified": 29,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B11",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-11/SRC-001-checkpoint-through-batch-11-20260806T2036+0200.zip",
+        "sha256": "5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb",
+        "members": 31,
+        "internal_checksums_verified": 30,
+        "internal_manifest_entries_verified": 29,
+        "checkpoint_sidecar_present": true
+      },
+      {
+        "checkpoint": "B12",
+        "archive_member": "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-12/SRC-001-checkpoint-through-batch-12-20260806T2302+0200.zip",
+        "sha256": "0f19d221c6c6b73ddc9a5b82fdfcf2e19eede8e3e092575eee6ea0fe2a8eae70",
+        "members": 31,
+        "internal_checksums_verified": 30,
+        "internal_manifest_entries_verified": 29,
+        "checkpoint_sidecar_present": true
+      }
+    ]
+  },
+  "additive_authority_history": {
+    "result": "PASS",
+    "required_artifact_classes_present": true,
+    "artifact_classes": {
+      "proposal": 24,
+      "human_decision": 73,
+      "correction": 12,
+      "closure": 6,
+      "checkpoint": 14,
+      "attestation": 30,
+      "audit": 21,
+      "recovery": 1
+    },
+    "human_calibration_close_event_present": true,
+    "close_event_status_matched": true,
+    "close_event_append_only": true,
+    "predecessor_artifacts_modified": false,
+    "proposal_bindings_expected": 12,
+    "proposal_bindings_verified": 12,
+    "checkpoint_bindings_expected": 12,
+    "checkpoint_bindings_verified": 12,
+    "close_event_file_bindings_checked": 43,
+    "close_event_file_binding_errors": 0,
+    "correction_json_records_checked": 4,
+    "correction_predecessor_or_event_references_checked": 10,
+    "correction_predecessor_or_event_reference_errors": 0,
+    "whole_source_consistency_record": {
+      "result": "PASS",
+      "checks": 1670,
+      "passed": 1670,
+      "failed": 0,
+      "retained_prior_SRC-001_status": "OPEN",
+      "retained_prior_SRC-002_status": "NOT AUTHORIZED"
+    },
+    "recovered_B02_v1_record_remains_distinct": true,
+    "restoration_predecessor_serialization_visible_and_immutable": true,
+    "closure_achieved_by_historical_replacement": false
+  },
+  "known_absence": {
+    "filename": "SRC-001-internal-audit-through-batch-06-20260805T1756+0200.json",
+    "recorded_sha256": "b9ade4687a7a39f64608c3553f969be4f1efe492027282f126cd45ad0476a9fa",
+    "status": "VISIBLE_NON_LOAD_BEARING_KNOWN_ABSENCE",
+    "visible_in_manifest": true,
+    "visible_in_archive_known_absence_inventory": true,
+    "load_bearing": false,
+    "archive_member": false,
+    "reconstructed": false,
+    "fabricated_replacement_found": false,
+    "integrity_claim_depends_on_missing_bytes": false,
+    "result": "PASS"
+  },
+  "extraction_and_reverification": {
+    "temporary_extraction_directory": "/tmp/src001-independent-package-verification-pRofaM",
+    "archive_members": 211,
+    "extracted_files": 211,
+    "sha256sum_entries_expected": 211,
+    "sha256sum_entries_verified": 211,
+    "direct_byte_comparisons_expected": 211,
+    "direct_byte_comparisons_verified": 211,
+    "missing_extracted_files": 0,
+    "extra_extracted_files": 0,
+    "byte_mismatches": 0,
+    "result": "211/211 PASS"
+  },
+  "informational_observations": {
+    "exact_byte_copy_groups": {
+      "count": 11,
+      "effect_on_verdict": "none",
+      "classification": "declared historical, authority-location, transfer-location, or close-event-bound copies",
+      "groups": [
+        {
+          "sha256": "7fa12aa984252250e82d3ba3ca7cedb9374d53db3bcd42d99056347b342f8cc8",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-adjudication-batch-03-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-03-proposals.md"
+          ]
+        },
+        {
+          "sha256": "eaf54c5689e2f86330d1f5b9b4f56198ee558e9492491f06a8d5df88c30cd38a",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-adjudication-batch-04-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-04-proposals.md"
+          ]
+        },
+        {
+          "sha256": "b751820457447d58405865bc8b953148c2a24c911f063f6c1f07ac5ce9560e5e",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b03-b05/SRC-001-adjudication-batch-05-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-05-proposals.md"
+          ]
+        },
+        {
+          "sha256": "aa4e5c94d4e540eb85c558ac5497c68e8799783dff633d0bd253016389bfd315",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b05-b06/SRC-001-adjudication-batch-06-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-06-proposals.md"
+          ]
+        },
+        {
+          "sha256": "23e23b089c032bd1269b248fefb9663799d4d0792762db83caa8b7ccb3f490d6",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-07/SRC-001-adjudication-batch-07-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-07-proposals.md"
+          ]
+        },
+        {
+          "sha256": "420934551436cbf1956f88937b91deb80960355dd6a9ffd8c81a3434ce2b54c7",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-08/SRC-001-adjudication-batch-08-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-08-proposals.md"
+          ]
+        },
+        {
+          "sha256": "15f7870a120aebacbbe696ec11553cf522feaee3f9e1f96014001949dd3f0754",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-09/SRC-001-adjudication-batch-09-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-09-proposals.md"
+          ]
+        },
+        {
+          "sha256": "b7551e6d65f8a881f0fa6b0192ebae7b7df03fc188451195c4c75e4a46acd282",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-10/SRC-001-adjudication-batch-10-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-10-proposals.md"
+          ]
+        },
+        {
+          "sha256": "59edbbb65d55bc1779b1943c2170a10ef64a3156f63bc5f3e55a4832f875cc37",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-11/SRC-001-adjudication-batch-11-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-11-proposals.md"
+          ]
+        },
+        {
+          "sha256": "4d9a2004026edb465b3c748822959b1cffb93c118459ed5f5ff4e3f55b1cafe7",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b07-b12/batch-12/SRC-001-adjudication-batch-12-proposals.md",
+            "SRC-001-closed-development-calibration-reference/evidence/transfer/SRC-001-adjudication-batch-12-proposals.md"
+          ]
+        },
+        {
+          "sha256": "220888e2123ec0b2948aea7c1e50986827c84fd338870737aaf4d3bca7c2078d",
+          "members": [
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b05-b06/MANIFEST.json",
+            "SRC-001-closed-development-calibration-reference/evidence/authority/b05-b06/close-event-bound-support/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    "non_redundantly_mirrored_directional_relationships": {
+      "count": 21,
+      "effect_on_verdict": "none",
+      "all_referenced_targets_exist": true,
+      "orphan_relationships": 0,
+      "relationship_cycles": 0,
+      "interpretation": "directional cross-copy, terminal, or package-administration relations were not redundantly encoded in both directions"
+    }
+  },
+  "discrepancies": [],
+  "warnings_affecting_pass": [],
+  "verdict": "PASS",
+  "conclusion": "The immutable SRC-001 closed development-calibration reference package independently passed package-integrity and internal-consistency verification.",
+  "verification_does_not_establish": [
+    "production Loa-Aleph execution",
+    "semantic validation",
+    "sanction",
+    "acceptance",
+    "golden-standard promotion",
+    "accepted criteria",
+    "production readiness",
+    "v1"
+  ],
+  "persistence_boundary": {
+    "verification_record_is_outside_verified_package": true,
+    "verified_package_modified": false,
+    "verified_manifest_modified": false,
+    "verified_checksum_inventory_modified": false,
+    "verified_post_build_record_modified": false,
+    "verified_package_sidecar_modified": false
+  }
+}

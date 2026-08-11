@@ -382,7 +382,27 @@
       "calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200-package-postbuild-verification.json",
       "calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200-package.zip.sha256",
       "calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200.json",
-      "calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200.md"
+      "calibration/src-001/batches-07-12-preclose/SRC-001-batches-07-12-preclose-audit-20260806T2328+0200.md",
+      "calibration/src-001/closed-reference/README.md",
+      "calibration/src-001/closed-reference/SRC-001-audit-b02-bytes-closure-receipt-20260810T194228+0200.json",
+      "calibration/src-001/closed-reference/SRC-001-b02-v1-exact-byte-recovery-receipt-20260811T120337+0200.json",
+      "calibration/src-001/closed-reference/SRC-001-checkpoint-through-batch-02.zip",
+      "calibration/src-001/closed-reference/SRC-001-closed-development-calibration-reference-20260811T162619+0200-manifest.json",
+      "calibration/src-001/closed-reference/SRC-001-closed-development-calibration-reference-20260811T162619+0200-members.sha256",
+      "calibration/src-001/closed-reference/SRC-001-closed-development-calibration-reference-20260811T162619+0200-postbuild-verification.json",
+      "calibration/src-001/closed-reference/SRC-001-closed-development-calibration-reference-20260811T162619+0200.zip",
+      "calibration/src-001/closed-reference/SRC-001-closed-development-calibration-reference-20260811T162619+0200.zip.sha256",
+      "calibration/src-001/closed-reference/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+      "calibration/src-001/closed-reference/SRC-001-exact-evidence-quote-restoration-closure-receipt-20260811T093402+0200.json",
+      "calibration/src-001/closed-reference/SRC-001-exact-evidence-restoration-and-whole-source-rerun-20260811T100542+0200.sha256",
+      "calibration/src-001/closed-reference/SRC-001-human-calibration-close-event-20260811T131300+0200.json",
+      "calibration/src-001/closed-reference/SRC-001-human-calibration-close-event-20260811T131300+0200.sha256",
+      "calibration/src-001/closed-reference/SRC-001-independent-package-verification-20260811T195804+0200.json",
+      "calibration/src-001/closed-reference/SRC-001-independent-package-verification-20260811T195804+0200.json.sha256",
+      "calibration/src-001/closed-reference/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json",
+      "calibration/src-001/closed-reference/SRC-001-preclose-records-20260810T194228+0200.sha256",
+      "calibration/src-001/closed-reference/SRC-001-transfer-manifest-pin-correction-closure-20260810T194228+0200.json",
+      "calibration/src-001/closed-reference/SRC-001-whole-source-consistency-rerun-20260811T100542+0200.json"
     ]
   },
   "checker_paths": [

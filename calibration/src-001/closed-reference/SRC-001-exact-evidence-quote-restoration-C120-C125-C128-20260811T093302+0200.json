@@ -1,0 +1,142 @@
+{
+  "record_type": "noncanonical_human_append_only_exact_evidence_byte_restoration",
+  "source_id": "SRC-001",
+  "recorded_at": "2026-08-11T09:33:02+02:00",
+  "authority": "human",
+  "status": "authoritative_for_src001_development_calibration_only",
+  "correction_nature": "MECHANICAL_EXACT_EVIDENCE_BYTE_RESTORATION",
+  "authorized_finding_ids": [
+    "EXACT-EVIDENCE-QUOTE-DRIFT-C120",
+    "EXACT-EVIDENCE-QUOTE-DRIFT-C125",
+    "EXACT-EVIDENCE-QUOTE-DRIFT-C128"
+  ],
+  "authority_boundaries": {
+    "src001": "OPEN",
+    "src002": "NOT AUTHORIZED",
+    "loa_aleph_core_modified": false,
+    "prior_artifacts_modified": false,
+    "semantic_decision_changed": false,
+    "package_created": false,
+    "src001_closed_for_calibration": false
+  },
+  "frozen_source": {
+    "path": "chat-transfer/SRC-001-frozen-numbered.txt",
+    "bytes": 54207,
+    "lf_lines": 792,
+    "sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a"
+  },
+  "direct_pre_correction_authority_bindings": {
+    "checkpoint_archive": {
+      "path": "SRC-001-B07-continuation-authority-bundle-from-B06-20260805T2132+0200/SRC-001-checkpoint-through-batch-06.zip",
+      "sha256": "b34de5331c4c968416f1d6b2459d40351ffab7417ef1bcb13c713dcba5feb6ec"
+    },
+    "affected_ledger_member": {
+      "archive_member": "SRC-001-checkpoint-through-batch-06/SRC-001-human-decisions-through-batch-06.json",
+      "sha256": "4749e37ed8f9078f0d19f0bfa108d4ac94047339941a5b8826847389a789bb75"
+    },
+    "checkpoint_attestation_receipt": {
+      "path": "SRC-001-B07-continuation-authority-bundle-from-B06-20260805T2132+0200/SRC-001-human-attestation-receipt-through-batch-06-20260805T1733+0200.json",
+      "sha256": "85a6e1411e140fad14cac69dd38fd38f1737152f288dcf0e9ee5421325c41141"
+    }
+  },
+  "successor_preservation_chain": [
+    {
+      "batch": "07",
+      "checkpoint_sha256": "29f86a4837247759e45f9dbf961a46ec3d809888c8214674b19aac42069b22e4",
+      "attestation_receipt_sha256": "dec0bfe56547af5f86f51e78809239cfe176f4ab73e35334cdb269ae29a6a7f6"
+    },
+    {
+      "batch": "08",
+      "checkpoint_sha256": "8e2653ecaaa703acbb8e70cfe04316c0e3041148ec00b2204ba5a544a24ab667",
+      "attestation_receipt_sha256": "0bff3f736529efa9bc23360b9d8d4d9228b42ddd953b123520e1cd8643bc64a4"
+    },
+    {
+      "batch": "09",
+      "checkpoint_sha256": "b3c1b7db15acfed98df79086c190aadb527c9c9541d16b22690bc65bbabc8501",
+      "attestation_receipt_sha256": "c12a6f89ff7f2aa217334cdd4a67b51f790648ab6012626cf5e89c5c56816a8d"
+    },
+    {
+      "batch": "10",
+      "checkpoint_sha256": "0f15e53f851f6b79192841233a88baa81d95d53da7de9e891b859e5004bc04fc",
+      "attestation_receipt_sha256": "a93f182fe11fc1468e2a81cfad229a314262dd293eec7f9bab8df2cf449745c4"
+    },
+    {
+      "batch": "11",
+      "checkpoint_sha256": "5511e439a37fba13329533d32bc09e908bfb4c5e01b73088e0d0b52f284fe5bb",
+      "attestation_receipt_sha256": "d41011c062109284b85add0379cfa6079b5e15f05e0ffb6619e2f8b1cf6bab99"
+    },
+    {
+      "batch": "12",
+      "checkpoint_sha256": "0f19d221c6c6b73ddc9a5b82fdfcf2e19eede8e3e092575eee6ea0fe2a8eae70",
+      "attestation_receipt_sha256": "a84965292a9074a7987ca025ddcbdd20941de10d70e29e3cca689dcd16174f33"
+    }
+  ],
+  "corrections": [
+    {
+      "finding_id": "EXACT-EVIDENCE-QUOTE-DRIFT-C120",
+      "unit_id": "C-120",
+      "locator": "L393-L395",
+      "old_serialized_exact_evidence": "Figure 3: Results on CLEVR from pixels. The RN augmented model outperformed all other\nmodels and exhibited super-human performance overall. In particular, it solved ‘compare attribute’\nquestions, which trouble all other models because they heavily depend on relational reasoning.",
+      "old_serialized_exact_evidence_utf8_bytes": 283,
+      "old_serialized_exact_evidence_sha256": "b777ce4e012e0d07020ab4967988147f61b3a0bd91b30877b6f0ed18f99ac19d",
+      "corrected_frozen_source_exact_evidence": "Figure 3: Results on CLEVR from pixels. The RN augmented model outperformed all other\nmodels and exhibited super-human performance overall. In particular, it solved “compare attribute”\nquestions, which trouble all other models because they heavily depend on relational reasoning.",
+      "corrected_frozen_source_exact_evidence_utf8_bytes": 283,
+      "corrected_frozen_source_exact_evidence_sha256": "79b0428882bc7103b888fce39ada2a0a49c514b41c7e7b58f1bbbc15965ef3e3",
+      "corrected_value_is_exact_substring_of_authorized_source_span": true,
+      "byte_change": "U+2018/U+2019 single quotation marks around compare attribute restored to source U+201C/U+201D double quotation marks",
+      "preserved_non_evidence_fields_serialized_json_sha256": "ced4c895f9439f6d66b3d0e51e7cd63f77f269a5ee7b0000860de706697746a1"
+    },
+    {
+      "finding_id": "EXACT-EVIDENCE-QUOTE-DRIFT-C125",
+      "unit_id": "C-125",
+      "locator": "L409-L410",
+      "old_serialized_exact_evidence": "A simple ‘closest-to’ or ‘furthest-from’ relation is particularly revealing of a CNN+MLP’s\nlack of general reasoning capabilities (52.3% success).",
+      "old_serialized_exact_evidence_utf8_bytes": 156,
+      "old_serialized_exact_evidence_sha256": "41cfefe8bccd03c04993349683823175bffa7701bbd4625db6e70c5dab8e3daf",
+      "corrected_frozen_source_exact_evidence": "A simple “closest-to” or “furthest-from” relation is particularly revealing of a CNN+MLP’s\nlack of general reasoning capabilities (52.3% success).",
+      "corrected_frozen_source_exact_evidence_utf8_bytes": 156,
+      "corrected_frozen_source_exact_evidence_sha256": "a6345b6870e5c5c1165bcc1ce9ee454e35cffedead4f61f56166effb3da99c0c",
+      "corrected_value_is_exact_substring_of_authorized_source_span": true,
+      "byte_change": "U+2018/U+2019 single quotation marks around closest-to and furthest-from restored to source U+201C/U+201D double quotation marks; the U+2019 possessive mark in CNN+MLP’s is unchanged",
+      "preserved_non_evidence_fields_serialized_json_sha256": "658ae1490621b41346f3e268f2bb222e1b397cd69a6166ee00f06de38c67fc6a"
+    },
+    {
+      "finding_id": "EXACT-EVIDENCE-QUOTE-DRIFT-C128",
+      "unit_id": "C-128",
+      "locator": "L417-L419",
+      "old_serialized_exact_evidence": "Also, our model did not catastrophically fail in any of the tasks: for the 2 tasks that it failed (the\n‘two supporting facts’, and ‘three supporting facts’ tasks), it missed the 95% threshold by 3 .1%\nand 11.5%, respectively.",
+      "old_serialized_exact_evidence_utf8_bytes": 233,
+      "old_serialized_exact_evidence_sha256": "f9f78b0638f5ab144ed9b9a6d30ec18e189286aac9572ccd4ec06925d823dbdd",
+      "corrected_frozen_source_exact_evidence": "Also, our model did not catastrophically fail in any of the tasks: for the 2 tasks that it failed (the\n“two supporting facts”, and “three supporting facts” tasks), it missed the 95% threshold by 3 .1%\nand 11.5%, respectively.",
+      "corrected_frozen_source_exact_evidence_utf8_bytes": 233,
+      "corrected_frozen_source_exact_evidence_sha256": "9d161936f3272afcd97e536a24968146f838f68c346ed8d81f3384abe103e5e3",
+      "corrected_value_is_exact_substring_of_authorized_source_span": true,
+      "byte_change": "U+2018/U+2019 single quotation marks around both task names restored to source U+201C/U+201D double quotation marks",
+      "preserved_non_evidence_fields_serialized_json_sha256": "1ccdf8140d147dc61d3a5d0782b521a28fa60584f9512644d1cc106b8fc6ea14"
+    }
+  ],
+  "authoritative_layer_rule": {
+    "corrected_field": "exact-evidence value only",
+    "predecessor_serialization": "VISIBLE_AND_IMMUTABLE",
+    "authoritative_exact_evidence_after_this_record": "corrected_frozen_source_exact_evidence",
+    "normalized_wording": "UNCHANGED",
+    "claim_meaning": "UNCHANGED",
+    "scope": "UNCHANGED",
+    "attribution": "UNCHANGED",
+    "modality": "UNCHANGED",
+    "dependencies": "UNCHANGED",
+    "disposition": "UNCHANGED",
+    "locator": "UNCHANGED",
+    "all_other_semantic_fields": "UNCHANGED"
+  },
+  "claims_not_made": [
+    "Loa-Aleph validation",
+    "sanction",
+    "acceptance",
+    "golden promotion",
+    "production readiness",
+    "v1 evidence",
+    "SRC-001 closure",
+    "SRC-002 authorization"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "record_type": "noncanonical_append_only_human_exact_evidence_correction_closure_receipt",
+  "source_id": "SRC-001",
+  "recorded_at": "2026-08-11T09:34:02+02:00",
+  "authority": "human",
+  "status": "authoritative_for_src001_development_calibration_only",
+  "correction": {
+    "path": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+    "sha256": "d412a71c3a8a0f9f054a6f5062ffce86229e71bd3ffee009f7ba612cd8f3f357",
+    "nature": "MECHANICAL_EXACT_EVIDENCE_BYTE_RESTORATION",
+    "frozen_source_sha256": "5aef61988ff0db6f2ecc2b7980f370583a317e2427c85a6f78adc3ccc8a1d22a"
+  },
+  "finding_dispositions": [
+    {
+      "id": "EXACT-EVIDENCE-QUOTE-DRIFT-C120",
+      "unit": "C-120",
+      "status": "CLOSED_BY_EXPLICIT_HUMAN_AUTHORIZED_APPEND_ONLY_EXACT_EVIDENCE_CORRECTION"
+    },
+    {
+      "id": "EXACT-EVIDENCE-QUOTE-DRIFT-C125",
+      "unit": "C-125",
+      "status": "CLOSED_BY_EXPLICIT_HUMAN_AUTHORIZED_APPEND_ONLY_EXACT_EVIDENCE_CORRECTION"
+    },
+    {
+      "id": "EXACT-EVIDENCE-QUOTE-DRIFT-C128",
+      "unit": "C-128",
+      "status": "CLOSED_BY_EXPLICIT_HUMAN_AUTHORIZED_APPEND_ONLY_EXACT_EVIDENCE_CORRECTION"
+    }
+  ],
+  "verification": {
+    "correction_record_json_parse": "PASS",
+    "correction_record_sha256": "PASS",
+    "frozen_source_sha256": "PASS",
+    "old_serialized_values_bound_by_sha256": "PASS",
+    "corrected_values_bound_by_sha256": "PASS",
+    "corrected_values_exactly_present_at_authorized_source_spans": "PASS",
+    "incorrect_predecessor_serialization_preserved": true
+  },
+  "unchanged": {
+    "normalized_wording": true,
+    "claim_meaning": true,
+    "scope": true,
+    "attribution": true,
+    "modality": true,
+    "dependencies": true,
+    "disposition": true,
+    "locator": true,
+    "prior_events": true,
+    "prior_checkpoints": true,
+    "prior_attestations": true,
+    "prior_receipts": true,
+    "sources": true,
+    "criteria": true
+  },
+  "state_after_receipt": {
+    "src001": "OPEN",
+    "src002": "NOT AUTHORIZED",
+    "whole_source_consistency": "REQUIRED_FROM_BEGINNING",
+    "package_created": false,
+    "src001_closed_for_calibration": false
+  },
+  "claims_not_made": [
+    "Loa-Aleph validation",
+    "sanction",
+    "acceptance",
+    "golden promotion",
+    "production readiness",
+    "v1 evidence",
+    "SRC-001 closure",
+    "SRC-002 authorization"
+  ]
+}
