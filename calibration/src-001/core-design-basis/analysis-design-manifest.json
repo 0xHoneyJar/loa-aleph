@@ -1,0 +1,138 @@
+{
+  "schema": "src001-independent-audit-and-core-design-manifest/v1",
+  "publication_id": "SRC-001-independent-audit-and-core-design-20260813",
+  "generated_date": "2026-08-13",
+  "durable_output_root": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/calibration-analysis/independent-audit/SRC-001-independent-audit-and-core-design-20260813",
+  "append_only_publication": true,
+  "status_boundary": {
+    "src001": "CLOSED_FOR_CALIBRATION",
+    "src002": "NOT_AUTHORIZED"
+  },
+  "controlling_identities": {
+    "closed_src001_package_sha256": "f4c42e65d611395c9bacdb7ecf3ab7e4d01b1d21fd50c6c150b0cc6a8847a9f0",
+    "producer_analysis_checksums_sha256": "eda69ea2ed1399951832b4a71cb9094ec3b8bb48c78c763facbc34f0ba9c3713",
+    "producer_mapping_sha256": "5b7648b3021a16b60d88ab67efbca96ed1aa1a42abad592b8950e96b21507613",
+    "independent_audit_sha256": "03197345bb9721d245258481cdd8ce102ee10dafcc1a82889b931cbcab63b37a"
+  },
+  "design_input_classes": [
+    {
+      "id": "SRC-001_CALIBRATION_DERIVED_REQUIREMENTS",
+      "authority_basis": "audited SRC-001 calibration evidence and effective-state overlay",
+      "implementation_slices": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "id": "HUMAN_AUTHORITY_PRODUCT_REQUIREMENT_INTENT_FIDELITY",
+      "authority_basis": "explicit human product requirement; not derived from SRC-001",
+      "implementation_slices": [
+        9
+      ]
+    },
+    {
+      "id": "CALIBRATION_ONLY_BLIND_REPLAY",
+      "authority_basis": "evaluation boundary over frozen SRC-001 source and criteria",
+      "implementation_slices": [
+        10
+      ]
+    }
+  ],
+  "corrected_analytical_summary": {
+    "event_count": 125,
+    "category_counts": {
+      "MACHINE_ERROR": 58,
+      "ACCEPTABLE_VARIANCE": 8,
+      "HUMAN_CALIBRATION_REFINEMENT": 19,
+      "SOURCE_EXTRACTION_CONSTRAINT": 28,
+      "CHECKER_OR_PROCESS_GAP": 10,
+      "CANNOT_DETERMINE": 2
+    },
+    "dependency_array_entries": 250,
+    "dependency_semantic_delta": "CANNOT_DETERMINE",
+    "raw_omitted_final_units": 23,
+    "substantive_omissions_after_gap_review": 0,
+    "residual_gap_review_under_splits": 1
+  },
+  "command_and_adapter_outcome": {
+    "public_loa_aleph_command_surface_change_required": false,
+    "loa_adapter_mechanics_change_required": true,
+    "anticipated_loa_source_repository_change": false,
+    "note": "Adapter mechanics change only to persist and transaction-bind canonical Core-defined intent artifacts; no Core duplication is permitted."
+  },
+  "implementation_slice_order": [
+    "exact evidence and ordered fragments",
+    "source walk, gap, shared-position, and resume accounting",
+    "unified split/merge/replace/supersede lineage",
+    "typed dependency and source-context relations",
+    "internal ambiguity and referent lifecycle",
+    "formal/table/layout bindings and degraded formats",
+    "S2/S3 semantic atomicity, context, qualifier, and evidence-role review",
+    "S4 duplicate-versus-overlap fresh refutation",
+    "intent-fidelity intake",
+    "blind SRC-001 replay harness"
+  ],
+  "artifacts": [
+    {
+      "path": "SRC-001-audited-core-change-architecture-design-20260813.md",
+      "role": "audited Core-change architecture design",
+      "bytes": 14374,
+      "sha256": "8bd3afe0dc374c1809382f6355a35a592e00b3d72b78bdad45934b098dd8b81e"
+    },
+    {
+      "path": "SRC-001-calibration-delta-correction-addendum-20260813.md",
+      "role": "append-only correction to producer analytical interpretation",
+      "bytes": 9880,
+      "sha256": "f29fa4ef6fce9960f064721d41ef63b6a55f582a5584e8380954c4ea30d4dddc"
+    },
+    {
+      "path": "SRC-001-effective-final-state-analytical-overlay-20260813.json",
+      "role": "machine-readable effective-state and analytical classification overlay",
+      "bytes": 31355,
+      "sha256": "c50f1ede1863b3a32cb73e4320d1ecb1a25867f4ccb537ca19de4fb731e304f1"
+    },
+    {
+      "path": "SRC-001-implementation-slice-plan-20260813.md",
+      "role": "ten-slice dependency and implementation-plan design",
+      "bytes": 28584,
+      "sha256": "5ea8532ee1f0994dddaaa49e5d8b0c1b3febc84c9885efc5edc55f3545c0ffae"
+    },
+    {
+      "path": "SRC-001-independent-calibration-delta-architecture-decision-20260813.md",
+      "role": "retained independent audit packet; exact bytes",
+      "bytes": 22274,
+      "sha256": "03197345bb9721d245258481cdd8ce102ee10dafcc1a82889b931cbcab63b37a"
+    },
+    {
+      "path": "SRC-001-independent-calibration-delta-architecture-decision-20260813.md.sha256",
+      "role": "independent audit SHA-256 sidecar",
+      "bytes": 138,
+      "sha256": "2a855af908789b3e38a6f3b7ff0b8f1046e226f3aca5c05b740697762c45e42e"
+    },
+    {
+      "path": "SRC-001-intent-fidelity-intake-contract-proposal-20260813.md",
+      "role": "human-authority intent-fidelity product contract proposal",
+      "bytes": 15447,
+      "sha256": "1bd2280c0559acbdd0d3cd51576d90d12b099c5af0b2699915dc947a837ecebc"
+    }
+  ],
+  "checksum_manifest": "CHECKSUMS.sha256",
+  "readiness": "READY_FOR_CORE_IMPLEMENTATION_PLAN_REVIEW",
+  "claims_not_made": [
+    "Core implementation authorization",
+    "implementation branch creation",
+    "SRC-002 authorization",
+    "SRC-001 golden promotion",
+    "agent-mode validation",
+    "sanction",
+    "Precis acceptance",
+    "production readiness",
+    "v1 evidence"
+  ]
+}
