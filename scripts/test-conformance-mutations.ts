@@ -23,6 +23,7 @@ const RUN_CHECKER = join(REPO_ROOT, 'scripts', 'validate-run.ts');
 const EXPECTED_CASES = new Map<string, number>([
   ['K1', 5],
   ['K2', 22],
+  ['K2E', 10],
   ['K3', 8],
   ['K4/K5', 9],
   ['K6', 11],
@@ -32,6 +33,7 @@ const options = {
   json: false,
   help: false,
   error: '',
+  group: '',
 };
 
 type CheckStatus = 'PASS' | 'FAIL';
@@ -71,18 +73,26 @@ type FixtureMutation = (fixturePath: string, root: string) => void;
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-for (const arg of process.argv.slice(2)) {
+const argv = process.argv.slice(2);
+for (let index = 0; index < argv.length; index++) {
+  const arg = argv[index];
   if (arg === '--json') options.json = true;
   else if (arg === '--help' || arg === '-h') options.help = true;
+  else if (arg === '--group') options.group = argv[++index] || '';
+  else if (arg.startsWith('--group=')) options.group = arg.slice('--group='.length);
   else options.error = `unknown argument "${arg}"`;
 }
 
 if (options.help) {
-  console.log('Usage: node scripts/test-conformance-mutations.ts [--json]');
+  console.log('Usage: node scripts/test-conformance-mutations.ts [--group GROUP] [--json]');
   process.exit(0);
 }
 if (options.error) {
   console.error(options.error);
+  process.exit(2);
+}
+if (options.group && !EXPECTED_CASES.has(options.group)) {
+  console.error(`unknown mutation group "${options.group}"`);
   process.exit(2);
 }
 
@@ -151,6 +161,30 @@ function removeLine(path: string, pattern: RegExp): void {
   const index = lines.findIndex((line) => pattern.test(line));
   if (index < 0) throw new Error(`${path} has no line matching ${pattern}`);
   lines.splice(index, 1);
+  writeFileSync(path, lines.join('\n'));
+}
+
+function replaceEncodedUtf8(path: string, before: string, after: string): void {
+  replaceOnce(
+    path,
+    Buffer.from(before, 'utf8').toString('base64'),
+    Buffer.from(after, 'utf8').toString('base64'),
+  );
+}
+
+function swapAdjacentLines(
+  path: string,
+  firstPrefix: string,
+  secondPrefix: string,
+): void {
+  const text = readFileSync(path, 'utf8');
+  const lines = text.split('\n');
+  const first = lines.findIndex((line) => line.startsWith(firstPrefix));
+  const second = lines.findIndex((line) => line.startsWith(secondPrefix));
+  if (first < 0 || second !== first + 1) {
+    throw new Error(`${path} does not contain adjacent rows ${firstPrefix} / ${secondPrefix}`);
+  }
+  [lines[first], lines[second]] = [lines[second], lines[first]];
   writeFileSync(path, lines.join('\n'));
 }
 
@@ -324,12 +358,14 @@ function addFailureCase(
   fixture: string,
   expectedId: string,
   mutate: FixtureMutation,
+  messagePattern: RegExp | null = null,
 ): void {
   addCase(group, name, (root) => {
     const relativePath = join('docs', 'fixtures', fixture);
     const fixturePath = copyFixture(fixture, root, relativePath);
     mutate(fixturePath, root);
-    requireFailure(runFixture(root, relativePath), expectedId);
+    const report = requireFailure(runFixture(root, relativePath), expectedId);
+    if (messagePattern) requireCheck(report, expectedId, 'FAIL', messagePattern);
   });
 }
 
@@ -715,6 +751,153 @@ addFailureCase('K2', 'Precis section 4 omits an active claim', 'run-slice-2', 'K
   removeLine(join(path, 'precis.md'), /^\| CC-114 \|/);
 });
 
+// K2E: adopted calibration Slice 1 exact-byte and ordered-fragment failures.
+addFailureCase(
+  'K2E',
+  'curly-quote drift',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceEncodedUtf8(
+      join(path, 'ledgers', 'packet-index.md'),
+      'The console recorded “exact” status for the ﬂow.\n',
+      'The console recorded "exact" status for the ﬂow.\n',
+    );
+  },
+  /FRAG-0301 exact bytes differ from frozen source/,
+);
+
+addFailureCase(
+  'K2E',
+  'ligature drift',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceEncodedUtf8(
+      join(path, 'ledgers', 'packet-index.md'),
+      'The console recorded “exact” status for the ﬂow.\n',
+      'The console recorded “exact” status for the flow.\n',
+    );
+  },
+  /FRAG-0301 exact bytes differ from frozen source/,
+);
+
+addFailureCase(
+  'K2E',
+  'newline-byte change',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceEncodedUtf8(
+      join(path, 'ledgers', 'packet-index.md'),
+      'The console recorded “exact” status for the ﬂow.\n',
+      'The console recorded “exact” status for the ﬂow.\r\n',
+    );
+  },
+  /FRAG-0301 exact bytes differ from frozen source/,
+);
+
+addFailureCase(
+  'K2E',
+  'fragment order swap',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    swapAdjacentLines(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| FRAG-0304 |',
+      '| FRAG-0305 |',
+    );
+  },
+  /EVID-0303 fragment rows must appear in explicit fragment_order/,
+);
+
+addFailureCase(
+  'K2E',
+  'undeclared fragment join',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| EVID-0303 | PKT-0304, PKT-0305 | exact | 2 | separate-fragments |',
+      '| EVID-0303 | PKT-0304, PKT-0305 | exact | 2 | |',
+    );
+  },
+  /EVID-0303 join_policy "\(blank\)" is undeclared/,
+);
+
+addFailureCase(
+  'K2E',
+  'normalized text substitutes for exact evidence',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| FRAG-0301 | EVID-0301 | PKT-0301 | 1 | SRC-301 | L3-L3 | frozen-source | exact-source-bytes |',
+      '| FRAG-0301 | EVID-0301 | PKT-0301 | 1 | SRC-301 | L3-L3 | frozen-source | normalized-text |',
+    );
+  },
+  /FRAG-0301 byte_role "normalized-text" cannot substitute/,
+);
+
+addFailureCase(
+  'K2E',
+  'missing frozen source bytes',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    rmSync(join(path, 'corpus', 'sources', 'SRC-301-exact-evidence.md'));
+  },
+  /FRAG-0301 frozen source locus .* is not a readable file/,
+);
+
+addFailureCase(
+  'K2E',
+  'changed fragment hash',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| exact-source-bytes | sha256:725fc130d2473090f51c7456b74d34683b57793729f80ccea7b56aeb92931cfe | QWRqYWNlbnQgZnJhZ21lbnQgb25lLgo= |',
+      '| exact-source-bytes | sha256:025fc130d2473090f51c7456b74d34683b57793729f80ccea7b56aeb92931cfe | QWRqYWNlbnQgZnJhZ21lbnQgb25lLgo= |',
+    );
+  },
+  /FRAG-0302 fragment_hash does not match exact source bytes/,
+);
+
+addFailureCase(
+  'K2E',
+  'invalid exact-fragment locator bounds',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| FRAG-0304 | EVID-0303 | PKT-0304 | 1 | SRC-301 | L5-L5 |',
+      '| FRAG-0304 | EVID-0303 | PKT-0304 | 1 | SRC-301 | L99-L99 |',
+    );
+  },
+  /FRAG-0304 locator L99-L99 is outside SRC-301/,
+);
+
+addFailureCase(
+  'K2E',
+  'normalization changes exact evidence identity',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| XFORM-0302 | EVID-0301 | normalized | sha256:0ca32f456702bd71ce592fd5c3b29785fe1a3bf8c699bd558b2a1d9f472b0e2b | sha256:0ca32f456702bd71ce592fd5c3b29785fe1a3bf8c699bd558b2a1d9f472b0e2b |',
+      '| XFORM-0302 | EVID-0301 | normalized | sha256:0ca32f456702bd71ce592fd5c3b29785fe1a3bf8c699bd558b2a1d9f472b0e2b | sha256:1ca32f456702bd71ce592fd5c3b29785fe1a3bf8c699bd558b2a1d9f472b0e2b |',
+    );
+  },
+  /XFORM-0302 changes exact evidence identity during normalized/,
+);
+
 // K3: the K3.4 and K3.6 cases mutate the two seeded issue-18 patterns.
 addFailureCase('K3', 'unknown evidence role', 'evidence-role-adversarial', 'K3.1', (path) => {
   replaceOnce(
@@ -984,23 +1167,39 @@ function verifyDeclaredCounts(): void {
 try {
   verifyDeclaredCounts();
 
-  runBaseline(
-    'golden run',
-    'run-slice-2',
-    ['K2.1', 'K2.12', 'K3.1', 'K3.8', 'K4.1', 'K4.6', 'K5.1', 'K5.4', 'K6.10'],
-  );
-  runBaseline(
-    'evidence roles',
-    'evidence-role-adversarial',
-    ['K3.1', 'K3.2', 'K3.3', 'K3.4', 'K3.5', 'K3.6', 'K3.7', 'K3.8'],
-  );
-  runBaseline(
-    'projection',
-    'projection-adversarial',
-    ['K6.1', 'K6.2', 'K6.3', 'K6.4', 'K6.5', 'K6.6', 'K6.7', 'K6.8', 'K6.9', 'K6.10'],
-  );
+  if (!options.group || ['K2', 'K4/K5'].includes(options.group)) {
+    runBaseline(
+      'golden run',
+      'run-slice-2',
+      ['K2.1', 'K2.12', 'K3.1', 'K3.8', 'K4.1', 'K4.6', 'K5.1', 'K5.4', 'K6.10'],
+    );
+  }
+  if (!options.group || options.group === 'K2E') {
+    runBaseline(
+      'exact evidence',
+      'exact-evidence-fragments',
+      ['K2.4', 'K2.13'],
+    );
+  }
+  if (!options.group || options.group === 'K3') {
+    runBaseline(
+      'evidence roles',
+      'evidence-role-adversarial',
+      ['K3.1', 'K3.2', 'K3.3', 'K3.4', 'K3.5', 'K3.6', 'K3.7', 'K3.8'],
+    );
+  }
+  if (!options.group || options.group === 'K6') {
+    runBaseline(
+      'projection',
+      'projection-adversarial',
+      ['K6.1', 'K6.2', 'K6.3', 'K6.4', 'K6.5', 'K6.6', 'K6.7', 'K6.8', 'K6.9', 'K6.10'],
+    );
+  }
 
-  for (const test of cases) {
+  const selectedCases = options.group
+    ? cases.filter((test) => test.group === options.group)
+    : cases;
+  for (const test of selectedCases) {
     const root = sandbox(`${test.group}-${test.name}`);
     try {
       test.execute(root);
@@ -1031,7 +1230,9 @@ try {
 const failedBaselines = baselineResults.filter((record) => record.status === 'FAIL');
 const failedCases = caseResults.filter((record) => record.status === 'FAIL');
 const passedCases = caseResults.filter((record) => record.status === 'PASS').length;
-const expectedTotal = [...EXPECTED_CASES.values()].reduce((sum, value) => sum + value, 0);
+const expectedTotal = options.group
+  ? EXPECTED_CASES.get(options.group) || 0
+  : [...EXPECTED_CASES.values()].reduce((sum, value) => sum + value, 0);
 const result = failedBaselines.length === 0
   && failedCases.length === 0
   && passedCases === expectedTotal

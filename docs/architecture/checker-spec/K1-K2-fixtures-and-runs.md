@@ -134,6 +134,25 @@ scope.
   every result field is PASS/FAIL; explicitly historical or superseded reports
   may retain their retired JavaScript command; a run whose manifest reached
   VERIFIED must have a PASS report from the TypeScript checker.
+- K2.13 (`exact evidence and ordered fragments`): absence of
+  `exact_evidence_format` preserves the legacy K2.4 interpretation and does not
+  retrofit historical artifacts. When `aleph-exact-evidence/v1` is declared,
+  the packet index must contain exact-evidence, ordered-fragment, and
+  transformation tables. Every packet is covered exactly once by an `exact`
+  evidence record. Every fragment resolves through its source row and packet
+  to a readable frozen `md-lines` span; the whole-source content hash, locator
+  bounds, canonical base64 bytes, fragment hash, explicit table/order value,
+  ordered packet list, and framed exact-evidence hash must agree.
+  `single-fragment`, `adjacent-fragments`, and `separate-fragments` are the
+  only exact join policies; they describe relationship/presentation and add no
+  bytes. Rendered/normalized transformations have their own text hashes and
+  must preserve equal predecessor/effective exact-evidence hashes. A
+  `degraded-non-exact` record has no packet, fragment, join, or exact hash and
+  requires a rendered transformation plus a reason.
+
+K2.13 proves only frozen-source byte fidelity and declared structure. It does
+not prove semantic entailment, good packetization, good normalization, correct
+interpretation, atomicity, complete extraction, or source trustworthiness.
 
 **False-positive guards:** prose mentions like "no `CC-999` exists" are NOT
 exempt — same context-free strictness as the existing forbidden-token scan;
@@ -155,4 +174,9 @@ inventory row with two dispositions → K2.6; ledger total off by one
 → K2.7; absorbed claim missing a source in canonical set → K2.8; criteria
 timestamp after first S2 log entry → K2.9; `superseded-by:PKT-0999`
 (nonexistent) → K2.10; §4 in precis.md missing one active claim → K2.11.
-Clean golden run → exit 0.
+The Slice-1 K2.13 battery additionally mutates curly quotation bytes, a
+ligature, newline bytes, fragment row order, an undeclared join, a normalized
+byte role substituted for exact evidence, a missing frozen source file, a
+fragment hash, locator bounds, and a normalization event's effective exact
+hash. Each must fail K2.13 at its named invariant. Clean golden and
+exact-evidence fixtures → exit 0.

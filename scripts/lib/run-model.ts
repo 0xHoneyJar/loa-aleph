@@ -32,6 +32,17 @@ export const DISPOSITIONS = [
 
 export type Disposition = typeof DISPOSITIONS[number];
 
+export const EXACT_EVIDENCE_FORMAT = 'aleph-exact-evidence/v1';
+
+export const EXACT_EVIDENCE_JOIN_POLICIES = [
+  'single-fragment',
+  'adjacent-fragments',
+  'separate-fragments',
+] as const;
+
+export type ExactEvidenceJoinPolicy =
+  typeof EXACT_EVIDENCE_JOIN_POLICIES[number];
+
 export interface RunFile {
   path: string;
   relativePath: string;
@@ -106,6 +117,39 @@ export interface PacketValues {
   quote: string;
   criterion: string;
   status: string;
+}
+
+export interface ExactEvidenceRecordValues {
+  evidenceKey: string;
+  packetIds: string;
+  evidenceState: string;
+  fragmentCount: string;
+  joinPolicy: string;
+  exactEvidenceHash: string;
+  degradationReason: string;
+}
+
+export interface ExactEvidenceFragmentValues {
+  fragmentKey: string;
+  evidenceKey: string;
+  packetId: string;
+  fragmentOrder: string;
+  sourceId: string;
+  locator: string;
+  sourceRelation: string;
+  byteRole: string;
+  fragmentHash: string;
+  exactBytesBase64: string;
+}
+
+export interface EvidenceTransformationValues {
+  transformKey: string;
+  evidenceKey: string;
+  outputRole: string;
+  predecessorExactEvidenceHash: string;
+  effectiveExactEvidenceHash: string;
+  outputText: string;
+  outputTextHash: string;
 }
 
 export interface ClaimValues {
@@ -209,6 +253,9 @@ export interface ProjectionTraceValues {
 
 export type SourceRow = RunRow<SourceValues>;
 export type PacketRow = RunRow<PacketValues>;
+export type ExactEvidenceRecordRow = RunRow<ExactEvidenceRecordValues>;
+export type ExactEvidenceFragmentRow = RunRow<ExactEvidenceFragmentValues>;
+export type EvidenceTransformationRow = RunRow<EvidenceTransformationValues>;
 export type ClaimRow = RunRow<ClaimValues>;
 export type DispositionRow = RunRow<DispositionValues>;
 export type MergeRow = RunRow<MergeValues>;
@@ -231,6 +278,16 @@ export interface EvidenceModel {
   edges: EvidenceEdgeRow[];
   markers: EvidenceMarkerRow[];
   accounting: Map<string, number>;
+}
+
+export interface ExactEvidenceModel {
+  format: string;
+  records: ExactEvidenceRecordRow[];
+  fragments: ExactEvidenceFragmentRow[];
+  transformations: EvidenceTransformationRow[];
+  recordTable: MarkdownTable | null;
+  fragmentTable: MarkdownTable | null;
+  transformationTable: MarkdownTable | null;
 }
 
 export interface RouteCard extends MarkdownDocument {
@@ -283,6 +340,7 @@ export interface RunModel {
   corpus: CorpusModel;
   criteria: RunDocument | null;
   packets: PacketRow[];
+  exactEvidence: ExactEvidenceModel;
   claims: ClaimRow[];
   dispositionRows: DispositionRow[];
   merges: MergeRow[];
@@ -398,6 +456,86 @@ function parsePackets(document: RunDocument | null): PacketRow[] {
   return rowObjects(table, [
     'packetId', 'sourceId', 'locator', 'spanHash', 'quote', 'criterion', 'status',
   ]);
+}
+
+function parseExactEvidence(document: RunDocument | null): ExactEvidenceModel {
+  if (!document) {
+    return {
+      format: '',
+      records: [],
+      fragments: [],
+      transformations: [],
+      recordTable: null,
+      fragmentTable: null,
+      transformationTable: null,
+    };
+  }
+  const recordTable = findTable(document.tables, [
+    'evidence key',
+    'packet ids',
+    'evidence state',
+    'fragment count',
+    'join policy',
+    'exact evidence hash',
+    'degradation reason',
+  ]);
+  const fragmentTable = findTable(document.tables, [
+    'fragment key',
+    'evidence key',
+    'packet id',
+    'fragment order',
+    'source id',
+    'locator',
+    'source relation',
+    'byte role',
+    'fragment hash',
+    'exact bytes base64',
+  ]);
+  const transformationTable = findTable(document.tables, [
+    'transform key',
+    'evidence key',
+    'output role',
+    'predecessor exact evidence hash',
+    'effective exact evidence hash',
+    'output text',
+    'output text hash',
+  ]);
+  return {
+    format: document.bullets.fields.get('exact evidence format') || '',
+    records: rowObjects(recordTable, [
+      'evidenceKey',
+      'packetIds',
+      'evidenceState',
+      'fragmentCount',
+      'joinPolicy',
+      'exactEvidenceHash',
+      'degradationReason',
+    ]),
+    fragments: rowObjects(fragmentTable, [
+      'fragmentKey',
+      'evidenceKey',
+      'packetId',
+      'fragmentOrder',
+      'sourceId',
+      'locator',
+      'sourceRelation',
+      'byteRole',
+      'fragmentHash',
+      'exactBytesBase64',
+    ]),
+    transformations: rowObjects(transformationTable, [
+      'transformKey',
+      'evidenceKey',
+      'outputRole',
+      'predecessorExactEvidenceHash',
+      'effectiveExactEvidenceHash',
+      'outputText',
+      'outputTextHash',
+    ]),
+    recordTable,
+    fragmentTable,
+    transformationTable,
+  };
 }
 
 function parseClaims(document: RunDocument | null): ClaimRow[] {
@@ -619,6 +757,7 @@ export function loadRun(runDir: string): RunModel {
     corpus: parseCorpus(get('corpus/manifest.md')),
     criteria,
     packets: parsePackets(packetDocument),
+    exactEvidence: parseExactEvidence(packetDocument),
     claims: parseClaims(claimDocument),
     dispositionRows: parseDispositionRows(dispositionDocument),
     merges: parseMerges(mergeDocument),
