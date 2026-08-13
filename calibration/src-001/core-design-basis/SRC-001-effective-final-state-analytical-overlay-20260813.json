@@ -1,0 +1,631 @@
+{
+  "schema": "src001-effective-final-state-analytical-overlay/v1",
+  "generated_date": "2026-08-13",
+  "source_id": "SRC-001",
+  "status_boundary": {
+    "src001": "CLOSED_FOR_CALIBRATION",
+    "src002": "NOT_AUTHORIZED"
+  },
+  "scope": "Append-only analytical overlay for Core design. It does not mutate the B12 checkpoint snapshot, historical evidence, the closed package, or the producer analysis.",
+  "base_mapping": {
+    "path": "SRC-001-calibration-delta-20260811/SRC-001-machine-to-final-mapping.json",
+    "sha256": "5b7648b3021a16b60d88ab67efbca96ed1aa1a42abad592b8950e96b21507613",
+    "semantic_name": "terminal_B12_checkpoint_snapshot_plus_unapplied_later_event_records",
+    "original_schema": "src001-machine-to-final-mapping-v1",
+    "original_material_assessment_event_count": 124
+  },
+  "independent_audit": {
+    "filename": "SRC-001-independent-calibration-delta-architecture-decision-20260813.md",
+    "sha256": "03197345bb9721d245258481cdd8ce102ee10dafcc1a82889b931cbcab63b37a",
+    "result": "PASS_WITH_REVISIONS"
+  },
+  "authority_layers_in_application_order": [
+    {
+      "order": 1,
+      "kind": "terminal_checkpoint_snapshot",
+      "source": "base_mapping.original_candidate_mappings[].final_units and standalone_final_units_omitted_by_raw_extractor",
+      "note": "Retained verbatim as predecessor state, not relabeled as the effective final state."
+    },
+    {
+      "order": 2,
+      "kind": "normalization_and_referent_authority_overlay",
+      "path": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json",
+      "sha256": "5fda1ef6f1416ff6eacf063ec761de58121eedcca0d4826d809ee8022e996706",
+      "applies": [
+        "19 normalization decisions",
+        "C-186 source-internal referent closure and carry"
+      ]
+    },
+    {
+      "order": 3,
+      "kind": "exact_evidence_byte_restoration_overlay",
+      "path": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+      "sha256": "d412a71c3a8a0f9f054a6f5062ffce86229e71bd3ffee009f7ba612cd8f3f357",
+      "closure_receipt_path": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-closure-receipt-20260811T093402+0200.json",
+      "closure_receipt_sha256": "e4da8650404ecc001c5febb4c88ec59e83cfe355ef1e69ddfb407af1371a3b83",
+      "applies": [
+        "C-120",
+        "C-125",
+        "C-128"
+      ]
+    },
+    {
+      "order": 4,
+      "kind": "human_calibration_close_boundary",
+      "path": "preclose-diagnostic/SRC-001-human-calibration-close-event-20260811T131300+0200.json",
+      "sha256": "9a724a20342a25a45831c149b32a69dc5b3a608bb930d0afd3c0772f20e7d5d6",
+      "applies": [
+        "SRC-001 CLOSED_FOR_CALIBRATION",
+        "SRC-002 NOT_AUTHORIZED"
+      ]
+    }
+  ],
+  "effective_state_application_rule": {
+    "rule": "Read the B12 checkpoint fields as immutable predecessor values, then apply the named append-only authority overlays in order. Fields not named by an overlay retain their predecessor values.",
+    "unavailable_history_rule": "Do not infer a link, antecedent, split, wording, or semantic answer that is not represented by retained authority evidence.",
+    "cannot_determine_rule": "Preserve CANNOT_DETERMINE for source-internal ambiguity and historical dependency deltas that cannot be reconstructed."
+  },
+  "unit_field_overlays": {
+    "normalizations": [
+      {
+        "unit_id": "C-003",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "In this paper we describe how to use Relation Networks (RNs) as a simple plug-and-play module to solve problems that fundamentally hinge on relational reasoning.",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-004",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "We tested RN-augmented networks on three tasks: visual question answering using a challenging dataset called CLEVR, on which we achieve state-of-the-art, super-human performance; text-based question answering using the bAbI suite of tasks; and complex reasoning about dynamic physical systems.",
+        "preserve": [
+          "CLEVR-only scope of the performance qualifier",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-005",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Then, using a curated dataset called Sort-of-CLEVR we show that powerful convolutional networks do not have a general capacity to solve relational questions, but can gain this capacity when augmented with RNs.",
+        "preserve": [
+          "Sort-of-CLEVR scope",
+          "contrast introduced by “but”",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-006",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Our work shows how a deep learning architecture equipped with an RN module can implicitly discover and learn to reason about entities and their relations.",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-007",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "The ability to reason about the relations between entities and their properties is central to generally intelligent behavior (Figure 1) [ 18, 15].",
+        "preserve": [
+          "existing Figure 1 treatment",
+          "existing citation treatment",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution"
+        ],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-008",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Consider a child proposing a race between the two trees in the park that are furthest apart: the pairwise distances between every tree in the park must be inferred and compared to know where to run.",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-009",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Or, consider a reader piecing together evidence to predict the culprit in a murder-mystery novel: each clue must be considered in its broader context to build a plausible narrative and solve the mystery.",
+        "preserve": [
+          "discourse/dependency relationship with C-008",
+          "proposition unchanged",
+          "existing human-authorized semantic constraints",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-010",
+        "field": "normalized_wording",
+        "operation": "CONFIRM-NO-OP",
+        "effective_value": "Symbolic approaches to artiﬁcial intelligence are inherently relational [32, 11].",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-011",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Practitioners deﬁne the relations between symbols using the language of logic and mathematics, and then reason about these relations using a multitude of powerful methods, including deduction, arithmetic, and algebra.",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-014",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "However, a number of these approaches, such as deep learning, often struggle in data-poor problems where the underlying structure is characterized by sparse but complex relations [ 7, 23].",
+        "preserve": [
+          "source-internal antecedent",
+          "leading contrast",
+          "no expansion or resolution using external inference",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-015",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Figure 1: An illustrative example from the CLEVR dataset of relational reasoning . An image containing four objects is shown alongside non-relational and relational questions. The relational question requires explicit reasoning about the relations between the four objects in the image, whereas the non-relational question requires reasoning about the attributes of a particular object.",
+        "preserve": [
+          "line-wrapping-only normalization",
+          "caption status",
+          "source spacing/content otherwise",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-016",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Here, we explore “Relation Networks” (RN) as a general solution to relational reasoning in neural networks.",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-017",
+        "field": "normalized_wording",
+        "operation": "CONFIRM-NO-OP",
+        "effective_value": "RNs are architectures whose computations focus explicitly on relational reasoning [ 35].",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-019",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Moreover, through joint training RNs can inﬂuence and shape upstream representations in CNNs and LSTMs to produce implicit object-like representations that it can exploit for relational reasoning.",
+        "preserve": [
+          "source's unresolved pronoun “it”",
+          "no silent antecedent resolution",
+          "existing human-authorized semantic constraints",
+          "dependencies",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-023",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "We also applied an RN-based architecture to the bAbI text-based QA suite [ 41] and solved 18/20 of the subtasks.",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-024",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "Finally, we trained an RN to make challenging relational inferences about complex physical systems and motion capture data.",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-025",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "The success of RNs across this set of substantially dissimilar task domains is testament to the general utility of RNs for solving problems that require relation reasoning.",
+        "preserve": [
+          "already-authorized dependency treatment",
+          "C-020a",
+          "C-021",
+          "C-022a",
+          "C-023",
+          "C-024",
+          "existing human-authorized semantic constraints",
+          "scope",
+          "modality",
+          "attribution",
+          "citation treatment"
+        ],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-027",
+        "field": "normalized_wording",
+        "operation": "ADOPT_CURRENT_NORMALIZED_WORDING",
+        "effective_value": "The design philosophy behind RNs is to constrain the functional form of a neural network so that it captures the core common properties of relational reasoning.",
+        "preserve": [],
+        "gold_normalization_example": null,
+        "reason": null,
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      },
+      {
+        "unit_id": "C-029",
+        "field": "normalized_wording",
+        "operation": "RETAIN-NON-GOLD",
+        "effective_value": "In its simplest form the RN is a composite function: RN(O) =fφ  ∑ i,j gθ(oi,oj)  , (1) where the input is a set of “objects” O ={o1,o 2,...,o n}, oi∈ Rm is the ith object, and fφ and gθ are functions with parameters φ and θ, respectively.",
+        "preserve": [],
+        "gold_normalization_example": false,
+        "reason": "The nine-LF prose-flattened representation obscures the formal structure.",
+        "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+      }
+    ],
+    "exact_evidence": [
+      {
+        "unit_id": "C-120",
+        "field": "exact_evidence",
+        "operation": "REPLACE_EFFECTIVE_FIELD_APPEND_ONLY",
+        "predecessor_checkpoint_value_sha256": "b777ce4e012e0d07020ab4967988147f61b3a0bd91b30877b6f0ed18f99ac19d",
+        "effective_value": "Figure 3: Results on CLEVR from pixels. The RN augmented model outperformed all other\nmodels and exhibited super-human performance overall. In particular, it solved “compare attribute”\nquestions, which trouble all other models because they heavily depend on relational reasoning.",
+        "effective_value_sha256": "79b0428882bc7103b888fce39ada2a0a49c514b41c7e7b58f1bbbc15965ef3e3",
+        "locator": "L393-L395",
+        "semantic_change": false,
+        "authority_record": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+        "closure_receipt": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-closure-receipt-20260811T093402+0200.json"
+      },
+      {
+        "unit_id": "C-125",
+        "field": "exact_evidence",
+        "operation": "REPLACE_EFFECTIVE_FIELD_APPEND_ONLY",
+        "predecessor_checkpoint_value_sha256": "41cfefe8bccd03c04993349683823175bffa7701bbd4625db6e70c5dab8e3daf",
+        "effective_value": "A simple “closest-to” or “furthest-from” relation is particularly revealing of a CNN+MLP’s\nlack of general reasoning capabilities (52.3% success).",
+        "effective_value_sha256": "a6345b6870e5c5c1165bcc1ce9ee454e35cffedead4f61f56166effb3da99c0c",
+        "locator": "L409-L410",
+        "semantic_change": false,
+        "authority_record": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+        "closure_receipt": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-closure-receipt-20260811T093402+0200.json"
+      },
+      {
+        "unit_id": "C-128",
+        "field": "exact_evidence",
+        "operation": "REPLACE_EFFECTIVE_FIELD_APPEND_ONLY",
+        "predecessor_checkpoint_value_sha256": "f9f78b0638f5ab144ed9b9a6d30ec18e189286aac9572ccd4ec06925d823dbdd",
+        "effective_value": "Also, our model did not catastrophically fail in any of the tasks: for the 2 tasks that it failed (the\n“two supporting facts”, and “three supporting facts” tasks), it missed the 95% threshold by 3 .1%\nand 11.5%, respectively.",
+        "effective_value_sha256": "9d161936f3272afcd97e536a24968146f838f68c346ed8d81f3384abe103e5e3",
+        "locator": "L417-L419",
+        "semantic_change": false,
+        "authority_record": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+        "closure_receipt": "preclose-diagnostic/SRC-001-exact-evidence-quote-restoration-closure-receipt-20260811T093402+0200.json"
+      }
+    ],
+    "referent": {
+      "unit_id": "C-186",
+      "operation": "RETAIN_ATTRIBUTED_AND_CARRY_VISIBLE_AMBIGUITY",
+      "source_faithful_formulation_preserved": "The authors trained a comparable CNN+MLP model on Sort-of-CLEVR to examine how well a standard model could answer relational questions, using what the source describes as the same CNN and LSTM and training them end-to-end.",
+      "selected_antecedent": null,
+      "immediate_sort_of_clevr_lstm_antecedent": "NOT COMPATIBLY DETERMINABLE FROM THE FROZEN SOURCE",
+      "comparator_context_preserved_for": [
+        "C-187",
+        "C-188",
+        "C-206"
+      ],
+      "ambiguity_caveat_carries_where_relevant": true,
+      "authority_record": "preclose-diagnostic/SRC-001-norm19-c186-human-decision-closure-20260810T194228+0200.json"
+    }
+  },
+  "process_state_overlays": {
+    "counting_rule": "These ten retained correction/process events are part of the effective analytical view. Except for the separately materialized C-120/C-125/C-128 exact-evidence fields, they do not mutate semantic final-unit fields.",
+    "events": [
+      {
+        "event_id": "PROCESS-C120-QUOTE-DRIFT",
+        "subject_ids": [
+          "C-120"
+        ],
+        "authority_reference": "evidence/preclose/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+        "reason": "Serialized exact evidence used single curly quotation marks where frozen source bytes used double curly quotation marks.",
+        "effective_state_effect": "UNIT_EXACT_EVIDENCE_PATCHED_BY_EXPLICIT_OVERLAY"
+      },
+      {
+        "event_id": "PROCESS-C125-QUOTE-DRIFT",
+        "subject_ids": [
+          "C-125"
+        ],
+        "authority_reference": "evidence/preclose/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+        "reason": "Serialized exact evidence used single curly quotation marks where frozen source bytes used double curly quotation marks.",
+        "effective_state_effect": "UNIT_EXACT_EVIDENCE_PATCHED_BY_EXPLICIT_OVERLAY"
+      },
+      {
+        "event_id": "PROCESS-C128-QUOTE-DRIFT",
+        "subject_ids": [
+          "C-128"
+        ],
+        "authority_reference": "evidence/preclose/SRC-001-exact-evidence-quote-restoration-C120-C125-C128-20260811T093302+0200.json",
+        "reason": "Serialized exact evidence used single curly quotation marks where frozen source bytes used double curly quotation marks.",
+        "effective_state_effect": "UNIT_EXACT_EVIDENCE_PATCHED_BY_EXPLICIT_OVERLAY"
+      },
+      {
+        "event_id": "PROCESS-C093B-AUTHORIZATION-BYTE-MISMATCH",
+        "subject_ids": [
+          "C-093b"
+        ],
+        "authority_reference": "evidence/authority/b05-b06/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.json",
+        "reason": "Checkpoint evidence was source-exact, but earlier human authorization text used ASCII final rather than the source ligature.",
+        "effective_state_effect": "PROCESS_OR_METADATA_STATE_ONLY_NO_SEMANTIC_UNIT_FIELD_CHANGE"
+      },
+      {
+        "event_id": "PROCESS-C104A-AUTHORIZATION-BYTE-MISMATCH",
+        "subject_ids": [
+          "C-104a"
+        ],
+        "authority_reference": "evidence/authority/b05-b06/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.json",
+        "reason": "Checkpoint evidence was source-exact, but earlier human authorization text used ASCII final rather than the source ligature.",
+        "effective_state_effect": "PROCESS_OR_METADATA_STATE_ONLY_NO_SEMANTIC_UNIT_FIELD_CHANGE"
+      },
+      {
+        "event_id": "PROCESS-M002-AUTHORIZATION-BYTE-MISMATCH",
+        "subject_ids": [
+          "M-002"
+        ],
+        "authority_reference": "evidence/authority/b05-b06/SRC-001-internal-audit-corrective-action-receipt-through-batch-06-20260805T1821+0200.json",
+        "reason": "Checkpoint evidence was source-exact, but earlier human authorization text used ASCII fine-tuning rather than the source ligature.",
+        "effective_state_effect": "PROCESS_OR_METADATA_STATE_ONLY_NO_SEMANTIC_UNIT_FIELD_CHANGE"
+      },
+      {
+        "event_id": "PROCESS-B08A-SHARED-LINE-RESUME",
+        "subject_ids": [
+          "C-168",
+          "C-169"
+        ],
+        "authority_reference": "evidence/authority/b07-b12/batch-08/SRC-001-event-metadata-correction-B08A-20260806T0014+0200.json",
+        "reason": "Generated resume metadata treated a shared source line as fully consumed.",
+        "effective_state_effect": "PROCESS_OR_METADATA_STATE_ONLY_NO_SEMANTIC_UNIT_FIELD_CHANGE"
+      },
+      {
+        "event_id": "PROCESS-B08B-SHARED-LINE-RESUME",
+        "subject_ids": [
+          "C-172",
+          "C-173"
+        ],
+        "authority_reference": "evidence/authority/b07-b12/batch-08/SRC-001-event-metadata-correction-B08B-20260806T0101+0200.json",
+        "reason": "Generated resume metadata treated a shared source line as fully consumed.",
+        "effective_state_effect": "PROCESS_OR_METADATA_STATE_ONLY_NO_SEMANTIC_UNIT_FIELD_CHANGE"
+      },
+      {
+        "event_id": "PROCESS-B02-EXACT-PROPOSAL-BYTE-RECOVERY",
+        "subject_ids": [
+          "B02-v1"
+        ],
+        "authority_reference": "evidence/preclose/SRC-001-audit-b02-bytes-closure-receipt-20260810T194228+0200.json",
+        "reason": "The exact Batch 02 proposal/checkpoint byte lineage was unavailable in the active workspace and required later exact-byte recovery without substitution.",
+        "effective_state_effect": "PROCESS_OR_METADATA_STATE_ONLY_NO_SEMANTIC_UNIT_FIELD_CHANGE"
+      },
+      {
+        "event_id": "PROCESS-B10-B11-TRANSFER-PIN-CORRECTION",
+        "subject_ids": [
+          "B10",
+          "B11"
+        ],
+        "authority_reference": "evidence/preclose/SRC-001-transfer-manifest-pin-correction-closure-20260810T194228+0200.json",
+        "reason": "Transfer-manifest proposal pins required append-only correction/closure while preserving historical artifacts.",
+        "effective_state_effect": "PROCESS_OR_METADATA_STATE_ONLY_NO_SEMANTIC_UNIT_FIELD_CHANGE"
+      }
+    ]
+  },
+  "analytical_classification_overlays": [
+    {
+      "event_id": "MAPPING-C-110",
+      "prior_category": "MACHINE_ERROR",
+      "corrected_category": "ACCEPTABLE_VARIANCE",
+      "audit_disposition": "OVERSTATED",
+      "reason": "The proposal already described the linkage as claimed; authority made attribution and dependency explicit in a representation the proposal schema did not provide.",
+      "final_authority_state_changed": false
+    },
+    {
+      "event_id": "MAPPING-C-139",
+      "prior_category": "MACHINE_ERROR",
+      "corrected_category": "ACCEPTABLE_VARIANCE",
+      "audit_disposition": "OVERSTATED",
+      "reason": "The proposal preserved the qualified limitation and may-not modality; authority added explicit context/dependency and normalized wording.",
+      "final_authority_state_changed": false
+    },
+    {
+      "event_id": "MAPPING-M-001-GAP-REVIEW-UNDER-SPLIT",
+      "prior_category": null,
+      "corrected_category": "MACHINE_ERROR",
+      "audit_disposition": "ADDED_STAGE_LOCAL_EVENT",
+      "subject_ids": [
+        "M-001",
+        "M-001a",
+        "M-001b"
+      ],
+      "stage": "machine_gap_review",
+      "recovery_status": "RECOVERED_BY_HUMAN_AUTHORITY",
+      "reason": "Gap review recovered all substantive content as M-001 but missed the authority-required split into M-001a and M-001b.",
+      "preserves_existing_omission_events": [
+        "OMISSION-M-001a",
+        "OMISSION-M-001b"
+      ]
+    }
+  ],
+  "corrected_analytical_counts": {
+    "exclusive_assessment_event_universe": {
+      "base_events": 124,
+      "reclassified_events": 2,
+      "added_stage_local_events": 1,
+      "corrected_events": 125,
+      "category_counts": {
+        "MACHINE_ERROR": 58,
+        "ACCEPTABLE_VARIANCE": 8,
+        "HUMAN_CALIBRATION_REFINEMENT": 19,
+        "SOURCE_EXTRACTION_CONSTRAINT": 28,
+        "CHECKER_OR_PROCESS_GAP": 10,
+        "CANNOT_DETERMINE": 2
+      },
+      "counting_rule": "Each analytical assessment event has one primary category. A subject may participate in multiple events at different stages."
+    },
+    "prevalence": {
+      "original_candidates": 206,
+      "final_authoritative_units": 255,
+      "final_units_absent_from_raw_handoff": 23,
+      "authority_split_phenomena": 27,
+      "proposal_missed_splits": 23,
+      "note": "Prevalence counts describe observed units or transformations and are not additive failure totals."
+    },
+    "stage_local_failure": {
+      "raw_extraction_omitted_final_units": 23,
+      "machine_gap_review_residual_substantive_omissions": 0,
+      "machine_gap_review_residual_under_splits": 1,
+      "raw_over_extraction_or_exclusion_candidates": 2
+    },
+    "end_to_end_recovery": {
+      "raw_omitted_units_recovered_by_gap_review": 23,
+      "substantive_omissions_remaining_after_gap_review": 0,
+      "residual_under_split_repaired_by_human_authority": 1
+    },
+    "graph_records": {
+      "dependency_array_entries": 250,
+      "final_units_with_dependency_entries": 165,
+      "original_candidate_mappings_with_final_dependencies": 131,
+      "entry_kinds": {
+        "active_final_unit_id": 237,
+        "non_active_original_id": 2,
+        "formal_reference": 7,
+        "table_review_reference": 1,
+        "prose_or_compound_reference": 3
+      },
+      "machine_omission_count": null,
+      "semantic_delta": "CANNOT_DETERMINE"
+    },
+    "process_or_checker_gaps": {
+      "enumerated_events": 10,
+      "counting_rule": "Direct retained process events; these may overlap source or semantic symptoms and form a separate diagnostic axis."
+    }
+  },
+  "corrected_taxonomy_structure": {
+    "axes": [
+      {
+        "axis": "prevalence",
+        "question": "How many units, transformations, or graph records exhibit the observed shape?"
+      },
+      {
+        "axis": "stage_local_failure",
+        "question": "At which producer, review, ingestion, representation, checker, or authority stage did the defect occur?"
+      },
+      {
+        "axis": "end_to_end_outcome",
+        "question": "Was the defect unrecovered, machine-recovered, human-recovered, or still indeterminate?"
+      },
+      {
+        "axis": "representation_or_graph_record",
+        "question": "Is the count a schema/graph population rather than a failure count?"
+      },
+      {
+        "axis": "process_or_checker_gap",
+        "question": "Did retained process/checker evidence permit drift, missing pins, bad resume metadata, or incomplete inventory proof?"
+      },
+      {
+        "axis": "semantic_responsibility",
+        "question": "Does resolution require model judgment, reviewer judgment, or human authority rather than deterministic enforcement?"
+      }
+    ],
+    "non_additivity_rule": "The original FT-01 through FT-17 concepts remain useful labels, but counts from different axes must not be summed or ranked as one failure distribution."
+  },
+  "remaining_indeterminate": [
+    {
+      "item": "link_by_link_machine_to_final_dependency_semantic_delta",
+      "reason": "The historical proposal schema had no structured dependency field; prose mentions cannot be reconstructed into typed links without reinterpretation."
+    },
+    {
+      "item": "number_of_machine_dependency_omissions",
+      "reason": "The 250 heterogeneous final dependency-array entries are graph records, not a machine-omission count."
+    },
+    {
+      "item": "independent_raw_omission_incident_count",
+      "reason": "The retained evidence establishes 23 omitted final units, not whether every unit corresponds to a distinct extraction incident."
+    },
+    {
+      "item": "single_nonoverlapping_total_for_FT_01_through_FT_17",
+      "reason": "The classes intentionally overlap stage, symptom, representation, recovery, and process dimensions."
+    }
+  ],
+  "claims_not_made": [
+    "Core implementation authorization",
+    "SRC-001 golden promotion",
+    "SRC-002 authorization",
+    "agent-mode validation",
+    "sanction",
+    "production readiness",
+    "v1 evidence"
+  ]
+}
