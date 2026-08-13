@@ -52,6 +52,64 @@ human-confirmed research charter, and traceable S1 extraction criteria. This
 proposal keeps that authority basis separate from the calibration-derived
 requirements.
 
+## Research Intent and Projection Intent Invariant
+
+### Different RESEARCH QUESTIONS
+
+Different research questions over the same supplied material may legitimately
+create different frozen research scopes and S1 extraction criteria and may
+therefore result in different Research Précis artifacts.
+
+For example:
+
+- "What are the latest innovations in banking security?"
+- "What are the latest banking-security products?"
+
+These are different investigations, not merely different renderings. The first
+may admit methods, protocols, research advances, operational practices, and
+product-independent techniques. The second may require an identifiable product
+or offering. Their candidacy boundaries may therefore differ even when the
+supplied material is identical.
+
+### Different EVENTUAL CONSUMER DOCUMENTS
+
+Different eventual consumer documents for the same research question do not
+justify silently changing the accepted Research Précis. Examples include:
+
+- product architecture;
+- research paper;
+- market report;
+- product doctrine; and
+- PRD or another later registered projection.
+
+Those consumer forms belong to the separate projection stage after the
+Research Précis is accepted and a projection is validly commissioned.
+
+### Generic invariant
+
+Research intent may determine:
+
+- scope;
+- candidacy;
+- relevance;
+- temporal interpretation;
+- entity or category boundaries; and
+- source-admission requirements.
+
+Research intent may not determine:
+
+- evidentiary truth;
+- exact source evidence;
+- suppression of contradiction;
+- suppression of uncertainty or taint;
+- desired dispositions;
+- desired conclusions; or
+- fabricated external facts.
+
+Projection intent may affect downstream selection, organization, and consumer
+form only after the accepted Research Précis boundary. It may not
+retroactively alter the frozen research run.
+
 ## Proposed Sequencing Decision
 
 ### Calibration-derived implementation track
@@ -97,6 +155,46 @@ The retained audited design and slice-plan artifacts place intent-fidelity
 before replay. This proposal intentionally recommends the narrower
 replay-before-intake boundary above for human adoption. It does not rewrite or
 silently reinterpret the retained evidence.
+
+## Scope-Forming Intake and S0 Authority
+
+Intent-fidelity is scope-forming intake. It must remain compatible with the
+existing S0 authority boundary.
+
+The interview may clarify only information needed to establish:
+
+- the research scope and exclusions;
+- source requirements and admission;
+- temporal meaning;
+- entity, product, category, geography, or market boundaries; and
+- other candidacy boundaries.
+
+It must not collect or pre-decide:
+
+- conclusions;
+- claim dispositions;
+- routing outcomes;
+- cluster outcomes;
+- projection prose;
+- a projection acceptance decision; or
+- evidence preferences intended to force an answer.
+
+An eventual possible use such as "market report", "research paper", or
+"product architecture" may be recorded only as non-binding context unless and
+until a later projection commission is validly opened.
+
+This administrative proposal does not redesign or authorize a redesign of the
+existing human-gate protocol.
+
+## Freeze Boundary
+
+Current-world research required by the research question must be acquired and
+admitted before corpus freeze.
+
+Post-freeze research must not silently enter the existing run. Material
+discovered or supplied after freeze requires the existing successor-run
+mechanism where applicable; it does not retroactively change the frozen
+research scope, corpus, criteria, or accepted Research Précis.
 
 ## `/loa-aleph` Boundary
 
