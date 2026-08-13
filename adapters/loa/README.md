@@ -108,6 +108,11 @@ artifacts are prepared before mutation and deterministically rolled forward on
 resume. Exact excluded bytes are deleted before the retained corpus is made
 read-only; a partial or foreign after-image fails closed.
 
+New captures label every currently supported UTF-8 line-addressable text input
+with Core's `md-lines` scheme, independent of filename extension. Historical
+snapshots that recorded `text-lines` are not rewritten; their original pinned
+bundle/runtime remains authoritative.
+
 ## Durable run mechanics
 
 Runs live at `grimoires/loa/aleph/runs/RUN-*`. Canonical Core artifacts remain

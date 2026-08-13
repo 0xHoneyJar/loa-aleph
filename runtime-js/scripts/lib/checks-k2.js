@@ -2,7 +2,7 @@ import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { activeClaims, allStatusRows, compareTimestamp, duplicateDefinitions, firstRunLogEntry, location, makeIndexes, mdLineSpan, normalizeSha256, parseTimestamp, pathIsWithin, reachedState, sha256, sourceFilePath, } from './check-helpers.js';
 import { envelopeSection, findTableByFirstHeader, headingSection, idsIn, normalizeHeader, numberedEnvelopeHeadings, parseBulletFields, parseTables, tableCells, isSeparatorRow, } from './markdown.js';
-import { DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, } from './run-model.js';
+import { CURRENT_RUN_FORMAT_VERSION, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, LEGACY_RUN_FORMAT_VERSION, } from './run-model.js';
 const CLAIM_TYPES = [
     'factual',
     'design-intent',
@@ -150,6 +150,18 @@ function checkManifest(results, model) {
         }
         if (!/^[a-fA-F0-9]{40}$/.test(manifest.doctrineSha)) {
             fail('doctrine_sha must be exactly 40 hexadecimal characters');
+        }
+        const runFormatFields = manifest.lines.filter((line) => /^\s*-\s*run[_ -]format[_ -]version\s*:/i.test(line));
+        if (runFormatFields.length > 1) {
+            fail(`run_format_version must be defined at most once; found ${runFormatFields.length}`);
+        }
+        if (manifest.runFormatVersion
+            && ![
+                LEGACY_RUN_FORMAT_VERSION,
+                CURRENT_RUN_FORMAT_VERSION,
+            ].includes(manifest.runFormatVersion)) {
+            fail(`run_format_version "${manifest.runFormatVersion}" is unsupported; expected `
+                + `${LEGACY_RUN_FORMAT_VERSION} or ${CURRENT_RUN_FORMAT_VERSION}`);
         }
         if (!manifest.corpusHash.trim())
             fail('corpus_hash is missing');
@@ -385,12 +397,32 @@ function packetIdList(value) {
 function checkExactEvidence(results, model) {
     results.run('K2.13', 'exact evidence and ordered fragments', (fail) => {
         const exact = model.exactEvidence;
+        const runFormatVersion = model.manifest?.runFormatVersion || '';
+        const isLegacyRun = (runFormatVersion === ''
+            || runFormatVersion === LEGACY_RUN_FORMAT_VERSION);
+        const isCurrentRun = runFormatVersion === CURRENT_RUN_FORMAT_VERSION;
         const tablesPresent = Boolean(exact.recordTable || exact.fragmentTable || exact.transformationTable);
+        if (!isLegacyRun && !isCurrentRun) {
+            fail(`exact-evidence activation cannot determine unsupported run_format_version `
+                + `"${runFormatVersion || '(blank)'}"`);
+            return 'run format selects the exact-evidence contract';
+        }
+        if (isLegacyRun) {
+            if (exact.format || tablesPresent) {
+                fail(`legacy run format ${runFormatVersion || '(pre-versioned)'} must not be `
+                    + `reinterpreted as ${EXACT_EVIDENCE_FORMAT}`);
+            }
+            return `legacy run format ${runFormatVersion || '(pre-versioned)'} retains K2.4 behavior`;
+        }
         if (!exact.format) {
             if (tablesPresent) {
                 fail('exact-evidence tables require an exact_evidence_format declaration');
             }
-            return 'legacy packet artifacts retain K2.4 behavior and are not reinterpreted';
+            if (distillingArtifactsApply(model)) {
+                fail(`run format ${CURRENT_RUN_FORMAT_VERSION} requires `
+                    + `exact_evidence_format ${EXACT_EVIDENCE_FORMAT} once DISTILLING is reached`);
+            }
+            return `exact evidence is not applicable before DISTILLING in run format ${CURRENT_RUN_FORMAT_VERSION}`;
         }
         if (exact.format !== EXACT_EVIDENCE_FORMAT) {
             fail(`exact_evidence_format "${exact.format}" is unsupported; expected ${EXACT_EVIDENCE_FORMAT}`);
@@ -527,7 +559,7 @@ function checkExactEvidence(results, model) {
             fragmentsByEvidence.set(evidenceKey, group);
         }
         for (const record of exact.records) {
-            const { evidenceKey, packetIds: packetIdsValue, evidenceState, fragmentCount, joinPolicy, exactEvidenceHash, degradationReason, } = record.values;
+            const { evidenceKey, packetIds: packetIdsValue, evidenceState, fragmentCount, joinPolicy, exactEvidenceHash, degradedSourceId, degradedSourceLocator, degradationReason, } = record.values;
             const fragments = fragmentsByEvidence.get(evidenceKey) || [];
             const count = Number(fragmentCount);
             if (!Number.isInteger(count) || count < 0) {
@@ -546,6 +578,34 @@ function checkExactEvidence(results, model) {
                 if (exactEvidenceHash !== 'none') {
                     fail(`${evidenceKey} degraded evidence must not claim an exact_evidence_hash`);
                 }
+                const source = sources.get(degradedSourceId);
+                if (!degradedSourceId || degradedSourceId === 'none') {
+                    fail(`${evidenceKey} degraded evidence requires a degraded_source_id`);
+                }
+                else if (!source) {
+                    fail(`${evidenceKey} degraded source ${degradedSourceId} does not resolve`);
+                }
+                if (!degradedSourceLocator || degradedSourceLocator === 'none') {
+                    fail(`${evidenceKey} degraded evidence requires a degraded_source_locator`);
+                }
+                if (source) {
+                    const scheme = source.values.scheme.replace(/`/g, '').trim();
+                    if (!scheme) {
+                        fail(`${degradedSourceId} has no declared locator scheme`);
+                    }
+                    else if (scheme === 'md-lines'
+                        && degradedSourceLocator !== 'none'
+                        && !parseMdLineLocator(degradedSourceLocator)) {
+                        fail(`${evidenceKey} degraded locator "${degradedSourceLocator}" `
+                            + 'is not L<start>-L<end>');
+                    }
+                    else if (scheme === 'chat-msg'
+                        && degradedSourceLocator !== 'none'
+                        && !/^M[1-9]\d*(?::S[1-9]\d*)?$/.test(degradedSourceLocator)) {
+                        fail(`${evidenceKey} degraded locator "${degradedSourceLocator}" `
+                            + 'is not M<n> or M<n>:S<k>');
+                    }
+                }
                 if (!degradationReason || degradationReason === 'none') {
                     fail(`${evidenceKey} degraded evidence requires a degradation_reason`);
                 }
@@ -557,6 +617,9 @@ function checkExactEvidence(results, model) {
             }
             if (degradationReason !== 'none') {
                 fail(`${evidenceKey} exact evidence degradation_reason must be none`);
+            }
+            if (degradedSourceId !== 'none' || degradedSourceLocator !== 'none') {
+                fail(`${evidenceKey} exact evidence degraded source provenance must be none`);
             }
             if (!EXACT_EVIDENCE_JOIN_POLICIES.includes(joinPolicy)) {
                 fail(`${evidenceKey} join_policy "${joinPolicy || '(blank)'}" is undeclared`);

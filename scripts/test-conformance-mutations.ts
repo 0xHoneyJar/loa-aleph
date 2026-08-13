@@ -23,7 +23,7 @@ const RUN_CHECKER = join(REPO_ROOT, 'scripts', 'validate-run.ts');
 const EXPECTED_CASES = new Map<string, number>([
   ['K1', 5],
   ['K2', 22],
-  ['K2E', 10],
+  ['K2E', 17],
   ['K3', 8],
   ['K4/K5', 9],
   ['K6', 11],
@@ -369,12 +369,19 @@ function addFailureCase(
   });
 }
 
-function runBaseline(name: string, fixture: string, ids: readonly string[]): void {
+function runBaseline(
+  name: string,
+  fixture: string,
+  ids: readonly string[],
+  messagePatterns: ReadonlyMap<string, RegExp> = new Map(),
+  prepare: FixtureMutation | null = null,
+): void {
   const root = sandbox(`baseline-${name}`);
   const relativePath = join('docs', 'fixtures', fixture);
   try {
-    copyFixture(fixture, root, relativePath);
-    requirePass(runFixture(root, relativePath), ids);
+    const fixturePath = copyFixture(fixture, root, relativePath);
+    prepare?.(fixturePath, root);
+    requirePass(runFixture(root, relativePath), ids, messagePatterns);
     baselineResults.push({ name, status: 'PASS' });
     if (!options.json) console.log(`PASS baseline ${name}`);
   } catch (error) {
@@ -898,6 +905,112 @@ addFailureCase(
   /XFORM-0302 changes exact evidence identity during normalized/,
 );
 
+addFailureCase(
+  'K2E',
+  'current run omits exact-evidence activation marker',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    removeLine(
+      join(path, 'ledgers', 'packet-index.md'),
+      /^- exact_evidence_format: aleph-exact-evidence\/v1$/,
+    );
+  },
+  /run format 1\.1\.0-provisional requires exact_evidence_format aleph-exact-evidence\/v1/,
+);
+
+addFailureCase(
+  'K2E',
+  'degraded evidence missing source binding',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-301 | L10-L10 |',
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | none | L10-L10 |',
+    );
+  },
+  /EVID-0304 degraded evidence requires a degraded_source_id/,
+);
+
+addFailureCase(
+  'K2E',
+  'degraded evidence references nonexistent source',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-301 | L10-L10 |',
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-999 | L10-L10 |',
+    );
+  },
+  /EVID-0304 degraded source SRC-999 does not resolve/,
+);
+
+addFailureCase(
+  'K2E',
+  'degraded evidence has invalid source locator',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-301 | L10-L10 |',
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-301 | L0-L0 |',
+    );
+  },
+  /EVID-0304 degraded locator "L0-L0" is not L<start>-L<end>/,
+);
+
+addFailureCase(
+  'K2E',
+  'degraded evidence claims exact packet',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| EVID-0304 | none | degraded-non-exact |',
+      '| EVID-0304 | PKT-0301 | degraded-non-exact |',
+    );
+  },
+  /EVID-0304 degraded evidence must not claim packet_ids/,
+);
+
+addFailureCase(
+  'K2E',
+  'degraded evidence claims exact hash',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none |',
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | sha256:0ca32f456702bd71ce592fd5c3b29785fe1a3bf8c699bd558b2a1d9f472b0e2b |',
+    );
+  },
+  /EVID-0304 degraded evidence must not claim an exact_evidence_hash/,
+);
+
+addFailureCase(
+  'K2E',
+  'degraded evidence claims exact fragment bytes',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    const ledger = join(path, 'ledgers', 'packet-index.md');
+    const text = readFileSync(ledger, 'utf8');
+    const exactLine = text.split('\n').find((line) => line.startsWith('| FRAG-0301 |'));
+    if (!exactLine) throw new Error('exact fixture has no FRAG-0301 row');
+    const degradedLine = exactLine
+      .replace('| FRAG-0301 | EVID-0301 |', '| FRAG-0399 | EVID-0304 |');
+    writeFileSync(ledger, text.replace(exactLine, `${exactLine}\n${degradedLine}`));
+  },
+  /EVID-0304 degraded evidence must have zero exact fragments/,
+);
+
 // K3: the K3.4 and K3.6 cases mutate the two seeded issue-18 patterns.
 addFailureCase('K3', 'unknown evidence role', 'evidence-role-adversarial', 'K3.1', (path) => {
   replaceOnce(
@@ -1175,6 +1288,30 @@ try {
     );
   }
   if (!options.group || options.group === 'K2E') {
+    runBaseline(
+      'legacy packet behavior',
+      'run-slice-2',
+      ['K2.13'],
+      new Map([
+        ['K2.13', /legacy run format \(pre-versioned\) retains K2\.4 behavior/],
+      ]),
+    );
+    runBaseline(
+      'explicit 1.0 legacy packet behavior',
+      'run-slice-2',
+      ['K2.13'],
+      new Map([
+        ['K2.13', /legacy run format 1\.0\.0-provisional retains K2\.4 behavior/],
+      ]),
+      (path) => {
+        replaceOnce(
+          join(path, 'run-manifest.md'),
+          '- doctrine_sha: 2dc3549a0c6f3fed660b10743198409945c70b64',
+          '- doctrine_sha: 2dc3549a0c6f3fed660b10743198409945c70b64\n'
+            + '- run_format_version: 1.0.0-provisional',
+        );
+      },
+    );
     runBaseline(
       'exact evidence',
       'exact-evidence-fragments',

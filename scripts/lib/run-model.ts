@@ -33,6 +33,8 @@ export const DISPOSITIONS = [
 export type Disposition = typeof DISPOSITIONS[number];
 
 export const EXACT_EVIDENCE_FORMAT = 'aleph-exact-evidence/v1';
+export const LEGACY_RUN_FORMAT_VERSION = '1.0.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = '1.1.0-provisional';
 
 export const EXACT_EVIDENCE_JOIN_POLICIES = [
   'single-fragment',
@@ -90,6 +92,7 @@ export interface RunManifest extends RunDocument {
   mode: string;
   doctrineSha: string;
   corpusHash: string;
+  runFormatVersion: string;
   runId: string;
   predecessorRun: string;
   runIdRow: RunIdRow;
@@ -126,6 +129,8 @@ export interface ExactEvidenceRecordValues {
   fragmentCount: string;
   joinPolicy: string;
   exactEvidenceHash: string;
+  degradedSourceId: string;
+  degradedSourceLocator: string;
   degradationReason: string;
 }
 
@@ -421,6 +426,7 @@ function parseManifest(document: RunDocument | null): RunManifest | null {
     mode: document.bullets.fields.get('mode') || '',
     doctrineSha: document.bullets.fields.get('doctrine sha') || '',
     corpusHash: document.bullets.fields.get('corpus hash') || '',
+    runFormatVersion: document.bullets.fields.get('run format version') || '',
     runId,
     predecessorRun: document.bullets.fields.get('predecessor run') || '',
     runIdRow: {
@@ -477,6 +483,8 @@ function parseExactEvidence(document: RunDocument | null): ExactEvidenceModel {
     'fragment count',
     'join policy',
     'exact evidence hash',
+    'degraded source id',
+    'degraded source locator',
     'degradation reason',
   ]);
   const fragmentTable = findTable(document.tables, [
@@ -509,6 +517,8 @@ function parseExactEvidence(document: RunDocument | null): ExactEvidenceModel {
       'fragmentCount',
       'joinPolicy',
       'exactEvidenceHash',
+      'degradedSourceId',
+      'degradedSourceLocator',
       'degradationReason',
     ]),
     fragments: rowObjects(fragmentTable, [

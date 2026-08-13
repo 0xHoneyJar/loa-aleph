@@ -11,7 +11,7 @@
 ## Span-addressing schemes in use
 | scheme id | applies to | locator format |
 |-----------|------------|----------------|
-| md-lines | markdown/plain files | `L⟨start⟩-L⟨end⟩`; one-based inclusive complete lines, including the following LF unless the span ends on the final line |
+| md-lines | UTF-8 line-addressable text files | `L⟨start⟩-L⟨end⟩`; one-based inclusive complete lines, including the following LF unless the span ends on the final line |
 | chat-msg | conversation exports | `M⟨n⟩` (1-based message index) or `M⟨n⟩:S⟨k⟩` (sentence k within message n) |
 | ⟨add per format; propose new schemes in the same PR that first needs them⟩ | | |
 

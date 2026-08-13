@@ -209,8 +209,9 @@ function renderFrozenCorpusManifest(bundle, state, staged, frozen, response) {
             return false;
         if (line.startsWith('| ⟨add per format;'))
             return false;
-        return line !== '| md-lines | markdown/plain files | `L⟨start⟩-L⟨end⟩` of the frozen file |'
-            || schemes.has('md-lines');
+        if (line.startsWith('| md-lines |'))
+            return schemes.has('md-lines');
+        return true;
     }).join('\n');
     if (schemes.has('text-lines')) {
         manifest = insertTableRow(manifest, '## Span-addressing schemes in use', '| text-lines | UTF-8 text files | `L⟨start⟩-L⟨end⟩` of the frozen file |');

@@ -118,8 +118,8 @@ all ledgers final.
   admitted it. Use one packet per fragment. Declare `single-fragment`,
   `adjacent-fragments`, or `separate-fragments`; never hide inserted text
   between fragments. If exact bytes cannot be obtained, record a
-  `degraded-non-exact` rendering with a reason and no packet rather than
-  reconstructing evidence. Over-extraction is the safe direction: a useless
+  source-bound `degraded-non-exact` rendering with its source locator, reason,
+  and no packet rather than reconstructing evidence. Over-extraction is the safe direction: a useless
   packet costs a `judged-non-load-bearing` disposition later; a missed span
   costs completeness silently.
 - **DoD:**
@@ -129,6 +129,8 @@ all ledgers final.
         digest verify
   - [ ] ⚙ rendered/normalized transformations remain separate and preserve
         predecessor/effective exact-evidence identity
+  - [ ] ⚙ degraded renderings retain source/locator provenance while claiming
+        no packet, fragment, or exact hash
   - [ ] ⚙ no packet carries stance/disposition/cluster vocabulary
   - [ ] ⚖ coverage spot-check: harness re-extracts N randomly sampled source
         segments blind and diffs against the index; misses beyond the

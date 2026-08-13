@@ -12,8 +12,8 @@
 |-----------|-----------|---------|-----------|-------|-----------|--------|
 
 ## Exact evidence records
-| evidence_key | packet_ids | evidence_state | fragment_count | join_policy | exact_evidence_hash | degradation_reason |
-|--------------|------------|----------------|----------------|-------------|---------------------|--------------------|
+| evidence_key | packet_ids | evidence_state | fragment_count | join_policy | exact_evidence_hash | degraded_source_id | degraded_source_locator | degradation_reason |
+|--------------|------------|----------------|----------------|-------------|---------------------|--------------------|-------------------------|--------------------|
 
 ## Ordered fragments
 | fragment_key | evidence_key | packet_id | fragment_order | source_id | locator | source_relation | byte_role | fragment_hash | exact_bytes_base64 |
@@ -33,9 +33,11 @@ Column rules:
 - `locator` uses the source's scheme from the corpus manifest (`L118-L131`,
   `M14:S2`). `span_hash` = sha256 of the exact span bytes at freeze.
 - In `aleph-exact-evidence/v1`, use one packet per exact fragment. `quote` is
-  a bounded display preview only and is never exact evidence. Historical
-  packet ledgers without the format marker retain their predecessor behavior
-  and are not reinterpreted.
+  a bounded display preview only and is never exact evidence. Run format
+  `1.1.0-provisional` requires this marker and the three versioned tables once
+  S2 is reached. Historical `1.0.0-provisional` and pre-versioned packet
+  ledgers without the marker retain their predecessor behavior and are not
+  reinterpreted.
 - `criterion`: the admission-criterion number from T2.2. A walked span that
   matched an exclusion class gets **no row** (that is the recorded
   two-level boundary); a span refused by a classifier gets a row with
@@ -44,7 +46,9 @@ Column rules:
 - `evidence_state`: `exact` | `degraded-non-exact`. Every packet appears in
   exactly one `exact` evidence record. A degraded record uses `packet_ids =
   none`, `fragment_count = 0`, `join_policy = not-applicable`,
-  `exact_evidence_hash = none`, and a nonempty reason.
+  `exact_evidence_hash = none`, an existing `degraded_source_id`, a locator
+  under that source's declared scheme, and a nonempty reason. Exact records
+  use `none` for both degraded provenance fields.
 - `join_policy`: `single-fragment` (exactly one);
   `adjacent-fragments` (two or more consecutive `md-lines` fragments in one
   source); `separate-fragments` (two or more ordered fragments kept visibly
@@ -63,6 +67,9 @@ Column rules:
   text has its own UTF-8 SHA-256. For exact evidence, both predecessor and
   effective exact-evidence hashes equal the evidence record hash. A
   transformation records mechanical identity, not semantic adequacy.
+- A degraded transformation is rendered and explicitly non-exact. Its source
+  binding does not prove the rendering matches inaccessible bytes, OCR,
+  layout, or source meaning, and it cannot support a packet as exact evidence.
 
 <!-- example -->
 | PKT-0007 | SRC-101 | L5-L8 | sha256:aa10… | "Gating appears to improve member retention: members who must hold to stay in tend to stick around longer…" | 1 | active |

@@ -134,10 +134,13 @@ scope.
   every result field is PASS/FAIL; explicitly historical or superseded reports
   may retain their retired JavaScript command; a run whose manifest reached
   VERIFIED must have a PASS report from the TypeScript checker.
-- K2.13 (`exact evidence and ordered fragments`): absence of
-  `exact_evidence_format` preserves the legacy K2.4 interpretation and does not
-  retrofit historical artifacts. When `aleph-exact-evidence/v1` is declared,
-  the packet index must contain exact-evidence, ordered-fragment, and
+- K2.13 (`exact evidence and ordered fragments`): retained
+  `1.0.0-provisional` and pre-versioned historical runs without
+  `exact_evidence_format` preserve the legacy K2.4 interpretation and are not
+  reinterpreted. In run format `1.1.0-provisional`, the marker is mandatory
+  once `DISTILLING` is reached and must equal
+  `aleph-exact-evidence/v1`; its absence is a failure, not a legacy fallback.
+  The packet index must contain exact-evidence, ordered-fragment, and
   transformation tables. Every packet is covered exactly once by an `exact`
   evidence record. Every fragment resolves through its source row and packet
   to a readable frozen `md-lines` span; the whole-source content hash, locator
@@ -148,7 +151,9 @@ scope.
   bytes. Rendered/normalized transformations have their own text hashes and
   must preserve equal predecessor/effective exact-evidence hashes. A
   `degraded-non-exact` record has no packet, fragment, join, or exact hash and
-  requires a rendered transformation plus a reason.
+  requires an existing source ID, a structurally valid source-local locator
+  where Core has a parser, a rendered transformation, and a reason. That
+  source binding does not verify the rendered content.
 
 K2.13 proves only frozen-source byte fidelity and declared structure. It does
 not prove semantic entailment, good packetization, good normalization, correct
@@ -177,6 +182,8 @@ timestamp after first S2 log entry → K2.9; `superseded-by:PKT-0999`
 The Slice-1 K2.13 battery additionally mutates curly quotation bytes, a
 ligature, newline bytes, fragment row order, an undeclared join, a normalized
 byte role substituted for exact evidence, a missing frozen source file, a
-fragment hash, locator bounds, and a normalization event's effective exact
-hash. Each must fail K2.13 at its named invariant. Clean golden and
-exact-evidence fixtures → exit 0.
+fragment hash, locator bounds, a normalization event's effective exact hash,
+new-format marker activation, and degraded source/locator/exact-claim
+constraints. Each must fail K2.13 at its named invariant. The pre-versioned
+golden remains a positive legacy lock; the `1.1.0-provisional` exact-evidence
+fixture is the positive current-format lock.

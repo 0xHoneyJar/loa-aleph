@@ -7,12 +7,12 @@
 - mode: manual
 - created: 2026-08-13
 - doctrine_sha: 07cf2a5a843f68e09628a7055e72c304af87f3d0
-- run_format_version: 1.0.0-provisional
+- run_format_version: 1.1.0-provisional
 
 ## Corpus binding
 
 - corpus_ref: corpus/manifest.md
-- corpus_hash: sha256:214ea48c672beb510e2d3960e227c39e7b176b3817e6842a6c905fc2fd5ce3cb
+- corpus_hash: sha256:fe1adbbd209a4da841cb58c476ef07448d0987bec4be32d7a2182436bc3e6b6f
 - declared_scope: synthetic exact-evidence structure only
 
 ## State log

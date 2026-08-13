@@ -17,12 +17,12 @@ The `quote` cells below are display previews. Exact source bytes are only the
 
 ## Exact evidence records
 
-| evidence_key | packet_ids | evidence_state | fragment_count | join_policy | exact_evidence_hash | degradation_reason |
-|--------------|------------|----------------|----------------|-------------|---------------------|--------------------|
-| EVID-0301 | PKT-0301 | exact | 1 | single-fragment | sha256:0ca32f456702bd71ce592fd5c3b29785fe1a3bf8c699bd558b2a1d9f472b0e2b | none |
-| EVID-0302 | PKT-0302, PKT-0303 | exact | 2 | adjacent-fragments | sha256:4fcd9bea219f0215b4450d297932186879e355cd1fb1c9815f3586bacaa508ed | none |
-| EVID-0303 | PKT-0304, PKT-0305 | exact | 2 | separate-fragments | sha256:c45e7502e3f47a213032d3a7b98db6a94b478043f36cb6e77923b24160e49da6 | none |
-| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | original bytes unavailable; rendering retained only as non-exact |
+| evidence_key | packet_ids | evidence_state | fragment_count | join_policy | exact_evidence_hash | degraded_source_id | degraded_source_locator | degradation_reason |
+|--------------|------------|----------------|----------------|-------------|---------------------|--------------------|-------------------------|--------------------|
+| EVID-0301 | PKT-0301 | exact | 1 | single-fragment | sha256:0ca32f456702bd71ce592fd5c3b29785fe1a3bf8c699bd558b2a1d9f472b0e2b | none | none | none |
+| EVID-0302 | PKT-0302, PKT-0303 | exact | 2 | adjacent-fragments | sha256:4fcd9bea219f0215b4450d297932186879e355cd1fb1c9815f3586bacaa508ed | none | none | none |
+| EVID-0303 | PKT-0304, PKT-0305 | exact | 2 | separate-fragments | sha256:c45e7502e3f47a213032d3a7b98db6a94b478043f36cb6e77923b24160e49da6 | none | none | none |
+| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-301 | L10-L10 | original bytes unavailable; rendering retained only as non-exact |
 
 ## Ordered fragments
 

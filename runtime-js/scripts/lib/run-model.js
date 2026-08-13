@@ -11,6 +11,8 @@ export const DISPOSITIONS = [
     'unresolved',
 ];
 export const EXACT_EVIDENCE_FORMAT = 'aleph-exact-evidence/v1';
+export const LEGACY_RUN_FORMAT_VERSION = '1.0.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = '1.1.0-provisional';
 export const EXACT_EVIDENCE_JOIN_POLICIES = [
     'single-fragment',
     'adjacent-fragments',
@@ -72,6 +74,7 @@ function parseManifest(document) {
         mode: document.bullets.fields.get('mode') || '',
         doctrineSha: document.bullets.fields.get('doctrine sha') || '',
         corpusHash: document.bullets.fields.get('corpus hash') || '',
+        runFormatVersion: document.bullets.fields.get('run format version') || '',
         runId,
         predecessorRun: document.bullets.fields.get('predecessor run') || '',
         runIdRow: {
@@ -127,6 +130,8 @@ function parseExactEvidence(document) {
         'fragment count',
         'join policy',
         'exact evidence hash',
+        'degraded source id',
+        'degraded source locator',
         'degradation reason',
     ]);
     const fragmentTable = findTable(document.tables, [
@@ -159,6 +164,8 @@ function parseExactEvidence(document) {
             'fragmentCount',
             'joinPolicy',
             'exactEvidenceHash',
+            'degradedSourceId',
+            'degradedSourceLocator',
             'degradationReason',
         ]),
         fragments: rowObjects(fragmentTable, [

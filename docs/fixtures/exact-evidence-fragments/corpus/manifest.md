@@ -15,7 +15,7 @@ display rendering, normalization separation, and a degraded non-exact record.
 
 | source_id | kind | locus | scheme | content_hash | date(s) | trust_class | sensitivity | admission note |
 |-----------|------|-------|--------|--------------|---------|-------------|-------------|----------------|
-| SRC-301 | design-note | sources/SRC-301-exact-evidence.md | md-lines | sha256:b721055237cf1321b0401a061a59a73aecc40d8cabf38ec068dae889412011b9 | 2026-08-13 | model-generated | none | synthetic bytes selected to exercise the exact-evidence format |
+| SRC-301 | design-note | sources/SRC-301-exact-evidence.md | md-lines | sha256:f53ee9454205a5ca11c300add045a2cccf2748063383b68c79029b65fa831e6c | 2026-08-13 | model-generated | none | synthetic bytes selected to exercise the exact-evidence format |
 
 ## Corpus-hash procedure
 

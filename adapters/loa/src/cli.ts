@@ -357,8 +357,8 @@ function renderFrozenCorpusManifest(
   manifest = manifest.split('\n').filter((line) => {
     if (line.startsWith('| chat-msg |')) return false;
     if (line.startsWith('| ⟨add per format;')) return false;
-    return line !== '| md-lines | markdown/plain files | `L⟨start⟩-L⟨end⟩` of the frozen file |'
-      || schemes.has('md-lines');
+    if (line.startsWith('| md-lines |')) return schemes.has('md-lines');
+    return true;
   }).join('\n');
   if (schemes.has('text-lines')) {
     manifest = insertTableRow(

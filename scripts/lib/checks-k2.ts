@@ -29,9 +29,11 @@ import {
   isSeparatorRow,
 } from './markdown.ts';
 import {
+  CURRENT_RUN_FORMAT_VERSION,
   DISPOSITIONS,
   EXACT_EVIDENCE_FORMAT,
   EXACT_EVIDENCE_JOIN_POLICIES,
+  LEGACY_RUN_FORMAT_VERSION,
 } from './run-model.ts';
 import type {
   IdentifierFamily,
@@ -230,6 +232,24 @@ function checkManifest(results: ResultCollector, model: RunModel): void {
     }
     if (!/^[a-fA-F0-9]{40}$/.test(manifest.doctrineSha)) {
       fail('doctrine_sha must be exactly 40 hexadecimal characters');
+    }
+    const runFormatFields = manifest.lines.filter(
+      (line) => /^\s*-\s*run[_ -]format[_ -]version\s*:/i.test(line),
+    );
+    if (runFormatFields.length > 1) {
+      fail(`run_format_version must be defined at most once; found ${runFormatFields.length}`);
+    }
+    if (
+      manifest.runFormatVersion
+      && ![
+        LEGACY_RUN_FORMAT_VERSION,
+        CURRENT_RUN_FORMAT_VERSION,
+      ].includes(manifest.runFormatVersion)
+    ) {
+      fail(
+        `run_format_version "${manifest.runFormatVersion}" is unsupported; expected `
+        + `${LEGACY_RUN_FORMAT_VERSION} or ${CURRENT_RUN_FORMAT_VERSION}`,
+      );
     }
     if (!manifest.corpusHash.trim()) fail('corpus_hash is missing');
     if (manifest.states.length === 0) {
@@ -478,14 +498,42 @@ function packetIdList(value: string): string[] | null {
 function checkExactEvidence(results: ResultCollector, model: RunModel): void {
   results.run('K2.13', 'exact evidence and ordered fragments', (fail) => {
     const exact = model.exactEvidence;
+    const runFormatVersion = model.manifest?.runFormatVersion || '';
+    const isLegacyRun = (
+      runFormatVersion === ''
+      || runFormatVersion === LEGACY_RUN_FORMAT_VERSION
+    );
+    const isCurrentRun = runFormatVersion === CURRENT_RUN_FORMAT_VERSION;
     const tablesPresent = Boolean(
       exact.recordTable || exact.fragmentTable || exact.transformationTable,
     );
+    if (!isLegacyRun && !isCurrentRun) {
+      fail(
+        `exact-evidence activation cannot determine unsupported run_format_version `
+        + `"${runFormatVersion || '(blank)'}"`,
+      );
+      return 'run format selects the exact-evidence contract';
+    }
+    if (isLegacyRun) {
+      if (exact.format || tablesPresent) {
+        fail(
+          `legacy run format ${runFormatVersion || '(pre-versioned)'} must not be `
+          + `reinterpreted as ${EXACT_EVIDENCE_FORMAT}`,
+        );
+      }
+      return `legacy run format ${runFormatVersion || '(pre-versioned)'} retains K2.4 behavior`;
+    }
     if (!exact.format) {
       if (tablesPresent) {
         fail('exact-evidence tables require an exact_evidence_format declaration');
       }
-      return 'legacy packet artifacts retain K2.4 behavior and are not reinterpreted';
+      if (distillingArtifactsApply(model)) {
+        fail(
+          `run format ${CURRENT_RUN_FORMAT_VERSION} requires `
+          + `exact_evidence_format ${EXACT_EVIDENCE_FORMAT} once DISTILLING is reached`,
+        );
+      }
+      return `exact evidence is not applicable before DISTILLING in run format ${CURRENT_RUN_FORMAT_VERSION}`;
     }
     if (exact.format !== EXACT_EVIDENCE_FORMAT) {
       fail(
@@ -656,6 +704,8 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
         fragmentCount,
         joinPolicy,
         exactEvidenceHash,
+        degradedSourceId,
+        degradedSourceLocator,
         degradationReason,
       } = record.values;
       const fragments = fragmentsByEvidence.get(evidenceKey) || [];
@@ -677,6 +727,39 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
         if (exactEvidenceHash !== 'none') {
           fail(`${evidenceKey} degraded evidence must not claim an exact_evidence_hash`);
         }
+        const source = sources.get(degradedSourceId);
+        if (!degradedSourceId || degradedSourceId === 'none') {
+          fail(`${evidenceKey} degraded evidence requires a degraded_source_id`);
+        } else if (!source) {
+          fail(`${evidenceKey} degraded source ${degradedSourceId} does not resolve`);
+        }
+        if (!degradedSourceLocator || degradedSourceLocator === 'none') {
+          fail(`${evidenceKey} degraded evidence requires a degraded_source_locator`);
+        }
+        if (source) {
+          const scheme = source.values.scheme.replace(/`/g, '').trim();
+          if (!scheme) {
+            fail(`${degradedSourceId} has no declared locator scheme`);
+          } else if (
+            scheme === 'md-lines'
+            && degradedSourceLocator !== 'none'
+            && !parseMdLineLocator(degradedSourceLocator)
+          ) {
+            fail(
+              `${evidenceKey} degraded locator "${degradedSourceLocator}" `
+              + 'is not L<start>-L<end>',
+            );
+          } else if (
+            scheme === 'chat-msg'
+            && degradedSourceLocator !== 'none'
+            && !/^M[1-9]\d*(?::S[1-9]\d*)?$/.test(degradedSourceLocator)
+          ) {
+            fail(
+              `${evidenceKey} degraded locator "${degradedSourceLocator}" `
+              + 'is not M<n> or M<n>:S<k>',
+            );
+          }
+        }
         if (!degradationReason || degradationReason === 'none') {
           fail(`${evidenceKey} degraded evidence requires a degradation_reason`);
         }
@@ -689,6 +772,9 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
       }
       if (degradationReason !== 'none') {
         fail(`${evidenceKey} exact evidence degradation_reason must be none`);
+      }
+      if (degradedSourceId !== 'none' || degradedSourceLocator !== 'none') {
+        fail(`${evidenceKey} exact evidence degraded source provenance must be none`);
       }
       if (!EXACT_EVIDENCE_JOIN_POLICIES.includes(
         joinPolicy as typeof EXACT_EVIDENCE_JOIN_POLICIES[number],

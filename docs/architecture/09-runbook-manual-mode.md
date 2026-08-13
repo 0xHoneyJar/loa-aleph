@@ -63,7 +63,8 @@ fragment as canonical base64, record explicit order, and declare
 `single-fragment`, `adjacent-fragments`, or `separate-fragments`. The quote is
 only a display preview. Never substitute normalized punctuation, ligatures,
 whitespace, or newlines; record unavailable bytes as degraded and non-exact
-instead of creating a packet. Do a whole source in one sitting where possible — split
+with their source ID, source-local locator, and reason instead of creating a
+packet. Do a whole source in one sitting where possible — split
 sittings are where spans get skipped; if you must split, mark the exact
 resume point.
 

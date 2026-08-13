@@ -71,7 +71,8 @@ CONSTRAINTS
   evidence. An `exact` candidate has one or more fragments, one of the three
   exact join policies, and a null degradation reason. A
   `degraded-non-exact` candidate has no fragments, `not-applicable` join
-  policy, and a nonempty reason; the orchestrator must not append that
+  policy, an explicit source-local locator, and a nonempty reason; the
+  orchestrator must preserve that source binding but must not append the
   candidate as a canonical packet.
 - Declare exact evidence only for a locator scheme the pinned checker can
   mechanically reopen. In `aleph-exact-evidence/v1`, that scheme is
@@ -96,7 +97,8 @@ discussion; anything with `CC-`/disposition vocabulary.
   "join_policy": "single-fragment|adjacent-fragments|separate-fragments|not-applicable",
   "fragments": [{ "fragment_order": 1, "locator": "",
   "exact_bytes_base64": "" }], "rendered_text": "",
-  "degradation_reason": null, "criterion": 0, "flags": [] }],
+  "degraded_source_locator": null, "degradation_reason": null,
+  "criterion": 0, "flags": [] }],
   "walk_complete": true, "resume_point": null, "notes": [] }
 ```
 (Packet/evidence/fragment keys and all hashes are assigned by the orchestrator

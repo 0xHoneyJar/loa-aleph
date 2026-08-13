@@ -88,20 +88,20 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   cards, auditors ("why this cluster?" reopens packets).
 - **Legacy fields per packet:** `PKT-NNNN`; `SRC-NNN`; span locator; span
   content hash; quote/display preview; extraction note (which criterion
-  admitted it). Historical packet ledgers without an
-  `exact_evidence_format` marker retain this predecessor interpretation and
-  are never silently migrated.
-- **Compatibility:** the extension marker versions an additive packet-ledger
-  profile within the current provisional run format; this slice does not bump
-  `run_format_version`. Existing runs remain governed by their original
-  bundle/runtime pins and absence of the marker. An incompatible future
-  requirement must use a new run-format version rather than reinterpret old
-  bytes.
+  admitted it). Historical `1.0.0-provisional` and pre-versioned packet
+  ledgers without an `exact_evidence_format` marker retain this predecessor
+  interpretation and are never silently migrated.
+- **Compatibility:** run format `1.1.0-provisional` makes the versioned
+  exact-evidence extension mandatory whenever the run reaches S2. Existing
+  runs remain governed by their original bundle/runtime pins; their packet
+  bytes are not reinterpreted. Absence of the marker is permitted only for
+  the predecessor run format (or pre-versioned historical artifacts), not as
+  an optional capability switch in a new run.
 - **Versioned exact-evidence extension:** a packet ledger that declares
   `exact_evidence_format: aleph-exact-evidence/v1` also contains:
   - evidence records with ordered packet IDs, `exact` or
     `degraded-non-exact` state, fragment count, join policy, exact-evidence
-    hash, and degradation reason;
+    hash, degraded source ID/locator, and degradation reason;
   - fragment records with ledger-local key, evidence key, packet ID, explicit
     order, source ID, locator, `frozen-source` relation,
     `exact-source-bytes` role, fragment hash, and canonical base64 bytes; and
@@ -122,7 +122,9 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   agree; every packet in the versioned form is covered exactly once; fragment
   order and join policy are valid; and rendered/normalized transformations
   preserve the predecessor/effective exact-evidence identity. A degraded
-  record has no packet, fragment, join, or exact hash and must state why.
+  record has no packet, fragment, join, or exact hash; it must retain a source
+  ID, source-local locator, rendered transformation, and reason so the
+  non-exact rendering remains durably tied to what was degraded.
   Packets carry **no** disposition, cluster verdict, or stance; packet IDs
   remain stable under re-runs.
 - **Verification boundary:** deterministic PASS proves source-byte and

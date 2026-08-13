@@ -120,7 +120,8 @@ Stage-specific amplifications (read with doc 04):
   Walk every source to the end; declare per-source completion explicitly.
   Reopen exact bytes for every ordered fragment, use one packet per fragment,
   declare the Core join policy, and keep display text separate. A
-  `degraded-non-exact` rendering is not a packet.
+  `degraded-non-exact` rendering is not a packet; retain its source ID,
+  source-local locator, reason, and rendered transformation.
 - **S3:** a restatement must be entailed by its packets. If you need context
   from elsewhere in the source to state the claim faithfully, widen the
   packet (new locator) — do not import unpacketed context invisibly. Write
