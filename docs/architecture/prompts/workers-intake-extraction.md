@@ -96,6 +96,8 @@ CONSTRAINTS
   knowledge to revise an earlier proposal in place.
 - After bounded work, emit a cursor naming the NEXT unprocessed byte or
   same-position event, bound to the frozen source hash and predecessor record.
+  Set `reason` to exactly one Core value: `initial`, `progress`,
+  `bounded-pause`, `resumed-shared-position`, or `source-complete`.
   Source-end is a mechanical statement only.
 - Never claim semantic completeness, perfect recall, or that gap review
   passed. A separate fresh reviewer owns that judgment.
@@ -132,7 +134,8 @@ discussion; anything with `CC-`/disposition vocabulary.
   "next_cursor": {
     "byte_offset": 0, "shared_position_key": null,
     "next_event_ordinal": null, "predecessor_walk_index": null,
-    "predecessor_event_index": null, "source_hash": ""
+    "predecessor_event_index": null, "source_hash": "",
+    "reason": "initial|progress|bounded-pause|resumed-shared-position|source-complete"
   },
   "walk_exhausted": false, "notes": [] }
 ```

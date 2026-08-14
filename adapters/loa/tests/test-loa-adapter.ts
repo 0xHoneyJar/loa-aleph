@@ -32,6 +32,8 @@ import {
   findTable,
   parseTables,
 } from '../../../scripts/lib/markdown.ts';
+import { sourceWalkReviewBasisDigest } from '../../../scripts/lib/checks-k2.ts';
+import { loadRun } from '../../../scripts/lib/run-model.ts';
 import {
   dispatchLoaCommand,
   recordS0AuthorityResponse,
@@ -465,7 +467,8 @@ function prepareTxtExactEvidenceIntegrationRun(
   ]).join('\n');
   const gapRows = walkedSources.map((entry) => (
     `| ${entry.gapId} | ${entry.file.source_id} | ${entry.producerId} | `
-      + `${entry.reviewerId} | no-gap-candidate-found | none | none | none | none | `
+      + `${entry.reviewerId} | ${entry.cursorEndId} | REVIEW-BASIS-${entry.gapId} | `
+      + 'no-gap-candidate-found | none | none | none | none | '
       + 'closed | fixture-simulated independent structural record; no semantic recall claim |'
   )).join('\n');
   const completionRows = walkedSources.map((entry) => (
@@ -511,8 +514,9 @@ function prepareTxtExactEvidenceIntegrationRun(
       + '|---------------|--------------|-------------|---------------------------------|-------------------------------|-------------|------------------|\n'
       + `| XFORM-9001 | EVID-9001 | rendered | ${evidenceHash} | ${evidenceHash} | ${rendered} | ${sha256Digest(rendered)} |\n`,
   );
+  const sourceWalkPath = join(ledgers, 'source-walk.md');
   writeFileSync(
-    join(ledgers, 'source-walk.md'),
+    sourceWalkPath,
     `# Source Walk Ledger — ${RUN_ID}\n\n`
       + '- source_walk_format: aleph-source-walk/v1\n'
       + '- source_position_format: zero-based-utf8-byte-half-open/v1\n\n'
@@ -529,14 +533,28 @@ function prepareTxtExactEvidenceIntegrationRun(
       + '|-----------|-----------|-------------|---------------------|--------------------|---------------------|----------------------|-------------|--------|\n'
       + `${cursorRows}\n\n`
       + '## Fresh gap reviews\n\n'
-      + '| gap_review_id | source_id | producer_invocation_id | reviewer_invocation_id | result | candidate_start_byte | candidate_end_byte | proposed_packet_id | reconciliation_event_id | status | note |\n'
-      + '|---------------|-----------|------------------------|------------------------|--------|----------------------|--------------------|--------------------|-------------------------|--------|------|\n'
+      + '| gap_review_id | source_id | producer_invocation_id | reviewer_invocation_id | review_basis_cursor_id | review_basis_digest | result | candidate_start_byte | candidate_end_byte | proposed_packet_id | reconciliation_event_id | status | note |\n'
+      + '|---------------|-----------|------------------------|------------------------|------------------------|---------------------|--------|----------------------|--------------------|--------------------|-------------------------|--------|------|\n'
       + `${gapRows}\n\n`
       + '## Per-source completion\n\n'
       + '| source_id | source_hash | source_length_bytes | final_cursor_id | gap_review_ids | completion_state | declared_by | note |\n'
       + '|-----------|-------------|---------------------|-----------------|----------------|------------------|-------------|------|\n'
       + `${completionRows}\n`,
   );
+  const reviewBasisModel = loadRun(destination);
+  let sourceWalkText = readFileSync(sourceWalkPath, 'utf8');
+  for (const entry of walkedSources) {
+    const digest = sourceWalkReviewBasisDigest(
+      reviewBasisModel,
+      entry.file.source_id,
+      entry.cursorEndId,
+    );
+    if (!digest) {
+      throw new Error(`could not compute review basis for ${entry.file.source_id}`);
+    }
+    sourceWalkText = sourceWalkText.replace(`REVIEW-BASIS-${entry.gapId}`, digest);
+  }
+  writeFileSync(sourceWalkPath, sourceWalkText);
   writeFileSync(
     join(ledgers, 'claim-inventory.md'),
     '# Candidate-Claim Inventory\n\n'
@@ -609,6 +627,7 @@ function fixtureExtractorReturn(sourceId: string) {
       predecessor_walk_index: null,
       predecessor_event_index: null,
       source_hash: `sha256:${'0'.repeat(64)}`,
+      reason: 'initial',
     },
     walk_exhausted: false,
     notes: [] as string[],
@@ -2204,6 +2223,26 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       const validReceipt = fixtureDispatchReceipt(
         validBundle.request,
         'CTX-FIXTURE-PRODUCER-VALID',
+      );
+      const missingReasonRaw = fixtureExtractorReturn(corpus.files[0].source_id);
+      const {
+        reason: omittedCursorReason,
+        ...cursorWithoutReason
+      } = missingReasonRaw.next_cursor;
+      expect(omittedCursorReason === 'initial', 'fixture cursor reason changed unexpectedly');
+      const missingReason = validateWorkerReturn({
+        workerBundleRoot: validBundle.root,
+        raw: {
+          ...missingReasonRaw,
+          next_cursor: cursorWithoutReason,
+        },
+        dispatchReceipt: validReceipt,
+      });
+      expect(
+        missingReason.report.result === 'FAIL'
+        && missingReason.validated === null
+        && missingReason.report.errors.includes('$.next_cursor.reason is missing'),
+        'extractor return without the Core cursor reason unexpectedly passed',
       );
       const validRaw = fixtureExtractorReturn(corpus.files[0].source_id);
       validRaw.notes.push('fixture-simulated structural return');

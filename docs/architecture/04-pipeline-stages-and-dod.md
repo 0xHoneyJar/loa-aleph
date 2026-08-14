@@ -130,8 +130,11 @@ all ledgers final.
   distinct fresh-context coverage reviewer over the frozen source, criteria,
   walk accounting, and admitted exact evidence. The reviewer returns no gap
   candidate, a located gap candidate, or cannot-determine; it never writes the
-  canonical ledgers. The orchestrator validates any candidate under Slice-1
-  exact-evidence rules and appends the packet/event or leaves the finding open.
+  canonical ledgers. Before recording the result, the orchestrator binds it to
+  the terminal primary cursor and the Core review-basis digest. The
+  orchestrator validates any candidate under Slice-1 exact-evidence rules and
+  appends the packet/event or leaves the finding open with no future canonical
+  IDs.
   Over-extraction is the safe direction: a useless packet costs a
   `judged-non-load-bearing` disposition later; a missed span costs
   completeness silently.
@@ -148,19 +151,23 @@ all ledgers final.
         contain no hole or undeclared overlap, and reach the exact source end
         before that source is marked complete
   - [ ] ⚙ every packet has one committed extraction event; same-position
-        events have one shared key with unique contiguous ordinals
+        events have one shared key with unique contiguous ordinals; each event
+        lies within exactly one exact fragment for its packet
   - [ ] ⚙ every next-work cursor is source/hash bound, monotonic, in bounds,
-        and cannot skip an open interval or same-position sibling
+        uses a Core cursor reason, and cannot skip an open interval or
+        same-position sibling; equal-byte shared cursors cannot regress ordinal
   - [ ] ⚙ exclusions reference frozen S1 exclusion classes; deferred and
         unsupported regions remain reasoned and visibly open or validly closed
   - [ ] ⚙ every source has a distinct gap-review record; found candidates are
-        reconciled through exact evidence, while open findings and
+        bound to the terminal primary review basis and reconciled through exact
+        evidence, while true open findings with no packet/event IDs and
         cannot-determine results block completion
   - [ ] ⚙ no packet carries stance/disposition/cluster vocabulary
   - [ ] ⚖ fresh gap review attacks primary recall from sealed inputs; a
         no-gap result is recorded model judgment, not deterministic proof
   - [ ] ⚙ per-source completion is recorded in the source-walk ledger; S2
-        cannot exit while any source is blocked
+        cannot exit while any source is blocked, and a blocked final cursor
+        cannot sit behind already committed primary work
 
 **Boundary:** checker-clean structural walk closure means every frozen byte has
 a declared traversal state and the independent gap-review procedure is

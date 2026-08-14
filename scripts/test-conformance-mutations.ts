@@ -14,6 +14,15 @@ import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import type { SpawnSyncReturns } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  mdLineSpan,
+  sha256,
+} from './lib/check-helpers.ts';
+import { sourceWalkReviewBasisDigest } from './lib/checks-k2.ts';
+import {
+  EXACT_EVIDENCE_FORMAT,
+  loadRun,
+} from './lib/run-model.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
@@ -24,7 +33,7 @@ const EXPECTED_CASES = new Map<string, number>([
   ['K1', 5],
   ['K2', 22],
   ['K2E', 21],
-  ['K2S2', 28],
+  ['K2S2', 38],
   ['K3', 8],
   ['K4/K5', 9],
   ['K6', 11],
@@ -163,6 +172,76 @@ function removeLine(path: string, pattern: RegExp): void {
   if (index < 0) throw new Error(`${path} has no line matching ${pattern}`);
   lines.splice(index, 1);
   writeFileSync(path, lines.join('\n'));
+}
+
+function updateTableRow(
+  path: string,
+  firstCell: string,
+  update: (cells: string[]) => void,
+): void {
+  const text = readFileSync(path, 'utf8');
+  const lines = text.split('\n');
+  const index = lines.findIndex((line) => line.startsWith(`| ${firstCell} |`));
+  if (index < 0) throw new Error(`${path} has no table row for ${firstCell}`);
+  const cells = lines[index].split('|').slice(1, -1).map((cell) => cell.trim());
+  update(cells);
+  lines[index] = `| ${cells.join(' | ')} |`;
+  writeFileSync(path, lines.join('\n'));
+}
+
+function framedExactEvidenceHash(fragments: readonly Buffer[]): string {
+  const parts: Buffer[] = [Buffer.from(`${EXACT_EVIDENCE_FORMAT}\0`, 'utf8')];
+  for (const fragment of fragments) {
+    const length = Buffer.alloc(8);
+    length.writeBigUInt64BE(BigInt(fragment.byteLength));
+    parts.push(length, fragment);
+  }
+  return sha256(Buffer.concat(parts));
+}
+
+function removeSourceWalkExit(path: string): void {
+  replaceOnce(
+    join(path, 'run-log.md'),
+    '## 2026-08-14 08:45 UTC — S2 — exit\n\n'
+      + 'Closed structural traversal and resume accounting for SRC-401. This does not\n'
+      + 'claim perfect recall or semantic review correctness.',
+    '## 2026-08-14 08:45 UTC — S2 — blocked checkpoint\n\n'
+      + 'Recorded the current structurally blocked state for SRC-401. No S2 exit is\n'
+      + 'claimed.',
+  );
+}
+
+function makeTrueOpenGapState(
+  path: string,
+  completionState: 'complete' | 'blocked',
+): void {
+  removeLine(join(path, 'ledgers', 'source-walk.md'), /^\| EVT-0405 \|/);
+  removeLine(join(path, 'ledgers', 'packet-index.md'), /^\| PKT-0405 \|/);
+  removeLine(join(path, 'ledgers', 'packet-index.md'), /^\| EVID-0404 \|/);
+  removeLine(join(path, 'ledgers', 'packet-index.md'), /^\| FRAG-0405 \|/);
+  removeLine(join(path, 'ledgers', 'packet-index.md'), /^\| XFORM-0404 \|/);
+  updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'GAP-0401', (cells) => {
+    cells[9] = 'none';
+    cells[10] = 'none';
+    cells[11] = 'open';
+    cells[12] = 'fresh reviewer found one synthetic omission; canonical reconciliation is pending';
+  });
+  updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'SRC-401', (cells) => {
+    cells[5] = completionState;
+    cells[7] = completionState === 'blocked'
+      ? 'primary walk ended but GAP-0401 remains structurally open'
+      : 'invalid mutation attempts completion while GAP-0401 remains open';
+  });
+  removeSourceWalkExit(path);
+}
+
+function refreshReviewBasisDigest(path: string, cursorId = 'CUR-0406'): void {
+  const digest = sourceWalkReviewBasisDigest(loadRun(path), 'SRC-401', cursorId);
+  if (!digest) throw new Error(`could not recompute review basis at ${cursorId}`);
+  updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'GAP-0401', (cells) => {
+    cells[4] = cursorId;
+    cells[5] = digest;
+  });
 }
 
 function replaceEncodedUtf8(path: string, before: string, after: string): void {
@@ -1465,11 +1544,15 @@ addFailureCase(
   'source-walk-accounting',
   'K2.14',
   (path) => {
-    replaceRegexOnce(
-      join(path, 'ledgers', 'source-walk.md'),
-      /^\| GAP-0401 \|.*$/mu,
-      '| GAP-0401 | SRC-401 | INV-primary-0401 | INV-gap-0402 | cannot-determine | none | none | none | none | blocked | source segment could not be judged |',
-    );
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'GAP-0401', (cells) => {
+      cells[6] = 'cannot-determine';
+      cells[7] = 'none';
+      cells[8] = 'none';
+      cells[9] = 'none';
+      cells[10] = 'none';
+      cells[11] = 'blocked';
+      cells[12] = 'source segment could not be judged';
+    });
   },
   /SRC-401 complete source cannot use cannot-determine gap review GAP-0401/,
 );
@@ -1535,6 +1618,228 @@ addFailureCase(
     );
   },
   /SRC-401 content_hash does not match the frozen source bytes/,
+);
+
+addFailureCase(
+  'K2S2',
+  'true open gap candidate cannot declare source complete',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    makeTrueOpenGapState(path, 'complete');
+  },
+  /SRC-401 complete source has unreconciled gap review GAP-0401/,
+);
+
+addFailureCase(
+  'K2S2',
+  'open gap candidate cannot name future packet or event ids',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'GAP-0401', (cells) => {
+      cells[11] = 'open';
+      cells[12] = 'invalid open finding prematurely names canonical reconciliation ids';
+    });
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'SRC-401', (cells) => {
+      cells[5] = 'blocked';
+      cells[7] = 'mutation keeps future canonical ids on an open finding';
+    });
+    removeSourceWalkExit(path);
+  },
+  /GAP-0401 open candidate must use proposed_packet_id none and reconciliation_event_id none/,
+);
+
+addCase('K2S2', 'reconciliation event must match packet exact-evidence position', (root) => {
+  const relativePath = join('docs', 'fixtures', 'source-walk-accounting');
+  const path = copyFixture('source-walk-accounting', root, relativePath);
+  const span = mdLineSpan(
+    join(path, 'corpus', 'sources', 'SRC-401-source-walk.txt'),
+    9,
+    9,
+  );
+  if (!span?.bytes) throw new Error('source-walk fixture line 9 is not reopenable');
+  const fragmentHash = `sha256:${sha256(span.bytes)}`;
+  const evidenceHash = `sha256:${framedExactEvidenceHash([span.bytes])}`;
+  const rendered = span.bytes.toString('utf8');
+  const renderedHash = `sha256:${sha256(Buffer.from(rendered, 'utf8'))}`;
+  updateTableRow(join(path, 'ledgers', 'packet-index.md'), 'PKT-0405', (cells) => {
+    cells[2] = 'L9-L9';
+    cells[3] = fragmentHash;
+    cells[4] = rendered;
+  });
+  updateTableRow(join(path, 'ledgers', 'packet-index.md'), 'EVID-0404', (cells) => {
+    cells[5] = evidenceHash;
+  });
+  updateTableRow(join(path, 'ledgers', 'packet-index.md'), 'FRAG-0405', (cells) => {
+    cells[5] = 'L9-L9';
+    cells[8] = fragmentHash;
+    cells[9] = span.bytes!.toString('base64');
+  });
+  updateTableRow(join(path, 'ledgers', 'packet-index.md'), 'XFORM-0404', (cells) => {
+    cells[3] = evidenceHash;
+    cells[4] = evidenceHash;
+    cells[5] = rendered;
+    cells[6] = renderedHash;
+  });
+  const report = requireFailure(runFixture(root, relativePath), 'K2.14');
+  requireCheck(report, 'K2.4', 'PASS');
+  requireCheck(report, 'K2.13', 'PASS');
+  requireCheck(
+    report,
+    'K2.14',
+    'FAIL',
+    /EVT-0405 interval 268\.\.319 must be contained in exactly one exact fragment for packet PKT-0405; found 0/,
+  );
+});
+
+addFailureCase(
+  'K2S2',
+  'primary walk change invalidates recorded review basis',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'WLK-0402', (cells) => {
+      cells[9] = 'primary reviewer recorded no candidate in this interval';
+    });
+  },
+  /GAP-0401 review_basis_digest does not match the current primary review basis/,
+);
+
+addFailureCase(
+  'K2S2',
+  'S1 criteria byte change invalidates recorded review basis',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    appendFileSync(
+      join(path, 'ledgers', 'extraction-criteria.md'),
+      '\nReview-basis probe note.\n',
+    );
+  },
+  /GAP-0401 review_basis_digest does not match the current primary review basis/,
+);
+
+addCase('K2S2', 'primary exact-evidence identity change invalidates review basis', (root) => {
+  const relativePath = join('docs', 'fixtures', 'source-walk-accounting');
+  const path = copyFixture('source-walk-accounting', root, relativePath);
+  const packetIndex = join(path, 'ledgers', 'packet-index.md');
+  updateTableRow(packetIndex, 'EVID-0403', (cells) => {
+    cells[0] = 'EVID-0493';
+  });
+  updateTableRow(packetIndex, 'FRAG-0403', (cells) => {
+    cells[1] = 'EVID-0493';
+  });
+  updateTableRow(packetIndex, 'FRAG-0404', (cells) => {
+    cells[1] = 'EVID-0493';
+  });
+  updateTableRow(packetIndex, 'XFORM-0403', (cells) => {
+    cells[1] = 'EVID-0493';
+  });
+  const report = requireFailure(runFixture(root, relativePath), 'K2.14');
+  requireCheck(report, 'K2.13', 'PASS');
+  requireCheck(
+    report,
+    'K2.14',
+    'FAIL',
+    /GAP-0401 review_basis_digest does not match the current primary review basis/,
+  );
+});
+
+addFailureCase(
+  'K2S2',
+  'gap review basis cursor must be terminal primary source end',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'GAP-0401', (cells) => {
+      cells[4] = 'CUR-0405';
+    });
+  },
+  /GAP-0401 review_basis_cursor_id must identify the terminal primary source-end cursor/,
+);
+
+addFailureCase(
+  'K2S2',
+  'blocked final cursor cannot sit behind committed primary work',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'SRC-401', (cells) => {
+      cells[3] = 'CUR-0403';
+      cells[5] = 'blocked';
+      cells[7] = 'mutation selects a stale shared-position checkpoint';
+    });
+    removeSourceWalkExit(path);
+  },
+  /CUR-0403 names shared ordinal 2 as pending but EVT-0402 at ordinal 2 is already committed/,
+);
+
+addFailureCase(
+  'K2S2',
+  'same-position cursor ordinal cannot regress from three to two',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    const packetIndex = join(path, 'ledgers', 'packet-index.md');
+    const sourceWalk = join(path, 'ledgers', 'source-walk.md');
+    replaceOnce(
+      packetIndex,
+      '| PKT-0402 | SRC-401 | L3-L3 | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | Shared beta applies. | 1 | active |',
+      '| PKT-0402 | SRC-401 | L3-L3 | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | Shared beta applies. | 1 | active |\n'
+        + '| PKT-0406 | SRC-401 | L3-L3 | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | Shared beta applies. | 1 | active |',
+    );
+    replaceOnce(
+      packetIndex,
+      '| EVID-0402 | PKT-0402 | exact | 1 | single-fragment | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | none | none | none |',
+      '| EVID-0402 | PKT-0402 | exact | 1 | single-fragment | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | none | none | none |\n'
+        + '| EVID-0405 | PKT-0406 | exact | 1 | single-fragment | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | none | none | none |',
+    );
+    replaceOnce(
+      packetIndex,
+      '| FRAG-0402 | EVID-0402 | PKT-0402 | 1 | SRC-401 | L3-L3 | frozen-source | exact-source-bytes | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | U2hhcmVkIGFscGhhIGFwcGxpZXMuIFNoYXJlZCBiZXRhIGFwcGxpZXMuCg== |',
+      '| FRAG-0402 | EVID-0402 | PKT-0402 | 1 | SRC-401 | L3-L3 | frozen-source | exact-source-bytes | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | U2hhcmVkIGFscGhhIGFwcGxpZXMuIFNoYXJlZCBiZXRhIGFwcGxpZXMuCg== |\n'
+        + '| FRAG-0406 | EVID-0405 | PKT-0406 | 1 | SRC-401 | L3-L3 | frozen-source | exact-source-bytes | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | U2hhcmVkIGFscGhhIGFwcGxpZXMuIFNoYXJlZCBiZXRhIGFwcGxpZXMuCg== |',
+    );
+    replaceOnce(
+      packetIndex,
+      '| XFORM-0402 | EVID-0402 | rendered | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | Shared beta applies. | sha256:ff2668d067f317830b464d48794a7b564d815053ac0eb5cbdec000c6b7121e10 |',
+      '| XFORM-0402 | EVID-0402 | rendered | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | Shared beta applies. | sha256:ff2668d067f317830b464d48794a7b564d815053ac0eb5cbdec000c6b7121e10 |\n'
+        + '| XFORM-0405 | EVID-0405 | rendered | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | sha256:514dc0eda35e86bfa9de89e56c89ec44fa8edabb9eca0a2c204b7c02248b1972 | Shared beta applies. | sha256:ff2668d067f317830b464d48794a7b564d815053ac0eb5cbdec000c6b7121e10 |',
+    );
+    replaceOnce(
+      sourceWalk,
+      '| WLK-0403 | SRC-401 | 44 | 87 | admitted | PKT-0401, PKT-0402 |',
+      '| WLK-0403 | SRC-401 | 44 | 87 | admitted | PKT-0401, PKT-0402, PKT-0406 |',
+    );
+    replaceOnce(
+      sourceWalk,
+      '| EVT-0402 | SRC-401 | 44 | 87 | SP-0401 | 2 | PKT-0402 | primary | INV-primary-0401 | committed |',
+      '| EVT-0402 | SRC-401 | 44 | 87 | SP-0401 | 2 | PKT-0402 | primary | INV-primary-0401 | committed |\n'
+        + '| EVT-0406 | SRC-401 | 44 | 87 | SP-0401 | 3 | PKT-0406 | primary | INV-primary-0401 | committed |',
+    );
+    replaceOnce(
+      sourceWalk,
+      '| CUR-0403 | SRC-401 | 44 | SP-0401 | 2 | WLK-0403 | EVT-0401 |',
+      '| CUR-0407 | SRC-401 | 44 | SP-0401 | 3 | WLK-0403 | EVT-0402 | sha256:15c980b0d84d5cb034d9fb449ae3f05b7672b2a413ad31c6e849e5acd0c3c984 | bounded-pause |\n'
+        + '| CUR-0403 | SRC-401 | 44 | SP-0401 | 2 | WLK-0403 | EVT-0401 |',
+    );
+    refreshReviewBasisDigest(path);
+  },
+  /CUR-0403 shared-position cursor ordinal regresses from 3 to 2 at SP-0401/,
+);
+
+addFailureCase(
+  'K2S2',
+  'completion gap review ids must be unique',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'SRC-401', (cells) => {
+      cells[4] = 'GAP-0401, GAP-0401';
+    });
+  },
+  /SRC-401 gap_review_ids must not contain duplicates/,
 );
 
 // K3: the K3.4 and K3.6 cases mutate the two seeded issue-18 patterns.
@@ -1855,6 +2160,20 @@ try {
           /source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid/,
         ],
       ]),
+    );
+    runBaseline(
+      'true open gap candidate remains structurally blocked',
+      'source-walk-accounting',
+      ['K2.2', 'K2.13', 'K2.14'],
+      new Map([
+        [
+          'K2.14',
+          /source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid/,
+        ],
+      ]),
+      (path) => {
+        makeTrueOpenGapState(path, 'blocked');
+      },
     );
   }
   if (!options.group || options.group === 'K3') {

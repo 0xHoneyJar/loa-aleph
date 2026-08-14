@@ -205,26 +205,61 @@ scope.
   compatible primary region and must be linked by exactly one found gap
   record. Overlapping event coordinates are legal only when they are exactly
   equal and share one source-position key. Ordinals within that key are unique
-  and contiguous from one.
+  and contiguous from one. Core maps every bound `md-lines` exact fragment to
+  absolute frozen-byte bounds and requires each event interval to be contained
+  in exactly one fragment for its packet. A packet with a locator Core cannot
+  map fails the 1.2 exact-position contract rather than receiving a false
+  positional PASS. For reconciliation, candidate and event intervals are
+  equal and the event remains subject to the same fragment-containment rule.
 
   Resume cursors identify the **next unprocessed** byte/event, carry the frozen
   source hash, resolve predecessor walk/event records, remain monotonic and in
   bounds, and cannot move beyond open intervals or pending events. Every
   multi-event shared position has a cursor for each pending ordinal; a pause
   after ordinal one stays at that same byte position and names ordinal two.
+  Equal-byte cursor history at one shared position may advance ordinal but may
+  not regress. Cursor `reason` is one of `initial`, `progress`,
+  `bounded-pause`, `resumed-shared-position`, or `source-complete`.
 
   Gap reviews record distinct primary-producer and reviewer invocation
   identities plus `no-gap-candidate-found`, `gap-candidate-found`, or
   `cannot-determine`. Core can verify only the distinct declared identities
-  and ledger structure; live host isolation remains adapter evidence. A found
-  candidate carries a valid source range, exact packet, reconciliation event,
-  and `open` or `reconciled` status. `cannot-determine` is blocking.
+  and ledger structure; live host isolation remains adapter evidence. Every
+  review names a same-source terminal primary source-end cursor and a
+  `review_basis_digest`. Core hashes the UTF-8 bytes of one compact JSON object
+  in fixed field order with:
+
+  - format `aleph-source-walk-review-basis/v1`;
+  - source ID and reopened frozen-source SHA-256;
+  - SHA-256 and byte length of the exact current
+    `ledgers/extraction-criteria.md` bytes;
+  - all primary walk rows for the source in ledger order, with every column;
+  - all `origin = primary` event rows in ledger order, with every column;
+  - unique primary packet IDs in first-event order, each packet's source,
+    locator, span hash, exact-evidence record key/packet list/count/join/hash,
+    and its fragment identities ordered by `fragment_order`; and
+  - every field of the named terminal primary cursor.
+
+  The review result, reconciliation event, and all gap-reconciliation
+  packet/event additions are excluded. This binds review inputs only; it does
+  not prove semantic correctness, fresh-context isolation, or worker
+  independence. A found candidate with `status = open` carries valid
+  coordinates but uses `proposed_packet_id = none` and
+  `reconciliation_event_id = none`. `status = reconciled` requires the valid
+  exact packet, exactly one matching committed reconciliation event, and the
+  positional bindings above. `cannot-determine` is blocking.
 
   One completion row per source binds hash, byte length, last cursor, all gap
   reviews, and `complete` or `blocked`. Completion requires full coverage, a
   source-end cursor, no open deferred/unsupported interval, no pending event,
   at least one gap review, and no open or indeterminate finding. An S2 exit or
-  later manifest state requires all sources complete.
+  later manifest state requires all sources complete. For a blocked source,
+  the named final cursor is also checked as the actual current frontier:
+  committed primary intervals/events may not already exist beyond a
+  non-shared cursor; at a shared cursor, ordinals before the named next ordinal
+  are committed, that ordinal and later ones are not committed, and no later
+  primary traversal/event is committed. This rule does not reinterpret
+  historical cursor rows.
 
 K2.13 proves only frozen-source byte fidelity and declared structure. It does
 not prove semantic entailment, good packetization, good normalization, correct
@@ -265,7 +300,7 @@ ligature, newline bytes, fragment row order, an undeclared join, a normalized
 golden remains a positive legacy lock; the `1.1.0-provisional` exact-evidence
 fixture remains the positive 1.1 lock.
 
-The Slice-2 K2.14 battery mutates a skipped interior interval, uncovered
+The Slice-2 K2.14 battery retains its original 28 mutations of a skipped interior interval, uncovered
 origin, uncovered terminal bytes, reversed and out-of-bounds intervals,
 undeclared overlap, duplicate and missing shared-position ordinals, a resume
 jump past a same-position sibling, backward and beyond-end cursors, missing
@@ -274,5 +309,10 @@ and unsupported regions, false completion over uncovered/open work, missing
 or non-distinct gap review, open and cannot-determine gap results, removed
 format marker and ledger, understated manifest state, a UTF-8-splitting
 coordinate, and changed frozen source bytes. The
-`source-walk-accounting` fixture is the positive 1.2 lock. Loa separately
-tests retained 1.2 authority against manifest downgrade and version removal.
+`source-walk-accounting` fixture is the positive 1.2 lock. Added review
+regressions cover a true open candidate, premature open IDs, same-source
+wrong-span evidence, stale primary walk/criteria/exact-evidence review bases, a
+nonterminal basis cursor, a stale blocked final cursor, shared ordinal
+regression, and duplicate completion review IDs. Loa separately tests retained
+1.2 authority against manifest downgrade and version removal, and rejects an
+extractor cursor return with no Core `reason`.

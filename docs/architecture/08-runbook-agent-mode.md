@@ -96,7 +96,8 @@ d. Validate outputs at the schema boundary. If the host lacks native
    serialize appends into the ledgers yourself (single-writer rule). In S2,
    packet/evidence rows, their extraction event, and the next-work cursor are
    one logical commit: never expose a cursor advance without the records it
-   advances past, or a packet without its walk/event accounting.
+   advances past, or a packet without its walk/event accounting. Persist the
+   worker's Core-defined cursor reason unchanged.
 e. Run the stage's ⚙ self-checks (and the kernel where it applies).
 f. Dispatch the stage's ⚖ verifications to fresh panels. Apply
    consequences as superseding entries.
@@ -126,16 +127,22 @@ Stage-specific amplifications (read with doc 04):
   separately; when events share a position, assign one shared-position key and
   contiguous ordinals. After bounded work, persist a cursor naming the next
   unprocessed byte/event. A pause after shared ordinal 1 resumes at that same
-  position with ordinal 2, never at the next line. Reopen exact bytes for every
+  position with ordinal 2, never at the next line, and cursor history at one
+  shared position never regresses in ordinal. Reopen exact bytes for every
   ordered fragment, use one packet per fragment, declare the Core join policy,
-  and keep display text separate. A `degraded-non-exact` rendering is not a
-  packet; retain its source ID, source-local locator, reason, and rendered
-  transformation. Once the primary walk reaches source end, dispatch the L1
+  and require every event interval to lie inside exactly one bound fragment.
+  A `degraded-non-exact` rendering is not a packet; retain its source ID,
+  source-local locator, reason, and rendered transformation. Once the primary
+  walk reaches source end, dispatch the L1
   coverage lens in a distinct fresh context with only the frozen source, S1
   criteria, primary walk, and admitted exact evidence. A found candidate is a
-  proposal: validate it and commit the packet/event as single writer, or leave
-  it open. `cannot-determine` blocks completion. Neither source-end nor a
-  no-gap result is a claim of perfect recall.
+  proposal: record the terminal primary cursor and Core review-basis digest,
+  then validate and commit the packet/event as single writer, or leave it open
+  with no packet/event IDs. Reconciliation requires candidate/event coordinate
+  equality plus containment in the packet's exact fragment.
+  `cannot-determine` blocks completion. Neither source-end nor a no-gap result
+  is a claim of perfect recall, and the basis digest does not prove host
+  isolation.
 - **S3:** a restatement must be entailed by its packets. If you need context
   from elsewhere in the source to state the claim faithfully, widen the
   packet (new locator) — do not import unpacketed context invisibly. Write
@@ -182,7 +189,9 @@ On waking into an existing run: restore and verify the exact original bundle
 lock and immutable runtime snapshot, then read the manifest and run log, verify
 ledger hashes, and in S2 reopen the last committed source-walk cursor as the
 next work position/event. Confirm that its predecessor packet/evidence/walk
-records are committed before advancing. Then find the first unmet DoD item and
+records are committed before advancing, and confirm that a blocked completion
+row does not name a historical cursor behind already committed primary work.
+Then find the first unmet DoD item and
 continue from there. Never
 substitute a newer Core, adapter, checker, model, or runtime in place. If the
 manifest version or any forward identity pin disagrees with the retained run

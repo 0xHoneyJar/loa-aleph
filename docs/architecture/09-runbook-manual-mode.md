@@ -75,12 +75,16 @@ packet. Do a whole source in one sitting where possible — split
 sittings are where spans get skipped; if you must split, mark the exact
 next-work byte/event, predecessor record, and source hash. After the primary
 walk, perform a separate gap-review pass from the frozen source, criteria,
-walk, and packet evidence. Prefer a genuinely independent reviewer. If the
+walk, and packet evidence. Record the terminal primary cursor and recomputed
+review-basis digest before the result. Prefer a genuinely independent reviewer. If the
 same human must review in a later sitting, record that this is temporal
 separation, not proven fresh-context independence. Record no-gap-candidate,
 located gap-candidate, or cannot-determine. Validate and append any found
-candidate before closing the source; open or indeterminate results block S2.
-Neither a source-end cursor nor your no-gap result proves perfect recall.
+candidate before closing the source; before reconciliation an open candidate
+has no packet/event IDs. Its reconciliation event must match the candidate
+coordinates and lie within the packet's exact fragment. Open or indeterminate
+results block S2. Neither a source-end cursor, review-basis digest, nor your
+no-gap result proves perfect recall or independent process isolation.
 
 **S3–S4 (claims, merges).** Draft claims on one pass, merge on a second,
 separate pass over the whole inventory (the barrier matters by hand too —

@@ -118,5 +118,7 @@ Run format `1.2.0-provisional` retains the complete 1.1 exact-evidence
 contract and additionally requires `ledgers/source-walk.md` once S2 begins.
 That Core ledger records frozen-byte traversal intervals, extraction events,
 shared-position ordinals, next-work cursors, fresh gap-review results, and
-per-source closure. Structural closure proves accounting only; it does not
-prove perfect recall or the semantic correctness of a gap reviewer.
+per-source closure. Review rows bind the terminal primary cursor and Core
+review-basis digest; open findings contain no future canonical IDs. Structural
+closure proves accounting only; it does not prove perfect recall, actual
+context isolation, or the semantic correctness of a gap reviewer.

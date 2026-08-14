@@ -35,6 +35,13 @@ export type Disposition = typeof DISPOSITIONS[number];
 export const EXACT_EVIDENCE_FORMAT = 'aleph-exact-evidence/v1';
 export const SOURCE_WALK_FORMAT = 'aleph-source-walk/v1';
 export const SOURCE_POSITION_FORMAT = 'zero-based-utf8-byte-half-open/v1';
+export const SOURCE_WALK_CURSOR_REASONS = [
+  'initial',
+  'progress',
+  'bounded-pause',
+  'resumed-shared-position',
+  'source-complete',
+] as const;
 export const LEGACY_RUN_FORMAT_VERSION = '1.0.0-provisional';
 export const EXACT_EVIDENCE_RUN_FORMAT_VERSION = '1.1.0-provisional';
 export const CURRENT_RUN_FORMAT_VERSION = '1.2.0-provisional';
@@ -242,6 +249,8 @@ export interface GapReviewValues {
   sourceId: string;
   producerInvocationId: string;
   reviewerInvocationId: string;
+  reviewBasisCursorId: string;
+  reviewBasisDigest: string;
   result: string;
   candidateStartByte: string;
   candidateEndByte: string;
@@ -943,6 +952,8 @@ function parseSourceWalk(document: RunDocument | null): SourceWalkModel {
     'source id',
     'producer invocation id',
     'reviewer invocation id',
+    'review basis cursor id',
+    'review basis digest',
     'result',
     'candidate start byte',
     'candidate end byte',
@@ -1005,6 +1016,8 @@ function parseSourceWalk(document: RunDocument | null): SourceWalkModel {
       'sourceId',
       'producerInvocationId',
       'reviewerInvocationId',
+      'reviewBasisCursorId',
+      'reviewBasisDigest',
       'result',
       'candidateStartByte',
       'candidateEndByte',

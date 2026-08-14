@@ -92,9 +92,10 @@ Example entry:
 Extraction finished for all four sources. 87 packets written to
 ledgers/packet-index.md (SRC-101: 21, SRC-102: 24, SRC-103: 19, SRC-104: 23).
 Full byte-coordinate walks, terminal next-work cursors, and distinct fresh gap
-reviews recorded for each source in ledgers/source-walk.md. All gap findings
-were reconciled before structural completion. This records accounting closure,
-not perfect recall. Spend this stage: 412k tokens of the 600k budget.
+reviews with terminal-primary basis digests recorded for each source in
+ledgers/source-walk.md. All gap findings were reconciled before structural
+completion. This records accounting closure, not perfect recall or process
+isolation. Spend this stage: 412k tokens of the 600k budget.
 ```
 
 ## T1.3 Kernel report → `runs/<run-id>/verification/kernel-report.md`

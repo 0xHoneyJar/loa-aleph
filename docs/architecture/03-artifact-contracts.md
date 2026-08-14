@@ -158,26 +158,41 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   origin `primary` or `gap-reconciliation`, invocation identity, and commit
   status. Events at one source position share a key and unique contiguous
   ordinals; this is the only allowed same-position multiplicity and does not
-  permit arbitrary interval overlap.
+  permit arbitrary interval overlap. Core maps each exact `md-lines` fragment
+  to absolute frozen-byte bounds and requires the event interval to be
+  contained in exactly one fragment for its packet. An unmappable exact
+  locator blocks the 1.2 exact-position contract.
 - **Resume cursors:** identify the **next unprocessed** source byte/event and
   bind it to the source hash plus predecessor walk/event records. A pause
   between same-position siblings stays at that position and advances only the
-  event ordinal.
+  event ordinal. Same-position cursor history cannot regress in ordinal.
+  Cursor reasons are the Core values `initial`, `progress`, `bounded-pause`,
+  `resumed-shared-position`, and `source-complete`.
 - **Fresh gap reviews:** record distinct producer/reviewer invocation
   identities and one result:
   `no-gap-candidate-found`, `gap-candidate-found`, or `cannot-determine`.
-  A found candidate stays open until the orchestrator validates Slice-1 exact
-  evidence and appends its reconciliation event. `cannot-determine` blocks
-  source completion.
+  Each row names a same-source terminal primary cursor and a Core-recomputed
+  digest over the frozen source identity, exact S1 criteria bytes, ordered
+  primary walk/events, associated primary packet exact-evidence identities,
+  and that cursor. The digest excludes the review result and all gap
+  reconciliation additions. A found candidate stays `open` with
+  `proposed_packet_id = none` and `reconciliation_event_id = none` until the
+  orchestrator validates Slice-1 exact evidence and appends its one committed
+  reconciliation event. The candidate and event intervals must be equal, and
+  the event must be contained in the proposed packet's exact fragment.
+  `cannot-determine` blocks source completion.
 - **Completion:** one row per source binds exact source hash/length, final
   cursor, all gap-review records, and `complete` or `blocked`. `complete`
   requires contiguous coverage from byte zero through source end, no open
   deferred/unsupported interval or pending shared event, and no open or
-  indeterminate gap finding.
+  indeterminate gap finding. For `blocked`, the named final cursor is checked
+  against committed primary walk/event state as the actual current frontier;
+  historical checkpoints are not subjected to that final-frontier rule.
 - **Verification boundary:** K2 proves structural walk closure and that an
-  independent review record exists. It cannot prove that the extractor found
-  every qualifying assertion or that a reviewer returning no candidate was
-  semantically correct.
+  inspectable review-basis record exists. It cannot prove that the extractor
+  found every qualifying assertion, that a reviewer returning no candidate
+  was semantically correct, or that declared distinct contexts were actually
+  isolated. Adapter dispatch receipts remain the process-isolation evidence.
 
 ## 5. Candidate-claim inventory (`ledgers/claim-inventory.md`)
 

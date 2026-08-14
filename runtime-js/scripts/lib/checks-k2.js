@@ -3,7 +3,7 @@ import { basename, join } from 'node:path';
 import { TextDecoder } from 'node:util';
 import { activeClaims, allStatusRows, compareTimestamp, duplicateDefinitions, firstRunLogEntry, location, makeIndexes, mdLineSpan, normalizeSha256, parseTimestamp, pathIsWithin, reachedState, sha256, sourceFilePath, } from './check-helpers.js';
 import { envelopeSection, findTable, findTableByFirstHeader, headingSection, idsIn, normalizeHeader, numberedEnvelopeHeadings, parseBulletFields, parseTables, tableCells, isSeparatorRow, } from './markdown.js';
-import { CURRENT_RUN_FORMAT_VERSION, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, SOURCE_POSITION_FORMAT, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, } from './run-model.js';
+import { CURRENT_RUN_FORMAT_VERSION, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, } from './run-model.js';
 const CLAIM_TYPES = [
     'factual',
     'design-intent',
@@ -843,6 +843,7 @@ const GAP_REVIEW_RESULTS = [
     'gap-candidate-found',
     'cannot-determine',
 ];
+const SOURCE_WALK_REVIEW_BASIS_FORMAT = 'aleph-source-walk-review-basis/v1';
 function canonicalNonnegativeInteger(value) {
     if (!/^(?:0|[1-9]\d*)$/.test(value))
         return null;
@@ -879,6 +880,104 @@ function sourceWalkStageClosed(model) {
     const advanced = Boolean(model.manifest?.states.some((row) => (STATES.indexOf(row.values.state.trim()) > distillingIndex)));
     const loggedExit = Boolean(model.runLog?.lines.some((line) => (/^##\s+.+\s+[—-]\s+S2\s+[—-]\s+exit\s*$/i.test(line))));
     return advanced || loggedExit;
+}
+export function sourceWalkReviewBasisDigest(model, sourceId, cursorId) {
+    const source = model.corpus.sources.find((row) => row.values.sourceId === sourceId);
+    const cursor = model.sourceWalk.cursors.find((row) => row.values.cursorId === cursorId);
+    const sourcePath = source ? sourceFilePath(model.runDir, source.values.locus) : null;
+    if (!source
+        || !cursor
+        || !sourcePath
+        || !existsPath(sourcePath)
+        || !model.criteria
+        || !existsPath(model.criteria.path)) {
+        return null;
+    }
+    const primaryEvents = model.sourceWalk.events.filter((row) => (row.values.sourceId === sourceId
+        && row.values.origin === 'primary'));
+    const packetIds = [...new Set(primaryEvents.map((row) => row.values.packetId))];
+    const primaryPacketEvidence = packetIds.map((packetId) => {
+        const packet = model.packets.find((row) => row.values.packetId === packetId);
+        const records = model.exactEvidence.records.filter((record) => (packetIdList(record.values.packetIds)?.includes(packetId)));
+        const fragments = model.exactEvidence.fragments
+            .filter((fragment) => fragment.values.packetId === packetId)
+            .sort((left, right) => (Number(left.values.fragmentOrder) - Number(right.values.fragmentOrder)
+            || left.values.fragmentKey.localeCompare(right.values.fragmentKey)));
+        if (!packet || records.length !== 1 || fragments.length === 0)
+            return null;
+        const record = records[0];
+        return {
+            packet_id: packetId,
+            packet_source_id: packet.values.sourceId,
+            packet_locator: packet.values.locator,
+            packet_span_hash: packet.values.spanHash,
+            evidence_key: record.values.evidenceKey,
+            evidence_packet_ids: record.values.packetIds,
+            evidence_fragment_count: record.values.fragmentCount,
+            evidence_join_policy: record.values.joinPolicy,
+            exact_evidence_hash: record.values.exactEvidenceHash,
+            fragments: fragments.map((fragment) => ({
+                fragment_key: fragment.values.fragmentKey,
+                fragment_order: fragment.values.fragmentOrder,
+                source_id: fragment.values.sourceId,
+                locator: fragment.values.locator,
+                source_relation: fragment.values.sourceRelation,
+                byte_role: fragment.values.byteRole,
+                fragment_hash: fragment.values.fragmentHash,
+            })),
+        };
+    });
+    if (primaryPacketEvidence.some((entry) => entry === null))
+        return null;
+    const sourceBytes = readFileSync(sourcePath);
+    const criteriaBytes = readFileSync(model.criteria.path);
+    const payload = {
+        format: SOURCE_WALK_REVIEW_BASIS_FORMAT,
+        source_id: sourceId,
+        source_hash: `sha256:${sha256(sourceBytes)}`,
+        extraction_criteria_digest: `sha256:${sha256(criteriaBytes)}`,
+        extraction_criteria_byte_length: criteriaBytes.byteLength,
+        primary_walk_intervals: model.sourceWalk.intervals
+            .filter((row) => row.values.sourceId === sourceId)
+            .map((row) => ({
+            walk_id: row.values.walkId,
+            source_id: row.values.sourceId,
+            start_byte: row.values.startByte,
+            end_byte: row.values.endByte,
+            outcome: row.values.outcome,
+            packet_ids: row.values.packetIds,
+            criterion_ref: row.values.criterionRef,
+            producer_invocation_id: row.values.producerInvocationId,
+            closure_state: row.values.closureState,
+            reason: row.values.reason,
+            closure_note: row.values.closureNote,
+        })),
+        primary_extraction_events: primaryEvents.map((row) => ({
+            event_id: row.values.eventId,
+            source_id: row.values.sourceId,
+            start_byte: row.values.startByte,
+            end_byte: row.values.endByte,
+            shared_position_key: row.values.sharedPositionKey,
+            event_ordinal: row.values.eventOrdinal,
+            packet_id: row.values.packetId,
+            origin: row.values.origin,
+            producer_invocation_id: row.values.producerInvocationId,
+            status: row.values.status,
+        })),
+        primary_packet_exact_evidence: primaryPacketEvidence,
+        terminal_primary_cursor: {
+            cursor_id: cursor.values.cursorId,
+            source_id: cursor.values.sourceId,
+            byte_offset: cursor.values.byteOffset,
+            shared_position_key: cursor.values.sharedPositionKey,
+            next_event_ordinal: cursor.values.nextEventOrdinal,
+            predecessor_walk_id: cursor.values.predecessorWalkId,
+            predecessor_event_id: cursor.values.predecessorEventId,
+            source_hash: cursor.values.sourceHash,
+            reason: cursor.values.reason,
+        },
+    };
+    return `sha256:${sha256(Buffer.from(JSON.stringify(payload), 'utf8'))}`;
 }
 function checkSourceWalk(results, model) {
     results.run('K2.14', 'source walk, gap review, and resume accounting', (fail) => {
@@ -999,6 +1098,55 @@ function checkSourceWalk(results, model) {
             const ids = packetIdList(record.values.packetIds);
             if (ids)
                 ids.forEach((id) => exactPackets.add(id));
+        }
+        const exactFragmentPositionsByPacket = new Map();
+        for (const fragment of model.exactEvidence.fragments) {
+            const { fragmentKey, packetId, sourceId, locator, } = fragment.values;
+            const source = sources.get(sourceId);
+            const sourcePath = source ? sourceFilePath(model.runDir, source.values.locus) : null;
+            const scheme = source?.values.scheme.replace(/`/g, '').trim() || '';
+            const locatorParts = parseMdLineLocator(locator);
+            let position;
+            if (scheme !== 'md-lines') {
+                position = {
+                    fragmentKey,
+                    sourceId,
+                    start: null,
+                    end: null,
+                    mappingError: `locator scheme ${scheme || '(blank)'} is unsupported`,
+                };
+            }
+            else if (!sourcePath || !existsPath(sourcePath)) {
+                position = {
+                    fragmentKey,
+                    sourceId,
+                    start: null,
+                    end: null,
+                    mappingError: 'frozen source locus is unreadable',
+                };
+            }
+            else if (!locatorParts) {
+                position = {
+                    fragmentKey,
+                    sourceId,
+                    start: null,
+                    end: null,
+                    mappingError: `locator ${locator || '(blank)'} is not mechanically mappable`,
+                };
+            }
+            else {
+                const span = mdLineSpan(sourcePath, locatorParts.start, locatorParts.end);
+                position = {
+                    fragmentKey,
+                    sourceId,
+                    start: span?.startByte ?? null,
+                    end: span?.endByte ?? null,
+                    mappingError: span?.bytes ? '' : `locator ${locator} is outside the frozen source`,
+                };
+            }
+            const group = exactFragmentPositionsByPacket.get(packetId) || [];
+            group.push(position);
+            exactFragmentPositionsByPacket.set(packetId, group);
         }
         const intervalIds = new Map();
         const intervalsBySource = new Map();
@@ -1204,6 +1352,28 @@ function checkSourceWalk(results, model) {
                 if (!exactPackets.has(packetId)) {
                     fail(`${packetId} lacks a Slice-1 exact evidence record`);
                 }
+                const fragmentPositions = exactFragmentPositionsByPacket.get(packetId) || [];
+                const unmapped = fragmentPositions.find((position) => (position.start === null || position.end === null));
+                if (fragmentPositions.length === 0) {
+                    fail(`${eventId || 'event row'} packet ${packetId} has no exact fragment `
+                        + 'for source-walk position binding');
+                }
+                else if (unmapped) {
+                    fail(`${eventId || 'event row'} cannot verify packet ${packetId} exact-evidence `
+                        + `position at ${unmapped.fragmentKey || 'fragment row'}: ${unmapped.mappingError}`);
+                }
+                else if (start !== null && end !== null) {
+                    const containingFragments = fragmentPositions.filter((position) => (position.sourceId === sourceId
+                        && position.start !== null
+                        && position.end !== null
+                        && start >= position.start
+                        && end <= position.end));
+                    if (containingFragments.length !== 1) {
+                        fail(`${eventId || 'event row'} interval ${start}..${end} must be contained `
+                            + `in exactly one exact fragment for packet ${packetId}; found `
+                            + `${containingFragments.length}`);
+                    }
+                }
             }
             if (start !== null && end !== null && ordinal !== null) {
                 const parsed = { row, start, end, ordinal };
@@ -1296,6 +1466,7 @@ function checkSourceWalk(results, model) {
         }
         const cursorIds = new Map();
         const cursorsBySource = new Map();
+        const lastCursorOrdinalBySharedPosition = new Map();
         for (const row of walk.cursors) {
             const { cursorId, sourceId, byteOffset, sharedPositionKey, nextEventOrdinal, predecessorWalkId, predecessorEventId, sourceHash, reason, } = row.values;
             if (!/^CUR-\d+$/.test(cursorId)) {
@@ -1324,8 +1495,9 @@ function checkSourceWalk(results, model) {
             if (data && sourceHash !== data.hash) {
                 fail(`${cursorId || 'cursor row'} source_hash does not match frozen ${sourceId}`);
             }
-            if (!substantiveValue(reason)) {
-                fail(`${cursorId || 'cursor row'} reason is required`);
+            if (!SOURCE_WALK_CURSOR_REASONS.includes(reason)) {
+                fail(`${cursorId || 'cursor row'} reason must be one of `
+                    + SOURCE_WALK_CURSOR_REASONS.join(', '));
             }
             const predecessorWalk = predecessorWalkId === 'none'
                 ? null
@@ -1427,6 +1599,19 @@ function checkSourceWalk(results, model) {
                     fail(`${cursorId || 'cursor row'} cursor moves backwards from `
                         + `${previous.offset} to ${offset}`);
                 }
+                if (sharedPositionKey !== 'none') {
+                    const previousOrdinal = lastCursorOrdinalBySharedPosition.get(sharedPositionKey);
+                    const currentOrdinal = canonicalNonnegativeInteger(nextEventOrdinal);
+                    if (previousOrdinal !== undefined
+                        && currentOrdinal !== null
+                        && currentOrdinal < previousOrdinal) {
+                        fail(`${cursorId || 'cursor row'} shared-position cursor ordinal regresses `
+                            + `from ${previousOrdinal} to ${currentOrdinal} at ${sharedPositionKey}`);
+                    }
+                    if (currentOrdinal !== null) {
+                        lastCursorOrdinalBySharedPosition.set(sharedPositionKey, Math.max(previousOrdinal || 0, currentOrdinal));
+                    }
+                }
                 group.push(parsed);
                 cursorsBySource.set(sourceId, group);
             }
@@ -1446,7 +1631,7 @@ function checkSourceWalk(results, model) {
         const gapReviewsBySource = new Map();
         const reconciliationEvents = new Map();
         for (const row of walk.gapReviews) {
-            const { gapReviewId, sourceId, producerInvocationId, reviewerInvocationId, result, candidateStartByte, candidateEndByte, proposedPacketId, reconciliationEventId, status, note, } = row.values;
+            const { gapReviewId, sourceId, producerInvocationId, reviewerInvocationId, reviewBasisCursorId, reviewBasisDigest, result, candidateStartByte, candidateEndByte, proposedPacketId, reconciliationEventId, status, note, } = row.values;
             if (!/^GAP-\d+$/.test(gapReviewId)) {
                 fail(`${gapReviewId || 'gap-review row'} gap_review_id must be GAP-<digits> at ${location(row)}`);
             }
@@ -1471,6 +1656,45 @@ function checkSourceWalk(results, model) {
             if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(reviewerInvocationId)) {
                 fail(`${gapReviewId || 'gap-review row'} reviewer_invocation_id is missing or malformed`);
             }
+            const reviewBasisCursor = cursorIds.get(reviewBasisCursorId);
+            const data = sourceData.get(sourceId);
+            if (!reviewBasisCursor) {
+                fail(`${gapReviewId || 'gap-review row'} review basis cursor `
+                    + `${reviewBasisCursorId || '(blank)'} does not resolve`);
+            }
+            else {
+                const predecessorWalk = intervalIds.get(reviewBasisCursor.row.values.predecessorWalkId);
+                const predecessorEventId = reviewBasisCursor.row.values.predecessorEventId;
+                const predecessorEvent = predecessorEventId === 'none'
+                    ? null
+                    : eventIds.get(predecessorEventId) || null;
+                if (reviewBasisCursor.row.values.sourceId !== sourceId
+                    || !data
+                    || reviewBasisCursor.offset !== data.bytes.byteLength
+                    || reviewBasisCursor.row.values.sharedPositionKey !== 'none'
+                    || reviewBasisCursor.row.values.nextEventOrdinal !== 'none'
+                    || !predecessorWalk
+                    || predecessorWalk.row.values.sourceId !== sourceId
+                    || predecessorWalk.end !== data.bytes.byteLength
+                    || (predecessorEvent !== null
+                        && (predecessorEvent.row.values.origin !== 'primary'
+                            || predecessorEvent.row.values.status !== 'committed'))) {
+                    fail(`${gapReviewId || 'gap-review row'} review_basis_cursor_id must identify `
+                        + 'the terminal primary source-end cursor');
+                }
+            }
+            if (!/^sha256:[a-f0-9]{64}$/.test(reviewBasisDigest)) {
+                fail(`${gapReviewId || 'gap-review row'} review_basis_digest must be `
+                    + 'sha256:<lowercase hex>');
+            }
+            const recomputedReviewBasisDigest = sourceWalkReviewBasisDigest(model, sourceId, reviewBasisCursorId);
+            if (!recomputedReviewBasisDigest) {
+                fail(`${gapReviewId || 'gap-review row'} review basis cannot be mechanically recomputed`);
+            }
+            else if (reviewBasisDigest !== recomputedReviewBasisDigest) {
+                fail(`${gapReviewId || 'gap-review row'} review_basis_digest does not match `
+                    + `the current primary review basis; expected ${recomputedReviewBasisDigest}`);
+            }
             if (!GAP_REVIEW_RESULTS.includes(result)) {
                 fail(`${gapReviewId || 'gap-review row'} result "${result || '(blank)'}" is unsupported`);
             }
@@ -1478,7 +1702,6 @@ function checkSourceWalk(results, model) {
                 fail(`${gapReviewId || 'gap-review row'} note is required`);
             }
             if (result === 'gap-candidate-found') {
-                const data = sourceData.get(sourceId);
                 const start = canonicalNonnegativeInteger(candidateStartByte);
                 const end = canonicalNonnegativeInteger(candidateEndByte);
                 if (start === null || end === null || end <= start) {
@@ -1493,37 +1716,45 @@ function checkSourceWalk(results, model) {
                         fail(`${gapReviewId || 'gap-review row'} candidate splits a UTF-8 code point`);
                     }
                 }
-                const packet = packets.get(proposedPacketId);
-                if (!packet) {
-                    fail(`${gapReviewId || 'gap-review row'} proposed packet ${proposedPacketId || '(blank)'} does not resolve`);
-                }
-                else if (packet.values.sourceId !== sourceId
-                    || !exactPackets.has(proposedPacketId)) {
-                    fail(`${gapReviewId || 'gap-review row'} proposed packet lacks valid Slice-1 exact evidence`);
-                }
-                const event = eventIds.get(reconciliationEventId);
-                if (!event) {
-                    fail(`${gapReviewId || 'gap-review row'} reconciliation event ${reconciliationEventId || '(blank)'} does not resolve`);
-                }
-                else {
-                    if (event.row.values.origin !== 'gap-reconciliation'
-                        || event.row.values.sourceId !== sourceId
-                        || event.row.values.packetId !== proposedPacketId
-                        || start === null
-                        || end === null
-                        || event.start !== start
-                        || event.end !== end) {
-                        fail(`${gapReviewId || 'gap-review row'} reconciliation event does not match the proposed candidate`);
-                    }
-                    const linked = reconciliationEvents.get(reconciliationEventId) || [];
-                    linked.push(row);
-                    reconciliationEvents.set(reconciliationEventId, linked);
-                }
                 if (!['open', 'reconciled'].includes(status)) {
                     fail(`${gapReviewId || 'gap-review row'} gap candidate status must be open or reconciled`);
                 }
-                if (status === 'reconciled' && event?.row.values.status !== 'committed') {
-                    fail(`${gapReviewId || 'gap-review row'} reconciled candidate event is not committed`);
+                else if (status === 'open') {
+                    if (proposedPacketId !== 'none' || reconciliationEventId !== 'none') {
+                        fail(`${gapReviewId || 'gap-review row'} open candidate must use `
+                            + 'proposed_packet_id none and reconciliation_event_id none');
+                    }
+                }
+                else {
+                    const packet = packets.get(proposedPacketId);
+                    if (!packet) {
+                        fail(`${gapReviewId || 'gap-review row'} proposed packet ${proposedPacketId || '(blank)'} does not resolve`);
+                    }
+                    else if (packet.values.sourceId !== sourceId
+                        || !exactPackets.has(proposedPacketId)) {
+                        fail(`${gapReviewId || 'gap-review row'} proposed packet lacks valid Slice-1 exact evidence`);
+                    }
+                    const event = eventIds.get(reconciliationEventId);
+                    if (!event) {
+                        fail(`${gapReviewId || 'gap-review row'} reconciliation event ${reconciliationEventId || '(blank)'} does not resolve`);
+                    }
+                    else {
+                        if (event.row.values.origin !== 'gap-reconciliation'
+                            || event.row.values.sourceId !== sourceId
+                            || event.row.values.packetId !== proposedPacketId
+                            || start === null
+                            || end === null
+                            || event.start !== start
+                            || event.end !== end) {
+                            fail(`${gapReviewId || 'gap-review row'} reconciliation event does not match the proposed candidate`);
+                        }
+                        if (event.row.values.status !== 'committed') {
+                            fail(`${gapReviewId || 'gap-review row'} reconciled candidate event is not committed`);
+                        }
+                        const linked = reconciliationEvents.get(reconciliationEventId) || [];
+                        linked.push(row);
+                        reconciliationEvents.set(reconciliationEventId, linked);
+                    }
                 }
             }
             else {
@@ -1594,11 +1825,71 @@ function checkSourceWalk(results, model) {
             if (sourceCursors.at(-1)?.row.values.cursorId !== finalCursorId) {
                 fail(`${sourceId || 'completion row'} final_cursor_id is not the last recorded cursor`);
             }
+            if (completionState === 'blocked' && finalCursor) {
+                const primaryIntervals = intervalsBySource.get(sourceId) || [];
+                const committedPrimaryEvents = (eventsBySource.get(sourceId) || []).filter((event) => (event.row.values.origin === 'primary'
+                    && event.row.values.status === 'committed'));
+                const finalSharedPosition = finalCursor.row.values.sharedPositionKey;
+                if (finalSharedPosition === 'none') {
+                    const laterInterval = primaryIntervals.find((interval) => (['closed', 'resolved'].includes(interval.row.values.closureState)
+                        && interval.end > finalCursor.offset));
+                    if (laterInterval) {
+                        fail(`${sourceId || 'completion row'} blocked final cursor ${finalCursorId} `
+                            + `is behind committed primary walk ${laterInterval.row.values.walkId}`);
+                    }
+                    const laterEvent = committedPrimaryEvents.find((event) => event.end > finalCursor.offset);
+                    if (laterEvent) {
+                        fail(`${sourceId || 'completion row'} blocked final cursor ${finalCursorId} `
+                            + `is behind committed primary event ${laterEvent.row.values.eventId}`);
+                    }
+                }
+                else {
+                    const nextOrdinal = canonicalNonnegativeInteger(finalCursor.row.values.nextEventOrdinal);
+                    const primarySharedEvents = (eventsBySharedPosition.get(finalSharedPosition) || []).filter((event) => event.row.values.origin === 'primary');
+                    if (primarySharedEvents.length === 0) {
+                        fail(`${sourceId || 'completion row'} blocked final cursor ${finalCursorId} `
+                            + 'does not identify a primary shared-position frontier');
+                    }
+                    else if (nextOrdinal !== null) {
+                        for (const event of primarySharedEvents) {
+                            if (event.ordinal < nextOrdinal
+                                && event.row.values.status !== 'committed') {
+                                fail(`${finalCursorId} requires shared ordinal ${event.ordinal} to be `
+                                    + `committed before ordinal ${nextOrdinal}`);
+                            }
+                            if (event.ordinal >= nextOrdinal
+                                && event.row.values.status === 'committed') {
+                                fail(`${finalCursorId} names shared ordinal ${nextOrdinal} as pending `
+                                    + `but ${event.row.values.eventId} at ordinal ${event.ordinal} `
+                                    + 'is already committed');
+                            }
+                        }
+                    }
+                    const containingWalk = intervalIds.get(finalCursor.row.values.predecessorWalkId);
+                    const laterInterval = primaryIntervals.find((interval) => (interval !== containingWalk
+                        && ['closed', 'resolved'].includes(interval.row.values.closureState)
+                        && (containingWalk
+                            ? interval.start >= containingWalk.end
+                            : interval.start > finalCursor.offset)));
+                    if (laterInterval) {
+                        fail(`${sourceId || 'completion row'} blocked final cursor ${finalCursorId} `
+                            + `is behind committed primary walk ${laterInterval.row.values.walkId}`);
+                    }
+                    const laterEvent = committedPrimaryEvents.find((event) => event.start > finalCursor.offset);
+                    if (laterEvent) {
+                        fail(`${sourceId || 'completion row'} blocked final cursor ${finalCursorId} `
+                            + `is behind committed primary event ${laterEvent.row.values.eventId}`);
+                    }
+                }
+            }
             const declaredGapIds = customIdList(gapReviewIdsValue, 'GAP');
             if (declaredGapIds === null) {
                 fail(`${sourceId || 'completion row'} gap_review_ids must be a comma-separated GAP list`);
             }
             else {
+                if (new Set(declaredGapIds).size !== declaredGapIds.length) {
+                    fail(`${sourceId || 'completion row'} gap_review_ids must not contain duplicates`);
+                }
                 for (const gapId of declaredGapIds) {
                     const review = gapReviewIds.get(gapId);
                     if (!review || review.values.sourceId !== sourceId) {

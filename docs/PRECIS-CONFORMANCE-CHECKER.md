@@ -172,8 +172,8 @@ scans; a `control/` directory nested anywhere else is not excluded.
   disposition accounting, merge provenance, criteria chronology, append-ledger
   status chains, exact Précis projection, kernel-report honesty,
   exact-evidence/ordered-fragment fidelity, and 1.2 frozen-byte source-walk,
-  shared-position, next-work cursor, gap-review, and per-source closure
-  accounting.
+  event-to-fragment position, shared-position, next-work frontier,
+  review-basis, gap-review, and per-source closure accounting.
 - **K3:** evidence-edge shape/resolution, removal effects, support coverage,
   decorative/unresolved-source exclusions, contradiction preservation, and
   inference-marker resolution.
@@ -209,8 +209,9 @@ Human mode prints the same records as `PASS/FAIL <scope> <id> <message>`.
 K2.14 PASS establishes only that the frozen source coordinate space and
 declared S2 procedure are structurally accounted for. It does not establish
 that the primary extractor found every qualifying assertion, that a gap
-reviewer's judgment was correct, or that any semantic validation, sanction,
-acceptance, production, golden, or v1 gate has been met.
+reviewer's judgment was correct, that declared contexts were actually isolated,
+or that any semantic validation, sanction, acceptance, production, golden, or
+v1 gate has been met.
 
 ### Durable cross-group mutation record
 

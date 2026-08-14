@@ -43,6 +43,11 @@ packet/exact-evidence records for that source. **Withheld:** the rest of the
 run, producer rationale or hidden context, expected answers, calibration
 decisions, and any assertion that the extractor was correct.
 
+The orchestrator records the terminal primary cursor and Core review-basis
+digest for exactly these mechanically supplied inputs. That binding identifies
+what was reviewed; it does not prove fresh-context isolation or reviewer
+independence.
+
 Map the common verdict to the Core gap result:
 
 - `upheld` → `no-gap-candidate-found`;
@@ -52,7 +57,8 @@ Map the common verdict to the Core gap result:
 For `gap-candidate-found`, populate `candidate_evidence` with each proposed
 source position and exact source-local locator/evidence candidate. For the
 other two results, return an empty array. You do not create packet IDs or write
-canonical ledgers. For `cannot-determine`, name what prevented review. A
+canonical ledgers, so an open candidate has no proposed packet or reconciliation
+event ID yet. For `cannot-determine`, name what prevented review. A
 no-gap result is semantic reviewer judgment, not deterministic recall proof.
 
 ### L2 — entailment (S3 DoD)

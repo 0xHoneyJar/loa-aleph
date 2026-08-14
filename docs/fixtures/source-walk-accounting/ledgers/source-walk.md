@@ -42,9 +42,9 @@ Each cursor names the next unprocessed source position or event.
 
 ## Fresh gap reviews
 
-| gap_review_id | source_id | producer_invocation_id | reviewer_invocation_id | result | candidate_start_byte | candidate_end_byte | proposed_packet_id | reconciliation_event_id | status | note |
-|---------------|-----------|------------------------|------------------------|--------|----------------------|--------------------|--------------------|-------------------------|--------|------|
-| GAP-0401 | SRC-401 | INV-primary-0401 | INV-gap-0402 | gap-candidate-found | 268 | 319 | PKT-0405 | EVT-0405 | reconciled | fresh reviewer found one synthetic omission; orchestrator reopened exact bytes and committed the packet |
+| gap_review_id | source_id | producer_invocation_id | reviewer_invocation_id | review_basis_cursor_id | review_basis_digest | result | candidate_start_byte | candidate_end_byte | proposed_packet_id | reconciliation_event_id | status | note |
+|---------------|-----------|------------------------|------------------------|------------------------|---------------------|--------|----------------------|--------------------|--------------------|-------------------------|--------|------|
+| GAP-0401 | SRC-401 | INV-primary-0401 | INV-gap-0402 | CUR-0406 | sha256:fc6948734400d99f10f8dafb64607b362aa17f6e30979ee92c56e0f41c22dde2 | gap-candidate-found | 268 | 319 | PKT-0405 | EVT-0405 | reconciled | fresh reviewer found one synthetic omission; orchestrator reopened exact bytes and committed the packet |
 
 ## Per-source completion
 

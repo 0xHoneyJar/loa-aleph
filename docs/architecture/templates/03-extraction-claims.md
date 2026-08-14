@@ -91,8 +91,8 @@ Column rules:
 |-----------|-----------|-------------|---------------------|--------------------|---------------------|----------------------|-------------|--------|
 
 ## Fresh gap reviews
-| gap_review_id | source_id | producer_invocation_id | reviewer_invocation_id | result | candidate_start_byte | candidate_end_byte | proposed_packet_id | reconciliation_event_id | status | note |
-|---------------|-----------|------------------------|------------------------|--------|----------------------|--------------------|--------------------|-------------------------|--------|------|
+| gap_review_id | source_id | producer_invocation_id | reviewer_invocation_id | review_basis_cursor_id | review_basis_digest | result | candidate_start_byte | candidate_end_byte | proposed_packet_id | reconciliation_event_id | status | note |
+|---------------|-----------|------------------------|------------------------|------------------------|---------------------|--------|----------------------|--------------------|--------------------|-------------------------|--------|------|
 
 ## Per-source completion
 | source_id | source_hash | source_length_bytes | final_cursor_id | gap_review_ids | completion_state | declared_by | note |
@@ -115,19 +115,28 @@ Column rules:
 - Extraction events bind packets to exact source positions. Events at the
   same position share one `SP-<digits>` key and use unique contiguous
   ordinals. Primary intervals never overlap; only exact same-position event
-  rows may share coordinates.
+  rows may share coordinates. Each event interval must be contained in exactly
+  one mechanically mapped exact fragment for its packet; a packet with an
+  unmappable locator cannot satisfy the 1.2 exact-position contract.
 - A cursor names the **next unprocessed** source position or event. A pause
   after one same-position event stays at that byte position and names the
   next ordinal. Source-end means no bytes remain structurally unwalked, not
-  that semantic recall is perfect.
+  that semantic recall is perfect. `reason` is exactly `initial`, `progress`,
+  `bounded-pause`, `resumed-shared-position`, or `source-complete`.
 - Gap-review results are `no-gap-candidate-found`, `gap-candidate-found`, or
   `cannot-determine`. The reviewer invocation must differ from the primary
-  producer. A found candidate is open until a single-writer reconciliation
-  event binds a Slice-1-valid exact packet. `cannot-determine` blocks
-  completion.
+  producer. Every row binds the terminal primary source-end cursor and a
+  recomputable digest of the frozen source, exact S1 criteria bytes, ordered
+  primary walk/events, primary packet exact-evidence identities, and that
+  cursor. A found candidate is `open` with both future canonical IDs set to
+  `none`; after single-writer reconciliation it is `reconciled` with one
+  committed event whose interval equals the candidate and is contained in the
+  proposed packet's exact fragment. `cannot-determine` blocks completion.
 - `completion_state = complete` requires full interval coverage, a source-end
   cursor, no open interval or event, at least one distinct gap review, and no
-  open or indeterminate gap result. This is procedural closure only.
+  open or indeterminate gap result. A blocked row's final cursor must be the
+  current frontier, not a stale historical checkpoint. This is procedural
+  closure only.
 
 ## T3.3 Claim inventory → `runs/<run-id>/ledgers/claim-inventory.md`
 
