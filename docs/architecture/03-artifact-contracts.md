@@ -38,7 +38,11 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   state it interrupted (or by run end); all execution pins are exact, never
   aliases such as "latest"; the original bundle and runtime snapshot govern
   every resumption. Historical fixtures retain their recorded predecessor
-  format rather than being silently repinned to current bytes.
+  format rather than being silently repinned to current bytes. Forward-format
+  Core checking validates the manifest's declared identity structure; a host
+  adapter separately binds those declarations to retained execution authority
+  and must reject version removal, downgrade, or pin disagreement before
+  invoking the run's pinned checker.
 
 ## 2. Corpus manifest and source inventory (`corpus/manifest.md`)
 

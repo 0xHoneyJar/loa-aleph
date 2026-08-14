@@ -79,6 +79,8 @@ import {
   runDirectory,
   runtimeSnapshotPath,
   updateRunState,
+  verifyRetainedRuntimeIdentity,
+  verifyRunControl,
   writeRunState,
 } from '../src/run-control.ts';
 import {
@@ -871,6 +873,119 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         'kernel report retained the Core run-slug placeholder',
       );
       assertFixtureBoundary(readRunState(context.runDir), context.runDir);
+    });
+
+    runCase(results, 'run manifest cannot downgrade or diverge from retained execution identity', () => {
+      const { runDir } = requireRun(context);
+      const manifestPath = join(runDir, 'run-manifest.md');
+      const originalManifest = readFileSync(manifestPath, 'utf8');
+      const originalState = readRunState(runDir);
+      const restore = (): void => {
+        writeFileSync(manifestPath, originalManifest);
+        writeRunState(runDir, structuredClone(originalState));
+      };
+      try {
+        writeFileSync(
+          manifestPath,
+          originalManifest.replace(
+            '- run_format_version: 1.1.0-provisional',
+            '- run_format_version: 1.0.0-provisional',
+          ),
+        );
+        const downgraded = dispatchLoaCommand(['resume', RUN_ID], startOptions(context));
+        expect(downgraded.result === 'FAIL', 'retained 1.1 run accepted a 1.0 manifest downgrade');
+        expect(
+          downgraded.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
+          `downgrade failure omitted retained identity diagnostic: ${downgraded.errors.join('; ')}`,
+        );
+        restore();
+
+        writeFileSync(
+          manifestPath,
+          originalManifest.replace('- run_format_version: 1.1.0-provisional\n', ''),
+        );
+        let checkerInvoked = false;
+        const removed = dispatchLoaCommand(['validate', RUN_ID], {
+          ...startOptions(context),
+          checkerSpawn: () => {
+            checkerInvoked = true;
+            throw new Error('checker must not run after manifest identity removal');
+          },
+        });
+        expect(removed.result === 'FAIL', 'retained 1.1 run accepted a missing manifest version');
+        expect(!checkerInvoked, 'version removal reached the pinned checker');
+        expect(
+          removed.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
+          `version-removal failure omitted retained identity diagnostic: ${removed.errors.join('; ')}`,
+        );
+        restore();
+
+        writeFileSync(
+          manifestPath,
+          originalManifest.replace(
+            /^- core_digest:.*\n/mu,
+            '',
+          ),
+        );
+        expectThrows(
+          () => verifyRunControl(runDir),
+          /retained Loa run authority:.*core_digest/iu,
+          'deleted forward Core identity pin',
+        );
+        restore();
+
+        writeFileSync(
+          manifestPath,
+          originalManifest.replace(
+            /^- checker_digest:.*$/mu,
+            `- checker_digest: sha256:${'0'.repeat(64)}`,
+          ),
+        );
+        expectThrows(
+          () => verifyRunControl(runDir),
+          /checker_digest.*retained run authority/iu,
+          'changed forward checker identity pin',
+        );
+        restore();
+
+        const changedLockRefState = structuredClone(originalState);
+        changedLockRefState.identity.bundle.lock_ref = 'control/alternate-bundle.lock.json';
+        writeRunState(runDir, changedLockRefState);
+        writeFileSync(
+          manifestPath,
+          originalManifest.replace(
+            /^- bundle_lock_ref:.*$/mu,
+            '- bundle_lock_ref: control/alternate-bundle.lock.json',
+          ),
+        );
+        expectThrows(
+          () => verifyRunControl(runDir),
+          /original bundle lock reference disagrees with pinned run identity/iu,
+          'bundle lock reference diverged from retained authority path',
+        );
+        restore();
+
+        const changedState = structuredClone(originalState);
+        changedState.identity.host.version = '0.1.1-provisional';
+        writeRunState(runDir, changedState);
+        writeFileSync(
+          manifestPath,
+          originalManifest.replace(
+            /^- host_identity:.*$/mu,
+            `- host_identity: ${changedState.identity.host.id}`
+              + `@${changedState.identity.host.version}`
+              + `+${changedState.identity.host.build_id}`,
+          ),
+        );
+        const rebound = verifyRunControl(runDir);
+        expectThrows(
+          () => verifyRetainedRuntimeIdentity(runDir, rebound),
+          /retained runtime snapshot identity disagrees/iu,
+          'run-state and manifest host identity diverged from retained runtime',
+        );
+      } finally {
+        restore();
+      }
     });
 
     runCase(results, 'checker publication recovers a prepared result before the next invocation', () => {

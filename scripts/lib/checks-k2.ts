@@ -33,6 +33,7 @@ import {
   DISPOSITIONS,
   EXACT_EVIDENCE_FORMAT,
   EXACT_EVIDENCE_JOIN_POLICIES,
+  forwardExecutionIdentityProblems,
   LEGACY_RUN_FORMAT_VERSION,
 } from './run-model.ts';
 import type {
@@ -128,8 +129,28 @@ function existsPath(path: string, type: 'file' | 'directory' = 'file'): boolean 
   return type === 'directory' ? stat.isDirectory() : stat.isFile();
 }
 
+function distillingArtifactSignals(model: RunModel): string[] {
+  const signals: string[] = [];
+  if (model.packetDocument) signals.push('ledgers/packet-index.md');
+  if (model.packets.length > 0) signals.push('packet rows');
+  if (firstRunLogEntry(model.runLog, 'S2')) signals.push('run-log S2 entry');
+  if (model.exactEvidence.format) signals.push('exact_evidence_format');
+  if (
+    model.exactEvidence.recordTable
+    || model.exactEvidence.fragmentTable
+    || model.exactEvidence.transformationTable
+  ) {
+    signals.push('exact-evidence tables');
+  }
+  return signals;
+}
+
 function distillingArtifactsApply(model: RunModel): boolean {
-  return STATES.slice(2).some((state) => reachedState(model, state));
+  return STATES.slice(2).some((state) => reachedState(model, state))
+    || (
+      model.manifest?.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+      && distillingArtifactSignals(model).length > 0
+    );
 }
 
 function checkLayout(results: ResultCollector, model: RunModel): void {
@@ -236,7 +257,12 @@ function checkManifest(results: ResultCollector, model: RunModel): void {
     const runFormatFields = manifest.lines.filter(
       (line) => /^\s*-\s*run[_ -]format[_ -]version\s*:/i.test(line),
     );
-    if (runFormatFields.length > 1) {
+    if (
+      manifest.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+      && runFormatFields.length !== 1
+    ) {
+      fail(`run_format_version must be defined exactly once; found ${runFormatFields.length}`);
+    } else if (runFormatFields.length > 1) {
       fail(`run_format_version must be defined at most once; found ${runFormatFields.length}`);
     }
     if (
@@ -251,6 +277,7 @@ function checkManifest(results: ResultCollector, model: RunModel): void {
         + `${LEGACY_RUN_FORMAT_VERSION} or ${CURRENT_RUN_FORMAT_VERSION}`,
       );
     }
+    for (const problem of forwardExecutionIdentityProblems(manifest)) fail(problem);
     if (!manifest.corpusHash.trim()) fail('corpus_hash is missing');
     if (manifest.states.length === 0) {
       fail('state log has no rows');
@@ -315,6 +342,14 @@ function checkManifest(results: ResultCollector, model: RunModel): void {
       const threshold = STATES.indexOf(state);
       return manifest.states.some((row) => STATES.indexOf(row.values.state.trim()) >= threshold);
     };
+    const distillingSignals = distillingArtifactSignals(model);
+    if (
+      manifest.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+      && distillingSignals.length > 0
+      && !hasStateAtOrAfter('DISTILLING')
+    ) {
+      fail(`state log understates DISTILLING; observed ${distillingSignals.join(', ')}`);
+    }
     if (hasStateAtOrAfter('CORPUS-FROZEN')) {
       const s0 = manifest.signoffs.find((row) => /\bS0\b/i.test(row.values.gate));
       if (!s0 || !positiveDecision(s0.values.decision)) {
@@ -350,7 +385,7 @@ function checkManifest(results: ResultCollector, model: RunModel): void {
         );
       }
     }
-    return 'mode, hashes, ordered states, BLOCKED re-entry, and sign-offs are valid';
+    return 'mode, forward identity, stage consistency, ordered states, BLOCKED re-entry, and sign-offs are valid';
   });
 }
 
@@ -554,6 +589,7 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
     const packetCoverage = new Map<string, string>();
     const sourceBytes = new Map<string, Buffer>();
     const observedByFragment = new Map<string, Buffer>();
+    const degradedUnverifiedSchemes = new Set<string>();
     const sources = makeIndexes(model).SRC;
     const packets = makeIndexes(model).PKT;
 
@@ -738,6 +774,25 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
         }
         if (source) {
           const scheme = source.values.scheme.replace(/`/g, '').trim();
+          const sourcePath = sourceFilePath(model.runDir, source.values.locus);
+          if (!sourcePath || !existsPath(sourcePath)) {
+            fail(
+              `${evidenceKey} degraded source ${degradedSourceId} locus `
+              + `"${source.values.locus}" is not a readable file`,
+            );
+          } else {
+            let frozenBytes = sourceBytes.get(degradedSourceId);
+            if (!frozenBytes) {
+              frozenBytes = readFileSync(sourcePath);
+              sourceBytes.set(degradedSourceId, frozenBytes);
+            }
+            const declaredSourceHash = exactSha256(source.values.contentHash);
+            if (!declaredSourceHash) {
+              fail(`${degradedSourceId} content_hash must be sha256:<lowercase hex>`);
+            } else if (sha256(frozenBytes) !== declaredSourceHash) {
+              fail(`${degradedSourceId} content_hash does not match the frozen source bytes`);
+            }
+          }
           if (!scheme) {
             fail(`${degradedSourceId} has no declared locator scheme`);
           } else if (
@@ -750,6 +805,22 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
               + 'is not L<start>-L<end>',
             );
           } else if (
+            scheme === 'md-lines'
+            && sourcePath
+            && existsPath(sourcePath)
+            && degradedSourceLocator !== 'none'
+          ) {
+            const locator = parseMdLineLocator(degradedSourceLocator);
+            if (locator) {
+              const span = mdLineSpan(sourcePath, locator.start, locator.end);
+              if (!span?.bytes) {
+                fail(
+                  `${evidenceKey} degraded locator ${degradedSourceLocator} is outside `
+                  + `${degradedSourceId}'s ${span?.lineCount ?? 0} lines`,
+                );
+              }
+            }
+          } else if (
             scheme === 'chat-msg'
             && degradedSourceLocator !== 'none'
             && !/^M[1-9]\d*(?::S[1-9]\d*)?$/.test(degradedSourceLocator)
@@ -758,6 +829,8 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
               `${evidenceKey} degraded locator "${degradedSourceLocator}" `
               + 'is not M<n> or M<n>:S<k>',
             );
+          } else if (scheme !== 'md-lines') {
+            degradedUnverifiedSchemes.add(scheme);
           }
         }
         if (!degradationReason || degradationReason === 'none') {
@@ -931,7 +1004,11 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
       }
     }
 
-    return 'exact fragments reopen frozen bytes; order, joins, hashes, and transformation identities are valid';
+    return degradedUnverifiedSchemes.size > 0
+      ? `exact fragments reopen frozen bytes; degraded scheme(s) ${
+        [...degradedUnverifiedSchemes].sort().join(', ')
+      } are structurally checked but not mechanically reopened`
+      : 'exact fragments reopen frozen bytes; degraded source loci reopen and order, joins, hashes, and transformation identities are valid';
   });
 }
 

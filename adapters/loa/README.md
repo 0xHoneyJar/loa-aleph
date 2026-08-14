@@ -135,6 +135,21 @@ kept beneath each run's `control/` directory:
   deterministic resume-time rollback or roll-forward; and
 - `checks/` preserves exact checker invocations and reports.
 
+Every new Loa run renders the Core-defined forward identity into
+`run-manifest.md`. Before status, resume, authority transitions, or validation,
+Loa parses that manifest through Core and compares its run ID, format, Core,
+adapter, bundle, checker, protocol, host, profile, model, and runtime pins to
+`control/run-state.json` plus `control/original-bundle.lock.json`. Resume and
+validation additionally verify the retained runtime snapshot and bind its
+bundle, host, profile, and role-model mapping back to run state. The manifest
+cannot select compatibility: a retained 1.1 run that declares 1.0, removes the
+version, or changes a pin fails before the pinned checker runs.
+
+Retained 1.0 runs are not migrated and are not resumed by substituting this
+adapter. They continue under their original immutable bundle, runtime, and
+checker. The current repository's explicit legacy fixture checks document that
+boundary; they are not a downgrade path for a newly created run.
+
 Workers receive copied, read-only allowlisted bundles, never the run root or a
 ledger-writing handle. Prompt parts, stage sections, and return contracts are
 byte-sliced from canonical Core files in the retained bundle. Returns stay in

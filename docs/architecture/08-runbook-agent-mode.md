@@ -168,7 +168,10 @@ On waking into an existing run: restore and verify the exact original bundle
 lock and immutable runtime snapshot, then read the manifest and run log, verify
 ledger hashes, find the first unmet DoD item, and continue from there. Never
 substitute a newer Core, adapter, checker, model, or runtime in place. If the
-directory contradicts the log or the original execution identity is
+manifest version or any forward identity pin disagrees with the retained run
+state, original lock, or runtime snapshot, stop; the manifest cannot select a
+weaker compatibility mode. If the directory contradicts the log or the
+original execution identity is
 unavailable, stop and flag — never reconcile by guessing. If you are a
 different agent than the one that started the run, say so in the run log and
 carry on; the pinned files, not your predecessor's memory, are the run.

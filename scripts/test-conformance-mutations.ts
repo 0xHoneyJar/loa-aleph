@@ -23,7 +23,7 @@ const RUN_CHECKER = join(REPO_ROOT, 'scripts', 'validate-run.ts');
 const EXPECTED_CASES = new Map<string, number>([
   ['K1', 5],
   ['K2', 22],
-  ['K2E', 17],
+  ['K2E', 21],
   ['K3', 8],
   ['K4/K5', 9],
   ['K6', 11],
@@ -919,6 +919,97 @@ addFailureCase(
   /run format 1\.1\.0-provisional requires exact_evidence_format aleph-exact-evidence\/v1/,
 );
 
+addCase('K2E', 'current run requires complete forward execution identity', (root) => {
+  const requiredFields = [
+    'core_id',
+    'core_version',
+    'core_digest',
+    'adapter_id',
+    'adapter_version',
+    'adapter_digest',
+    'bundle_id',
+    'bundle_digest',
+    'bundle_lock_ref',
+    'checker_digest',
+    'adapter_protocol_version',
+    'host_identity',
+    'runtime_snapshot_ref',
+    'runtime_snapshot_digest',
+  ];
+  for (const field of requiredFields) {
+    const relativePath = join(
+      'docs',
+      'fixtures',
+      `exact-evidence-missing-${field.replaceAll('_', '-')}`,
+    );
+    const path = copyFixture('exact-evidence-fragments', root, relativePath);
+    removeLine(
+      join(path, 'run-manifest.md'),
+      new RegExp(`^- ${field}:`),
+    );
+    const report = requireFailure(runFixture(root, relativePath), 'K2.2');
+    requireCheck(
+      report,
+      'K2.2',
+      'FAIL',
+      new RegExp(`${field} must be defined exactly once`),
+    );
+  }
+
+  const profileRows = [
+    ['model_ids', /^\| model_ids \(per role, exact strings; or "human"\) \|/],
+    ['adapter profile ID + digest', /^\| adapter profile ID \+ digest \|/],
+    ['model/context/effort mapping actually used', /^\| model\/context\/effort mapping actually used \|/],
+  ] as const;
+  for (const [field, pattern] of profileRows) {
+    const relativePath = join(
+      'docs',
+      'fixtures',
+      `exact-evidence-missing-${field.replaceAll(/[^A-Za-z0-9]+/g, '-').toLowerCase()}`,
+    );
+    const path = copyFixture('exact-evidence-fragments', root, relativePath);
+    removeLine(join(path, 'run-manifest.md'), pattern);
+    const report = requireFailure(runFixture(root, relativePath), 'K2.2');
+    requireCheck(
+      report,
+      'K2.2',
+      'FAIL',
+      new RegExp(`${field.replace(/[+/]/g, '\\$&')} must be defined exactly once`),
+    );
+  }
+});
+
+addCase('K2E', 'S2 evidence cannot be hidden by suppressing DISTILLING', (root) => {
+  const relativePath = join('docs', 'fixtures', 'exact-evidence-state-suppressed');
+  const path = copyFixture('exact-evidence-fragments', root, relativePath);
+  removeLine(
+    join(path, 'run-manifest.md'),
+    /^\| 3 \| DISTILLING \| 2026-08-13 09:20 UTC \|/,
+  );
+  removeLine(
+    join(path, 'ledgers', 'packet-index.md'),
+    /^- exact_evidence_format: aleph-exact-evidence\/v1$/,
+  );
+  replaceRegexOnce(
+    join(path, 'ledgers', 'packet-index.md'),
+    /\n## Exact evidence records[\s\S]*?\n## Per-source completion\n/u,
+    '\n## Per-source completion\n',
+  );
+  const report = requireFailure(runFixture(root, relativePath), 'K2.2');
+  requireCheck(
+    report,
+    'K2.2',
+    'FAIL',
+    /state log understates DISTILLING/,
+  );
+  requireCheck(
+    report,
+    'K2.13',
+    'FAIL',
+    /run format 1\.1\.0-provisional requires exact_evidence_format aleph-exact-evidence\/v1/,
+  );
+});
+
 addFailureCase(
   'K2E',
   'degraded evidence missing source binding',
@@ -962,6 +1053,42 @@ addFailureCase(
     );
   },
   /EVID-0304 degraded locator "L0-L0" is not L<start>-L<end>/,
+);
+
+addFailureCase(
+  'K2E',
+  'degraded md-lines locator is outside the frozen source',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-301 | L10-L10 |',
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-301 | L999-L999 |',
+    );
+  },
+  /EVID-0304 degraded locator L999-L999 is outside SRC-301/,
+);
+
+addFailureCase(
+  'K2E',
+  'degraded source locus is not readable',
+  'exact-evidence-fragments',
+  'K2.13',
+  (path) => {
+    replaceOnce(
+      join(path, 'corpus', 'manifest.md'),
+      '| SRC-301 | design-note | sources/SRC-301-exact-evidence.md | md-lines | sha256:f53ee9454205a5ca11c300add045a2cccf2748063383b68c79029b65fa831e6c | 2026-08-13 | model-generated | none | synthetic bytes selected to exercise the exact-evidence format |',
+      '| SRC-301 | design-note | sources/SRC-301-exact-evidence.md | md-lines | sha256:f53ee9454205a5ca11c300add045a2cccf2748063383b68c79029b65fa831e6c | 2026-08-13 | model-generated | none | synthetic bytes selected to exercise the exact-evidence format |\n'
+        + '| SRC-302 | design-note | sources/SRC-302-missing.md | md-lines | sha256:f53ee9454205a5ca11c300add045a2cccf2748063383b68c79029b65fa831e6c | 2026-08-13 | model-generated | none | missing degraded source fixture |',
+    );
+    replaceOnce(
+      join(path, 'ledgers', 'packet-index.md'),
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-301 | L10-L10 |',
+      '| EVID-0304 | none | degraded-non-exact | 0 | not-applicable | none | SRC-302 | L10-L10 |',
+    );
+  },
+  /EVID-0304 degraded source SRC-302 locus "sources\/SRC-302-missing\.md" is not a readable file/,
 );
 
 addFailureCase(

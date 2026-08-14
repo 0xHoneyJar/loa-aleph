@@ -6,7 +6,10 @@ src_ids: SRC-301
 ```
 
 This synthetic `1.1.0-provisional` `DISTILLING` run exercises the mandatory
-`aleph-exact-evidence/v1` packet-ledger extension. It contains:
+forward K2.2 execution-identity shape and the
+`aleph-exact-evidence/v1` packet-ledger extension. Its content-addressed
+identity values are fixture-simulated structural pins, not claims about the
+repository's current bundle or runtime. It contains:
 
 - one exact single fragment with curly quotation marks and a ligature;
 - two exact adjacent fragments;
@@ -17,7 +20,8 @@ This synthetic `1.1.0-provisional` `DISTILLING` run exercises the mandatory
 
 The fixture proves only deterministic source-byte and structural fidelity. It
 does not prove semantic entailment, normalization quality, packetization
-quality, extraction completeness, or source trustworthiness.
+quality, extraction completeness, source trustworthiness, or live compatibility
+with retained host authority.
 
 ## Validation
 
