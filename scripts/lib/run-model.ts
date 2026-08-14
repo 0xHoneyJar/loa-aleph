@@ -33,8 +33,27 @@ export const DISPOSITIONS = [
 export type Disposition = typeof DISPOSITIONS[number];
 
 export const EXACT_EVIDENCE_FORMAT = 'aleph-exact-evidence/v1';
+export const SOURCE_WALK_FORMAT = 'aleph-source-walk/v1';
+export const SOURCE_POSITION_FORMAT = 'zero-based-utf8-byte-half-open/v1';
 export const LEGACY_RUN_FORMAT_VERSION = '1.0.0-provisional';
-export const CURRENT_RUN_FORMAT_VERSION = '1.1.0-provisional';
+export const EXACT_EVIDENCE_RUN_FORMAT_VERSION = '1.1.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = '1.2.0-provisional';
+export const SUPPORTED_RUN_FORMAT_VERSIONS = [
+  LEGACY_RUN_FORMAT_VERSION,
+  EXACT_EVIDENCE_RUN_FORMAT_VERSION,
+  CURRENT_RUN_FORMAT_VERSION,
+] as const;
+
+export function usesForwardExecutionIdentity(runFormatVersion: string): boolean {
+  return [
+    EXACT_EVIDENCE_RUN_FORMAT_VERSION,
+    CURRENT_RUN_FORMAT_VERSION,
+  ].some((version) => version === runFormatVersion);
+}
+
+export function usesExactEvidence(runFormatVersion: string): boolean {
+  return usesForwardExecutionIdentity(runFormatVersion);
+}
 
 export const EXACT_EVIDENCE_JOIN_POLICIES = [
   'single-fragment',
@@ -179,6 +198,70 @@ export interface EvidenceTransformationValues {
   outputTextHash: string;
 }
 
+export interface SourceWalkIntervalValues {
+  walkId: string;
+  sourceId: string;
+  startByte: string;
+  endByte: string;
+  outcome: string;
+  packetIds: string;
+  criterionRef: string;
+  producerInvocationId: string;
+  closureState: string;
+  reason: string;
+  closureNote: string;
+}
+
+export interface SourceWalkEventValues {
+  eventId: string;
+  sourceId: string;
+  startByte: string;
+  endByte: string;
+  sharedPositionKey: string;
+  eventOrdinal: string;
+  packetId: string;
+  origin: string;
+  producerInvocationId: string;
+  status: string;
+}
+
+export interface SourceWalkCursorValues {
+  cursorId: string;
+  sourceId: string;
+  byteOffset: string;
+  sharedPositionKey: string;
+  nextEventOrdinal: string;
+  predecessorWalkId: string;
+  predecessorEventId: string;
+  sourceHash: string;
+  reason: string;
+}
+
+export interface GapReviewValues {
+  gapReviewId: string;
+  sourceId: string;
+  producerInvocationId: string;
+  reviewerInvocationId: string;
+  result: string;
+  candidateStartByte: string;
+  candidateEndByte: string;
+  proposedPacketId: string;
+  reconciliationEventId: string;
+  status: string;
+  note: string;
+}
+
+export interface SourceWalkCompletionValues {
+  sourceId: string;
+  sourceHash: string;
+  sourceLengthBytes: string;
+  finalCursorId: string;
+  gapReviewIds: string;
+  completionState: string;
+  declaredBy: string;
+  note: string;
+}
+
 export interface ClaimValues {
   claimId: string;
   normalizedClaim: string;
@@ -283,6 +366,11 @@ export type PacketRow = RunRow<PacketValues>;
 export type ExactEvidenceRecordRow = RunRow<ExactEvidenceRecordValues>;
 export type ExactEvidenceFragmentRow = RunRow<ExactEvidenceFragmentValues>;
 export type EvidenceTransformationRow = RunRow<EvidenceTransformationValues>;
+export type SourceWalkIntervalRow = RunRow<SourceWalkIntervalValues>;
+export type SourceWalkEventRow = RunRow<SourceWalkEventValues>;
+export type SourceWalkCursorRow = RunRow<SourceWalkCursorValues>;
+export type GapReviewRow = RunRow<GapReviewValues>;
+export type SourceWalkCompletionRow = RunRow<SourceWalkCompletionValues>;
 export type ClaimRow = RunRow<ClaimValues>;
 export type DispositionRow = RunRow<DispositionValues>;
 export type MergeRow = RunRow<MergeValues>;
@@ -315,6 +403,21 @@ export interface ExactEvidenceModel {
   recordTable: MarkdownTable | null;
   fragmentTable: MarkdownTable | null;
   transformationTable: MarkdownTable | null;
+}
+
+export interface SourceWalkModel {
+  format: string;
+  positionFormat: string;
+  intervals: SourceWalkIntervalRow[];
+  events: SourceWalkEventRow[];
+  cursors: SourceWalkCursorRow[];
+  gapReviews: GapReviewRow[];
+  completions: SourceWalkCompletionRow[];
+  intervalTable: MarkdownTable | null;
+  eventTable: MarkdownTable | null;
+  cursorTable: MarkdownTable | null;
+  gapReviewTable: MarkdownTable | null;
+  completionTable: MarkdownTable | null;
 }
 
 export interface RouteCard extends MarkdownDocument {
@@ -368,6 +471,7 @@ export interface RunModel {
   criteria: RunDocument | null;
   packets: PacketRow[];
   exactEvidence: ExactEvidenceModel;
+  sourceWalk: SourceWalkModel;
   claims: ClaimRow[];
   dispositionRows: DispositionRow[];
   merges: MergeRow[];
@@ -382,6 +486,7 @@ export interface RunModel {
   synthesis: RunDocument | null;
   projections: ProjectionModel[];
   packetDocument: RunDocument | null;
+  sourceWalkDocument: RunDocument | null;
   claimDocument: RunDocument | null;
   dispositionDocument: RunDocument | null;
   mergeDocument: RunDocument | null;
@@ -579,7 +684,7 @@ function exactJsonObject(value: string): boolean {
 }
 
 export function forwardExecutionIdentityProblems(manifest: RunManifest): string[] {
-  if (manifest.runFormatVersion !== CURRENT_RUN_FORMAT_VERSION) return [];
+  if (!usesForwardExecutionIdentity(manifest.runFormatVersion)) return [];
   const problems: string[] = [];
   for (const display of FORWARD_IDENTITY_BULLET_FIELDS) {
     const count = bulletFieldCount(manifest, display);
@@ -777,6 +882,152 @@ function parseExactEvidence(document: RunDocument | null): ExactEvidenceModel {
     recordTable,
     fragmentTable,
     transformationTable,
+  };
+}
+
+function parseSourceWalk(document: RunDocument | null): SourceWalkModel {
+  if (!document) {
+    return {
+      format: '',
+      positionFormat: '',
+      intervals: [],
+      events: [],
+      cursors: [],
+      gapReviews: [],
+      completions: [],
+      intervalTable: null,
+      eventTable: null,
+      cursorTable: null,
+      gapReviewTable: null,
+      completionTable: null,
+    };
+  }
+  const intervalTable = findTable(document.tables, [
+    'walk id',
+    'source id',
+    'start byte',
+    'end byte',
+    'outcome',
+    'packet ids',
+    'criterion ref',
+    'producer invocation id',
+    'closure state',
+    'reason',
+    'closure note',
+  ]);
+  const eventTable = findTable(document.tables, [
+    'event id',
+    'source id',
+    'start byte',
+    'end byte',
+    'shared position key',
+    'event ordinal',
+    'packet id',
+    'origin',
+    'producer invocation id',
+    'status',
+  ]);
+  const cursorTable = findTable(document.tables, [
+    'cursor id',
+    'source id',
+    'byte offset',
+    'shared position key',
+    'next event ordinal',
+    'predecessor walk id',
+    'predecessor event id',
+    'source hash',
+    'reason',
+  ]);
+  const gapReviewTable = findTable(document.tables, [
+    'gap review id',
+    'source id',
+    'producer invocation id',
+    'reviewer invocation id',
+    'result',
+    'candidate start byte',
+    'candidate end byte',
+    'proposed packet id',
+    'reconciliation event id',
+    'status',
+    'note',
+  ]);
+  const completionTable = findTable(document.tables, [
+    'source id',
+    'source hash',
+    'source length bytes',
+    'final cursor id',
+    'gap review ids',
+    'completion state',
+    'declared by',
+    'note',
+  ]);
+  return {
+    format: document.bullets.fields.get('source walk format') || '',
+    positionFormat: document.bullets.fields.get('source position format') || '',
+    intervals: rowObjects(intervalTable, [
+      'walkId',
+      'sourceId',
+      'startByte',
+      'endByte',
+      'outcome',
+      'packetIds',
+      'criterionRef',
+      'producerInvocationId',
+      'closureState',
+      'reason',
+      'closureNote',
+    ]),
+    events: rowObjects(eventTable, [
+      'eventId',
+      'sourceId',
+      'startByte',
+      'endByte',
+      'sharedPositionKey',
+      'eventOrdinal',
+      'packetId',
+      'origin',
+      'producerInvocationId',
+      'status',
+    ]),
+    cursors: rowObjects(cursorTable, [
+      'cursorId',
+      'sourceId',
+      'byteOffset',
+      'sharedPositionKey',
+      'nextEventOrdinal',
+      'predecessorWalkId',
+      'predecessorEventId',
+      'sourceHash',
+      'reason',
+    ]),
+    gapReviews: rowObjects(gapReviewTable, [
+      'gapReviewId',
+      'sourceId',
+      'producerInvocationId',
+      'reviewerInvocationId',
+      'result',
+      'candidateStartByte',
+      'candidateEndByte',
+      'proposedPacketId',
+      'reconciliationEventId',
+      'status',
+      'note',
+    ]),
+    completions: rowObjects(completionTable, [
+      'sourceId',
+      'sourceHash',
+      'sourceLengthBytes',
+      'finalCursorId',
+      'gapReviewIds',
+      'completionState',
+      'declaredBy',
+      'note',
+    ]),
+    intervalTable,
+    eventTable,
+    cursorTable,
+    gapReviewTable,
+    completionTable,
   };
 }
 
@@ -981,6 +1232,7 @@ export function loadRun(runDir: string): RunModel {
   const runLog = get('run-log.md');
   const criteria = get('ledgers/extraction-criteria.md');
   const packetDocument = get('ledgers/packet-index.md');
+  const sourceWalkDocument = get('ledgers/source-walk.md');
   const claimDocument = get('ledgers/claim-inventory.md');
   const dispositionDocument = get('ledgers/disposition-ledger.md');
   const mergeDocument = get('ledgers/merge-map.md');
@@ -1000,6 +1252,7 @@ export function loadRun(runDir: string): RunModel {
     criteria,
     packets: parsePackets(packetDocument),
     exactEvidence: parseExactEvidence(packetDocument),
+    sourceWalk: parseSourceWalk(sourceWalkDocument),
     claims: parseClaims(claimDocument),
     dispositionRows: parseDispositionRows(dispositionDocument),
     merges: parseMerges(mergeDocument),
@@ -1014,6 +1267,7 @@ export function loadRun(runDir: string): RunModel {
     synthesis: get('synthesis/cluster-synthesis.md'),
     projections: parseProjections(runDir),
     packetDocument,
+    sourceWalkDocument,
     claimDocument,
     dispositionDocument,
     mergeDocument,

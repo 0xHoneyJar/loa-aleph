@@ -65,7 +65,8 @@ scope.
   (merge-map, evidence-roles, clusters/, arms/, precis.md, verification/) are
   required **iff** the manifest's state log shows the run reached the state
   that produces them (state→artifact table hardcoded from doc 04's "Emits"
-  column).
+  column). Run format `1.2.0-provisional` additionally requires
+  `ledgers/source-walk.md` whenever S2 applies.
 - K2.2 (`manifest`): every format carries mode, doctrine_sha (40-hex), corpus
   hash, exactly one `run_id` (`RUN-<slug>`), exactly one `predecessor_run`
   (`none` or a different `RUN-<slug>`), and ≥1 state-log row; every state-log
@@ -79,14 +80,16 @@ scope.
   packet index or packet rows, an S2 run-log entry, the exact-evidence marker,
   or exact-evidence tables — cannot coexist with a state log that stops before
   `DISTILLING`.
-  Decision 0004's `1.1.0-provisional` forward run format additionally requires
+  Decision 0004's forward run formats (`1.1.0-provisional` and
+  `1.2.0-provisional`) additionally require
   exactly one structurally valid Core ID/version/digest; adapter
   ID/version/digest; bundle ID/digest/lock reference; checker digest;
   adapter-protocol and run-format version; host identity; model identities and
   realized mapping; adapter-profile ID/digest; and runtime-snapshot
   reference/digest. These are mechanical identity and shape checks only.
   The accepted `run-slice-2` golden predates that format and is not silently
-  migrated; `exact-evidence-fragments` is the first complete forward-format
+  migrated; `exact-evidence-fragments` is the first complete 1.1
+  forward-format fixture, and `source-walk-accounting` is the first 1.2
   fixture.
 
   A host-neutral checker cannot authenticate a removed or downgraded mutable
@@ -95,8 +98,8 @@ scope.
   its retained run state, original bundle lock, and immutable runtime identity
   before invoking the pinned checker. Existing 1.0 runs remain governed by
   their original immutable bundle/runtime/checker; this current-repository
-  legacy fixture exercise is not permission for a new 1.1 run to self-select
-  legacy validation.
+  legacy fixture exercise is not permission for a new 1.1 or 1.2 run to
+  self-select an earlier validation contract.
 - K2.3 (`forbidden tokens`, fixture runs only): the fixture-layer
   absolute-forbidden token scan (same zero-tolerance semantics, same token
   list as the existing checker) applied to every canonical Core file of a run directory
@@ -123,7 +126,7 @@ scope.
   run-local checker.
 - K2.6 (`claim table shape`): once `DISTILLING` is reached, or whenever a claim
   inventory already exists, claim-inventory rows have exactly 10 columns
-  (template T3.2); exactly one disposition from the seven on `active` rows;
+  (template T3.3); exactly one disposition from the seven on `active` rows;
   `packets` non-empty; `sources` equals the union of the cited packets'
   sources (recomputed). Before `DISTILLING`, an absent claim inventory is not
   yet applicable.
@@ -156,8 +159,9 @@ scope.
 - K2.13 (`exact evidence and ordered fragments`): retained
   `1.0.0-provisional` and pre-versioned historical runs without
   `exact_evidence_format` preserve the legacy K2.4 interpretation and are not
-  reinterpreted. In run format `1.1.0-provisional`, the marker is mandatory
-  once `DISTILLING` is reached and must equal
+  reinterpreted. In run formats `1.1.0-provisional` and
+  `1.2.0-provisional`, the marker is mandatory once `DISTILLING` is reached
+  and must equal
   `aleph-exact-evidence/v1`; its absence is a failure, not a legacy fallback.
   The packet index must contain exact-evidence, ordered-fragment, and
   transformation tables. Every packet is covered exactly once by an `exact`
@@ -177,10 +181,58 @@ scope.
   but no Core reopener remain explicitly structurally checked but mechanically
   unverified. None of these checks compare degraded rendered text to exact
   bytes or claim that rendering is faithful.
+- K2.14 (`source walk, gap review, and resume accounting`): only run format
+  `1.2.0-provisional` activates
+  `source_walk_format: aleph-source-walk/v1` with
+  `source_position_format: zero-based-utf8-byte-half-open/v1`. Once S2 is
+  mechanically observable, the dedicated ledger and all five tables are
+  mandatory. Earlier formats must not be reinterpreted as 1.2.
+
+  For every source, Core reopens the frozen locus, verifies the whole-source
+  SHA-256 and byte length, requires valid UTF-8, and rejects any coordinate
+  outside the source or inside a multibyte code point. Primary walk intervals
+  use canonical zero-based half-open byte coordinates and must form one
+  ordered contiguous prefix from byte zero with no reversed interval, hole,
+  or overlap. A source declared complete must reach its exact byte length.
+  Outcomes are `admitted`, `no-candidate-observed`, `excluded`, `deferred`,
+  and `unsupported`. Admitted/excluded rows resolve frozen S1 criterion
+  references; deferred rows carry a reason and are open or resolved with a
+  closure note; unsupported rows carry a reason and remain blocking.
+
+  Packet-producing extraction events resolve to source-walk intervals,
+  packets, and Slice-1 exact-evidence records. Primary events must be declared
+  by their admitted interval. Gap-reconciliation events may attach only to a
+  compatible primary region and must be linked by exactly one found gap
+  record. Overlapping event coordinates are legal only when they are exactly
+  equal and share one source-position key. Ordinals within that key are unique
+  and contiguous from one.
+
+  Resume cursors identify the **next unprocessed** byte/event, carry the frozen
+  source hash, resolve predecessor walk/event records, remain monotonic and in
+  bounds, and cannot move beyond open intervals or pending events. Every
+  multi-event shared position has a cursor for each pending ordinal; a pause
+  after ordinal one stays at that same byte position and names ordinal two.
+
+  Gap reviews record distinct primary-producer and reviewer invocation
+  identities plus `no-gap-candidate-found`, `gap-candidate-found`, or
+  `cannot-determine`. Core can verify only the distinct declared identities
+  and ledger structure; live host isolation remains adapter evidence. A found
+  candidate carries a valid source range, exact packet, reconciliation event,
+  and `open` or `reconciled` status. `cannot-determine` is blocking.
+
+  One completion row per source binds hash, byte length, last cursor, all gap
+  reviews, and `complete` or `blocked`. Completion requires full coverage, a
+  source-end cursor, no open deferred/unsupported interval, no pending event,
+  at least one gap review, and no open or indeterminate finding. An S2 exit or
+  later manifest state requires all sources complete.
 
 K2.13 proves only frozen-source byte fidelity and declared structure. It does
 not prove semantic entailment, good packetization, good normalization, correct
 interpretation, atomicity, complete extraction, or source trustworthiness.
+
+K2.14 proves structural traversal and procedural review accounting only. It
+does not prove perfect recall, semantic candidacy, review correctness,
+exclusion wisdom, or model quality.
 
 **False-positive guards:** prose mentions like "no `CC-999` exists" are NOT
 exempt — same context-free strictness as the existing forbidden-token scan;
@@ -211,4 +263,16 @@ ligature, newline bytes, fragment row order, an undeclared join, a normalized
   degraded frozen locus, and degraded exact-claim constraints. Each must fail
   its named K2 invariant. The pre-versioned
 golden remains a positive legacy lock; the `1.1.0-provisional` exact-evidence
-fixture is the positive current-format lock.
+fixture remains the positive 1.1 lock.
+
+The Slice-2 K2.14 battery mutates a skipped interior interval, uncovered
+origin, uncovered terminal bytes, reversed and out-of-bounds intervals,
+undeclared overlap, duplicate and missing shared-position ordinals, a resume
+jump past a same-position sibling, backward and beyond-end cursors, missing
+packet/exact-evidence links, invalid exclusion criteria, malformed deferred
+and unsupported regions, false completion over uncovered/open work, missing
+or non-distinct gap review, open and cannot-determine gap results, removed
+format marker and ledger, understated manifest state, a UTF-8-splitting
+coordinate, and changed frozen source bytes. The
+`source-walk-accounting` fixture is the positive 1.2 lock. Loa separately
+tests retained 1.2 authority against manifest downgrade and version removal.

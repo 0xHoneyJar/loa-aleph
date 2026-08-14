@@ -1,5 +1,6 @@
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { TextDecoder } from 'node:util';
 import {
   activeClaims,
   allStatusRows,
@@ -18,6 +19,7 @@ import {
 } from './check-helpers.ts';
 import {
   envelopeSection,
+  findTable,
   findTableByFirstHeader,
   headingSection,
   idsIn,
@@ -33,8 +35,14 @@ import {
   DISPOSITIONS,
   EXACT_EVIDENCE_FORMAT,
   EXACT_EVIDENCE_JOIN_POLICIES,
+  EXACT_EVIDENCE_RUN_FORMAT_VERSION,
   forwardExecutionIdentityProblems,
   LEGACY_RUN_FORMAT_VERSION,
+  SOURCE_POSITION_FORMAT,
+  SOURCE_WALK_FORMAT,
+  SUPPORTED_RUN_FORMAT_VERSIONS,
+  usesExactEvidence,
+  usesForwardExecutionIdentity,
 } from './run-model.ts';
 import type {
   IdentifierFamily,
@@ -44,8 +52,12 @@ import type { ResultCollector } from './results.ts';
 import type {
   Disposition,
   ExactEvidenceFragmentRow,
+  GapReviewRow,
   RunModel,
   RunRow,
+  SourceWalkCursorRow,
+  SourceWalkEventRow,
+  SourceWalkIntervalRow,
 } from './run-model.ts';
 
 const CLAIM_TYPES: readonly string[] = [
@@ -142,13 +154,24 @@ function distillingArtifactSignals(model: RunModel): string[] {
   ) {
     signals.push('exact-evidence tables');
   }
+  if (model.sourceWalkDocument) signals.push('ledgers/source-walk.md');
+  if (model.sourceWalk.format) signals.push('source_walk_format');
+  if (
+    model.sourceWalk.intervalTable
+    || model.sourceWalk.eventTable
+    || model.sourceWalk.cursorTable
+    || model.sourceWalk.gapReviewTable
+    || model.sourceWalk.completionTable
+  ) {
+    signals.push('source-walk tables');
+  }
   return signals;
 }
 
 function distillingArtifactsApply(model: RunModel): boolean {
   return STATES.slice(2).some((state) => reachedState(model, state))
     || (
-      model.manifest?.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+      usesForwardExecutionIdentity(model.manifest?.runFormatVersion || '')
       && distillingArtifactSignals(model).length > 0
     );
 }
@@ -173,6 +196,12 @@ function checkLayout(results: ResultCollector, model: RunModel): void {
     if (distillingArtifactsApply(model)) {
       for (const path of distillingFiles) {
         if (!existsPath(join(model.runDir, path))) fail(`required path ${path} is missing`);
+      }
+      if (
+        model.manifest?.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+        && !existsPath(join(model.runDir, 'ledgers/source-walk.md'))
+      ) {
+        fail('required path ledgers/source-walk.md is missing');
       }
     }
 
@@ -258,7 +287,7 @@ function checkManifest(results: ResultCollector, model: RunModel): void {
       (line) => /^\s*-\s*run[_ -]format[_ -]version\s*:/i.test(line),
     );
     if (
-      manifest.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+      usesForwardExecutionIdentity(manifest.runFormatVersion)
       && runFormatFields.length !== 1
     ) {
       fail(`run_format_version must be defined exactly once; found ${runFormatFields.length}`);
@@ -267,14 +296,13 @@ function checkManifest(results: ResultCollector, model: RunModel): void {
     }
     if (
       manifest.runFormatVersion
-      && ![
-        LEGACY_RUN_FORMAT_VERSION,
-        CURRENT_RUN_FORMAT_VERSION,
-      ].includes(manifest.runFormatVersion)
+      && !SUPPORTED_RUN_FORMAT_VERSIONS.some(
+        (version) => version === manifest.runFormatVersion,
+      )
     ) {
       fail(
         `run_format_version "${manifest.runFormatVersion}" is unsupported; expected `
-        + `${LEGACY_RUN_FORMAT_VERSION} or ${CURRENT_RUN_FORMAT_VERSION}`,
+        + SUPPORTED_RUN_FORMAT_VERSIONS.join(', '),
       );
     }
     for (const problem of forwardExecutionIdentityProblems(manifest)) fail(problem);
@@ -344,7 +372,7 @@ function checkManifest(results: ResultCollector, model: RunModel): void {
     };
     const distillingSignals = distillingArtifactSignals(model);
     if (
-      manifest.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+      usesForwardExecutionIdentity(manifest.runFormatVersion)
       && distillingSignals.length > 0
       && !hasStateAtOrAfter('DISTILLING')
     ) {
@@ -538,11 +566,11 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
       runFormatVersion === ''
       || runFormatVersion === LEGACY_RUN_FORMAT_VERSION
     );
-    const isCurrentRun = runFormatVersion === CURRENT_RUN_FORMAT_VERSION;
+    const hasExactEvidenceContract = usesExactEvidence(runFormatVersion);
     const tablesPresent = Boolean(
       exact.recordTable || exact.fragmentTable || exact.transformationTable,
     );
-    if (!isLegacyRun && !isCurrentRun) {
+    if (!isLegacyRun && !hasExactEvidenceContract) {
       fail(
         `exact-evidence activation cannot determine unsupported run_format_version `
         + `"${runFormatVersion || '(blank)'}"`,
@@ -564,11 +592,11 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
       }
       if (distillingArtifactsApply(model)) {
         fail(
-          `run format ${CURRENT_RUN_FORMAT_VERSION} requires `
+          `run format ${runFormatVersion} requires `
           + `exact_evidence_format ${EXACT_EVIDENCE_FORMAT} once DISTILLING is reached`,
         );
       }
-      return `exact evidence is not applicable before DISTILLING in run format ${CURRENT_RUN_FORMAT_VERSION}`;
+      return `exact evidence is not applicable before DISTILLING in run format ${runFormatVersion}`;
     }
     if (exact.format !== EXACT_EVIDENCE_FORMAT) {
       fail(
@@ -1009,6 +1037,1073 @@ function checkExactEvidence(results: ResultCollector, model: RunModel): void {
         [...degradedUnverifiedSchemes].sort().join(', ')
       } are structurally checked but not mechanically reopened`
       : 'exact fragments reopen frozen bytes; degraded source loci reopen and order, joins, hashes, and transformation identities are valid';
+  });
+}
+
+const SOURCE_WALK_OUTCOMES = [
+  'admitted',
+  'no-candidate-observed',
+  'excluded',
+  'deferred',
+  'unsupported',
+] as const;
+
+const GAP_REVIEW_RESULTS = [
+  'no-gap-candidate-found',
+  'gap-candidate-found',
+  'cannot-determine',
+] as const;
+
+interface SourceWalkSource {
+  source: RunModel['corpus']['sources'][number];
+  bytes: Buffer;
+  hash: string;
+  validUtf8: boolean;
+}
+
+interface ParsedWalkInterval {
+  row: SourceWalkIntervalRow;
+  start: number;
+  end: number;
+  packetIds: string[];
+}
+
+interface ParsedWalkEvent {
+  row: SourceWalkEventRow;
+  start: number;
+  end: number;
+  ordinal: number;
+}
+
+interface ParsedWalkCursor {
+  row: SourceWalkCursorRow;
+  offset: number;
+}
+
+function canonicalNonnegativeInteger(value: string): number | null {
+  if (!/^(?:0|[1-9]\d*)$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function customIdList(value: string, family: 'GAP'): string[] | null {
+  if (value === 'none') return [];
+  const parts = value.split(',').map((part) => part.trim());
+  const pattern = new RegExp(`^${family}-\\d+$`);
+  if (parts.length === 0 || parts.some((part) => !pattern.test(part))) return null;
+  return parts;
+}
+
+function substantiveValue(value: string): boolean {
+  return Boolean(value.trim()) && value.trim() !== 'none';
+}
+
+function utf8Boundary(bytes: Buffer, offset: number): boolean {
+  return offset === 0
+    || offset === bytes.byteLength
+    || (bytes[offset] & 0xc0) !== 0x80;
+}
+
+function sourceWalkTablesPresent(model: RunModel): boolean {
+  const walk = model.sourceWalk;
+  return Boolean(
+    walk.intervalTable
+    || walk.eventTable
+    || walk.cursorTable
+    || walk.gapReviewTable
+    || walk.completionTable,
+  );
+}
+
+function sourceWalkStageClosed(model: RunModel): boolean {
+  const distillingIndex = STATES.indexOf('DISTILLING');
+  const advanced = Boolean(model.manifest?.states.some((row) => (
+    STATES.indexOf(row.values.state.trim()) > distillingIndex
+  )));
+  const loggedExit = Boolean(model.runLog?.lines.some((line) => (
+    /^##\s+.+\s+[—-]\s+S2\s+[—-]\s+exit\s*$/i.test(line)
+  )));
+  return advanced || loggedExit;
+}
+
+function checkSourceWalk(results: ResultCollector, model: RunModel): void {
+  results.run('K2.14', 'source walk, gap review, and resume accounting', (fail) => {
+    const version = model.manifest?.runFormatVersion || '';
+    const walk = model.sourceWalk;
+    const structurePresent = Boolean(
+      model.sourceWalkDocument
+      || walk.format
+      || walk.positionFormat
+      || sourceWalkTablesPresent(model)
+    );
+    if (version !== CURRENT_RUN_FORMAT_VERSION) {
+      if (structurePresent) {
+        fail(
+          `run format ${version || '(pre-versioned)'} must not be reinterpreted as `
+          + `${SOURCE_WALK_FORMAT}`,
+        );
+      }
+      if (
+        version
+        && version !== LEGACY_RUN_FORMAT_VERSION
+        && version !== EXACT_EVIDENCE_RUN_FORMAT_VERSION
+      ) {
+        fail(
+          `source-walk activation cannot determine unsupported run_format_version `
+          + `"${version}"`,
+        );
+      }
+      return `source walk is not applicable to run format ${version || '(pre-versioned)'}`;
+    }
+
+    if (!distillingArtifactsApply(model) && !structurePresent) {
+      return `source walk is not applicable before DISTILLING in run format ${version}`;
+    }
+    if (!model.sourceWalkDocument) {
+      fail(`run format ${version} requires ledgers/source-walk.md once S2 begins`);
+      return 'source-walk structure is valid';
+    }
+
+    const walkFormatCount = model.sourceWalkDocument.lines.filter(
+      (line) => /^\s*-\s*source[_ -]walk[_ -]format\s*:/i.test(line),
+    ).length;
+    const positionFormatCount = model.sourceWalkDocument.lines.filter(
+      (line) => /^\s*-\s*source[_ -]position[_ -]format\s*:/i.test(line),
+    ).length;
+    if (walkFormatCount !== 1 || walk.format !== SOURCE_WALK_FORMAT) {
+      fail(
+        `run format ${version} requires source_walk_format ${SOURCE_WALK_FORMAT} `
+        + `exactly once`,
+      );
+    }
+    if (positionFormatCount !== 1 || walk.positionFormat !== SOURCE_POSITION_FORMAT) {
+      fail(
+        `run format ${version} requires source_position_format `
+        + `${SOURCE_POSITION_FORMAT} exactly once`,
+      );
+    }
+    if (!walk.intervalTable) {
+      fail('primary walk interval table is missing or has the wrong header');
+    }
+    if (!walk.eventTable) {
+      fail('extraction event table is missing or has the wrong header');
+    }
+    if (!walk.cursorTable) {
+      fail('resume cursor table is missing or has the wrong header');
+    }
+    if (!walk.gapReviewTable) {
+      fail('fresh gap-review table is missing or has the wrong header');
+    }
+    if (!walk.completionTable) {
+      fail('per-source completion table is missing or has the wrong header');
+    }
+
+    const sources = makeIndexes(model).SRC;
+    const packets = makeIndexes(model).PKT;
+    const sourceData = new Map<string, SourceWalkSource>();
+    for (const source of model.corpus.sources) {
+      const sourceId = source.values.sourceId;
+      const sourcePath = sourceFilePath(model.runDir, source.values.locus);
+      if (!sourcePath || !existsPath(sourcePath)) {
+        fail(
+          `${sourceId || 'source row'} locus "${source.values.locus}" `
+          + 'is not a readable frozen source file',
+        );
+        continue;
+      }
+      const bytes = readFileSync(sourcePath);
+      const actualHash = sha256(bytes);
+      const declaredHash = exactSha256(source.values.contentHash);
+      if (!declaredHash) {
+        fail(`${sourceId} content_hash must be sha256:<lowercase hex>`);
+      } else if (declaredHash !== actualHash) {
+        fail(`${sourceId} content_hash does not match the frozen source bytes`);
+      }
+      let validUtf8 = true;
+      try {
+        new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      } catch {
+        validUtf8 = false;
+        fail(
+          `${sourceId} is not valid UTF-8 and cannot use ${SOURCE_POSITION_FORMAT}`,
+        );
+      }
+      sourceData.set(sourceId, {
+        source,
+        bytes,
+        hash: `sha256:${actualHash}`,
+        validUtf8,
+      });
+    }
+
+    const admissionCriteria = new Set<string>();
+    const exclusionCriteria = new Set<string>();
+    if (model.criteria) {
+      const admissionTable = findTable(model.criteria.tables, [
+        '#',
+        'criterion',
+        'example span that qualifies',
+      ]);
+      const exclusionTable = findTable(model.criteria.tables, [
+        'class',
+        'description',
+        'example',
+      ]);
+      for (const row of admissionTable?.rows || []) {
+        const value = row.cells[0]?.replace(/\*/g, '').trim() || '';
+        if (/^[1-9]\d*$/.test(value)) admissionCriteria.add(value);
+      }
+      for (const row of exclusionTable?.rows || []) {
+        const value = row.cells[0]?.replace(/\*/g, '').trim() || '';
+        if (value) exclusionCriteria.add(value);
+      }
+    }
+
+    const exactPackets = new Set<string>();
+    for (const record of model.exactEvidence.records) {
+      if (record.values.evidenceState !== 'exact') continue;
+      const ids = packetIdList(record.values.packetIds);
+      if (ids) ids.forEach((id) => exactPackets.add(id));
+    }
+
+    const intervalIds = new Map<string, ParsedWalkInterval>();
+    const intervalsBySource = new Map<string, ParsedWalkInterval[]>();
+    for (const row of walk.intervals) {
+      const {
+        walkId,
+        sourceId,
+        startByte,
+        endByte,
+        outcome,
+        packetIds: packetIdsValue,
+        criterionRef,
+        producerInvocationId,
+        closureState,
+        reason,
+        closureNote,
+      } = row.values;
+      if (!/^WLK-\d+$/.test(walkId)) {
+        fail(`${walkId || 'walk row'} walk_id must be WLK-<digits> at ${location(row)}`);
+      }
+      if (intervalIds.has(walkId)) {
+        fail(`${walkId || 'walk row'} is defined more than once at ${location(row)}`);
+      }
+      const source = sources.get(sourceId);
+      const data = sourceData.get(sourceId);
+      if (!source) {
+        fail(`${walkId || 'walk row'} source ${sourceId || '(blank)'} does not resolve`);
+      }
+      const start = canonicalNonnegativeInteger(startByte);
+      const end = canonicalNonnegativeInteger(endByte);
+      if (start === null) {
+        fail(`${walkId || 'walk row'} start_byte must be a canonical non-negative integer`);
+      }
+      if (end === null) {
+        fail(`${walkId || 'walk row'} end_byte must be a canonical non-negative integer`);
+      }
+      if (start !== null && end !== null) {
+        if (end <= start) {
+          fail(`${walkId || 'walk row'} interval ${start}..${end} is reversed or empty`);
+        }
+        if (data && (start > data.bytes.byteLength || end > data.bytes.byteLength)) {
+          fail(
+            `${walkId || 'walk row'} interval ${start}..${end} exceeds `
+            + `source length ${data.bytes.byteLength}`,
+          );
+        }
+        if (data?.validUtf8) {
+          if (!utf8Boundary(data.bytes, start)) {
+            fail(`${walkId || 'walk row'} start_byte ${start} splits a UTF-8 code point`);
+          }
+          if (!utf8Boundary(data.bytes, end)) {
+            fail(`${walkId || 'walk row'} end_byte ${end} splits a UTF-8 code point`);
+          }
+        }
+      }
+
+      if (!(SOURCE_WALK_OUTCOMES as readonly string[]).includes(outcome)) {
+        fail(`${walkId || 'walk row'} outcome "${outcome || '(blank)'}" is unsupported`);
+      }
+      if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(producerInvocationId)) {
+        fail(`${walkId || 'walk row'} producer_invocation_id is missing or malformed`);
+      }
+
+      let declaredPacketIds: string[] = [];
+      if (outcome === 'admitted') {
+        const parsed = packetIdList(packetIdsValue);
+        if (!parsed) {
+          fail(`${walkId || 'walk row'} admitted interval requires packet_ids`);
+        } else {
+          declaredPacketIds = parsed;
+          for (const packetId of parsed) {
+            if (!packets.has(packetId)) {
+              fail(`${walkId || 'walk row'} references missing packet ${packetId}`);
+            }
+          }
+        }
+        const criterion = criterionRef.match(/^admission:([1-9]\d*)$/)?.[1];
+        if (!criterion || !admissionCriteria.has(criterion)) {
+          fail(
+            `${walkId || 'walk row'} admission criterion `
+            + `"${criterion || criterionRef || '(blank)'}" does not resolve`,
+          );
+        }
+        if (closureState !== 'closed') {
+          fail(`${walkId || 'walk row'} admitted interval closure_state must be closed`);
+        }
+      } else {
+        if (packetIdsValue !== 'none') {
+          fail(`${walkId || 'walk row'} ${outcome || 'non-admitted'} interval must use packet_ids none`);
+        }
+        if (outcome === 'excluded') {
+          const criterion = criterionRef.match(/^exclusion:(.+)$/)?.[1] || '';
+          if (!criterion || !exclusionCriteria.has(criterion)) {
+            fail(
+              `${walkId || 'walk row'} exclusion criterion `
+              + `"${criterion || criterionRef || '(blank)'}" does not resolve`,
+            );
+          }
+          if (closureState !== 'closed') {
+            fail(`${walkId || 'walk row'} excluded interval closure_state must be closed`);
+          }
+        } else if (criterionRef !== 'none') {
+          fail(`${walkId || 'walk row'} ${outcome || 'non-admitted'} interval criterion_ref must be none`);
+        }
+        if (outcome === 'no-candidate-observed' && closureState !== 'closed') {
+          fail(
+            `${walkId || 'walk row'} no-candidate-observed interval closure_state must be closed`,
+          );
+        }
+        if (outcome === 'deferred') {
+          if (!['open', 'resolved'].includes(closureState)) {
+            fail(`${walkId || 'walk row'} deferred interval closure_state must be open or resolved`);
+          }
+          if (!substantiveValue(reason)) {
+            fail(`${walkId || 'walk row'} deferred interval requires a nonempty reason`);
+          }
+          if (closureState === 'resolved' && !substantiveValue(closureNote)) {
+            fail(`${walkId || 'walk row'} resolved deferred interval requires a closure_note`);
+          }
+        }
+        if (outcome === 'unsupported') {
+          if (closureState !== 'open') {
+            fail(`${walkId || 'walk row'} unsupported interval must remain open`);
+          }
+          if (!substantiveValue(reason)) {
+            fail(`${walkId || 'walk row'} unsupported interval requires a nonempty reason`);
+          }
+        }
+      }
+
+      if (start !== null && end !== null) {
+        const parsed = { row, start, end, packetIds: declaredPacketIds };
+        if (walkId) intervalIds.set(walkId, parsed);
+        const group = intervalsBySource.get(sourceId) || [];
+        group.push(parsed);
+        intervalsBySource.set(sourceId, group);
+      }
+    }
+
+    const coveredEndBySource = new Map<string, number>();
+    for (const source of model.corpus.sources) {
+      const sourceId = source.values.sourceId;
+      const intervals = intervalsBySource.get(sourceId) || [];
+      let expected = 0;
+      for (const [index, interval] of intervals.entries()) {
+        const { walkId } = interval.row.values;
+        if (index === 0 && interval.start !== 0) {
+          fail(`${sourceId} walk must begin at byte 0; found ${interval.start}`);
+        } else if (index > 0 && interval.start > expected) {
+          fail(
+            `${sourceId} walk has a hole before ${walkId || 'walk row'}: `
+            + `expected ${expected}, found ${interval.start}`,
+          );
+        } else if (index > 0 && interval.start < expected) {
+          fail(
+            `${sourceId} walk overlaps before ${walkId || 'walk row'}: `
+            + `prior end ${expected}, found ${interval.start}`,
+          );
+        }
+        expected = Math.max(expected, interval.end);
+      }
+      coveredEndBySource.set(sourceId, expected);
+    }
+
+    const eventIds = new Map<string, ParsedWalkEvent>();
+    const eventsBySource = new Map<string, ParsedWalkEvent[]>();
+    const eventsByPacket = new Map<string, ParsedWalkEvent[]>();
+    const eventsBySharedPosition = new Map<string, ParsedWalkEvent[]>();
+    for (const row of walk.events) {
+      const {
+        eventId,
+        sourceId,
+        startByte,
+        endByte,
+        sharedPositionKey,
+        eventOrdinal,
+        packetId,
+        origin,
+        producerInvocationId,
+        status,
+      } = row.values;
+      if (!/^EVT-\d+$/.test(eventId)) {
+        fail(`${eventId || 'event row'} event_id must be EVT-<digits> at ${location(row)}`);
+      }
+      if (eventIds.has(eventId)) {
+        fail(`${eventId || 'event row'} is defined more than once at ${location(row)}`);
+      }
+      const data = sourceData.get(sourceId);
+      if (!sources.has(sourceId)) {
+        fail(`${eventId || 'event row'} source ${sourceId || '(blank)'} does not resolve`);
+      }
+      const start = canonicalNonnegativeInteger(startByte);
+      const end = canonicalNonnegativeInteger(endByte);
+      const ordinal = canonicalNonnegativeInteger(eventOrdinal);
+      if (start === null || end === null) {
+        fail(`${eventId || 'event row'} event coordinates must be canonical non-negative integers`);
+      } else {
+        if (end <= start) fail(`${eventId || 'event row'} interval ${start}..${end} is reversed or empty`);
+        if (data && (start > data.bytes.byteLength || end > data.bytes.byteLength)) {
+          fail(
+            `${eventId || 'event row'} interval ${start}..${end} exceeds `
+            + `source length ${data.bytes.byteLength}`,
+          );
+        }
+        if (data?.validUtf8) {
+          if (!utf8Boundary(data.bytes, start)) {
+            fail(`${eventId || 'event row'} start_byte ${start} splits a UTF-8 code point`);
+          }
+          if (!utf8Boundary(data.bytes, end)) {
+            fail(`${eventId || 'event row'} end_byte ${end} splits a UTF-8 code point`);
+          }
+        }
+      }
+      if (!/^SP-\d+$/.test(sharedPositionKey)) {
+        fail(`${eventId || 'event row'} shared_position_key must be SP-<digits>`);
+      }
+      if (ordinal === null || ordinal < 1) {
+        fail(`${eventId || 'event row'} event_ordinal must be a positive integer`);
+      }
+      if (!['primary', 'gap-reconciliation'].includes(origin)) {
+        fail(`${eventId || 'event row'} origin must be primary or gap-reconciliation`);
+      }
+      if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(producerInvocationId)) {
+        fail(`${eventId || 'event row'} producer_invocation_id is missing or malformed`);
+      }
+      if (!['committed', 'pending'].includes(status)) {
+        fail(`${eventId || 'event row'} status must be committed or pending`);
+      }
+      const packet = packets.get(packetId);
+      if (!packet) {
+        fail(`${eventId || 'event row'} packet ${packetId || '(blank)'} does not resolve`);
+      } else {
+        if (packet.values.sourceId !== sourceId) {
+          fail(`${eventId || 'event row'} packet ${packetId} belongs to ${packet.values.sourceId}`);
+        }
+        if (!exactPackets.has(packetId)) {
+          fail(`${packetId} lacks a Slice-1 exact evidence record`);
+        }
+      }
+
+      if (start !== null && end !== null && ordinal !== null) {
+        const parsed = { row, start, end, ordinal };
+        if (eventId) eventIds.set(eventId, parsed);
+        const sourceEvents = eventsBySource.get(sourceId) || [];
+        sourceEvents.push(parsed);
+        eventsBySource.set(sourceId, sourceEvents);
+        const packetEvents = eventsByPacket.get(packetId) || [];
+        packetEvents.push(parsed);
+        eventsByPacket.set(packetId, packetEvents);
+        const shared = eventsBySharedPosition.get(sharedPositionKey) || [];
+        shared.push(parsed);
+        eventsBySharedPosition.set(sharedPositionKey, shared);
+
+        const containing = (intervalsBySource.get(sourceId) || []).filter(
+          (interval) => start >= interval.start && end <= interval.end,
+        );
+        if (containing.length !== 1) {
+          fail(
+            `${eventId || 'event row'} must lie within exactly one primary walk interval`,
+          );
+        } else {
+          const interval = containing[0];
+          if (origin === 'primary') {
+            if (
+              interval.row.values.outcome !== 'admitted'
+              || !interval.packetIds.includes(packetId)
+            ) {
+              fail(
+                `${eventId || 'event row'} primary event is not declared by its admitted interval`,
+              );
+            }
+            if (interval.row.values.producerInvocationId !== producerInvocationId) {
+              fail(
+                `${eventId || 'event row'} primary producer differs from its walk interval`,
+              );
+            }
+          } else if (!['admitted', 'no-candidate-observed'].includes(
+            interval.row.values.outcome,
+          )) {
+            fail(
+              `${eventId || 'event row'} gap reconciliation conflicts with `
+              + `${interval.row.values.outcome || 'blank'} primary accounting`,
+            );
+          }
+        }
+      }
+    }
+
+    for (const [packetId, packetEvents] of eventsByPacket) {
+      if (packetEvents.length !== 1) {
+        fail(`${packetId || 'packet'} is bound to ${packetEvents.length} extraction events`);
+      }
+    }
+    for (const packet of model.packets) {
+      if (!eventsByPacket.has(packet.values.packetId)) {
+        fail(`${packet.values.packetId} has no source-walk extraction event`);
+      }
+    }
+    for (const interval of intervalIds.values()) {
+      if (interval.row.values.outcome !== 'admitted') continue;
+      for (const packetId of interval.packetIds) {
+        const event = eventsByPacket.get(packetId)?.[0];
+        if (!event || event.row.values.origin !== 'primary') {
+          fail(
+            `${interval.row.values.walkId || 'walk row'} packet ${packetId} `
+            + 'lacks one primary extraction event',
+          );
+        }
+      }
+    }
+
+    for (const sourceEvents of eventsBySource.values()) {
+      for (let leftIndex = 0; leftIndex < sourceEvents.length; leftIndex++) {
+        const left = sourceEvents[leftIndex];
+        for (let rightIndex = leftIndex + 1; rightIndex < sourceEvents.length; rightIndex++) {
+          const right = sourceEvents[rightIndex];
+          const overlaps = left.start < right.end && right.start < left.end;
+          if (!overlaps) continue;
+          const shared = (
+            left.start === right.start
+            && left.end === right.end
+            && left.row.values.sharedPositionKey === right.row.values.sharedPositionKey
+          );
+          if (!shared) {
+            fail(
+              `${left.row.values.eventId} and ${right.row.values.eventId} overlap `
+              + 'without one exact shared-position group',
+            );
+          }
+        }
+      }
+    }
+
+    for (const [key, sharedEvents] of eventsBySharedPosition) {
+      const first = sharedEvents[0];
+      const samePosition = sharedEvents.every((event) => (
+        event.row.values.sourceId === first.row.values.sourceId
+        && event.start === first.start
+        && event.end === first.end
+      ));
+      if (!samePosition) {
+        fail(`${key || 'shared position'} spans more than one source position`);
+      }
+      const ordinals = sharedEvents.map((event) => event.ordinal).sort((a, b) => a - b);
+      const validOrdinals = (
+        new Set(ordinals).size === ordinals.length
+        && ordinals.every((ordinal, index) => ordinal === index + 1)
+      );
+      if (!validOrdinals) {
+        fail(`${key || 'shared position'} event ordinals must be unique and contiguous 1..${sharedEvents.length}`);
+      }
+    }
+
+    const cursorIds = new Map<string, ParsedWalkCursor>();
+    const cursorsBySource = new Map<string, ParsedWalkCursor[]>();
+    for (const row of walk.cursors) {
+      const {
+        cursorId,
+        sourceId,
+        byteOffset,
+        sharedPositionKey,
+        nextEventOrdinal,
+        predecessorWalkId,
+        predecessorEventId,
+        sourceHash,
+        reason,
+      } = row.values;
+      if (!/^CUR-\d+$/.test(cursorId)) {
+        fail(`${cursorId || 'cursor row'} cursor_id must be CUR-<digits> at ${location(row)}`);
+      }
+      if (cursorIds.has(cursorId)) {
+        fail(`${cursorId || 'cursor row'} is defined more than once at ${location(row)}`);
+      }
+      const data = sourceData.get(sourceId);
+      if (!sources.has(sourceId)) {
+        fail(`${cursorId || 'cursor row'} source ${sourceId || '(blank)'} does not resolve`);
+      }
+      const offset = canonicalNonnegativeInteger(byteOffset);
+      if (offset === null) {
+        fail(`${cursorId || 'cursor row'} byte_offset must be a canonical non-negative integer`);
+      } else if (data) {
+        if (offset > data.bytes.byteLength) {
+          fail(
+            `${cursorId || 'cursor row'} byte_offset ${offset} exceeds `
+            + `source length ${data.bytes.byteLength}`,
+          );
+        } else if (data.validUtf8 && !utf8Boundary(data.bytes, offset)) {
+          fail(`${cursorId || 'cursor row'} byte_offset ${offset} splits a UTF-8 code point`);
+        }
+      }
+      if (data && sourceHash !== data.hash) {
+        fail(`${cursorId || 'cursor row'} source_hash does not match frozen ${sourceId}`);
+      }
+      if (!substantiveValue(reason)) {
+        fail(`${cursorId || 'cursor row'} reason is required`);
+      }
+      const predecessorWalk = predecessorWalkId === 'none'
+        ? null
+        : intervalIds.get(predecessorWalkId);
+      if (predecessorWalkId !== 'none' && !predecessorWalk) {
+        fail(`${cursorId || 'cursor row'} predecessor walk ${predecessorWalkId} does not resolve`);
+      } else if (predecessorWalk && predecessorWalk.row.values.sourceId !== sourceId) {
+        fail(`${cursorId || 'cursor row'} predecessor walk belongs to another source`);
+      }
+      const predecessorEvent = predecessorEventId === 'none'
+        ? null
+        : eventIds.get(predecessorEventId);
+      if (predecessorEventId !== 'none' && !predecessorEvent) {
+        fail(`${cursorId || 'cursor row'} predecessor event ${predecessorEventId} does not resolve`);
+      } else if (predecessorEvent && predecessorEvent.row.values.sourceId !== sourceId) {
+        fail(`${cursorId || 'cursor row'} predecessor event belongs to another source`);
+      }
+
+      if (sharedPositionKey === 'none') {
+        if (nextEventOrdinal !== 'none') {
+          fail(`${cursorId || 'cursor row'} without a shared position must use next_event_ordinal none`);
+        }
+        if (
+          offset === 0
+          && (predecessorWalkId !== 'none' || predecessorEventId !== 'none')
+        ) {
+          fail(`${cursorId || 'cursor row'} at source origin must not claim a predecessor`);
+        }
+        if (offset !== null && offset > 0 && predecessorWalk?.end !== offset) {
+          fail(
+            `${cursorId || 'cursor row'} predecessor walk must end at next byte `
+            + `${offset}`,
+          );
+        }
+        if (
+          offset !== null
+          && predecessorEvent
+          && predecessorEvent.end !== offset
+        ) {
+          fail(
+            `${cursorId || 'cursor row'} predecessor event must end at next byte `
+            + `${offset}`,
+          );
+        }
+      } else {
+        const shared = eventsBySharedPosition.get(sharedPositionKey);
+        const nextOrdinal = canonicalNonnegativeInteger(nextEventOrdinal);
+        if (!shared || shared.length === 0) {
+          fail(`${cursorId || 'cursor row'} shared position ${sharedPositionKey} does not resolve`);
+        } else {
+          const first = shared[0];
+          if (first.row.values.sourceId !== sourceId) {
+            fail(`${cursorId || 'cursor row'} shared position belongs to another source`);
+          }
+          if (offset !== null && offset !== first.start) {
+            fail(
+              `${cursorId || 'cursor row'} shared-position cursor must remain at byte `
+              + `${first.start}`,
+            );
+          }
+          if (
+            offset !== null
+            && (
+              !predecessorWalk
+              || predecessorWalk.start > offset
+              || predecessorWalk.end <= offset
+            )
+          ) {
+            fail(
+              `${cursorId || 'cursor row'} predecessor walk must contain the `
+              + 'shared position',
+            );
+          }
+          if (nextOrdinal === null || nextOrdinal < 2 || nextOrdinal > shared.length) {
+            fail(
+              `${cursorId || 'cursor row'} next_event_ordinal must identify a pending `
+              + `shared event in 2..${shared.length}`,
+            );
+          } else {
+            const expectedPredecessor = shared.find(
+              (event) => event.ordinal === nextOrdinal - 1,
+            );
+            if (
+              !expectedPredecessor
+              || predecessorEventId !== expectedPredecessor.row.values.eventId
+            ) {
+              fail(
+                `${cursorId || 'cursor row'} predecessor event does not precede `
+                + `shared ordinal ${nextOrdinal}`,
+              );
+            }
+          }
+        }
+      }
+
+      if (offset !== null) {
+        if (offset > 0 && predecessorWalkId === 'none') {
+          fail(`${cursorId || 'cursor row'} after source origin requires a predecessor walk`);
+        }
+        for (const interval of intervalsBySource.get(sourceId) || []) {
+          if (interval.start < offset && interval.row.values.closureState === 'open') {
+            fail(
+              `${cursorId || 'cursor row'} jumps over open interval `
+              + `${interval.row.values.walkId}`,
+            );
+          }
+        }
+        if (sharedPositionKey === 'none') {
+          for (const event of eventsBySource.get(sourceId) || []) {
+            if (event.start < offset && event.row.values.status === 'pending') {
+              fail(
+                `${cursorId || 'cursor row'} jumps over pending event `
+                + `${event.row.values.eventId}`,
+              );
+            }
+          }
+        }
+        const parsed = { row, offset };
+        if (cursorId) cursorIds.set(cursorId, parsed);
+        const group = cursorsBySource.get(sourceId) || [];
+        const previous = group.at(-1);
+        if (previous && offset < previous.offset) {
+          fail(
+            `${cursorId || 'cursor row'} cursor moves backwards from `
+            + `${previous.offset} to ${offset}`,
+          );
+        }
+        group.push(parsed);
+        cursorsBySource.set(sourceId, group);
+      }
+    }
+
+    for (const [key, sharedEvents] of eventsBySharedPosition) {
+      if (sharedEvents.length < 2) continue;
+      for (let ordinal = 2; ordinal <= sharedEvents.length; ordinal++) {
+        const checkpoint = walk.cursors.find((cursor) => (
+          cursor.values.sharedPositionKey === key
+          && cursor.values.nextEventOrdinal === String(ordinal)
+        ));
+        if (!checkpoint) {
+          fail(`${key} lacks a next-work cursor for shared event ordinal ${ordinal}`);
+        }
+      }
+    }
+
+    const gapReviewIds = new Map<string, GapReviewRow>();
+    const gapReviewsBySource = new Map<string, GapReviewRow[]>();
+    const reconciliationEvents = new Map<string, GapReviewRow[]>();
+    for (const row of walk.gapReviews) {
+      const {
+        gapReviewId,
+        sourceId,
+        producerInvocationId,
+        reviewerInvocationId,
+        result,
+        candidateStartByte,
+        candidateEndByte,
+        proposedPacketId,
+        reconciliationEventId,
+        status,
+        note,
+      } = row.values;
+      if (!/^GAP-\d+$/.test(gapReviewId)) {
+        fail(`${gapReviewId || 'gap-review row'} gap_review_id must be GAP-<digits> at ${location(row)}`);
+      }
+      if (gapReviewIds.has(gapReviewId)) {
+        fail(`${gapReviewId || 'gap-review row'} is defined more than once at ${location(row)}`);
+      } else if (gapReviewId) {
+        gapReviewIds.set(gapReviewId, row);
+      }
+      if (!sources.has(sourceId)) {
+        fail(`${gapReviewId || 'gap-review row'} source ${sourceId || '(blank)'} does not resolve`);
+      }
+      const primaryProducers = new Set(
+        (intervalsBySource.get(sourceId) || []).map(
+          (interval) => interval.row.values.producerInvocationId,
+        ),
+      );
+      if (!primaryProducers.has(producerInvocationId)) {
+        fail(`${gapReviewId || 'gap-review row'} producer invocation does not resolve to the primary walk`);
+      }
+      if (
+        reviewerInvocationId === producerInvocationId
+        || primaryProducers.has(reviewerInvocationId)
+      ) {
+        fail(
+          `${gapReviewId || 'gap-review row'} reviewer invocation must differ `
+          + 'from the primary producer',
+        );
+      }
+      if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(reviewerInvocationId)) {
+        fail(`${gapReviewId || 'gap-review row'} reviewer_invocation_id is missing or malformed`);
+      }
+      if (!(GAP_REVIEW_RESULTS as readonly string[]).includes(result)) {
+        fail(`${gapReviewId || 'gap-review row'} result "${result || '(blank)'}" is unsupported`);
+      }
+      if (!substantiveValue(note)) {
+        fail(`${gapReviewId || 'gap-review row'} note is required`);
+      }
+
+      if (result === 'gap-candidate-found') {
+        const data = sourceData.get(sourceId);
+        const start = canonicalNonnegativeInteger(candidateStartByte);
+        const end = canonicalNonnegativeInteger(candidateEndByte);
+        if (start === null || end === null || end <= start) {
+          fail(`${gapReviewId || 'gap-review row'} candidate coordinates are invalid`);
+        } else if (data) {
+          if (end > data.bytes.byteLength) {
+            fail(`${gapReviewId || 'gap-review row'} candidate exceeds source length`);
+          }
+          if (
+            data.validUtf8
+            && (!utf8Boundary(data.bytes, start) || !utf8Boundary(data.bytes, end))
+          ) {
+            fail(`${gapReviewId || 'gap-review row'} candidate splits a UTF-8 code point`);
+          }
+        }
+        const packet = packets.get(proposedPacketId);
+        if (!packet) {
+          fail(`${gapReviewId || 'gap-review row'} proposed packet ${proposedPacketId || '(blank)'} does not resolve`);
+        } else if (
+          packet.values.sourceId !== sourceId
+          || !exactPackets.has(proposedPacketId)
+        ) {
+          fail(`${gapReviewId || 'gap-review row'} proposed packet lacks valid Slice-1 exact evidence`);
+        }
+        const event = eventIds.get(reconciliationEventId);
+        if (!event) {
+          fail(`${gapReviewId || 'gap-review row'} reconciliation event ${reconciliationEventId || '(blank)'} does not resolve`);
+        } else {
+          if (
+            event.row.values.origin !== 'gap-reconciliation'
+            || event.row.values.sourceId !== sourceId
+            || event.row.values.packetId !== proposedPacketId
+            || start === null
+            || end === null
+            || event.start !== start
+            || event.end !== end
+          ) {
+            fail(`${gapReviewId || 'gap-review row'} reconciliation event does not match the proposed candidate`);
+          }
+          const linked = reconciliationEvents.get(reconciliationEventId) || [];
+          linked.push(row);
+          reconciliationEvents.set(reconciliationEventId, linked);
+        }
+        if (!['open', 'reconciled'].includes(status)) {
+          fail(`${gapReviewId || 'gap-review row'} gap candidate status must be open or reconciled`);
+        }
+        if (status === 'reconciled' && event?.row.values.status !== 'committed') {
+          fail(`${gapReviewId || 'gap-review row'} reconciled candidate event is not committed`);
+        }
+      } else {
+        if (
+          candidateStartByte !== 'none'
+          || candidateEndByte !== 'none'
+          || proposedPacketId !== 'none'
+          || reconciliationEventId !== 'none'
+        ) {
+          fail(`${gapReviewId || 'gap-review row'} ${result || 'non-candidate'} result must not claim a candidate`);
+        }
+        if (result === 'no-gap-candidate-found' && status !== 'closed') {
+          fail(`${gapReviewId || 'gap-review row'} no-gap result status must be closed`);
+        }
+        if (result === 'cannot-determine' && status !== 'blocked') {
+          fail(`${gapReviewId || 'gap-review row'} cannot-determine status must be blocked`);
+        }
+      }
+      const group = gapReviewsBySource.get(sourceId) || [];
+      group.push(row);
+      gapReviewsBySource.set(sourceId, group);
+    }
+
+    for (const event of eventIds.values()) {
+      if (event.row.values.origin !== 'gap-reconciliation') continue;
+      const linked = reconciliationEvents.get(event.row.values.eventId) || [];
+      if (linked.length !== 1) {
+        fail(
+          `${event.row.values.eventId} gap-reconciliation event is linked by `
+          + `${linked.length} gap-review rows`,
+        );
+      }
+    }
+
+    const completionsBySource = new Map<
+      string,
+      RunModel['sourceWalk']['completions'][number]
+    >();
+    for (const completion of walk.completions) {
+      const {
+        sourceId,
+        sourceHash,
+        sourceLengthBytes,
+        finalCursorId,
+        gapReviewIds: gapReviewIdsValue,
+        completionState,
+        declaredBy,
+      } = completion.values;
+      if (completionsBySource.has(sourceId)) {
+        fail(`${sourceId || 'completion row'} has more than one final traversal state`);
+      } else if (sourceId) {
+        completionsBySource.set(sourceId, completion);
+      }
+      const data = sourceData.get(sourceId);
+      if (!sources.has(sourceId)) {
+        fail(`${sourceId || 'completion row'} completion source does not resolve`);
+      }
+      if (data && sourceHash !== data.hash) {
+        fail(`${sourceId || 'completion row'} completion source_hash does not match frozen bytes`);
+      }
+      const sourceLength = canonicalNonnegativeInteger(sourceLengthBytes);
+      if (sourceLength === null) {
+        fail(`${sourceId || 'completion row'} source_length_bytes must be a canonical non-negative integer`);
+      } else if (data && sourceLength !== data.bytes.byteLength) {
+        fail(
+          `${sourceId || 'completion row'} source_length_bytes ${sourceLength} `
+          + `does not match ${data.bytes.byteLength}`,
+        );
+      }
+      if (!['complete', 'blocked'].includes(completionState)) {
+        fail(`${sourceId || 'completion row'} completion_state must be complete or blocked`);
+      }
+      if (!substantiveValue(declaredBy)) {
+        fail(`${sourceId || 'completion row'} declared_by is required`);
+      }
+      const finalCursor = cursorIds.get(finalCursorId);
+      if (!finalCursor) {
+        fail(`${sourceId || 'completion row'} final cursor ${finalCursorId || '(blank)'} does not resolve`);
+      } else if (finalCursor.row.values.sourceId !== sourceId) {
+        fail(`${sourceId || 'completion row'} final cursor belongs to another source`);
+      }
+      const sourceCursors = cursorsBySource.get(sourceId) || [];
+      if (sourceCursors.at(-1)?.row.values.cursorId !== finalCursorId) {
+        fail(`${sourceId || 'completion row'} final_cursor_id is not the last recorded cursor`);
+      }
+
+      const declaredGapIds = customIdList(gapReviewIdsValue, 'GAP');
+      if (declaredGapIds === null) {
+        fail(`${sourceId || 'completion row'} gap_review_ids must be a comma-separated GAP list`);
+      } else {
+        for (const gapId of declaredGapIds) {
+          const review = gapReviewIds.get(gapId);
+          if (!review || review.values.sourceId !== sourceId) {
+            fail(`${sourceId || 'completion row'} gap review ${gapId} does not resolve for this source`);
+          }
+        }
+        const actualGapIds = (gapReviewsBySource.get(sourceId) || [])
+          .map((review) => review.values.gapReviewId);
+        const drift = [...new Set([...declaredGapIds, ...actualGapIds])]
+          .filter((id) => declaredGapIds.includes(id) !== actualGapIds.includes(id));
+        if (drift.length > 0) {
+          fail(`${sourceId || 'completion row'} gap_review_ids omit or add ${drift.join(', ')}`);
+        }
+      }
+
+      if (completionState === 'complete') {
+        const coveredEnd = coveredEndBySource.get(sourceId) || 0;
+        if (data && coveredEnd !== data.bytes.byteLength) {
+          fail(
+            `${sourceId} complete walk ends at byte ${coveredEnd}, expected `
+            + `${data.bytes.byteLength}`,
+          );
+        }
+        if (
+          data
+          && finalCursor
+          && (
+            finalCursor.offset !== data.bytes.byteLength
+            || finalCursor.row.values.sharedPositionKey !== 'none'
+          )
+        ) {
+          fail(`${sourceId} complete source final cursor must identify source end`);
+        }
+        for (const interval of intervalsBySource.get(sourceId) || []) {
+          if (interval.row.values.closureState === 'open') {
+            fail(
+              `${sourceId} complete source has open interval `
+              + `${interval.row.values.walkId}`,
+            );
+          }
+          if (
+            interval.row.values.outcome === 'deferred'
+            && interval.row.values.closureState !== 'resolved'
+          ) {
+            fail(
+              `${sourceId} complete source has unresolved deferred interval `
+              + `${interval.row.values.walkId}`,
+            );
+          }
+          if (interval.row.values.outcome === 'unsupported') {
+            fail(
+              `${sourceId} complete source has unsupported interval `
+              + `${interval.row.values.walkId}`,
+            );
+          }
+        }
+        for (const event of eventsBySource.get(sourceId) || []) {
+          if (event.row.values.status !== 'committed') {
+            fail(
+              `${sourceId} complete source has pending event `
+              + `${event.row.values.eventId}`,
+            );
+          }
+        }
+        const sourceReviews = gapReviewsBySource.get(sourceId) || [];
+        if (sourceReviews.length === 0) {
+          fail(`${sourceId} complete source requires at least one gap review`);
+        }
+        for (const review of sourceReviews) {
+          if (review.values.result === 'cannot-determine') {
+            fail(
+              `${sourceId} complete source cannot use cannot-determine gap review `
+              + `${review.values.gapReviewId}`,
+            );
+          }
+          if (
+            review.values.result === 'gap-candidate-found'
+            && review.values.status !== 'reconciled'
+          ) {
+            fail(
+              `${sourceId} complete source has unreconciled gap review `
+              + `${review.values.gapReviewId}`,
+            );
+          }
+        }
+      }
+    }
+
+    for (const source of model.corpus.sources) {
+      if (!completionsBySource.has(source.values.sourceId)) {
+        fail(`${source.values.sourceId} lacks one per-source completion row`);
+      }
+    }
+    if (sourceWalkStageClosed(model)) {
+      for (const completion of walk.completions) {
+        if (completion.values.completionState !== 'complete') {
+          fail(
+            `S2 exit cannot be recorded while ${completion.values.sourceId || 'a source'} `
+            + 'is blocked',
+          );
+        }
+      }
+    }
+
+    return 'source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid; semantic recall is not judged';
   });
 }
 
@@ -1618,4 +2713,5 @@ export function runK2(results: ResultCollector, model: RunModel, root: string): 
   checkPrecis(results, model);
   checkKernelReport(results, model);
   checkExactEvidence(results, model);
+  checkSourceWalk(results, model);
 }

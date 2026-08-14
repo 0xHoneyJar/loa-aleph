@@ -94,6 +94,7 @@ runs/<run-id>/
   ledgers/
     extraction-criteria.md   # inclusion rules recorded before extraction
     packet-index.md          # packets + versioned exact-evidence fragments
+    source-walk.md           # byte coverage, events, cursors, gap review
     claim-inventory.md       # candidate claims + dispositions (the §4 table)
     disposition-ledger.md    # the §5 summary accounting
     merge-map.md             # duplicate/merge map with provenance

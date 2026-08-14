@@ -142,8 +142,8 @@ adapter, bundle, checker, protocol, host, profile, model, and runtime pins to
 `control/run-state.json` plus `control/original-bundle.lock.json`. Resume and
 validation additionally verify the retained runtime snapshot and bind its
 bundle, host, profile, and role-model mapping back to run state. The manifest
-cannot select compatibility: a retained 1.1 run that declares 1.0, removes the
-version, or changes a pin fails before the pinned checker runs.
+cannot select compatibility: a retained 1.2 run that declares 1.1 or 1.0,
+removes the version, or changes a pin fails before the pinned checker runs.
 
 Retained 1.0 runs are not migrated and are not resumed by substituting this
 adapter. They continue under their original immutable bundle, runtime, and

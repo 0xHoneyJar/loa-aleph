@@ -2,7 +2,7 @@
 
 > **Protocol version:** `1.0.0-provisional`
 >
-> **Run-format version:** `1.1.0-provisional`
+> **Run-format version:** `1.2.0-provisional`
 > **Status:** accepted foundation; the Loa host adapter is implemented but not
 > validated or sanctioned, while the other registered host remains planned
 
@@ -113,3 +113,10 @@ S2 must declare `exact_evidence_format: aleph-exact-evidence/v1` and persist
 the corresponding exact-evidence tables. Retained `1.0.0-provisional` and
 pre-versioned historical runs keep their original packet interpretation under
 their pinned bundle/runtime; they are not migrated or reinterpreted.
+
+Run format `1.2.0-provisional` retains the complete 1.1 exact-evidence
+contract and additionally requires `ledgers/source-walk.md` once S2 begins.
+That Core ledger records frozen-byte traversal intervals, extraction events,
+shared-position ordinals, next-work cursors, fresh gap-review results, and
+per-source closure. Structural closure proves accounting only; it does not
+prove perfect recall or the semantic correctness of a gap reviewer.

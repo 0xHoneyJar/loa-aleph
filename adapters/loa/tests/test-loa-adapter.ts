@@ -371,6 +371,7 @@ function pinnedCheckerReport(runDir: string, targetRunDir = runDir): {
 function prepareTxtExactEvidenceIntegrationRun(
   sourceRunDir: string,
   destination: string,
+  corpus: CorpusSnapshot,
   source: CorpusSnapshot['files'][number],
 ): string {
   cpSync(sourceRunDir, destination, { recursive: true });
@@ -410,12 +411,84 @@ function prepareTxtExactEvidenceIntegrationRun(
   );
 
   const ledgers = join(destination, 'ledgers');
+  const walkedSources = corpus.files.map((file, index) => {
+    const bytes = readFileSync(join(destination, file.frozen_path));
+    const suffix = String(9101 + index);
+    const target = file.source_id === source.source_id;
+    return {
+      file,
+      bytes,
+      hash: sha256Digest(bytes),
+      walkId: `WLK-${suffix}`,
+      tailWalkId: `WLK-${String(9401 + index)}`,
+      cursorStartId: `CUR-${String(9201 + index * 2)}`,
+      cursorEndId: `CUR-${String(9202 + index * 2)}`,
+      gapId: `GAP-${String(9301 + index)}`,
+      producerId: `INV-primary-${suffix}`,
+      reviewerId: `INV-gap-${String(9301 + index)}`,
+      target,
+    };
+  });
+  const targetWalk = walkedSources.find((entry) => entry.target);
+  expect(targetWalk !== undefined, 'integration source is absent from the captured corpus');
+  const walkRows = walkedSources.flatMap((entry) => {
+    if (!entry.target) {
+      return [
+        `| ${entry.walkId} | ${entry.file.source_id} | 0 | ${entry.bytes.byteLength} | `
+          + `no-candidate-observed | none | none | ${entry.producerId} | closed | none | none |`,
+      ];
+    }
+    const rows = [
+      `| ${entry.walkId} | ${entry.file.source_id} | 0 | ${exactBytes.byteLength} | `
+        + `admitted | PKT-9001 | admission:1 | ${entry.producerId} | closed | none | none |`,
+    ];
+    if (exactBytes.byteLength < entry.bytes.byteLength) {
+      rows.push(
+        `| ${entry.tailWalkId} | ${entry.file.source_id} | ${exactBytes.byteLength} | `
+          + `${entry.bytes.byteLength} | no-candidate-observed | none | none | `
+          + `${entry.producerId} | closed | none | none |`,
+      );
+    }
+    return rows;
+  }).join('\n');
+  const cursorRows = walkedSources.flatMap((entry) => [
+    `| ${entry.cursorStartId} | ${entry.file.source_id} | 0 | none | none | none | none | ${entry.hash} | initial |`,
+    `| ${entry.cursorEndId} | ${entry.file.source_id} | ${entry.bytes.byteLength} | none | none | ${
+      entry.target && exactBytes.byteLength < entry.bytes.byteLength
+        ? entry.tailWalkId
+        : entry.walkId
+    } | ${
+      entry.target && exactBytes.byteLength === entry.bytes.byteLength
+        ? 'EVT-9001'
+        : 'none'
+    } | ${entry.hash} | source-complete |`,
+  ]).join('\n');
+  const gapRows = walkedSources.map((entry) => (
+    `| ${entry.gapId} | ${entry.file.source_id} | ${entry.producerId} | `
+      + `${entry.reviewerId} | no-gap-candidate-found | none | none | none | none | `
+      + 'closed | fixture-simulated independent structural record; no semantic recall claim |'
+  )).join('\n');
+  const completionRows = walkedSources.map((entry) => (
+    `| ${entry.file.source_id} | ${entry.hash} | ${entry.bytes.byteLength} | `
+      + `${entry.cursorEndId} | ${entry.gapId} | complete | fixture-orchestrator | `
+      + `${entry.target ? '.txt md-lines and source-walk integration' : 'explicit non-candidate source accounting'} |`
+  )).join('\n');
+
   mkdirSync(ledgers, { recursive: true });
   writeFileSync(
     join(ledgers, 'extraction-criteria.md'),
     '# Extraction Criteria\n\n'
       + '- written: 2040-01-02T03:05:30.000Z\n\n'
-      + 'Admit the first complete source line for mechanical exact-evidence integration.\n',
+      + '## Candidate-claim definition\n\n'
+      + 'Synthetic statements selected for mechanical integration.\n\n'
+      + '## Admission criteria\n\n'
+      + '| # | criterion | example span that qualifies |\n'
+      + '|---|-----------|-----------------------------|\n'
+      + '| 1 | the first complete source line | a complete first line |\n\n'
+      + '## Exclusion classes\n\n'
+      + '| class | description | example |\n'
+      + '|-------|-------------|---------|\n'
+      + '| scaffolding | fixture-only structural text | a heading |\n',
   );
   writeFileSync(
     join(ledgers, 'packet-index.md'),
@@ -436,11 +509,33 @@ function prepareTxtExactEvidenceIntegrationRun(
       + '## Evidence transformations\n\n'
       + '| transform_key | evidence_key | output_role | predecessor_exact_evidence_hash | effective_exact_evidence_hash | output_text | output_text_hash |\n'
       + '|---------------|--------------|-------------|---------------------------------|-------------------------------|-------------|------------------|\n'
-      + `| XFORM-9001 | EVID-9001 | rendered | ${evidenceHash} | ${evidenceHash} | ${rendered} | ${sha256Digest(rendered)} |\n\n`
+      + `| XFORM-9001 | EVID-9001 | rendered | ${evidenceHash} | ${evidenceHash} | ${rendered} | ${sha256Digest(rendered)} |\n`,
+  );
+  writeFileSync(
+    join(ledgers, 'source-walk.md'),
+    `# Source Walk Ledger — ${RUN_ID}\n\n`
+      + '- source_walk_format: aleph-source-walk/v1\n'
+      + '- source_position_format: zero-based-utf8-byte-half-open/v1\n\n'
+      + '## Primary walk intervals\n\n'
+      + '| walk_id | source_id | start_byte | end_byte | outcome | packet_ids | criterion_ref | producer_invocation_id | closure_state | reason | closure_note |\n'
+      + '|---------|-----------|------------|----------|---------|------------|---------------|------------------------|---------------|--------|--------------|\n'
+      + `${walkRows}\n\n`
+      + '## Extraction events\n\n'
+      + '| event_id | source_id | start_byte | end_byte | shared_position_key | event_ordinal | packet_id | origin | producer_invocation_id | status |\n'
+      + '|----------|-----------|------------|----------|---------------------|---------------|-----------|--------|------------------------|--------|\n'
+      + `| EVT-9001 | ${source.source_id} | 0 | ${exactBytes.byteLength} | SP-9001 | 1 | PKT-9001 | primary | ${targetWalk.producerId} | committed |\n\n`
+      + '## Resume cursors\n\n'
+      + '| cursor_id | source_id | byte_offset | shared_position_key | next_event_ordinal | predecessor_walk_id | predecessor_event_id | source_hash | reason |\n'
+      + '|-----------|-----------|-------------|---------------------|--------------------|---------------------|----------------------|-------------|--------|\n'
+      + `${cursorRows}\n\n`
+      + '## Fresh gap reviews\n\n'
+      + '| gap_review_id | source_id | producer_invocation_id | reviewer_invocation_id | result | candidate_start_byte | candidate_end_byte | proposed_packet_id | reconciliation_event_id | status | note |\n'
+      + '|---------------|-----------|------------------------|------------------------|--------|----------------------|--------------------|--------------------|-------------------------|--------|------|\n'
+      + `${gapRows}\n\n`
       + '## Per-source completion\n\n'
-      + '| source_id | walked | packets | declared complete by | note |\n'
-      + '|-----------|--------|---------|----------------------|------|\n'
-      + `| ${source.source_id} | yes | PKT-9001 | fixture-extractor | .txt md-lines exact-evidence integration |\n`,
+      + '| source_id | source_hash | source_length_bytes | final_cursor_id | gap_review_ids | completion_state | declared_by | note |\n'
+      + '|-----------|-------------|---------------------|-----------------|----------------|------------------|-------------|------|\n'
+      + `${completionRows}\n`,
   );
   writeFileSync(
     join(ledgers, 'claim-inventory.md'),
@@ -488,6 +583,35 @@ function fixtureDispatchReceipt(
     filesystem: 'bundle-read-only',
     model_identity: request.model_identity,
     simulation: { kind: 'fixture-simulated' },
+  };
+}
+
+function fixtureExtractorReturn(sourceId: string) {
+  return {
+    source_id: sourceId,
+    producer_invocation_id: 'INV-fixture-extractor',
+    walk_intervals: [{
+      start_byte: 0,
+      end_byte: 0,
+      outcome: 'no-candidate-observed',
+      packet_candidate_indexes: [],
+      criterion_ref: 'none',
+      closure_state: 'closed',
+      reason: null,
+      closure_note: null,
+    }],
+    packets: [],
+    extraction_events: [],
+    next_cursor: {
+      byte_offset: 0,
+      shared_position_key: null,
+      next_event_ordinal: null,
+      predecessor_walk_index: null,
+      predecessor_event_index: null,
+      source_hash: `sha256:${'0'.repeat(64)}`,
+    },
+    walk_exhausted: false,
+    notes: [] as string[],
   };
 }
 
@@ -875,34 +999,40 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       assertFixtureBoundary(readRunState(context.runDir), context.runDir);
     });
 
-    runCase(results, 'run manifest cannot downgrade or diverge from retained execution identity', () => {
+    runCase(results, 'retained 1.2 run cannot downgrade its manifest to 1.1', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
       const originalState = readRunState(runDir);
-      const restore = (): void => {
-        writeFileSync(manifestPath, originalManifest);
-        writeRunState(runDir, structuredClone(originalState));
-      };
       try {
         writeFileSync(
           manifestPath,
           originalManifest.replace(
+            '- run_format_version: 1.2.0-provisional',
             '- run_format_version: 1.1.0-provisional',
-            '- run_format_version: 1.0.0-provisional',
           ),
         );
         const downgraded = dispatchLoaCommand(['resume', RUN_ID], startOptions(context));
-        expect(downgraded.result === 'FAIL', 'retained 1.1 run accepted a 1.0 manifest downgrade');
+        expect(downgraded.result === 'FAIL', 'retained 1.2 run accepted a 1.1 manifest downgrade');
         expect(
           downgraded.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
           `downgrade failure omitted retained identity diagnostic: ${downgraded.errors.join('; ')}`,
         );
-        restore();
+      } finally {
+        writeFileSync(manifestPath, originalManifest);
+        writeRunState(runDir, originalState);
+      }
+    });
 
+    runCase(results, 'retained 1.2 run cannot remove its manifest version', () => {
+      const { runDir } = requireRun(context);
+      const manifestPath = join(runDir, 'run-manifest.md');
+      const originalManifest = readFileSync(manifestPath, 'utf8');
+      const originalState = readRunState(runDir);
+      try {
         writeFileSync(
           manifestPath,
-          originalManifest.replace('- run_format_version: 1.1.0-provisional\n', ''),
+          originalManifest.replace('- run_format_version: 1.2.0-provisional\n', ''),
         );
         let checkerInvoked = false;
         const removed = dispatchLoaCommand(['validate', RUN_ID], {
@@ -912,14 +1042,28 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
             throw new Error('checker must not run after manifest identity removal');
           },
         });
-        expect(removed.result === 'FAIL', 'retained 1.1 run accepted a missing manifest version');
+        expect(removed.result === 'FAIL', 'retained 1.2 run accepted a missing manifest version');
         expect(!checkerInvoked, 'version removal reached the pinned checker');
         expect(
           removed.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
           `version-removal failure omitted retained identity diagnostic: ${removed.errors.join('; ')}`,
         );
-        restore();
+      } finally {
+        writeFileSync(manifestPath, originalManifest);
+        writeRunState(runDir, originalState);
+      }
+    });
 
+    runCase(results, 'run manifest cannot diverge from retained execution identity', () => {
+      const { runDir } = requireRun(context);
+      const manifestPath = join(runDir, 'run-manifest.md');
+      const originalManifest = readFileSync(manifestPath, 'utf8');
+      const originalState = readRunState(runDir);
+      const restore = (): void => {
+        writeFileSync(manifestPath, originalManifest);
+        writeRunState(runDir, structuredClone(originalState));
+      };
+      try {
         writeFileSync(
           manifestPath,
           originalManifest.replace(
@@ -1139,6 +1283,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       const integrationRun = prepareTxtExactEvidenceIntegrationRun(
         runDir,
         join(context.tempRoot, 'txt-exact-evidence-integration'),
+        corpus,
         source,
       );
       const report = pinnedCheckerReport(runDir, integrationRun);
@@ -1770,6 +1915,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         rationale: 'Fixture-simulated attack found no omitted span in the allowlisted material.',
         attacks_tried: ['Compared the allowlisted source with the fixture packet boundary.'],
         evidence_ids: [corpus.files[0].source_id],
+        candidate_evidence: [],
         missing_for_determination: null,
         flags: ['fixture-simulated'],
       };
@@ -1964,13 +2110,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
           () => validateWorkerReturn({
             workerBundleRoot: assembled.root,
             returnRoot: invalid.path,
-            raw: {
-              source_id: corpus.files[0].source_id,
-              packets: [],
-              walk_complete: true,
-              resume_point: null,
-              notes: [],
-            },
+            raw: fixtureExtractorReturn(corpus.files[0].source_id),
             dispatchReceipt: receipt,
           }),
           /worker return root must exactly match/iu,
@@ -1991,7 +2131,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       expectThrows(
         () => validateWorkerReturn({
           workerBundleRoot: assembled.root,
-          raw: { source_id: 'SRC-001', packets: [], walk_complete: true, resume_point: null, notes: [] },
+          raw: fixtureExtractorReturn('SRC-001'),
           dispatchReceipt: undefined as unknown as WorkerDispatchReceipt,
         }),
         /dispatch|receipt|undefined|properties/iu,
@@ -2000,7 +2140,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       expectThrows(
         () => validateWorkerReturn({
           workerBundleRoot: assembled.root,
-          raw: { source_id: 'SRC-001', packets: [], walk_complete: true, resume_point: null, notes: [] },
+          raw: fixtureExtractorReturn('SRC-001'),
           dispatchReceipt: fixtureDispatchReceipt(
             assembled.request,
             'CTX-FIXTURE-PRODUCER-RETURN',
@@ -2065,13 +2205,8 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         validBundle.request,
         'CTX-FIXTURE-PRODUCER-VALID',
       );
-      const validRaw = {
-        source_id: corpus.files[0].source_id,
-        packets: [],
-        walk_complete: true,
-        resume_point: null,
-        notes: ['fixture-simulated structural return'],
-      };
+      const validRaw = fixtureExtractorReturn(corpus.files[0].source_id);
+      validRaw.notes.push('fixture-simulated structural return');
       const valid = validateWorkerReturn({
         workerBundleRoot: validBundle.root,
         raw: validRaw,

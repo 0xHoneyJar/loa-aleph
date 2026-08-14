@@ -24,6 +24,7 @@ const EXPECTED_CASES = new Map<string, number>([
   ['K1', 5],
   ['K2', 22],
   ['K2E', 21],
+  ['K2S2', 28],
   ['K3', 8],
   ['K4/K5', 9],
   ['K6', 11],
@@ -1138,6 +1139,404 @@ addFailureCase(
   /EVID-0304 degraded evidence must have zero exact fragments/,
 );
 
+// K2S2: adopted calibration Slice 2 source-walk and resume-accounting failures.
+addFailureCase(
+  'K2S2',
+  'skipped source interval creates a structural hole',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    removeLine(join(path, 'ledgers', 'source-walk.md'), /^\| WLK-0406 \|/);
+  },
+  /SRC-401 walk has a hole before WLK-0407/,
+);
+
+addFailureCase(
+  'K2S2',
+  'first byte is uncovered',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| WLK-0401 | SRC-401 | 0 | 17 |',
+      '| WLK-0401 | SRC-401 | 1 | 17 |',
+    );
+  },
+  /SRC-401 walk must begin at byte 0/,
+);
+
+addFailureCase(
+  'K2S2',
+  'terminal bytes are uncovered',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| WLK-0409 | SRC-401 | 319 | 347 |',
+      '| WLK-0409 | SRC-401 | 319 | 346 |',
+    );
+  },
+  /SRC-401 complete walk ends at byte 346, expected 347/,
+);
+
+addFailureCase(
+  'K2S2',
+  'walk interval is reversed',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| WLK-0402 | SRC-401 | 17 | 44 |',
+      '| WLK-0402 | SRC-401 | 44 | 17 |',
+    );
+  },
+  /WLK-0402 interval 44\.\.17 is reversed or empty/,
+);
+
+addFailureCase(
+  'K2S2',
+  'walk interval is out of bounds',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| WLK-0409 | SRC-401 | 319 | 347 |',
+      '| WLK-0409 | SRC-401 | 319 | 348 |',
+    );
+  },
+  /WLK-0409 interval 319\.\.348 exceeds source length 347/,
+);
+
+addFailureCase(
+  'K2S2',
+  'walk intervals overlap without a shared-position event',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| WLK-0402 | SRC-401 | 17 | 44 |',
+      '| WLK-0402 | SRC-401 | 17 | 45 |',
+    );
+  },
+  /SRC-401 walk overlaps before WLK-0403/,
+);
+
+addFailureCase(
+  'K2S2',
+  'shared-position ordinal is duplicated',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| EVT-0402 | SRC-401 | 44 | 87 | SP-0401 | 2 |',
+      '| EVT-0402 | SRC-401 | 44 | 87 | SP-0401 | 1 |',
+    );
+  },
+  /SP-0401 event ordinals must be unique and contiguous/,
+);
+
+addFailureCase(
+  'K2S2',
+  'shared-position ordinal has a gap',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| EVT-0402 | SRC-401 | 44 | 87 | SP-0401 | 2 |',
+      '| EVT-0402 | SRC-401 | 44 | 87 | SP-0401 | 3 |',
+    );
+  },
+  /SP-0401 event ordinals must be unique and contiguous/,
+);
+
+addFailureCase(
+  'K2S2',
+  'resume jumps beyond a same-position sibling',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| CUR-0403 | SRC-401 | 44 | SP-0401 | 2 |',
+      '| CUR-0403 | SRC-401 | 87 | SP-0401 | 2 |',
+    );
+  },
+  /CUR-0403 shared-position cursor must remain at byte 44/,
+);
+
+addFailureCase(
+  'K2S2',
+  'resume cursor moves backwards',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| CUR-0405 | SRC-401 | 268 | none |',
+      '| CUR-0405 | SRC-401 | 43 | none |',
+    );
+  },
+  /CUR-0405 cursor moves backwards from 87 to 43/,
+);
+
+addFailureCase(
+  'K2S2',
+  'resume cursor predecessor does not bind the next byte',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| CUR-0405 | SRC-401 | 268 | none | none | WLK-0407 | EVT-0404 |',
+      '| CUR-0405 | SRC-401 | 268 | none | none | WLK-0406 | EVT-0404 |',
+    );
+  },
+  /CUR-0405 predecessor walk must end at next byte 268/,
+);
+
+addFailureCase(
+  'K2S2',
+  'resume cursor exceeds source end',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| CUR-0405 | SRC-401 | 268 | none |',
+      '| CUR-0405 | SRC-401 | 348 | none |',
+    );
+  },
+  /CUR-0405 byte_offset 348 exceeds source length 347/,
+);
+
+addFailureCase(
+  'K2S2',
+  'admitted walk record references a nonexistent packet',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| WLK-0403 | SRC-401 | 44 | 87 | admitted | PKT-0401, PKT-0402 |',
+      '| WLK-0403 | SRC-401 | 44 | 87 | admitted | PKT-0999, PKT-0402 |',
+    );
+  },
+  /WLK-0403 references missing packet PKT-0999/,
+);
+
+addFailureCase(
+  'K2S2',
+  'admitted packet lacks a Slice-1 exact evidence record',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    removeLine(join(path, 'ledgers', 'packet-index.md'), /^\| EVID-0401 \|/);
+  },
+  /PKT-0401 lacks a Slice-1 exact evidence record/,
+);
+
+addFailureCase(
+  'K2S2',
+  'excluded interval has no valid S1 criterion reference',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| excluded | none | exclusion:scaffolding |',
+      '| excluded | none | exclusion:missing |',
+    );
+  },
+  /WLK-0401 exclusion criterion "missing" does not resolve/,
+);
+
+addFailureCase(
+  'K2S2',
+  'deferred interval is open without reason or closure',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| WLK-0404 | SRC-401 | 87 | 134 | deferred | none | none | INV-primary-0401 | resolved | candidate decision postponed for a second criteria pass | second criteria pass found no qualifying candidate |',
+      '| WLK-0404 | SRC-401 | 87 | 134 | deferred | none | none | INV-primary-0401 | open | none | none |',
+    );
+  },
+  /WLK-0404 deferred interval requires a nonempty reason/,
+);
+
+addFailureCase(
+  'K2S2',
+  'unsupported interval has no reason',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| WLK-0402 | SRC-401 | 17 | 44 | no-candidate-observed | none | none | INV-primary-0401 | closed | none | none |',
+      '| WLK-0402 | SRC-401 | 17 | 44 | unsupported | none | none | INV-primary-0401 | open | none | none |',
+    );
+  },
+  /WLK-0402 unsupported interval requires a nonempty reason/,
+);
+
+addFailureCase(
+  'K2S2',
+  'source is marked complete with an uncovered suffix',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    removeLine(join(path, 'ledgers', 'source-walk.md'), /^\| WLK-0409 \|/);
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| CUR-0406 | SRC-401 | 347 | none | none | WLK-0409 | none |',
+      '| CUR-0406 | SRC-401 | 319 | none | none | WLK-0408 | none |',
+    );
+  },
+  /SRC-401 complete walk ends at byte 319, expected 347/,
+);
+
+addFailureCase(
+  'K2S2',
+  'source is marked complete with a pending shared-position event',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| EVT-0402 | SRC-401 | 44 | 87 | SP-0401 | 2 | PKT-0402 | primary | INV-primary-0401 | committed |',
+      '| EVT-0402 | SRC-401 | 44 | 87 | SP-0401 | 2 | PKT-0402 | primary | INV-primary-0401 | pending |',
+    );
+  },
+  /SRC-401 complete source has pending event EVT-0402/,
+);
+
+addFailureCase(
+  'K2S2',
+  'complete source is missing a gap review',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    removeLine(join(path, 'ledgers', 'source-walk.md'), /^\| GAP-0401 \|/);
+  },
+  /SRC-401 complete source requires at least one gap review/,
+);
+
+addFailureCase(
+  'K2S2',
+  'gap reviewer reuses the primary producer invocation',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| GAP-0401 | SRC-401 | INV-primary-0401 | INV-gap-0402 |',
+      '| GAP-0401 | SRC-401 | INV-primary-0401 | INV-primary-0401 |',
+    );
+  },
+  /GAP-0401 reviewer invocation must differ from the primary producer/,
+);
+
+addFailureCase(
+  'K2S2',
+  'gap candidate remains unreconciled while completion is claimed',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| PKT-0405 | EVT-0405 | reconciled | fresh reviewer',
+      '| PKT-0405 | EVT-0405 | open | fresh reviewer',
+    );
+  },
+  /SRC-401 complete source has unreconciled gap review GAP-0401/,
+);
+
+addFailureCase(
+  'K2S2',
+  'cannot-determine gap review cannot close the source',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceRegexOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      /^\| GAP-0401 \|.*$/mu,
+      '| GAP-0401 | SRC-401 | INV-primary-0401 | INV-gap-0402 | cannot-determine | none | none | none | none | blocked | source segment could not be judged |',
+    );
+  },
+  /SRC-401 complete source cannot use cannot-determine gap review GAP-0401/,
+);
+
+addFailureCase(
+  'K2S2',
+  'current source-walk marker is removed',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    removeLine(
+      join(path, 'ledgers', 'source-walk.md'),
+      /^- source_walk_format: aleph-source-walk\/v1$/,
+    );
+  },
+  /run format 1\.2\.0-provisional requires source_walk_format aleph-source-walk\/v1/,
+);
+
+addCase('K2S2', 'current source-walk ledger is removed', (root) => {
+  const relativePath = join('docs', 'fixtures', 'source-walk-accounting');
+  const path = copyFixture('source-walk-accounting', root, relativePath);
+  rmSync(join(path, 'ledgers', 'source-walk.md'));
+  const report = requireFailure(runFixture(root, relativePath), 'K2.1');
+  requireCheck(report, 'K2.14', 'FAIL', /requires ledgers\/source-walk\.md/);
+});
+
+addCase('K2S2', 'S2 walk evidence cannot be hidden by suppressing DISTILLING', (root) => {
+  const relativePath = join('docs', 'fixtures', 'source-walk-accounting');
+  const path = copyFixture('source-walk-accounting', root, relativePath);
+  removeLine(
+    join(path, 'run-manifest.md'),
+    /^\| 3 \| DISTILLING \| 2026-08-14 08:20 UTC \|/,
+  );
+  const report = requireFailure(runFixture(root, relativePath), 'K2.2');
+  requireCheck(report, 'K2.2', 'FAIL', /state log understates DISTILLING/);
+});
+
+addFailureCase(
+  'K2S2',
+  'cursor coordinate splits a UTF-8 code point',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'ledgers', 'source-walk.md'),
+      '| CUR-0402 | SRC-401 | 44 | none |',
+      '| CUR-0402 | SRC-401 | 30 | none |',
+    );
+  },
+  /CUR-0402 byte_offset 30 splits a UTF-8 code point/,
+);
+
+addFailureCase(
+  'K2S2',
+  'frozen source bytes change after walk accounting',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    replaceOnce(
+      join(path, 'corpus', 'sources', 'SRC-401-source-walk.txt'),
+      'Ordinary café setup text.',
+      'Ordinary cafe setup text.',
+    );
+  },
+  /SRC-401 content_hash does not match the frozen source bytes/,
+);
+
 // K3: the K3.4 and K3.6 cases mutate the two seeded issue-18 patterns.
 addFailureCase('K3', 'unknown evidence role', 'evidence-role-adversarial', 'K3.1', (path) => {
   replaceOnce(
@@ -1443,6 +1842,19 @@ try {
       'exact evidence',
       'exact-evidence-fragments',
       ['K2.4', 'K2.13'],
+    );
+  }
+  if (!options.group || options.group === 'K2S2') {
+    runBaseline(
+      'source walk accounting',
+      'source-walk-accounting',
+      ['K2.2', 'K2.13', 'K2.14'],
+      new Map([
+        [
+          'K2.14',
+          /source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid/,
+        ],
+      ]),
     );
   }
   if (!options.group || options.group === 'K3') {
