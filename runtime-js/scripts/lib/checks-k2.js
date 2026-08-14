@@ -1616,17 +1616,6 @@ function checkSourceWalk(results, model) {
                 cursorsBySource.set(sourceId, group);
             }
         }
-        for (const [key, sharedEvents] of eventsBySharedPosition) {
-            if (sharedEvents.length < 2)
-                continue;
-            for (let ordinal = 2; ordinal <= sharedEvents.length; ordinal++) {
-                const checkpoint = walk.cursors.find((cursor) => (cursor.values.sharedPositionKey === key
-                    && cursor.values.nextEventOrdinal === String(ordinal)));
-                if (!checkpoint) {
-                    fail(`${key} lacks a next-work cursor for shared event ordinal ${ordinal}`);
-                }
-            }
-        }
         const gapReviewIds = new Map();
         const gapReviewsBySource = new Map();
         const reconciliationEvents = new Map();

@@ -118,11 +118,13 @@ Column rules:
   rows may share coordinates. Each event interval must be contained in exactly
   one mechanically mapped exact fragment for its packet; a packet with an
   unmappable locator cannot satisfy the 1.2 exact-position contract.
-- A cursor names the **next unprocessed** source position or event. A pause
-  after one same-position event stays at that byte position and names the
-  next ordinal. Source-end means no bytes remain structurally unwalked, not
-  that semantic recall is perfect. `reason` is exactly `initial`, `progress`,
-  `bounded-pause`, `resumed-shared-position`, or `source-complete`.
+- A cursor is an actual checkpoint naming the **next unprocessed** source
+  position or event. A pause after one same-position event stays at that byte
+  position and names the next ordinal; uninterrupted siblings need no
+  intermediate cursor. Source-end means no bytes remain structurally
+  unwalked, not that semantic recall is perfect. `reason` is exactly
+  `initial`, `progress`, `bounded-pause`, `resumed-shared-position`, or
+  `source-complete`.
 - Gap-review results are `no-gap-candidate-found`, `gap-candidate-found`, or
   `cannot-determine`. The reviewer invocation must differ from the primary
   producer. Every row binds the terminal primary source-end cursor and a
@@ -131,7 +133,9 @@ Column rules:
   cursor. A found candidate is `open` with both future canonical IDs set to
   `none`; after single-writer reconciliation it is `reconciled` with one
   committed event whose interval equals the candidate and is contained in the
-  proposed packet's exact fragment. `cannot-determine` blocks completion.
+  proposed packet's exact fragment. Same-position reconciliation uses the next
+  contiguous event ordinal without rewriting primary walk/cursor history.
+  `cannot-determine` blocks completion.
 - `completion_state = complete` requires full interval coverage, a source-end
   cursor, no open interval or event, at least one distinct gap review, and no
   open or indeterminate gap result. A blocked row's final cursor must be the

@@ -125,10 +125,12 @@ Stage-specific amplifications (read with doc 04):
   admitted, non-candidate, excluded, deferred, and unsupported regions. Keep
   interval coverage contiguous from byte zero. Record packet-producing events
   separately; when events share a position, assign one shared-position key and
-  contiguous ordinals. After bounded work, persist a cursor naming the next
-  unprocessed byte/event. A pause after shared ordinal 1 resumes at that same
-  position with ordinal 2, never at the next line, and cursor history at one
-  shared position never regresses in ordinal. Reopen exact bytes for every
+  contiguous ordinals. When bounded work stops or reaches source end, persist
+  a cursor naming the next unprocessed byte/event. A pause after shared
+  ordinal 1 resumes at that same position with ordinal 2, never at the next
+  line; uninterrupted siblings need no intermediate cursor, and cursor
+  history at one shared position never regresses in ordinal. Reopen exact
+  bytes for every
   ordered fragment, use one packet per fragment, declare the Core join policy,
   and require every event interval to lie inside exactly one bound fragment.
   A `degraded-non-exact` rendering is not a packet; retain its source ID,
@@ -139,7 +141,9 @@ Stage-specific amplifications (read with doc 04):
   proposal: record the terminal primary cursor and Core review-basis digest,
   then validate and commit the packet/event as single writer, or leave it open
   with no packet/event IDs. Reconciliation requires candidate/event coordinate
-  equality plus containment in the packet's exact fragment.
+  equality plus containment in the packet's exact fragment. A same-position
+  reconciliation appends the next event ordinal without backdating a primary
+  cursor or changing the primary review basis.
   `cannot-determine` blocks completion. Neither source-end nor a no-gap result
   is a claim of perfect recall, and the basis digest does not prove host
   isolation.

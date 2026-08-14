@@ -162,11 +162,14 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   to absolute frozen-byte bounds and requires the event interval to be
   contained in exactly one fragment for its packet. An unmappable exact
   locator blocks the 1.2 exact-position contract.
-- **Resume cursors:** identify the **next unprocessed** source byte/event and
-  bind it to the source hash plus predecessor walk/event records. A pause
-  between same-position siblings stays at that position and advances only the
-  event ordinal. Same-position cursor history cannot regress in ordinal.
-  Cursor reasons are the Core values `initial`, `progress`, `bounded-pause`,
+- **Resume cursors:** are actual traversal/checkpoint records that identify the
+  **next unprocessed** source byte/event and bind it to the source hash plus
+  predecessor walk/event records. If work pauses between same-position
+  siblings, the cursor stays at that position and advances only the event
+  ordinal. Siblings committed without interruption need no fabricated
+  intermediate cursor. Every recorded same-position cursor remains strict,
+  and cursor history cannot regress in ordinal. Cursor reasons are the Core
+  values `initial`, `progress`, `bounded-pause`,
   `resumed-shared-position`, and `source-complete`.
 - **Fresh gap reviews:** record distinct producer/reviewer invocation
   identities and one result:
@@ -175,7 +178,10 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   digest over the frozen source identity, exact S1 criteria bytes, ordered
   primary walk/events, associated primary packet exact-evidence identities,
   and that cursor. The digest excludes the review result and all gap
-  reconciliation additions. A found candidate stays `open` with
+  reconciliation additions. A post-review reconciliation event may append at
+  an existing exact shared position with the next contiguous ordinal; it does
+  not backdate a primary cursor, move the primary frontier, or change the
+  review basis. A found candidate stays `open` with
   `proposed_packet_id = none` and `reconciliation_event_id = none` until the
   orchestrator validates Slice-1 exact evidence and appends its one committed
   reconciliation event. The candidate and event intervals must be equal, and

@@ -59,9 +59,11 @@ contiguous zero-based half-open UTF-8 byte intervals from byte zero onward;
 classify each interval as admitted, no-candidate-observed, excluded, deferred,
 or unsupported. Record a next-work cursor whenever you stop. If two candidate
 events share one source position, give them one shared-position key and
-contiguous ordinals; after processing the first, the cursor remains at that
-position and points to ordinal 2. Do not advance to the next line until every
-shared sibling is committed. A packet row by hand uses every T3.1 field:
+contiguous ordinals. If you stop after processing the first, the cursor remains
+at that position and points to ordinal 2; if you commit the siblings
+uninterrupted, do not fabricate an intermediate cursor. Do not advance to the
+next line until every shared sibling is committed. A packet row by hand uses
+every T3.1 field:
 `PKT-0042 | SRC-003 | L118-L131 | sha256:<hex> | "tight quote..." | 2 |
 active`. Canonical line ranges (or declared message locators for chat exports)
 are your locators; compute the span hash over the frozen bytes. For the
@@ -82,7 +84,9 @@ separation, not proven fresh-context independence. Record no-gap-candidate,
 located gap-candidate, or cannot-determine. Validate and append any found
 candidate before closing the source; before reconciliation an open candidate
 has no packet/event IDs. Its reconciliation event must match the candidate
-coordinates and lie within the packet's exact fragment. Open or indeterminate
+coordinates and lie within the packet's exact fragment. A same-position
+reconciliation takes the next contiguous event ordinal without backdating a
+primary cursor or changing the primary review basis. Open or indeterminate
 results block S2. Neither a source-end cursor, review-basis digest, nor your
 no-gap result proves perfect recall or independent process isolation.
 

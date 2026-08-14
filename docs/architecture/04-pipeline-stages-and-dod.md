@@ -117,9 +117,11 @@ all ledgers final.
   byte intervals for admitted, non-candidate-observed, excluded, deferred, or
   unsupported regions. Record packet-producing events separately, including
   shared-position keys and contiguous event ordinals when more than one event
-  occurs at one position. After bounded work, record a next-work cursor bound
-  to the frozen source hash; a pause between shared-position siblings stays at
-  the same byte position and names the next ordinal. For each admitted span,
+  occurs at one position. When bounded work stops with work remaining, record
+  a next-work cursor bound to the frozen source hash; a pause between
+  shared-position siblings stays at the same byte position and names the next
+  ordinal. Siblings committed uninterrupted need no intermediate cursor. For
+  each admitted span,
   record one or more ordered exact fragments with source + locator + hash +
   exact base64 bytes, plus a separate display preview and the criterion that
   admitted it. Use one packet per fragment. Declare `single-fragment`,
@@ -134,7 +136,8 @@ all ledgers final.
   the terminal primary cursor and the Core review-basis digest. The
   orchestrator validates any candidate under Slice-1 exact-evidence rules and
   appends the packet/event or leaves the finding open with no future canonical
-  IDs.
+  IDs. A same-position reconciliation appends the next contiguous event
+  ordinal without rewriting primary walk or cursor history.
   Over-extraction is the safe direction: a useless packet costs a
   `judged-non-load-bearing` disposition later; a missed span costs
   completeness silently.
@@ -153,9 +156,10 @@ all ledgers final.
   - [ ] ⚙ every packet has one committed extraction event; same-position
         events have one shared key with unique contiguous ordinals; each event
         lies within exactly one exact fragment for its packet
-  - [ ] ⚙ every next-work cursor is source/hash bound, monotonic, in bounds,
-        uses a Core cursor reason, and cannot skip an open interval or
-        same-position sibling; equal-byte shared cursors cannot regress ordinal
+  - [ ] ⚙ every recorded next-work cursor is source/hash bound, monotonic, in
+        bounds, uses a Core cursor reason, and cannot skip an open interval or
+        same-position sibling; equal-byte shared cursors cannot regress
+        ordinal, while uninterrupted siblings require no intermediate cursor
   - [ ] ⚙ exclusions reference frozen S1 exclusion classes; deferred and
         unsupported regions remain reasoned and visibly open or validly closed
   - [ ] ⚙ every source has a distinct gap-review record; found candidates are

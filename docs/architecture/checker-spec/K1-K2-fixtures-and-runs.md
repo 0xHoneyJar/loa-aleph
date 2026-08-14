@@ -212,14 +212,17 @@ scope.
   positional PASS. For reconciliation, candidate and event intervals are
   equal and the event remains subject to the same fragment-containment rule.
 
-  Resume cursors identify the **next unprocessed** byte/event, carry the frozen
-  source hash, resolve predecessor walk/event records, remain monotonic and in
-  bounds, and cannot move beyond open intervals or pending events. Every
-  multi-event shared position has a cursor for each pending ordinal; a pause
-  after ordinal one stays at that same byte position and names ordinal two.
-  Equal-byte cursor history at one shared position may advance ordinal but may
-  not regress. Cursor `reason` is one of `initial`, `progress`,
-  `bounded-pause`, `resumed-shared-position`, or `source-complete`.
+  Resume cursors are actual traversal/checkpoint records. Each identifies the
+  **next unprocessed** byte/event, carries the frozen source hash, resolves
+  predecessor walk/event records, remains monotonic and in bounds, and cannot
+  move beyond open intervals or pending events. A pause after ordinal one
+  stays at that same byte position and names ordinal two; siblings committed
+  uninterrupted require no intermediate cursor. Every recorded shared cursor
+  is validated against its position, pending ordinal, predecessor event/walk,
+  and source hash. Equal-byte cursor history at one shared position may
+  advance ordinal but may not regress. Cursor `reason` is one of `initial`,
+  `progress`, `bounded-pause`, `resumed-shared-position`, or
+  `source-complete`.
 
   Gap reviews record distinct primary-producer and reviewer invocation
   identities plus `no-gap-candidate-found`, `gap-candidate-found`, or
@@ -243,7 +246,10 @@ scope.
   The review result, reconciliation event, and all gap-reconciliation
   packet/event additions are excluded. This binds review inputs only; it does
   not prove semantic correctness, fresh-context isolation, or worker
-  independence. A found candidate with `status = open` carries valid
+  independence. A post-review reconciliation event may use an existing exact
+  shared-position key and the next contiguous ordinal without a retroactive
+  primary cursor; it does not rewrite the completed primary walk or its review
+  basis. A found candidate with `status = open` carries valid
   coordinates but uses `proposed_packet_id = none` and
   `reconciliation_event_id = none`. `status = reconciled` requires the valid
   exact packet, exactly one matching committed reconciliation event, and the
@@ -313,6 +319,9 @@ coordinate, and changed frozen source bytes. The
 regressions cover a true open candidate, premature open IDs, same-source
 wrong-span evidence, stale primary walk/criteria/exact-evidence review bases, a
 nonterminal basis cursor, a stale blocked final cursor, shared ordinal
-regression, and duplicate completion review IDs. Loa separately tests retained
-1.2 authority against manifest downgrade and version removal, and rejects an
-extractor cursor return with no Core `reason`.
+regression, a post-review same-position reconciliation ordinal gap, invalid
+recorded shared cursors, and duplicate completion review IDs. Positive
+baselines cover both interrupted and uninterrupted primary siblings plus
+same-position post-review reconciliation without cursor backdating. Loa
+separately tests retained 1.2 authority against manifest downgrade and version
+removal, and rejects an extractor cursor return with no Core `reason`.

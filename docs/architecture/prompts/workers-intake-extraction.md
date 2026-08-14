@@ -65,7 +65,8 @@ CONSTRAINTS
 - Emit packet-producing extraction events separately from coverage intervals.
   When more than one event occurs at one source position, use one shared
   position and contiguous ordinals. Preserve the next pending ordinal across
-  interruption.
+  interruption; do not fabricate an intermediate cursor when siblings are
+  completed uninterrupted.
 - Represent admitted evidence as one or more ordered fragments. Each fragment
   records its explicit order, source locator, and canonical base64 copied from
   the source bytes; the orchestrator materializes one canonical packet per
@@ -94,8 +95,9 @@ CONSTRAINTS
   stage's question.
 - Work only from earlier-to-later source bytes. Never use future-source
   knowledge to revise an earlier proposal in place.
-- After bounded work, emit a cursor naming the NEXT unprocessed byte or
-  same-position event, bound to the frozen source hash and predecessor record.
+- When bounded work stops or reaches source end, emit a cursor naming the NEXT
+  unprocessed byte or same-position event, bound to the frozen source hash and
+  predecessor record.
   Set `reason` to exactly one Core value: `initial`, `progress`,
   `bounded-pause`, `resumed-shared-position`, or `source-complete`.
   Source-end is a mechanical statement only.

@@ -33,7 +33,7 @@ const EXPECTED_CASES = new Map<string, number>([
   ['K1', 5],
   ['K2', 22],
   ['K2E', 21],
-  ['K2S2', 38],
+  ['K2S2', 41],
   ['K3', 8],
   ['K4/K5', 9],
   ['K6', 11],
@@ -242,6 +242,84 @@ function refreshReviewBasisDigest(path: string, cursorId = 'CUR-0406'): void {
     cells[4] = cursorId;
     cells[5] = digest;
   });
+}
+
+function makeSamePositionGapReconciliation(
+  path: string,
+  eventOrdinal = '2',
+): void {
+  const reviewBasisBefore = sourceWalkReviewBasisDigest(
+    loadRun(path),
+    'SRC-401',
+    'CUR-0406',
+  );
+  if (!reviewBasisBefore) throw new Error('could not compute the original review basis');
+
+  const span = mdLineSpan(
+    join(path, 'corpus', 'sources', 'SRC-401-source-walk.txt'),
+    5,
+    5,
+  );
+  if (
+    !span?.bytes
+    || span.startByte === null
+    || span.endByte === null
+  ) {
+    throw new Error('source-walk fixture line 5 is not reopenable');
+  }
+  const fragmentHash = `sha256:${sha256(span.bytes)}`;
+  const evidenceHash = `sha256:${framedExactEvidenceHash([span.bytes])}`;
+  const rendered = span.bytes.toString('utf8').replace(/\n$/, '');
+  const renderedHash = `sha256:${sha256(Buffer.from(rendered, 'utf8'))}`;
+  const packetIndex = join(path, 'ledgers', 'packet-index.md');
+  const sourceWalk = join(path, 'ledgers', 'source-walk.md');
+
+  updateTableRow(packetIndex, 'PKT-0405', (cells) => {
+    cells[2] = 'L5-L5';
+    cells[3] = fragmentHash;
+    cells[4] = rendered;
+  });
+  updateTableRow(packetIndex, 'EVID-0404', (cells) => {
+    cells[5] = evidenceHash;
+  });
+  updateTableRow(packetIndex, 'FRAG-0405', (cells) => {
+    cells[5] = 'L5-L5';
+    cells[8] = fragmentHash;
+    cells[9] = span.bytes!.toString('base64');
+  });
+  updateTableRow(packetIndex, 'XFORM-0404', (cells) => {
+    cells[3] = evidenceHash;
+    cells[4] = evidenceHash;
+    cells[5] = rendered;
+    cells[6] = renderedHash;
+  });
+  updateTableRow(sourceWalk, 'EVT-0405', (cells) => {
+    cells[2] = String(span.startByte);
+    cells[3] = String(span.endByte);
+    cells[4] = 'SP-0402';
+    cells[5] = eventOrdinal;
+  });
+  updateTableRow(sourceWalk, 'GAP-0401', (cells) => {
+    cells[7] = String(span.startByte);
+    cells[8] = String(span.endByte);
+    cells[12] = 'fresh reviewer found a same-position candidate after the terminal primary review basis';
+  });
+
+  const updatedModel = loadRun(path);
+  const reviewBasisAfter = sourceWalkReviewBasisDigest(
+    updatedModel,
+    'SRC-401',
+    'CUR-0406',
+  );
+  const recordedBasis = updatedModel.sourceWalk.gapReviews.find(
+    (row) => row.values.gapReviewId === 'GAP-0401',
+  )?.values.reviewBasisDigest;
+  if (
+    reviewBasisAfter !== reviewBasisBefore
+    || recordedBasis !== reviewBasisAfter
+  ) {
+    throw new Error('gap reconciliation changed the recorded primary review basis');
+  }
 }
 
 function replaceEncodedUtf8(path: string, before: string, after: string): void {
@@ -1337,6 +1415,17 @@ addFailureCase(
 
 addFailureCase(
   'K2S2',
+  'gap reconciliation shared-position ordinal has a gap',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    makeSamePositionGapReconciliation(path, '3');
+  },
+  /SP-0402 event ordinals must be unique and contiguous 1\.\.2/,
+);
+
+addFailureCase(
+  'K2S2',
   'resume jumps beyond a same-position sibling',
   'source-walk-accounting',
   'K2.14',
@@ -1348,6 +1437,32 @@ addFailureCase(
     );
   },
   /CUR-0403 shared-position cursor must remain at byte 44/,
+);
+
+addFailureCase(
+  'K2S2',
+  'recorded shared cursor cannot skip the next sibling',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'CUR-0403', (cells) => {
+      cells[4] = '3';
+    });
+  },
+  /CUR-0403 next_event_ordinal must identify a pending shared event in 2\.\.2/,
+);
+
+addFailureCase(
+  'K2S2',
+  'recorded shared cursor requires the immediately preceding event',
+  'source-walk-accounting',
+  'K2.14',
+  (path) => {
+    updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'CUR-0403', (cells) => {
+      cells[6] = 'EVT-0402';
+    });
+  },
+  /CUR-0403 predecessor event does not precede shared ordinal 2/,
 );
 
 addFailureCase(
@@ -2151,7 +2266,7 @@ try {
   }
   if (!options.group || options.group === 'K2S2') {
     runBaseline(
-      'source walk accounting',
+      'source walk accounting with interrupted primary shared position',
       'source-walk-accounting',
       ['K2.2', 'K2.13', 'K2.14'],
       new Map([
@@ -2160,6 +2275,37 @@ try {
           /source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid/,
         ],
       ]),
+    );
+    runBaseline(
+      'uninterrupted primary shared position needs no intermediate cursor',
+      'source-walk-accounting',
+      ['K2.2', 'K2.13', 'K2.14'],
+      new Map([
+        [
+          'K2.14',
+          /source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid/,
+        ],
+      ]),
+      (path) => {
+        removeLine(join(path, 'ledgers', 'source-walk.md'), /^\| CUR-0403 \|/);
+        updateTableRow(join(path, 'ledgers', 'source-walk.md'), 'CUR-0404', (cells) => {
+          cells[8] = 'progress';
+        });
+      },
+    );
+    runBaseline(
+      'post-review same-position gap reconciliation needs no backdated cursor',
+      'source-walk-accounting',
+      ['K2.2', 'K2.13', 'K2.14'],
+      new Map([
+        [
+          'K2.14',
+          /source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid/,
+        ],
+      ]),
+      (path) => {
+        makeSamePositionGapReconciliation(path);
+      },
     );
     runBaseline(
       'true open gap candidate remains structurally blocked',
