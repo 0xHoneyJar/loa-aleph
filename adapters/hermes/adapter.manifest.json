@@ -6,7 +6,7 @@
     "version": "0.0.0-planned",
     "host": "hermes",
     "protocol_version": "1.0.0-provisional",
-    "run_format_version": "1.0.0-provisional",
+    "run_format_version": "1.1.0-provisional",
     "lifecycle": "planned"
   },
   "core_consumption": {
