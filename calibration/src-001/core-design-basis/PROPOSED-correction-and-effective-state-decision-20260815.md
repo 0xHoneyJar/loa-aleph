@@ -32,17 +32,36 @@ correction model is not claimed to have been derived from SRC-001 calibration.
 ## 2. Governing Invariant
 
 > Durable research state is never erased by correction. A correction
-> establishes a new effective state, explicitly supersedes corrected records,
-> invalidates dependent descendants whose prerequisites changed, preserves
-> unaffected records whose prerequisites remain valid, and resumes from the
-> earliest unmet Definition of Done. Frozen corpus identity is never mutated;
+> establishes or prepares a new effective state. Where a valid replacement
+> becomes effective, the corrected predecessor is explicitly superseded.
+> Where correction has been identified but replacement or re-establishment is
+> not yet complete, affected records remain explicitly stale, invalidated,
+> rejected, or otherwise non-effective under the applicable contract rather
+> than receiving fabricated successors. Dependent descendants whose
+> prerequisites changed are invalidated; unaffected records whose prerequisites
+> remain valid are preserved; execution resumes only from the earliest
+> applicable unmet Definition of Done. Frozen corpus identity is never mutated;
 > corpus corrections require a successor run.
 
 This is not ordinary edit history. Correction changes which durable state is
 authoritative for continued work while retaining the prior state and enough
-provenance to reconstruct why the effective view changed.
+provenance to reconstruct why the effective view changed. A discovered defect
+may legitimately leave a run `BLOCKED` with an invalidated record awaiting
+correction. Lineage completeness must not be manufactured by inventing a
+successor that has not been validly established.
 
 ## 3. Required State Distinctions
+
+`EFFECTIVE`, `SUPERSEDED`, `STALE`, `INVALIDATED`, `REJECTED`, and
+`HISTORICAL` are conceptual architecture distinctions in this proposal. They
+are not, merely through adoption of this proposal, final field names, status
+enums, table schemas, or run-state values.
+
+In particular, `STALE / INVALIDATED` names a conceptual distinction or class
+whose exact representation remains deferred to bounded design. A later Slice 3
+reconnaissance may recommend exact Core vocabulary, but it must preserve the
+distinctions adopted here. This proposal does not alter existing Core run-state
+enums.
 
 ### EFFECTIVE
 
@@ -132,7 +151,8 @@ derivation state for continued pipeline execution and Précis compilation.
 The Précis is compiled from the effective view, not indiscriminately from all
 historical artifacts. A historical record returns to the effective view only
 through a valid current-state transition or explicit carry-forward permitted
-by the applicable contract.
+by the applicable contract. Human-authority responses are additionally bound
+by Section 8 and cannot be silently carried forward.
 
 ## 5. Correction Classes
 
@@ -151,12 +171,15 @@ In-run derived-state corrections include:
 The intended future behavior is:
 
 1. preserve the original durable record;
-2. append a correction or new effective version;
-3. supersede the corrected record where applicable;
+2. persist the correction finding and append a replacement or new effective
+   version only when one has been validly established;
+3. supersede the corrected record only when the applicable contract recognizes
+   a valid effective replacement;
 4. identify dependent descendants;
 5. mark affected descendants stale or invalidated rather than deleting them;
 6. preserve unaffected work whose prerequisites remain valid; and
-7. resume from the earliest affected unmet Definition of Done.
+7. remain blocked when replacement or required authority is incomplete,
+   otherwise resume from the earliest affected unmet Definition of Done.
 
 This proposal establishes the intended architecture only. It does not claim
 that this complete mechanism is implemented.
@@ -172,6 +195,10 @@ Conceptually:
 checkpoint-v1 -> SUPERSEDED
 checkpoint-v2 -> EFFECTIVE
 ```
+
+This transition applies only once checkpoint v2 is validly established and
+effective. Before that point, checkpoint v1 may be non-effective or invalidated
+without being falsely linked to a successor that does not yet exist.
 
 The ordinary effective view may hide historical versions while audit and
 history views can reopen them. This proposal does not define a complete
@@ -221,21 +248,26 @@ C-10
   -> synthesis SYN-2
 ```
 
-If `C-10` is corrected:
+If a defect in `C-10` is identified or `C-10` is corrected:
 
-- the predecessor of `C-10` may become `SUPERSEDED`;
+- the predecessor of `C-10` may become `SUPERSEDED` when a valid replacement
+  becomes effective;
+- if no valid replacement exists yet, `C-10` may remain non-effective or
+  invalidated and the run may remain blocked;
 - `M-4` may become `STALE` or `INVALIDATED`;
 - `CL-8` may become `STALE` or `INVALIDATED`; and
 - `SYN-2` may become `STALE` or `INVALIDATED`.
 
 Those descendants are not automatically declared semantically wrong. Their
 prior establishment depended on an outdated prerequisite, so the applicable
-Definitions of Done must be re-established under the new effective state.
+Definitions of Done must be re-established before they enter a new effective
+state.
 
 The intended future system resumes from the earliest affected unmet
-Definition of Done rather than restarting the entire run. This proposal does
-not implement dependency traversal, invalidation propagation, rewind, or
-resume machinery.
+Definition of Done rather than restarting the entire run, but only after any
+required replacement and renewed authority exist. This proposal does not
+implement dependency traversal, invalidation propagation, rewind, or resume
+machinery.
 
 ## 7. Lineage, Disposition, and Typed Relations
 
@@ -251,8 +283,24 @@ Examples include:
 
 - split;
 - merge;
-- replace; and
-- supersede.
+- replace;
+- supersede;
+- duplicate;
+- reject;
+- exclude; and
+- no-claim.
+
+These remain within the previously adopted Slice 3 structural closure scope,
+but they are not semantically identical:
+
+- split, merge, replace, and supersede are identity-transformation forms;
+- duplicate is a canonicalization or identity relationship that must preserve
+  provenance and must not create false independent evidence; and
+- reject, exclude, and no-claim are terminal or no-successor structural
+  outcomes needed to explain why a lineage-managed record does not continue.
+
+Terminal closure does not require fabricating a successor. The exact schema,
+edge model, and status vocabulary remain deferred to bounded Slice 3 design.
 
 ### Disposition
 
@@ -272,6 +320,11 @@ Disposition must not be collapsed into lineage. A record may remain
 identity-effective while later receiving a non-carried research disposition.
 For example, a backgrounded claim can remain the effective identity record
 without appearing as a carried claim in the Précis.
+
+Likewise, Slice 3 structural `reject`, `exclude`, or `no-claim` closure does not
+collapse the separate S5 question of what role an active research claim has in
+the result. Similar words used by different stage contracts must retain their
+contract-specific meanings.
 
 ### Typed Relations
 
@@ -305,23 +358,66 @@ applicable stage contract. Human gates remain human. No worker, reviewer,
 orchestrator, or deterministic checker may impersonate a human-authority
 response.
 
+### Correction Authority Invariant
+
+A correction must never rewrite, fabricate, reinterpret, or silently carry
+forward a human-authority response.
+
+If the effective basis on which a human gate depended changes materially:
+
+- the original human response remains immutable historical evidence;
+- deterministic or semantic workers may identify that downstream authority is
+  no longer sufficient for the changed effective state;
+- they may not manufacture a replacement authority response;
+- the applicable human gate must be presented again where its contract
+  requires renewed authority;
+- execution stops at that gate until an actual human-authority response is
+  persisted; and
+- no correction path may use "resume from the earliest unmet Definition of
+  Done" to bypass a human gate.
+
+Conceptually:
+
+- **S13:** If an accepted Précis or its load-bearing basis changes, the prior
+  acceptance cannot silently authorize the changed Précis.
+- **Projection:** If the accepted source basis changes, an existing projection
+  commission or acceptance must not be assumed to authorize a newly changed
+  source state.
+- **S0 / frozen corpus:** A corpus-byte correction requires a successor run and
+  cannot rewrite the original freeze authority.
+
+These examples establish authority boundaries, not exact implementation
+behavior.
+
+This proposal does not decide or authorize a general mechanism for correcting
+an already `ACCEPTED` run. Whether post-acceptance correction occurs through a
+successor run or another future explicitly adopted mechanism remains deferred.
+Until such a mechanism is implemented and authorized, this proposal must not
+be read as permitting mutation or reopening of an accepted run.
+
 ## 9. Relation to Slice 3
 
 This proposal clarifies the broader correction architecture behind the
 currently adopted Slice 3 direction.
 
-Slice 3 remains bounded to:
-
-> Unified split / merge / replace / supersede lineage.
+The previously adopted Slice 3 structural closure scope includes split, merge,
+replace, supersede, duplicate, reject, exclude, and no-claim.
 
 Slice 3 should establish the smallest structural concepts required by its
 adopted implementation scope, including:
 
 - explicit predecessor and successor lineage;
+- explicit terminal or no-successor closure where a record does not continue;
+- provenance-preserving duplicate canonicalization;
 - effective versus non-effective identity state where required;
 - legal multi-parent and multi-successor transformation;
 - no silent disappearance; and
 - reconstructable transformation history.
+
+Including these concepts in Slice 3 does not make them semantically identical,
+convert S5 research disposition into lineage, or absorb Slice 4 semantic and
+context relations. It establishes only the structural closure needed to
+explain what happened to a lineage-managed record.
 
 Slice 3 must not silently expand to implement the complete correction system.
 The following remain deferred:
@@ -336,33 +432,42 @@ The following remain deferred:
 
 A subsequent read-only Slice 3 reconnaissance must determine the smallest
 bounded portion of this decision required for the currently adopted Slice 3
-implementation. This proposal is not that reconnaissance and does not begin
-Slice 3 implementation.
+implementation, including the smallest correct representation of
+transformation, duplicate canonicalization, and terminal closure. This proposal
+does not redesign the concrete schema, is not that reconnaissance, and does
+not begin Slice 3 implementation.
 
 ## 10. Consistency Cases
 
 The proposed distinctions produce the following outcomes:
 
-1. A derived claim corrected inside one frozen run retains its predecessor,
-   establishes a new effective version, and invalidates only descendants whose
-   prerequisites changed.
-2. An incorrect merge discovered after clustering may be superseded while the
-   dependent cluster becomes stale pending reconsideration.
-3. A peer-review finding may invalidate downstream work without proving that
-   work false, and the reviewer does not directly rewrite canonical state.
-4. Checkpoint v1 remains historical and superseded when checkpoint v2 becomes
-   effective.
-5. A wrong source file discovered after S0 freeze requires a successor run;
-   the original frozen corpus remains unchanged.
-6. An unchanged source in a successor run is eligible only for justified,
-   contract-governed reuse, never automatic reuse from hash equality alone.
-7. A cross-source cluster depending partly on a replaced source must be
-   reconsidered even when its other sources are unchanged.
-8. A rejected research path remains durable historical research but does not
-   enter the effective view.
-9. A backgrounded claim may remain identity-effective because research
+1. An error discovered before a corrected successor exists leaves the affected
+   record non-effective or invalidated and may leave the run blocked; no
+   successor is fabricated.
+2. A one-to-many split records the predecessor and all valid successors without
+   silently dropping provenance.
+3. A many-to-one merge records all parents and the canonical successor without
+   treating combined provenance as independent corroboration.
+4. Duplicate canonicalization preserves every source occurrence and does not
+   create false independent evidence.
+5. A structurally rejected record may terminate with no successor while its
+   reason and history remain inspectable.
+6. A scope-excluded record may terminate with no successor under the applicable
+   structural contract without becoming an S5 disposition by implication.
+7. A no-claim outcome may close a lineage-managed source unit without inventing
+   a claim successor.
+8. A backgrounded claim may remain identity-effective because research
    disposition is not lineage state.
-10. A semantic relation remains a Slice 4 concern and is not converted into a
+9. Correction that invalidates work below a human gate also invalidates the
+   sufficiency of that authority where the gate contract requires renewed
+   approval; execution stops rather than carrying the response forward.
+10. If the basis of S13 acceptance changes, the prior acceptance remains
+    historical and cannot authorize a changed Précis.
+11. A wrong source file discovered after S0 freeze requires a successor run;
+    the original corpus and freeze authority remain unchanged.
+12. Correction of an already `ACCEPTED` run remains deferred to a future
+    explicitly adopted mechanism and is not authorized here.
+13. A semantic dependency remains a Slice 4 concern and is not converted into a
     Slice 3 lineage edge merely to support future correction.
 
 These are architecture interpretations, not claims of implemented behavior.
@@ -378,6 +483,8 @@ This proposal does not establish, implement, or authorize:
 - cross-run work reuse;
 - mutable frozen corpora;
 - migration of old runs;
+- mutation or reopening of an already accepted run;
+- a general post-acceptance correction mechanism;
 - blind SRC-001 replay;
 - intent-fidelity work;
 - semantic validation;
