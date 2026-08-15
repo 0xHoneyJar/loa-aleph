@@ -144,11 +144,21 @@ validation additionally verify the retained runtime snapshot and bind its
 bundle, host, profile, and role-model mapping back to run state. The manifest
 cannot select compatibility: a retained 1.2 run that declares 1.1 or 1.0,
 removes the version, or changes a pin fails before the pinned checker runs.
+Loa also treats retained execution as a floor rather than demanding exact
+state equality: S1 requires the manifest to have reached `CORPUS-FROZEN`, and
+S2 or any later retained stage requires `DISTILLING` or later. A `BLOCKED`
+condition or human gate does not lower that floor or require the mutable
+manifest's current row to equal `run-state.json`.
 
 Retained 1.0 runs are not migrated and are not resumed by substituting this
 adapter. They continue under their original immutable bundle, runtime, and
 checker. The current repository's explicit legacy fixture checks document that
 boundary; they are not a downgrade path for a newly created run.
+Standalone copied Markdown with every historical S2 signal erased cannot
+authenticate that erased history. A live Loa run can reject the same bytes
+because `control/run-state.json` retains the authoritative stage. This check
+adds no live S2 ledger persistence, crash recovery, or worker orchestration;
+those capabilities remain unimplemented.
 
 Workers receive copied, read-only allowlisted bundles, never the run root or a
 ledger-writing handle. Prompt parts, stage sections, and return contracts are

@@ -376,7 +376,9 @@ function prepareTxtExactEvidenceIntegrationRun(
   corpus: CorpusSnapshot,
   source: CorpusSnapshot['files'][number],
 ): string {
-  cpSync(sourceRunDir, destination, { recursive: true });
+  if (resolve(sourceRunDir) !== resolve(destination)) {
+    cpSync(sourceRunDir, destination, { recursive: true });
+  }
   rmSync(join(destination, 'verification'), { recursive: true, force: true });
 
   const sourceBytes = readFileSync(join(destination, source.frozen_path));
@@ -570,6 +572,29 @@ function prepareTxtExactEvidenceIntegrationRun(
   return destination;
 }
 
+function eraseCoreS2Signals(runDir: string): void {
+  const manifestPath = join(runDir, 'run-manifest.md');
+  const manifest = readFileSync(manifestPath, 'utf8');
+  const withoutDistilling = manifest.replace(
+    /^\| \d+ \| DISTILLING \|[^\n]+\n?/mu,
+    '',
+  );
+  expect(withoutDistilling !== manifest, 'coordinated erasure found no DISTILLING state row');
+  writeFileSync(manifestPath, withoutDistilling);
+
+  const runLogPath = join(runDir, 'run-log.md');
+  const runLog = readFileSync(runLogPath, 'utf8');
+  const withoutS2Log = runLog.replace(
+    /\n## 2040-01-02T03:06:00\.000Z — S2 — entry\n\nFixture packetization began from the frozen \.txt source\.\n?/u,
+    '',
+  );
+  expect(withoutS2Log !== runLog, 'coordinated erasure found no S2 run-log entry');
+  writeFileSync(runLogPath, withoutS2Log);
+
+  rmSync(join(runDir, 'ledgers', 'source-walk.md'));
+  rmSync(join(runDir, 'ledgers', 'packet-index.md'));
+}
+
 function exactWithheldInventory(
   bundle: VerifiedLoaBundle,
   runDir: string,
@@ -715,6 +740,91 @@ function startOptions(context: AdapterTestContext) {
     clock: CLOCK,
     idSource: IDS,
   } as const;
+}
+
+function prepareIndependentFrozenRun(
+  context: AdapterTestContext,
+  name: string,
+): {
+  loaRoot: string;
+  runDir: string;
+  corpus: CorpusSnapshot;
+} {
+  const loaRoot = join(context.tempRoot, name);
+  const installation = installLoaBundle(context.selectedBundle, loaRoot);
+  expect(
+    installation.result === 'PASS',
+    `retained-stage fixture installation failed: ${installation.errors.join('; ')}`,
+  );
+  copyFixture(
+    join(FIXTURE_ROOT, 'host-capabilities.json'),
+    join(loaRoot, 'grimoires', 'loa', 'aleph', 'host-capabilities.json'),
+  );
+  const inputA = join(loaRoot, 'fixture-input', 'source-a.md');
+  const inputDirectory = join(loaRoot, 'fixture-input', 'nested');
+  copyFixture(join(FIXTURE_ROOT, 'corpus', 'source-a.md'), inputA);
+  copyFixture(
+    join(FIXTURE_ROOT, 'corpus', 'nested', 'source-b.txt'),
+    join(inputDirectory, 'source-b.txt'),
+  );
+  const options = {
+    loaRoot,
+    allowSimulation: true,
+    clock: CLOCK,
+    idSource: IDS,
+  } as const;
+  const started = dispatchLoaCommand(
+    [
+      'start',
+      relative(loaRoot, inputA),
+      relative(loaRoot, inputDirectory),
+    ],
+    options,
+  );
+  expect(
+    started.result === 'BLOCKED',
+    `retained-stage fixture did not stop at S0: ${stableJson(started)}`,
+  );
+  const runDir = runDirectory(loaRoot, RUN_ID);
+  const corpus = verifyCorpusSnapshot(runDir);
+  const approved = recordS0AuthorityResponse(
+    RUN_ID,
+    fixtureAuthorityResponse(corpus),
+    options,
+  );
+  expect(
+    approved.result === 'PASS',
+    `retained-stage fixture S0 response failed: ${approved.errors.join('; ')}`,
+  );
+  return { loaRoot, runDir, corpus: verifyCorpusSnapshot(runDir) };
+}
+
+function prepareRetainedDistillingRun(
+  context: AdapterTestContext,
+  name: string,
+  stage: CoreStage,
+): {
+  loaRoot: string;
+  runDir: string;
+  corpus: CorpusSnapshot;
+} {
+  const fixture = prepareIndependentFrozenRun(context, name);
+  const source = fixture.corpus.files.find((file) => file.relative_path === 'source-b.txt');
+  expect(source !== undefined, 'retained-stage fixture .txt source is missing');
+  prepareTxtExactEvidenceIntegrationRun(
+    fixture.runDir,
+    fixture.runDir,
+    fixture.corpus,
+    source,
+  );
+  updateRunState(fixture.runDir, '2040-01-02T03:06:00.000Z', (draft) => {
+    draft.execution.core_state = 'DISTILLING';
+    draft.execution.stage = stage;
+    draft.execution.stage_status = 'running';
+    draft.execution.gate = null;
+    draft.execution.halt = null;
+  });
+  return fixture;
 }
 
 function requireRun(context: AdapterTestContext): {
@@ -1290,6 +1400,105 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       assertFixtureBoundary(state, runDir);
     });
 
+    runCase(results, 'retained pre-S2 run without S2 signals remains valid', () => {
+      const fixture = prepareIndependentFrozenRun(context, 'retained-stage-floor-pre-s2');
+      updateRunState(fixture.runDir, '2040-01-02T03:05:45.000Z', (draft) => {
+        draft.execution.core_state = 'CORPUS-FROZEN';
+        draft.execution.stage = 'S1';
+        draft.execution.stage_status = 'running';
+        draft.execution.gate = null;
+        draft.execution.halt = null;
+      });
+      const retained = verifyRunControl(fixture.runDir);
+      expect(retained.execution.stage === 'S1', 'pre-S2 fixture did not retain S1 authority');
+      const checked = dispatchLoaCommand(
+        ['validate', RUN_ID],
+        { ...startOptions(context), loaRoot: fixture.loaRoot },
+      );
+      expect(
+        checked.result === 'PASS',
+        `retained pre-S2 run failed its existing contract: ${checked.errors.join('; ')}`,
+      );
+    });
+
+    runCase(results, 'retained S2 run with valid 1.2 artifacts reaches the pinned checker', () => {
+      const fixture = prepareRetainedDistillingRun(
+        context,
+        'retained-stage-floor-valid-s2',
+        'S2',
+      );
+      const retained = verifyRunControl(fixture.runDir);
+      expect(retained.execution.stage === 'S2', 'valid retained fixture did not reach S2');
+      const checked = dispatchLoaCommand(
+        ['validate', RUN_ID],
+        { ...startOptions(context), loaRoot: fixture.loaRoot },
+      );
+      expect(
+        checked.result === 'PASS',
+        `valid retained S2 run failed normal checker behavior: ${checked.errors.join('; ')}`,
+      );
+    });
+
+    runCase(results, 'retained S2 authority rejects coordinated Core signal erasure', () => {
+      const fixture = prepareRetainedDistillingRun(
+        context,
+        'retained-stage-floor-erased-s2',
+        'S2',
+      );
+      eraseCoreS2Signals(fixture.runDir);
+      const standalone = pinnedCheckerReport(fixture.runDir);
+      const standaloneFailures = standalone.checks.filter((check) => check.status === 'FAIL');
+      expect(
+        standalone.result === 'PASS',
+        `host-neutral checker did not reproduce erased-history ambiguity: ${
+          standaloneFailures.map((check) => check.message).join('; ')
+        }`,
+      );
+      let checkerInvoked = false;
+      const checked = dispatchLoaCommand(['validate', RUN_ID], {
+        ...startOptions(context),
+        loaRoot: fixture.loaRoot,
+        checkerSpawn: () => {
+          checkerInvoked = true;
+          throw new Error('checker must not run after retained-stage-floor failure');
+        },
+      });
+      expect(checked.result === 'FAIL', 'live Loa accepted coordinated S2 erasure');
+      expect(!checkerInvoked, 'coordinated S2 erasure reached the pinned checker');
+      expect(
+        checked.errors.some((error) => (
+          /Core run manifest state understates retained execution stage S2/iu.test(error)
+        )),
+        `coordinated erasure omitted retained-stage diagnostic: ${checked.errors.join('; ')}`,
+      );
+    });
+
+    runCase(results, 'retained later distillation stage cannot downgrade below DISTILLING', () => {
+      const fixture = prepareRetainedDistillingRun(
+        context,
+        'retained-stage-floor-erased-s8',
+        'S8',
+      );
+      eraseCoreS2Signals(fixture.runDir);
+      let checkerInvoked = false;
+      const checked = dispatchLoaCommand(['validate', RUN_ID], {
+        ...startOptions(context),
+        loaRoot: fixture.loaRoot,
+        checkerSpawn: () => {
+          checkerInvoked = true;
+          throw new Error('checker must not run after retained-stage-floor failure');
+        },
+      });
+      expect(checked.result === 'FAIL', 'retained S8 authority accepted a pre-DISTILLING manifest');
+      expect(!checkerInvoked, 'retained S8 downgrade reached the pinned checker');
+      expect(
+        checked.errors.some((error) => (
+          /Core run manifest state understates retained execution stage S8/iu.test(error)
+        )),
+        `later-stage downgrade omitted retained-stage diagnostic: ${checked.errors.join('; ')}`,
+      );
+    });
+
     runCase(results, 'non-markdown UTF-8 intake reopens as exact Core md-lines evidence', () => {
       const { runDir, corpus } = requireRun(context);
       const source = corpus.files.find((file) => file.relative_path === 'source-b.txt');
@@ -1431,6 +1640,20 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         }),
         /cannot jump from Core stage S0 to S13/iu,
         'premature cross-stage authority gate',
+      );
+      const manifestPath = join(runDir, 'run-manifest.md');
+      const manifest = readFileSync(manifestPath, 'utf8');
+      const frozenState = manifest.match(/^\| (\d+) \| CORPUS-FROZEN \|[^\n]+$/mu);
+      expect(frozenState !== null, 'generic gate fixture has no CORPUS-FROZEN state row');
+      writeFileSync(
+        manifestPath,
+        manifest.replace(
+          frozenState[0],
+          `${frozenState[0]}\n`
+            + `| ${String(Number(frozenState[1]) + 1)} | DISTILLING | `
+            + '2040-01-02T03:05:30.000Z | fixture-runner | '
+            + 'synthetic gate-mechanics test entered the distillation state floor |',
+        ),
       );
       updateRunState(runDir, '2040-01-02T03:05:30.000Z', (draft) => {
         draft.execution.core_state = 'DISTILLING';
