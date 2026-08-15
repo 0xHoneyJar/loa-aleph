@@ -11,8 +11,32 @@ export const DISPOSITIONS = [
     'unresolved',
 ];
 export const EXACT_EVIDENCE_FORMAT = 'aleph-exact-evidence/v1';
+export const SOURCE_WALK_FORMAT = 'aleph-source-walk/v1';
+export const SOURCE_POSITION_FORMAT = 'zero-based-utf8-byte-half-open/v1';
+export const SOURCE_WALK_CURSOR_REASONS = [
+    'initial',
+    'progress',
+    'bounded-pause',
+    'resumed-shared-position',
+    'source-complete',
+];
 export const LEGACY_RUN_FORMAT_VERSION = '1.0.0-provisional';
-export const CURRENT_RUN_FORMAT_VERSION = '1.1.0-provisional';
+export const EXACT_EVIDENCE_RUN_FORMAT_VERSION = '1.1.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = '1.2.0-provisional';
+export const SUPPORTED_RUN_FORMAT_VERSIONS = [
+    LEGACY_RUN_FORMAT_VERSION,
+    EXACT_EVIDENCE_RUN_FORMAT_VERSION,
+    CURRENT_RUN_FORMAT_VERSION,
+];
+export function usesForwardExecutionIdentity(runFormatVersion) {
+    return [
+        EXACT_EVIDENCE_RUN_FORMAT_VERSION,
+        CURRENT_RUN_FORMAT_VERSION,
+    ].some((version) => version === runFormatVersion);
+}
+export function usesExactEvidence(runFormatVersion) {
+    return usesForwardExecutionIdentity(runFormatVersion);
+}
 export const EXACT_EVIDENCE_JOIN_POLICIES = [
     'single-fragment',
     'adjacent-fragments',
@@ -190,7 +214,7 @@ function exactJsonObject(value) {
     }
 }
 export function forwardExecutionIdentityProblems(manifest) {
-    if (manifest.runFormatVersion !== CURRENT_RUN_FORMAT_VERSION)
+    if (!usesForwardExecutionIdentity(manifest.runFormatVersion))
         return [];
     const problems = [];
     for (const display of FORWARD_IDENTITY_BULLET_FIELDS) {
@@ -388,6 +412,155 @@ function parseExactEvidence(document) {
         transformationTable,
     };
 }
+function parseSourceWalk(document) {
+    if (!document) {
+        return {
+            format: '',
+            positionFormat: '',
+            intervals: [],
+            events: [],
+            cursors: [],
+            gapReviews: [],
+            completions: [],
+            intervalTable: null,
+            eventTable: null,
+            cursorTable: null,
+            gapReviewTable: null,
+            completionTable: null,
+        };
+    }
+    const intervalTable = findTable(document.tables, [
+        'walk id',
+        'source id',
+        'start byte',
+        'end byte',
+        'outcome',
+        'packet ids',
+        'criterion ref',
+        'producer invocation id',
+        'closure state',
+        'reason',
+        'closure note',
+    ]);
+    const eventTable = findTable(document.tables, [
+        'event id',
+        'source id',
+        'start byte',
+        'end byte',
+        'shared position key',
+        'event ordinal',
+        'packet id',
+        'origin',
+        'producer invocation id',
+        'status',
+    ]);
+    const cursorTable = findTable(document.tables, [
+        'cursor id',
+        'source id',
+        'byte offset',
+        'shared position key',
+        'next event ordinal',
+        'predecessor walk id',
+        'predecessor event id',
+        'source hash',
+        'reason',
+    ]);
+    const gapReviewTable = findTable(document.tables, [
+        'gap review id',
+        'source id',
+        'producer invocation id',
+        'reviewer invocation id',
+        'review basis cursor id',
+        'review basis digest',
+        'result',
+        'candidate start byte',
+        'candidate end byte',
+        'proposed packet id',
+        'reconciliation event id',
+        'status',
+        'note',
+    ]);
+    const completionTable = findTable(document.tables, [
+        'source id',
+        'source hash',
+        'source length bytes',
+        'final cursor id',
+        'gap review ids',
+        'completion state',
+        'declared by',
+        'note',
+    ]);
+    return {
+        format: document.bullets.fields.get('source walk format') || '',
+        positionFormat: document.bullets.fields.get('source position format') || '',
+        intervals: rowObjects(intervalTable, [
+            'walkId',
+            'sourceId',
+            'startByte',
+            'endByte',
+            'outcome',
+            'packetIds',
+            'criterionRef',
+            'producerInvocationId',
+            'closureState',
+            'reason',
+            'closureNote',
+        ]),
+        events: rowObjects(eventTable, [
+            'eventId',
+            'sourceId',
+            'startByte',
+            'endByte',
+            'sharedPositionKey',
+            'eventOrdinal',
+            'packetId',
+            'origin',
+            'producerInvocationId',
+            'status',
+        ]),
+        cursors: rowObjects(cursorTable, [
+            'cursorId',
+            'sourceId',
+            'byteOffset',
+            'sharedPositionKey',
+            'nextEventOrdinal',
+            'predecessorWalkId',
+            'predecessorEventId',
+            'sourceHash',
+            'reason',
+        ]),
+        gapReviews: rowObjects(gapReviewTable, [
+            'gapReviewId',
+            'sourceId',
+            'producerInvocationId',
+            'reviewerInvocationId',
+            'reviewBasisCursorId',
+            'reviewBasisDigest',
+            'result',
+            'candidateStartByte',
+            'candidateEndByte',
+            'proposedPacketId',
+            'reconciliationEventId',
+            'status',
+            'note',
+        ]),
+        completions: rowObjects(completionTable, [
+            'sourceId',
+            'sourceHash',
+            'sourceLengthBytes',
+            'finalCursorId',
+            'gapReviewIds',
+            'completionState',
+            'declaredBy',
+            'note',
+        ]),
+        intervalTable,
+        eventTable,
+        cursorTable,
+        gapReviewTable,
+        completionTable,
+    };
+}
 function parseClaims(document) {
     if (!document)
         return [];
@@ -569,6 +742,7 @@ export function loadRun(runDir) {
     const runLog = get('run-log.md');
     const criteria = get('ledgers/extraction-criteria.md');
     const packetDocument = get('ledgers/packet-index.md');
+    const sourceWalkDocument = get('ledgers/source-walk.md');
     const claimDocument = get('ledgers/claim-inventory.md');
     const dispositionDocument = get('ledgers/disposition-ledger.md');
     const mergeDocument = get('ledgers/merge-map.md');
@@ -587,6 +761,7 @@ export function loadRun(runDir) {
         criteria,
         packets: parsePackets(packetDocument),
         exactEvidence: parseExactEvidence(packetDocument),
+        sourceWalk: parseSourceWalk(sourceWalkDocument),
         claims: parseClaims(claimDocument),
         dispositionRows: parseDispositionRows(dispositionDocument),
         merges: parseMerges(mergeDocument),
@@ -601,6 +776,7 @@ export function loadRun(runDir) {
         synthesis: get('synthesis/cluster-synthesis.md'),
         projections: parseProjections(runDir),
         packetDocument,
+        sourceWalkDocument,
         claimDocument,
         dispositionDocument,
         mergeDocument,

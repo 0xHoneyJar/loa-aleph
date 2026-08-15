@@ -22,10 +22,6 @@
 ## Evidence transformations
 | transform_key | evidence_key | output_role | predecessor_exact_evidence_hash | effective_exact_evidence_hash | output_text | output_text_hash |
 |---------------|--------------|-------------|---------------------------------|-------------------------------|-------------|------------------|
-
-## Per-source completion  <!-- one row per source; S2 DoD needs every row -->
-| source_id | walked | packets | declared complete by | note |
-|-----------|--------|---------|----------------------|------|
 ```
 
 Column rules:
@@ -33,11 +29,11 @@ Column rules:
 - `locator` uses the source's scheme from the corpus manifest (`L118-L131`,
   `M14:S2`). `span_hash` = sha256 of the exact span bytes at freeze.
 - In `aleph-exact-evidence/v1`, use one packet per exact fragment. `quote` is
-  a bounded display preview only and is never exact evidence. Run format
-  `1.1.0-provisional` requires this marker and the three versioned tables once
-  S2 is reached. Historical `1.0.0-provisional` and pre-versioned packet
-  ledgers without the marker retain their predecessor behavior and are not
-  reinterpreted.
+  a bounded display preview only and is never exact evidence. Run formats
+  `1.1.0-provisional` and `1.2.0-provisional` require this marker and the
+  three versioned tables once S2 is reached. Historical
+  `1.0.0-provisional` and pre-versioned packet ledgers without the marker
+  retain their predecessor behavior and are not reinterpreted.
 - `criterion`: the admission-criterion number from T2.2. A walked span that
   matched an exclusion class gets **no row** (that is the recorded
   two-level boundary); a span refused by a classifier gets a row with
@@ -74,7 +70,79 @@ Column rules:
 <!-- example -->
 | PKT-0007 | SRC-101 | L5-L8 | sha256:aa10… | "Gating appears to improve member retention: members who must hold to stay in tend to stick around longer…" | 1 | active |
 
-## T3.2 Claim inventory → `runs/<run-id>/ledgers/claim-inventory.md`
+## T3.2 Source walk → `runs/<run-id>/ledgers/source-walk.md`
+
+```markdown
+# Source Walk Ledger — ⟨RUN-slug⟩
+
+- source_walk_format: aleph-source-walk/v1
+- source_position_format: zero-based-utf8-byte-half-open/v1
+
+## Primary walk intervals
+| walk_id | source_id | start_byte | end_byte | outcome | packet_ids | criterion_ref | producer_invocation_id | closure_state | reason | closure_note |
+|---------|-----------|------------|----------|---------|------------|---------------|------------------------|---------------|--------|--------------|
+
+## Extraction events
+| event_id | source_id | start_byte | end_byte | shared_position_key | event_ordinal | packet_id | origin | producer_invocation_id | status |
+|----------|-----------|------------|----------|---------------------|---------------|-----------|--------|------------------------|--------|
+
+## Resume cursors
+| cursor_id | source_id | byte_offset | shared_position_key | next_event_ordinal | predecessor_walk_id | predecessor_event_id | source_hash | reason |
+|-----------|-----------|-------------|---------------------|--------------------|---------------------|----------------------|-------------|--------|
+
+## Fresh gap reviews
+| gap_review_id | source_id | producer_invocation_id | reviewer_invocation_id | review_basis_cursor_id | review_basis_digest | result | candidate_start_byte | candidate_end_byte | proposed_packet_id | reconciliation_event_id | status | note |
+|---------------|-----------|------------------------|------------------------|------------------------|---------------------|--------|----------------------|--------------------|--------------------|-------------------------|--------|------|
+
+## Per-source completion
+| source_id | source_hash | source_length_bytes | final_cursor_id | gap_review_ids | completion_state | declared_by | note |
+|-----------|-------------|---------------------|-----------------|----------------|------------------|-------------|------|
+```
+
+Column rules:
+
+- Coordinates are zero-based absolute offsets into the exact frozen UTF-8
+  bytes. Intervals are half-open `[start_byte, end_byte)`, may not split a
+  UTF-8 code point, and partition each completed source from byte `0` through
+  its exact byte length without holes or overlaps.
+- Primary outcomes are `admitted`, `no-candidate-observed`, `excluded`,
+  `deferred`, or `unsupported`. Admitted intervals use
+  `admission:<criterion-number>` and packet IDs; excluded intervals use
+  `exclusion:<class>`. Other outcomes use `none`.
+- `deferred` is `open` or `resolved`; both require a reason, and `resolved`
+  also requires a closure note. `unsupported` remains `open` in this format
+  and blocks completion.
+- Extraction events bind packets to exact source positions. Events at the
+  same position share one `SP-<digits>` key and use unique contiguous
+  ordinals. Primary intervals never overlap; only exact same-position event
+  rows may share coordinates. Each event interval must be contained in exactly
+  one mechanically mapped exact fragment for its packet; a packet with an
+  unmappable locator cannot satisfy the 1.2 exact-position contract.
+- A cursor is an actual checkpoint naming the **next unprocessed** source
+  position or event. A pause after one same-position event stays at that byte
+  position and names the next ordinal; uninterrupted siblings need no
+  intermediate cursor. Source-end means no bytes remain structurally
+  unwalked, not that semantic recall is perfect. `reason` is exactly
+  `initial`, `progress`, `bounded-pause`, `resumed-shared-position`, or
+  `source-complete`.
+- Gap-review results are `no-gap-candidate-found`, `gap-candidate-found`, or
+  `cannot-determine`. The reviewer invocation must differ from the primary
+  producer. Every row binds the terminal primary source-end cursor and a
+  recomputable digest of the frozen source, exact S1 criteria bytes, ordered
+  primary walk/events, primary packet exact-evidence identities, and that
+  cursor. A found candidate is `open` with both future canonical IDs set to
+  `none`; after single-writer reconciliation it is `reconciled` with one
+  committed event whose interval equals the candidate and is contained in the
+  proposed packet's exact fragment. Same-position reconciliation uses the next
+  contiguous event ordinal without rewriting primary walk/cursor history.
+  `cannot-determine` blocks completion.
+- `completion_state = complete` requires full interval coverage, a source-end
+  cursor, no open interval or event, at least one distinct gap review, and no
+  open or indeterminate gap result. A blocked row's final cursor must be the
+  current frontier, not a stale historical checkpoint. This is procedural
+  closure only.
+
+## T3.3 Claim inventory → `runs/<run-id>/ledgers/claim-inventory.md`
 
 ```markdown
 # Candidate-Claim Inventory — ⟨RUN-slug⟩
@@ -104,7 +172,7 @@ Column rules:
 <!-- example -->
 | CC-104 | Token gating is associated with improved member retention/engagement | PKT-0007, PKT-0031, PKT-0064 | SRC-101, SRC-102, SRC-104 | factual | merged | canonical retention claim; absorbs CC-113, CC-114 | normalizer-judge | VER-0032 | active |
 
-## T3.3 Disposition ledger → `runs/<run-id>/ledgers/disposition-ledger.md`
+## T3.4 Disposition ledger → `runs/<run-id>/ledgers/disposition-ledger.md`
 
 ```markdown
 # Disposition Ledger — ⟨RUN-slug⟩
@@ -124,7 +192,7 @@ Rules: recomputed (never hand-edited) after any inventory change; all seven
 rows always present even at count 0 — a zero row is information; total equals
 the inventory's `active` row count.
 
-## T3.4 Merge map → `runs/<run-id>/ledgers/merge-map.md`
+## T3.5 Merge map → `runs/<run-id>/ledgers/merge-map.md`
 
 ```markdown
 # Duplicate / Merge Map — ⟨RUN-slug⟩

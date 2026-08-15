@@ -458,7 +458,23 @@ export function verifyOriginalBundleLock(runDir, state) {
     }
     return lock;
 }
-function verifyRunManifestIdentity(runDir, state, lock) {
+const PROGRESS_CORE_RUN_STATES = CORE_RUN_STATES.filter((state) => state !== 'BLOCKED');
+function retainedManifestStateFloor(state) {
+    const stageIndex = CORE_STAGES.indexOf(state.execution.stage);
+    const retainedStateIndex = state.execution.core_state === 'BLOCKED'
+        ? -1
+        : PROGRESS_CORE_RUN_STATES.indexOf(state.execution.core_state);
+    if (stageIndex >= CORE_STAGES.indexOf('S2')
+        || retainedStateIndex >= PROGRESS_CORE_RUN_STATES.indexOf('DISTILLING')) {
+        return 'DISTILLING';
+    }
+    if (stageIndex >= CORE_STAGES.indexOf('S1')
+        || retainedStateIndex >= PROGRESS_CORE_RUN_STATES.indexOf('CORPUS-FROZEN')) {
+        return 'CORPUS-FROZEN';
+    }
+    return 'DRAFT';
+}
+function verifyRunManifestAuthority(runDir, state, lock) {
     const manifest = loadRunManifest(resolve(runDir));
     if (!manifest)
         throw new Error('Core run manifest is missing or unreadable');
@@ -518,11 +534,17 @@ function verifyRunManifestIdentity(runDir, state, lock) {
     if (problems.length > 0) {
         throw new Error(`Core run manifest identity disagrees with retained Loa run authority: ${problems.join('; ')}`);
     }
+    const minimumState = retainedManifestStateFloor(state);
+    const minimumIndex = PROGRESS_CORE_RUN_STATES.indexOf(minimumState);
+    const reachedFloor = manifest.states.some((row) => (PROGRESS_CORE_RUN_STATES.indexOf(row.values.state.trim()) >= minimumIndex));
+    if (!reachedFloor) {
+        throw new Error(`Core run manifest state understates retained execution stage ${state.execution.stage}: expected ${minimumState} or later`);
+    }
 }
 export function verifyRunControl(runDir) {
     const state = readRunState(runDir);
     const lock = verifyOriginalBundleLock(runDir, state);
-    verifyRunManifestIdentity(runDir, state, lock);
+    verifyRunManifestAuthority(runDir, state, lock);
     const corpus = verifyCorpusSnapshot(runDir);
     if (corpus.run_id !== state.run_id
         || corpus.tree_digest !== state.corpus.tree_digest

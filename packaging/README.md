@@ -49,7 +49,7 @@ and does not change the manual-only sanction boundary.
 - selected adapter ID, version, lifecycle, and tree digest;
 - checker digest;
 - adapter-protocol version (`1.0.0-provisional`);
-- run-format version (`1.1.0-provisional`);
+- run-format version (`1.2.0-provisional`);
 - the selected source-manifest projection and its digest;
 - the assembly-tool path and file digest;
 - resolved, target-dependency-closure-scoped Git provenance; and
