@@ -3,7 +3,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, normalize, relative, resolve } from 'node:path';
 import { idsIn, normalizeHeader } from './markdown.ts';
 import type { IdentifierFamily, MarkdownTableRow } from './markdown.ts';
+import { usesLineage } from './run-model.ts';
 import type { RouteCard, RunDocument, RunModel } from './run-model.ts';
+import { lineageCurrentClaims } from './lineage.ts';
 
 export type TimestampParts = readonly [
   year: number,
@@ -287,6 +289,9 @@ export function duplicateDefinitions(model: RunModel): DuplicateDefinition[] {
 }
 
 export function activeClaims(model: RunModel): RunModel['claims'] {
+  if (usesLineage(model.manifest?.runFormatVersion || '')) {
+    return lineageCurrentClaims(model);
+  }
   return model.claims.filter((claim) => claim.values.status === 'active');
 }
 

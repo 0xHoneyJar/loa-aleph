@@ -301,14 +301,26 @@ export function runK2Lineage(results: ResultCollector, model: RunModel): void {
       }
     }
 
-    const claimedPackets = new Set<string>();
-    for (const claim of model.claims) {
-      for (const packetId of idsIn(claim.values.packets, 'PKT')) claimedPackets.add(packetId);
-    }
-    for (const packet of model.packets) {
-      const packetId = packet.values.packetId;
-      if (!claimedPackets.has(packetId) && !terminalizedBy.has(packetId)) {
-        fail(`${packetId} silently disappears: it is cited by no claim and has no lineage closure`);
+    const s3Closed = Boolean(
+      model.runLog?.lines.some((line) => /^##\s+.+\s+[—-]\s+S3\s+[—-]\s+exit\b/iu.test(line))
+      || firstRunLogEntry(model.runLog, 'S4')
+      || firstRunLogEntry(model.runLog, 'S5')
+      || reachedState(model, 'ASSEMBLED')
+      || reachedState(model, 'VERIFIED')
+      || reachedState(model, 'ACCEPTED')
+      || reachedState(model, 'PROJECTING')
+      || reachedState(model, 'PROJECTION-ACCEPTED')
+    );
+    if (s3Closed) {
+      const claimedPackets = new Set<string>();
+      for (const claim of model.claims) {
+        for (const packetId of idsIn(claim.values.packets, 'PKT')) claimedPackets.add(packetId);
+      }
+      for (const packet of model.packets) {
+        const packetId = packet.values.packetId;
+        if (!claimedPackets.has(packetId) && !terminalizedBy.has(packetId)) {
+          fail(`${packetId} silently disappears after S3 closure: it is cited by no claim and has no lineage closure`);
+        }
       }
     }
 

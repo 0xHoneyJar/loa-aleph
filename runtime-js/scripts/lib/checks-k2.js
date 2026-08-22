@@ -3,7 +3,8 @@ import { basename, join } from 'node:path';
 import { TextDecoder } from 'node:util';
 import { activeClaims, allStatusRows, compareTimestamp, duplicateDefinitions, firstRunLogEntry, location, makeIndexes, mdLineSpan, normalizeSha256, parseTimestamp, pathIsWithin, reachedState, sha256, sourceFilePath, } from './check-helpers.js';
 import { envelopeSection, findTable, findTableByFirstHeader, headingSection, idsIn, normalizeHeader, numberedEnvelopeHeadings, parseBulletFields, parseTables, tableCells, isSeparatorRow, } from './markdown.js';
-import { CURRENT_RUN_FORMAT_VERSION, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, } from './run-model.js';
+import { CURRENT_RUN_FORMAT_VERSION, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, } from './run-model.js';
+import { runK2Lineage } from './checks-k2-lineage.js';
 const CLAIM_TYPES = [
     'factual',
     'design-intent',
@@ -72,6 +73,8 @@ function distillingArtifactSignals(model) {
     }
     if (model.sourceWalkDocument)
         signals.push('ledgers/source-walk.md');
+    if (model.documents.has('ledgers/lineage.md'))
+        signals.push('ledgers/lineage.md');
     if (model.sourceWalk.format)
         signals.push('source_walk_format');
     if (model.sourceWalk.intervalTable
@@ -110,9 +113,13 @@ function checkLayout(results, model) {
                 if (!existsPath(join(model.runDir, path)))
                     fail(`required path ${path} is missing`);
             }
-            if (model.manifest?.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+            if (usesSourceWalk(model.manifest?.runFormatVersion || '')
                 && !existsPath(join(model.runDir, 'ledgers/source-walk.md'))) {
                 fail('required path ledgers/source-walk.md is missing');
+            }
+            if (usesLineage(model.manifest?.runFormatVersion || '')
+                && !existsPath(join(model.runDir, 'ledgers/lineage.md'))) {
+                fail('required path ledgers/lineage.md is missing');
             }
         }
         if (reachedState(model, 'ASSEMBLED') || STATES.slice(4).some((state) => reachedState(model, state))) {
@@ -987,14 +994,13 @@ function checkSourceWalk(results, model) {
             || walk.format
             || walk.positionFormat
             || sourceWalkTablesPresent(model));
-        if (version !== CURRENT_RUN_FORMAT_VERSION) {
+        if (!usesSourceWalk(version)) {
             if (structurePresent) {
                 fail(`run format ${version || '(pre-versioned)'} must not be reinterpreted as `
                     + `${SOURCE_WALK_FORMAT}`);
             }
             if (version
-                && version !== LEGACY_RUN_FORMAT_VERSION
-                && version !== EXACT_EVIDENCE_RUN_FORMAT_VERSION) {
+                && !SUPPORTED_RUN_FORMAT_VERSIONS.includes(version)) {
                 fail(`source-walk activation cannot determine unsupported run_format_version `
                     + `"${version}"`);
             }
@@ -2009,6 +2015,7 @@ function checkClaimShape(results, model) {
             fail(`claim inventory header has ${table.header.length} columns, expected 10`);
         }
         const packetIndex = makeIndexes(model).PKT;
+        const currentClaimIds = new Set(activeClaims(model).map((claim) => claim.values.claimId));
         const s5Entered = reachedState(model, 'ASSEMBLED') || Boolean(firstRunLogEntry(model.runLog, 'S5'));
         for (const claim of model.claims) {
             const { claimId, packets, sources, claimType, disposition, status, } = claim.values;
@@ -2020,8 +2027,8 @@ function checkClaimShape(results, model) {
                 fail(`${claimId} claim_type "${claimType || '(blank)'}" is not in the five-value vocabulary`);
             }
             if (status === 'active') {
-                if (s5Entered && !isDisposition(disposition)) {
-                    fail(`${claimId} active after S5 has invalid disposition "${disposition || '(blank)'}"`);
+                if (s5Entered && currentClaimIds.has(claimId) && !isDisposition(disposition)) {
+                    fail(`${claimId} lineage-current after S5 has invalid disposition "${disposition || '(blank)'}"`);
                 }
                 else if (disposition && !isDisposition(disposition)) {
                     fail(`${claimId} has invalid disposition "${disposition}"`);
@@ -2117,7 +2124,8 @@ function checkMerges(results, model) {
                 if (dropped.length) {
                     fail(`${merge.values.canonical} drops ${dropped.join(', ')} from absorbed ${absorbedId}`);
                 }
-                if (absorbed.values.disposition !== 'merged') {
+                if (!usesLineage(model.manifest?.runFormatVersion || '')
+                    && absorbed.values.disposition !== 'merged') {
                     fail(`${absorbedId} is absorbed but disposition is "${absorbed.values.disposition}"`);
                 }
             }
@@ -2170,6 +2178,7 @@ function checkStatuses(results, model) {
     results.run('K2.10', 'status discipline', (fail) => {
         const rows = allStatusRows(model);
         const indexes = makeIndexes(model);
+        const lineageStatus = usesLineage(model.manifest?.runFormatVersion || '');
         const homeRows = new Map();
         const homeDefinitions = [
             {
@@ -2195,6 +2204,10 @@ function checkStatuses(results, model) {
             homeRows.set(family, byId);
         }
         for (const row of rows) {
+            if (lineageStatus && /^(?:PKT|CC)-\d+$/.test(row.id) && row.status !== 'active') {
+                fail(`${row.id} run-format 1.3 unit rows must use durable status active; identity currentness belongs to lineage`);
+                continue;
+            }
             if (row.status === 'active')
                 continue;
             const superseded = row.status.match(/^superseded-by:((?:PKT|CC|SRC|NB)-\d+)$/);
@@ -2542,4 +2555,5 @@ export function runK2(results, model, root) {
     checkKernelReport(results, model);
     checkExactEvidence(results, model);
     checkSourceWalk(results, model);
+    runK2Lineage(results, model);
 }

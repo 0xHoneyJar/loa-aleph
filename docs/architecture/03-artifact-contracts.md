@@ -145,7 +145,8 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   cursors; the orchestrator validates and appends them as single writer; a
   distinct fresh-context gap reviewer records semantic gap results; K2 and
   auditors consume the final ledger.
-- **Activation:** run format `1.2.0-provisional` requires
+- **Activation:** run formats `1.2.0-provisional` and
+  `1.3.0-provisional` require
   `source_walk_format: aleph-source-walk/v1` and
   `source_position_format: zero-based-utf8-byte-half-open/v1` once S2 begins.
   The prior `1.1.0-provisional` exact-evidence fixture remains a 1.1 artifact
@@ -225,11 +226,48 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   it gets dropped. It is deliberately **not** the disposition axis and not the
   shape vector — collapsing axes is the named historical mistake.
 
+## 5a. Unit-lineage ledger (`ledgers/lineage.md`)
+
+- **Purpose:** preserve append-only packet/claim identity history while deriving a
+  structural current view without rewriting predecessor rows.
+- **Activation:** run format `1.3.0-provisional` requires
+  `lineage_format: aleph-lineage/v1` once S2 begins. Historical 1.0-1.2
+  runs retain their pinned status/merge interpretation and are not migrated.
+- **Fields:** `LIN-NNNN`; owner stage (S2-S4); one type from `split`,
+  `merge`, `replace`, `supersede`, `duplicate`, `reject`, `exclude`,
+  `no-claim`; predecessor IDs; successor IDs or `none`; inspectable basis;
+  establishing actor/invocation. Events are atomic transformations, not
+  unrelated pairwise edges.
+- **Cardinality:** split 1→2+ (PKT or CC); merge 2+→1 (CC); replace/supersede
+  1→1 (same unit family); duplicate 2+→1 (CC); reject/exclude 1→0 (PKT or CC);
+  no-claim 1→0 (PKT only). There is no generic N→M type; complex history
+  composes ordinary events. A successor may have multiple truthful incoming
+  events, while a predecessor is terminalized once.
+- **Currentness:** `lineage-current` is derived mechanically as a valid durable
+  PKT/CC definition that never appears as a lineage predecessor. It is not the
+  broader architectural EFFECTIVE state. In 1.3, packet/claim `status = active`
+  means the durable row is admitted/readable; it does not mean identity-current.
+- **Provenance:** packet→claim derivation remains claim provenance, not
+  replacement lineage. Merge/duplicate create a new successor CC whose packet
+  provenance conserves the predecessor union. Claim split successors each have
+  valid provenance and conserve predecessor provenance in aggregate. A
+  lineage-current claim may cite only lineage-current packets.
+- **S5/Précis boundary:** current S5 accounting and current Précis compilation
+  use lineage-current claims. Historical predecessors remain inspectable and do
+  not receive fabricated new dispositions merely to satisfy current accounting.
+- **Boundary:** K2 checks structure and provenance conservation only. Semantic
+  correctness of a split/merge/duplicate/replacement remains model/human
+  judgment. Generic STALE/INVALIDATED propagation, artifact revision, rewind,
+  cross-run reuse, and accepted-run correction remain outside this format.
+
 ## 6. Disposition-ledger summary (`ledgers/disposition-ledger.md`)
 
-Unchanged from the wedge (Précis §5): per-disposition counts and claim-id
-lists; totals equal the inventory; every claim appears exactly once. Exists as
-its own ledger so the accounting is checkable before the Précis is assembled.
+Précis §5 records per-disposition counts and claim-id lists. In predecessor
+formats, totals retain their original active-row interpretation. In run format
+1.3, totals equal the lineage-current claim population and every lineage-current
+claim appears exactly once; historical predecessors remain in durable history
+without fabricated current dispositions. Exists as its own ledger so accounting
+is checkable before the Précis is assembled.
 
 ## 7. Duplicate/merge map (`ledgers/merge-map.md`)
 
@@ -455,3 +493,13 @@ mode never has to produce them.
 | X7 | Externally-dependent outputs carry taint until referents resolve | doctrine only | computable over `REF` records + provenance cones |
 | X8 | Verifier verdicts append, never edit | — | new |
 | X9 | Kernel green before VERIFIED; authority before ACCEPTED | culture | recorded in manifest, checked |
+
+### Run-format 1.3 duplicate/merge identity rule
+
+For `1.3.0-provisional`, every S4 duplicate or merge decision has two
+cooperating records: the merge map records the semantic/corroboration judgment,
+and `ledgers/lineage.md` records the identity transformation. The canonical
+claim is a newly materialized successor CC; no predecessor claim is mutated in
+place. The merge map therefore names that successor as `canonical` and its
+predecessors as `absorbs`. Absorption is not itself an S5 `merged`
+disposition. Historical predecessor formats retain their pinned behavior.
