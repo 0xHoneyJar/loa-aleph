@@ -1,0 +1,72 @@
+#!/usr/bin/env node
+
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { validateRun } from './validate-run.ts';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const BASE = join(ROOT, 'docs/fixtures/lineage-accounting');
+let passed = 0;
+
+function replaceOne(path: string, before: string, after: string): void {
+  const text = readFileSync(path, 'utf8');
+  const index = text.indexOf(before);
+  if (index < 0 || text.indexOf(before, index + before.length) >= 0) {
+    throw new Error(`mutation anchor is not unique in ${path}: ${before}`);
+  }
+  writeFileSync(path, text.slice(0, index) + after + text.slice(index + before.length));
+}
+
+function check(name: string, mutate: (run: string) => void): void {
+  const temp = mkdtempSync(join(tmpdir(), 'aleph-lineage-mutation-'));
+  const run = join(temp, 'run');
+  try {
+    cpSync(BASE, run, { recursive: true });
+    mutate(run);
+    const report = validateRun({ root: ROOT, run, kind: 'run' });
+    const lineageFailure = report.checks.some((row) => row.id === 'K2.15' && row.status === 'FAIL');
+    if (report.result !== 'FAIL' || !lineageFailure) {
+      throw new Error(`expected K2.15 failure, got ${JSON.stringify(report.checks)}`);
+    }
+    console.log(`PASS ${name}`);
+    passed++;
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
+const baseline = validateRun({ root: ROOT, run: BASE, kind: 'run' });
+if (baseline.result !== 'PASS') throw new Error(`lineage baseline failed: ${JSON.stringify(baseline.checks)}`);
+console.log('PASS baseline 1.3 lineage-current fixture');
+passed++;
+
+const lineage = (run: string) => join(run, 'ledgers/lineage.md');
+const claims = (run: string) => join(run, 'ledgers/claim-inventory.md');
+const manifest = (run: string) => join(run, 'run-manifest.md');
+
+check('missing lineage artifact', (run) => rmSync(lineage(run)));
+check('missing lineage marker', (run) => replaceOne(lineage(run), '- lineage_format: aleph-lineage/v1\n\n', ''));
+check('duplicate LIN identity', (run) => replaceOne(lineage(run), '| LIN-0012 |', '| LIN-0001 |'));
+check('invalid lineage type', (run) => replaceOne(lineage(run), '| LIN-0001 | S3 | split |', '| LIN-0001 | S3 | fuse |'));
+check('invalid owner stage', (run) => replaceOne(lineage(run), '| LIN-0002 | S3 | replace |', '| LIN-0002 | S5 | replace |'));
+check('illegal split cardinality', (run) => replaceOne(lineage(run), 'CC-0410, CC-0411 | original normalization', 'CC-0410 | original normalization'));
+check('generic N-to-M shape rejected', (run) => replaceOne(lineage(run), 'CC-0415 | distinct inputs intentionally', 'CC-0415, CC-0416 | distinct inputs intentionally'));
+check('lineage self edge', (run) => replaceOne(lineage(run), '| LIN-0002 | S3 | replace | CC-0402 | CC-0412 |', '| LIN-0002 | S3 | replace | CC-0402 | CC-0402 |'));
+check('lineage cycle', (run) => replaceOne(lineage(run), 'CC-0416, CC-0417 | later correction', 'CC-0401, CC-0417 | later correction'));
+check('predecessor terminalized twice', (run) => replaceOne(lineage(run), '| LIN-0003 | S3 | supersede | CC-0403 |', '| LIN-0003 | S3 | supersede | CC-0402 |'));
+check('missing predecessor', (run) => replaceOne(lineage(run), '| LIN-0002 | S3 | replace | CC-0402 |', '| LIN-0002 | S3 | replace | CC-0999 |'));
+check('orphan successor', (run) => replaceOne(lineage(run), '| LIN-0003 | S3 | supersede | CC-0403 | CC-0413 |', '| LIN-0003 | S3 | supersede | CC-0403 | CC-0999 |'));
+check('terminal event with successor', (run) => replaceOne(lineage(run), '| LIN-0006 | S3 | reject | CC-0408 | none |', '| LIN-0006 | S3 | reject | CC-0408 | CC-0412 |'));
+check('no-claim applied to claim', (run) => replaceOne(lineage(run), '| LIN-0008 | S3 | no-claim | PKT-0402 | none |', '| LIN-0008 | S3 | no-claim | CC-0408 | none |'));
+check('packet to claim encoded as replacement', (run) => replaceOne(lineage(run), '| LIN-0002 | S3 | replace | CC-0402 | CC-0412 |', '| LIN-0002 | S3 | replace | PKT-0401 | CC-0412 |'));
+check('merge provenance loss', (run) => replaceOne(claims(run), '| CC-0414 | Canonical duplicate successor | PKT-0401, PKT-0403 |', '| CC-0414 | Canonical duplicate successor | PKT-0401 |'));
+check('split aggregate provenance loss', (run) => replaceOne(claims(run), '| CC-0411 | Intermediate split child B | PKT-0403 |', '| CC-0411 | Intermediate split child B | PKT-0401 |'));
+check('current claim cites non-current packet', (run) => replaceOne(claims(run), '| CC-0412 | Replacement current claim | PKT-0404 |', '| CC-0412 | Replacement current claim | PKT-0402 |'));
+check('silent packet disappearance', (run) => replaceOne(lineage(run), '| LIN-0008 | S3 | no-claim | PKT-0402 | none | packet yields no candidate claim | fixture-simulated-normalizer |\n', ''));
+check('legacy 1.2 cannot be reinterpreted as lineage', (run) => replaceOne(manifest(run), '- run_format_version: 1.3.0-provisional', '- run_format_version: 1.2.0-provisional'));
+check('source identity cannot enter unit lineage', (run) => replaceOne(lineage(run), '| LIN-0002 | S3 | replace | CC-0402 | CC-0412 |', '| LIN-0002 | S3 | replace | SRC-401 | CC-0412 |'));
+check('empty lineage basis rejected', (run) => replaceOne(lineage(run), 'corrected normalization establishes a new identity | fixture-simulated-normalizer', 'none | fixture-simulated-normalizer'));
+
+console.log(`RESULT: PASS (${passed}/${passed})`);

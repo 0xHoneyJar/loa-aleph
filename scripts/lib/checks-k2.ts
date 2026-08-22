@@ -44,12 +44,15 @@ import {
   SUPPORTED_RUN_FORMAT_VERSIONS,
   usesExactEvidence,
   usesForwardExecutionIdentity,
+  usesLineage,
+  usesSourceWalk,
 } from './run-model.ts';
 import type {
   IdentifierFamily,
   MarkdownTableRow,
 } from './markdown.ts';
 import type { ResultCollector } from './results.ts';
+import { runK2Lineage } from './checks-k2-lineage.ts';
 import type {
   Disposition,
   ExactEvidenceFragmentRow,
@@ -156,6 +159,7 @@ function distillingArtifactSignals(model: RunModel): string[] {
     signals.push('exact-evidence tables');
   }
   if (model.sourceWalkDocument) signals.push('ledgers/source-walk.md');
+  if (model.documents.has('ledgers/lineage.md')) signals.push('ledgers/lineage.md');
   if (model.sourceWalk.format) signals.push('source_walk_format');
   if (
     model.sourceWalk.intervalTable
@@ -199,10 +203,16 @@ function checkLayout(results: ResultCollector, model: RunModel): void {
         if (!existsPath(join(model.runDir, path))) fail(`required path ${path} is missing`);
       }
       if (
-        model.manifest?.runFormatVersion === CURRENT_RUN_FORMAT_VERSION
+        usesSourceWalk(model.manifest?.runFormatVersion || '')
         && !existsPath(join(model.runDir, 'ledgers/source-walk.md'))
       ) {
         fail('required path ledgers/source-walk.md is missing');
+      }
+      if (
+        usesLineage(model.manifest?.runFormatVersion || '')
+        && !existsPath(join(model.runDir, 'ledgers/lineage.md'))
+      ) {
+        fail('required path ledgers/lineage.md is missing');
       }
     }
 
@@ -1258,7 +1268,7 @@ function checkSourceWalk(results: ResultCollector, model: RunModel): void {
       || walk.positionFormat
       || sourceWalkTablesPresent(model)
     );
-    if (version !== CURRENT_RUN_FORMAT_VERSION) {
+    if (!usesSourceWalk(version)) {
       if (structurePresent) {
         fail(
           `run format ${version || '(pre-versioned)'} must not be reinterpreted as `
@@ -1267,8 +1277,7 @@ function checkSourceWalk(results: ResultCollector, model: RunModel): void {
       }
       if (
         version
-        && version !== LEGACY_RUN_FORMAT_VERSION
-        && version !== EXACT_EVIDENCE_RUN_FORMAT_VERSION
+        && !(SUPPORTED_RUN_FORMAT_VERSIONS as readonly string[]).includes(version)
       ) {
         fail(
           `source-walk activation cannot determine unsupported run_format_version `
@@ -2538,6 +2547,7 @@ function checkClaimShape(results: ResultCollector, model: RunModel): void {
       fail(`claim inventory header has ${table.header.length} columns, expected 10`);
     }
     const packetIndex = makeIndexes(model).PKT;
+    const currentClaimIds = new Set(activeClaims(model).map((claim) => claim.values.claimId));
     const s5Entered = reachedState(model, 'ASSEMBLED') || Boolean(firstRunLogEntry(model.runLog, 'S5'));
 
     for (const claim of model.claims) {
@@ -2552,8 +2562,8 @@ function checkClaimShape(results: ResultCollector, model: RunModel): void {
         fail(`${claimId} claim_type "${claimType || '(blank)'}" is not in the five-value vocabulary`);
       }
       if (status === 'active') {
-        if (s5Entered && !isDisposition(disposition)) {
-          fail(`${claimId} active after S5 has invalid disposition "${disposition || '(blank)'}"`);
+        if (s5Entered && currentClaimIds.has(claimId) && !isDisposition(disposition)) {
+          fail(`${claimId} lineage-current after S5 has invalid disposition "${disposition || '(blank)'}"`);
         } else if (disposition && !isDisposition(disposition)) {
           fail(`${claimId} has invalid disposition "${disposition}"`);
         }
@@ -2646,7 +2656,10 @@ function checkMerges(results: ResultCollector, model: RunModel): void {
         if (dropped.length) {
           fail(`${merge.values.canonical} drops ${dropped.join(', ')} from absorbed ${absorbedId}`);
         }
-        if (absorbed.values.disposition !== 'merged') {
+        if (
+          !usesLineage(model.manifest?.runFormatVersion || '')
+          && absorbed.values.disposition !== 'merged'
+        ) {
           fail(`${absorbedId} is absorbed but disposition is "${absorbed.values.disposition}"`);
         }
       }
@@ -2701,6 +2714,7 @@ function checkStatuses(results: ResultCollector, model: RunModel): void {
   results.run('K2.10', 'status discipline', (fail) => {
     const rows = allStatusRows(model);
     const indexes = makeIndexes(model);
+    const lineageStatus = usesLineage(model.manifest?.runFormatVersion || '');
     const homeRows = new Map<HomeFamily, Map<string, HomeStatusRow>>();
     const homeDefinitions: Array<{
       family: HomeFamily;
@@ -2730,6 +2744,10 @@ function checkStatuses(results: ResultCollector, model: RunModel): void {
     }
 
     for (const row of rows) {
+      if (lineageStatus && /^(?:PKT|CC)-\d+$/.test(row.id) && row.status !== 'active') {
+        fail(`${row.id} run-format 1.3 unit rows must use durable status active; identity currentness belongs to lineage`);
+        continue;
+      }
       if (row.status === 'active') continue;
       const superseded = row.status.match(/^superseded-by:((?:PKT|CC|SRC|NB)-\d+)$/);
       const retracted = row.status.match(/^retracted:(.+)$/);
@@ -3092,4 +3110,5 @@ export function runK2(results: ResultCollector, model: RunModel, root: string): 
   checkKernelReport(results, model);
   checkExactEvidence(results, model);
   checkSourceWalk(results, model);
+  runK2Lineage(results, model);
 }

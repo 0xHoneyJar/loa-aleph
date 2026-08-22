@@ -558,6 +558,13 @@ function prepareTxtExactEvidenceIntegrationRun(
   }
   writeFileSync(sourceWalkPath, sourceWalkText);
   writeFileSync(
+    join(ledgers, 'lineage.md'),
+    '# Unit Lineage\n\n'
+      + '- lineage_format: aleph-lineage/v1\n\n'
+      + '| lineage_id | owner_stage | type | predecessors | successors | basis | established_by |\n'
+      + '|------------|-------------|------|--------------|------------|-------|----------------|\n',
+  );
+  writeFileSync(
     join(ledgers, 'claim-inventory.md'),
     '# Candidate-Claim Inventory\n\n'
       + '| claim_id | normalized claim | packets | sources | claim_type | disposition | rationale | judged_by | verified | status |\n'
@@ -592,6 +599,7 @@ function eraseCoreS2Signals(runDir: string): void {
   writeFileSync(runLogPath, withoutS2Log);
 
   rmSync(join(runDir, 'ledgers', 'source-walk.md'));
+  rmSync(join(runDir, 'ledgers', 'lineage.md'));
   rmSync(join(runDir, 'ledgers', 'packet-index.md'));
 }
 
@@ -1128,7 +1136,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       assertFixtureBoundary(readRunState(context.runDir), context.runDir);
     });
 
-    runCase(results, 'retained 1.2 run cannot downgrade its manifest to 1.1', () => {
+    runCase(results, 'retained 1.3 run cannot downgrade its manifest to 1.2', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
@@ -1137,12 +1145,12 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         writeFileSync(
           manifestPath,
           originalManifest.replace(
+            '- run_format_version: 1.3.0-provisional',
             '- run_format_version: 1.2.0-provisional',
-            '- run_format_version: 1.1.0-provisional',
           ),
         );
         const downgraded = dispatchLoaCommand(['resume', RUN_ID], startOptions(context));
-        expect(downgraded.result === 'FAIL', 'retained 1.2 run accepted a 1.1 manifest downgrade');
+        expect(downgraded.result === 'FAIL', 'retained 1.3 run accepted a 1.2 manifest downgrade');
         expect(
           downgraded.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
           `downgrade failure omitted retained identity diagnostic: ${downgraded.errors.join('; ')}`,
@@ -1153,7 +1161,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       }
     });
 
-    runCase(results, 'retained 1.2 run cannot remove its manifest version', () => {
+    runCase(results, 'retained 1.3 run cannot remove its manifest version', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
@@ -1161,7 +1169,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       try {
         writeFileSync(
           manifestPath,
-          originalManifest.replace('- run_format_version: 1.2.0-provisional\n', ''),
+          originalManifest.replace('- run_format_version: 1.3.0-provisional\n', ''),
         );
         let checkerInvoked = false;
         const removed = dispatchLoaCommand(['validate', RUN_ID], {
@@ -1171,7 +1179,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
             throw new Error('checker must not run after manifest identity removal');
           },
         });
-        expect(removed.result === 'FAIL', 'retained 1.2 run accepted a missing manifest version');
+        expect(removed.result === 'FAIL', 'retained 1.3 run accepted a missing manifest version');
         expect(!checkerInvoked, 'version removal reached the pinned checker');
         expect(
           removed.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
@@ -1421,7 +1429,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       );
     });
 
-    runCase(results, 'retained S2 run with valid 1.2 artifacts reaches the pinned checker', () => {
+    runCase(results, 'retained S2 run with valid 1.3 artifacts reaches the pinned checker', () => {
       const fixture = prepareRetainedDistillingRun(
         context,
         'retained-stage-floor-valid-s2',
@@ -2539,6 +2547,65 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         transactionPath,
         committedJournal,
       };
+    });
+
+    runCase(results, 'late S5+ unit correction blocks before canonical lineage append', () => {
+      const fixture = context.ledgerRecovery;
+      expect(fixture !== null, 'validated ledger fixture is unavailable');
+      const originalState = structuredClone(readRunState(fixture.runDir));
+      const lineagePath = join(fixture.runDir, 'ledgers', 'lineage.md');
+      const lineageBefore = existsSync(lineagePath) ? readFileSync(lineagePath) : null;
+      const chainPath = join(fixture.runDir, 'control', 'ledger-chain.jsonl');
+      const chainBefore = existsSync(chainPath) ? readFileSync(chainPath) : null;
+      try {
+        updateRunState(fixture.runDir, '2040-01-02T03:09:30.000Z', (draft) => {
+          draft.execution.core_state = 'DISTILLING';
+          draft.execution.stage = 'S5';
+          draft.execution.stage_status = 'running';
+          draft.execution.gate = null;
+          draft.execution.halt = null;
+        });
+        const beforeAttempt = readRunState(fixture.runDir);
+        expectThrows(
+          () => new LedgerWriter(fixture.runDir, CLOCK).append(
+            'ledgers/lineage.md',
+            fixture.validated,
+            () => '| LIN-9999 | S4 | replace | CC-9998 | CC-9999 | late correction | fixture |',
+          ),
+          /late-correction boundary BLOCKED.*S5/iu,
+          'late lineage append after S5',
+        );
+        const blocked = readRunState(fixture.runDir);
+        expect(blocked.execution.core_state === 'BLOCKED', 'late lineage attempt did not set BLOCKED');
+        expect(blocked.execution.stage === 'S5', 'late lineage block changed the retained stage');
+        expect(
+          blocked.execution.halt?.code === 'LATE_UNIT_LINEAGE_CORRECTION',
+          'late lineage block omitted its durable halt code',
+        );
+        expect(
+          blocked.ledger.sequence === beforeAttempt.ledger.sequence
+            && blocked.ledger.chain_head === beforeAttempt.ledger.chain_head,
+          'late lineage block advanced the canonical ledger chain',
+        );
+        expect(
+          lineageBefore === null
+            ? !existsSync(lineagePath)
+            : readFileSync(lineagePath).equals(lineageBefore),
+          'late lineage block changed lineage bytes',
+        );
+        expect(
+          chainBefore === null
+            ? !existsSync(chainPath)
+            : readFileSync(chainPath).equals(chainBefore),
+          'late lineage block changed ledger-chain bytes',
+        );
+      } finally {
+        writeRunState(fixture.runDir, originalState);
+        if (lineageBefore === null) rmSync(lineagePath, { force: true });
+        else writeFileSync(lineagePath, lineageBefore);
+        if (chainBefore === null) rmSync(chainPath, { force: true });
+        else writeFileSync(chainPath, chainBefore);
+      }
     });
 
     runCase(results, 'committed ledger retries return the original receipt without appending', () => {

@@ -30,15 +30,18 @@ Column rules:
   `M14:S2`). `span_hash` = sha256 of the exact span bytes at freeze.
 - In `aleph-exact-evidence/v1`, use one packet per exact fragment. `quote` is
   a bounded display preview only and is never exact evidence. Run formats
-  `1.1.0-provisional` and `1.2.0-provisional` require this marker and the
-  three versioned tables once S2 is reached. Historical
+  `1.1.0-provisional`, `1.2.0-provisional`, and `1.3.0-provisional`
+  require this marker and the three versioned tables once S2 is reached. Historical
   `1.0.0-provisional` and pre-versioned packet ledgers without the marker
   retain their predecessor behavior and are not reinterpreted.
 - `criterion`: the admission-criterion number from T2.2. A walked span that
   matched an exclusion class gets **no row** (that is the recorded
   two-level boundary); a span refused by a classifier gets a row with
   `criterion = refusal-blocked` so completeness accounting still balances.
-- `status`: `active` | `superseded-by:PKT-xxxx` | `retracted:⟨reason⟩`.
+- `status`: predecessor formats retain `active` |
+  `superseded-by:PKT-xxxx` | `retracted:⟨reason⟩`. In run format 1.3,
+  durable PKT/CC rows use `active`; unit identity currentness is derived from
+  T3.3a lineage instead of encoded in the status cell.
 - `evidence_state`: `exact` | `degraded-non-exact`. Every packet appears in
   exactly one `exact` evidence record. A degraded record uses `packet_ids =
   none`, `fragment_count = 0`, `join_policy = not-applicable`,
@@ -167,10 +170,28 @@ Column rules:
   a negative boundary when scope-based.
 - `judged_by`: worker/actor id. `verified`: blank | `VER-…` refs.
 - **Précis §4 rendering:** exactly `claim_id | normalized claim | source(s) |
-  disposition`, `active` rows only.
+  disposition`. Predecessor formats retain their active-row rule; 1.3 renders
+  lineage-current claims only.
 
 <!-- example -->
 | CC-104 | Token gating is associated with improved member retention/engagement | PKT-0007, PKT-0031, PKT-0064 | SRC-101, SRC-102, SRC-104 | factual | merged | canonical retention claim; absorbs CC-113, CC-114 | normalizer-judge | VER-0032 | active |
+
+## T3.3a Unit lineage → `runs/<run-id>/ledgers/lineage.md`
+
+```markdown
+# Unit Lineage — ⟨RUN-slug⟩
+
+- lineage_format: aleph-lineage/v1
+
+| lineage_id | owner_stage | type | predecessors | successors | basis | established_by |
+|------------|-------------|------|--------------|------------|-------|----------------|
+```
+
+Rules for run format 1.3: `LIN-NNNN` is unique; owner stage is S2-S4; type
+is exactly split/merge/replace/supersede/duplicate/reject/exclude/no-claim;
+cardinality follows the artifact contract; `none` is used only when the event
+has zero successors. Packet-to-claim ancestry remains claim provenance.
+Lineage is append-only and predecessors are never rewritten or resurrected.
 
 ## T3.4 Disposition ledger → `runs/<run-id>/ledgers/disposition-ledger.md`
 
@@ -189,8 +210,9 @@ Column rules:
 ```
 
 Rules: recomputed (never hand-edited) after any inventory change; all seven
-rows always present even at count 0 — a zero row is information; total equals
-the inventory's `active` row count.
+rows always present even at count 0 — a zero row is information. Predecessor
+formats retain active-row totals; in 1.3 total equals the lineage-current claim
+count.
 
 ## T3.5 Merge map → `runs/<run-id>/ledgers/merge-map.md`
 
@@ -209,3 +231,11 @@ and both claims go/stay `unresolved`.
 
 <!-- example -->
 | CC-104 | CC-113, CC-114 | same underlying retention claim, three wordings | SRC-101 + SRC-102 + SRC-104 | independent | active |
+
+### 1.3 merge-map rule
+
+For run format 1.3, `canonical` is a newly materialized successor CC and
+`absorbs` lists its lineage predecessors. The same predecessor/successor set
+must appear in one `merge` or `duplicate` lineage event. Absorbed historical
+claims do not receive an S5 `merged` disposition merely because they were
+terminalized structurally.

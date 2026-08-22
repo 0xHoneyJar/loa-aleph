@@ -171,6 +171,11 @@ CONSTRAINTS
   evidence flag for orchestrator handling.
 - Assign claim_type from: factual | design-intent | constraint | preference
   | open-question.
+- For a packet that yields no claim, return an explicit no-claim proposal
+  with its packet id and structural basis. Do not invent a successor.
+- If correcting an already materialized packet/claim identity is explicitly in
+  the authorized S2-S4 task, propose the bounded lineage transformation; never
+  mutate a predecessor row in place.
 - NO dispositions. NO merging across the batch beyond identical wording.
   NO importance judgments.
 ```
@@ -183,7 +188,10 @@ packets point into (for local context only); normalization conventions.
 ```json
 { "claims": [{ "normalized_claim": "", "packets": ["PKT-…"],
   "claim_type": "", "widen_requests": [{"packet": "", "new_locator": ""}],
-  "rationale": "", "flags": [] }] }
+  "rationale": "", "flags": [] }],
+  "no_claim_packets": [{ "packet": "PKT-…", "basis": "" }],
+  "lineage_proposals": [{ "type": "split|replace|supersede|reject|exclude",
+  "predecessors": ["PKT-…|CC-…"], "successor_specs": [], "basis": "" }] }
 ```
 
 ---
@@ -201,9 +209,14 @@ CONSTRAINTS
 - NEVER merge contradictory or tension-bearing claims. If two claims
   conflict, return them as a contradiction pair instead — both will stay
   visible and unresolved.
-- For each merge: canonical id (prefer the most complete provenance),
-  absorbed ids, one-line basis, and corroboration = independent (distinct
-  origins genuinely agree) vs restatement (one origin echoed).
+- For each merge/duplicate in run format 1.3, do NOT reuse or mutate a
+  predecessor as canonical. Propose a new successor claim specification with
+  normalized text, claim type, and the complete packet-provenance union; the
+  orchestrator assigns its new CC id and the LIN id only after validation.
+- Distinguish `duplicate` (same-claim canonicalization) from `merge`
+  (several distinct predecessor identities intentionally forming one successor).
+  Record one-line basis and corroboration = independent (distinct origins
+  genuinely agree) vs restatement (one origin echoed).
 - Check yourself: after your merges, would any reader lose the ability to
   see that two sources disagreed, hedged differently, or arrived at the
   same claim independently? If yes, unwind that merge.
@@ -214,7 +227,10 @@ claim_type; no dispositions yet); packet quotes on demand.
 **Withhold:** dispositions (none exist); evidence roles; anything cluster.
 **Output contract:**
 ```json
-{ "merges": [{ "canonical": "CC-…", "absorbs": ["CC-…"], "basis": "",
+{ "canonicalizations": [{ "lineage_type": "merge|duplicate",
+  "predecessors": ["CC-…"],
+  "successor": { "normalized_claim": "", "packets": ["PKT-…"],
+  "claim_type": "" }, "basis": "",
   "corroboration": "independent|restatement", "rationale": "", "flags": [] }],
   "contradiction_pairs": [{ "a": "CC-…", "b": "CC-…", "why": "" }] }
 ```

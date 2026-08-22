@@ -22,20 +22,32 @@ export const SOURCE_WALK_CURSOR_REASONS = [
 ];
 export const LEGACY_RUN_FORMAT_VERSION = '1.0.0-provisional';
 export const EXACT_EVIDENCE_RUN_FORMAT_VERSION = '1.1.0-provisional';
-export const CURRENT_RUN_FORMAT_VERSION = '1.2.0-provisional';
+export const SOURCE_WALK_RUN_FORMAT_VERSION = '1.2.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = '1.3.0-provisional';
 export const SUPPORTED_RUN_FORMAT_VERSIONS = [
     LEGACY_RUN_FORMAT_VERSION,
     EXACT_EVIDENCE_RUN_FORMAT_VERSION,
+    SOURCE_WALK_RUN_FORMAT_VERSION,
     CURRENT_RUN_FORMAT_VERSION,
 ];
 export function usesForwardExecutionIdentity(runFormatVersion) {
     return [
         EXACT_EVIDENCE_RUN_FORMAT_VERSION,
+        SOURCE_WALK_RUN_FORMAT_VERSION,
         CURRENT_RUN_FORMAT_VERSION,
     ].some((version) => version === runFormatVersion);
 }
 export function usesExactEvidence(runFormatVersion) {
     return usesForwardExecutionIdentity(runFormatVersion);
+}
+export function usesSourceWalk(runFormatVersion) {
+    return [
+        SOURCE_WALK_RUN_FORMAT_VERSION,
+        CURRENT_RUN_FORMAT_VERSION,
+    ].some((version) => version === runFormatVersion);
+}
+export function usesLineage(runFormatVersion) {
+    return runFormatVersion === CURRENT_RUN_FORMAT_VERSION;
 }
 export const EXACT_EVIDENCE_JOIN_POLICIES = [
     'single-fragment',

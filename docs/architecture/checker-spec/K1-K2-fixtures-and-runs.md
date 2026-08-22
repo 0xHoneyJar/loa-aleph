@@ -65,8 +65,9 @@ scope.
   (merge-map, evidence-roles, clusters/, arms/, precis.md, verification/) are
   required **iff** the manifest's state log shows the run reached the state
   that produces them (state→artifact table hardcoded from doc 04's "Emits"
-  column). Run format `1.2.0-provisional` additionally requires
-  `ledgers/source-walk.md` whenever S2 applies.
+  column). Run formats `1.2.0-provisional` and `1.3.0-provisional` additionally
+  require `ledgers/source-walk.md` whenever S2 applies; 1.3 also requires
+  `ledgers/lineage.md`.
 - K2.2 (`manifest`): every format carries mode, doctrine_sha (40-hex), corpus
   hash, exactly one `run_id` (`RUN-<slug>`), exactly one `predecessor_run`
   (`none` or a different `RUN-<slug>`), and ≥1 state-log row; every state-log
@@ -80,8 +81,8 @@ scope.
   packet index or packet rows, an S2 run-log entry, the exact-evidence marker,
   or exact-evidence tables — cannot coexist with a state log that stops before
   `DISTILLING`.
-  Decision 0004's forward run formats (`1.1.0-provisional` and
-  `1.2.0-provisional`) additionally require
+  Decision 0004's forward run formats (`1.1.0-provisional`,
+  `1.2.0-provisional`, and `1.3.0-provisional`) additionally require
   exactly one structurally valid Core ID/version/digest; adapter
   ID/version/digest; bundle ID/digest/lock reference; checker digest;
   adapter-protocol and run-format version; host identity; model identities and
@@ -159,8 +160,8 @@ scope.
 - K2.13 (`exact evidence and ordered fragments`): retained
   `1.0.0-provisional` and pre-versioned historical runs without
   `exact_evidence_format` preserve the legacy K2.4 interpretation and are not
-  reinterpreted. In run formats `1.1.0-provisional` and
-  `1.2.0-provisional`, the marker is mandatory once `DISTILLING` is reached
+  reinterpreted. In run formats `1.1.0-provisional`, `1.2.0-provisional`, and
+  `1.3.0-provisional`, the marker is mandatory once `DISTILLING` is reached
   and must equal
   `aleph-exact-evidence/v1`; its absence is a failure, not a legacy fallback.
   The packet index must contain exact-evidence, ordered-fragment, and
@@ -181,8 +182,8 @@ scope.
   but no Core reopener remain explicitly structurally checked but mechanically
   unverified. None of these checks compare degraded rendered text to exact
   bytes or claim that rendering is faithful.
-- K2.14 (`source walk, gap review, and resume accounting`): only run format
-  `1.2.0-provisional` activates
+- K2.14 (`source walk, gap review, and resume accounting`): run formats
+  `1.2.0-provisional` and `1.3.0-provisional` activate
   `source_walk_format: aleph-source-walk/v1` with
   `source_position_format: zero-based-utf8-byte-half-open/v1`. Once S2 is
   mechanically observable, the dedicated ledger and all five tables are
@@ -325,3 +326,16 @@ baselines cover both interrupted and uninterrupted primary siblings plus
 same-position post-review reconciliation without cursor backdating. Loa
 separately tests retained 1.2 authority against manifest downgrade and version
 removal, and rejects an extractor cursor return with no Core `reason`.
+
+- K2.15 (`lineage and lineage-current closure`): run format
+  `1.3.0-provisional` activates `lineage_format: aleph-lineage/v1`. The
+  checker verifies the closed event vocabulary/cardinalities, LIN identity,
+  PKT/CC resolution and same-family constraints, single terminalization,
+  acyclicity, legal multiple incoming successors, merge/duplicate provenance
+  union, aggregate claim-split provenance conservation, true packet no-claim
+  closure, and direct lineage-current claim→lineage-current packet provenance.
+  Current S5 and Précis populations are derived from lineage-current claims,
+  not durable `status = active` alone. 1.3 merge-map rows must agree with
+  merge/duplicate lineage events. These checks are structural only and do not
+  decide semantic transformation quality. Earlier run formats must not be
+  reinterpreted as lineage runs.
