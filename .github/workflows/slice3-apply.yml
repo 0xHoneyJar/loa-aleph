@@ -45,8 +45,11 @@ jobs:
       - name: Apply adopted Slice 3 design
         run: node .github/slice3/apply.mjs
 
+      - name: Apply stage-aware adapter integration repair
+        run: node .github/slice3/adapter-fix.mjs
+
       - name: Remove temporary implementation machinery
-        run: rm .github/workflows/slice3-apply.yml .github/slice3/apply.mjs
+        run: rm .github/workflows/slice3-apply.yml .github/slice3/apply.mjs .github/slice3/adapter-fix.mjs
 
       - name: Regenerate shipped JavaScript runtime
         run: npm run runtime:build
