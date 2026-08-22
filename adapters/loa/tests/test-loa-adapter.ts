@@ -2549,6 +2549,65 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       };
     });
 
+    runCase(results, 'late S5+ unit correction blocks before canonical lineage append', () => {
+      const fixture = context.ledgerRecovery;
+      expect(fixture !== null, 'validated ledger fixture is unavailable');
+      const originalState = structuredClone(readRunState(fixture.runDir));
+      const lineagePath = join(fixture.runDir, 'ledgers', 'lineage.md');
+      const lineageBefore = existsSync(lineagePath) ? readFileSync(lineagePath) : null;
+      const chainPath = join(fixture.runDir, 'control', 'ledger-chain.jsonl');
+      const chainBefore = existsSync(chainPath) ? readFileSync(chainPath) : null;
+      try {
+        updateRunState(fixture.runDir, '2040-01-02T03:09:30.000Z', (draft) => {
+          draft.execution.core_state = 'DISTILLING';
+          draft.execution.stage = 'S5';
+          draft.execution.stage_status = 'running';
+          draft.execution.gate = null;
+          draft.execution.halt = null;
+        });
+        const beforeAttempt = readRunState(fixture.runDir);
+        expectThrows(
+          () => new LedgerWriter(fixture.runDir, CLOCK).append(
+            'ledgers/lineage.md',
+            fixture.validated,
+            () => '| LIN-9999 | S4 | replace | CC-9998 | CC-9999 | late correction | fixture |',
+          ),
+          /late-correction boundary BLOCKED.*S5/iu,
+          'late lineage append after S5',
+        );
+        const blocked = readRunState(fixture.runDir);
+        expect(blocked.execution.core_state === 'BLOCKED', 'late lineage attempt did not set BLOCKED');
+        expect(blocked.execution.stage === 'S5', 'late lineage block changed the retained stage');
+        expect(
+          blocked.execution.halt?.code === 'LATE_UNIT_LINEAGE_CORRECTION',
+          'late lineage block omitted its durable halt code',
+        );
+        expect(
+          blocked.ledger.sequence === beforeAttempt.ledger.sequence
+            && blocked.ledger.chain_head === beforeAttempt.ledger.chain_head,
+          'late lineage block advanced the canonical ledger chain',
+        );
+        expect(
+          lineageBefore === null
+            ? !existsSync(lineagePath)
+            : readFileSync(lineagePath).equals(lineageBefore),
+          'late lineage block changed lineage bytes',
+        );
+        expect(
+          chainBefore === null
+            ? !existsSync(chainPath)
+            : readFileSync(chainPath).equals(chainBefore),
+          'late lineage block changed ledger-chain bytes',
+        );
+      } finally {
+        writeRunState(fixture.runDir, originalState);
+        if (lineageBefore === null) rmSync(lineagePath, { force: true });
+        else writeFileSync(lineagePath, lineageBefore);
+        if (chainBefore === null) rmSync(chainPath, { force: true });
+        else writeFileSync(chainPath, chainBefore);
+      }
+    });
+
     runCase(results, 'committed ledger retries return the original receipt without appending', () => {
       const fixture = context.ledgerRecovery;
       expect(fixture !== null, 'committed ledger fixture is unavailable');

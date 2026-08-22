@@ -255,6 +255,12 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
 - **S5/Précis boundary:** current S5 accounting and current Précis compilation
   use lineage-current claims. Historical predecessors remain inspectable and do
   not receive fabricated new dispositions merely to satisfy current accounting.
+- **Late-correction boundary:** canonical lineage appends are owned by S2-S4.
+  If the retained run has already reached S5 or later and a newly discovered
+  unit correction would require another lineage event, the orchestrator must
+  set the run BLOCKED before any canonical lineage append. Existing historical
+  lineage remains readable; Slice 3 does not infer or persist descendant
+  STALE/INVALIDATED state, rewind checkpoints, or resume an earlier stage.
 - **Boundary:** K2 checks structure and provenance conservation only. Semantic
   correctness of a split/merge/duplicate/replacement remains model/human
   judgment. Generic STALE/INVALIDATED propagation, artifact revision, rewind,
