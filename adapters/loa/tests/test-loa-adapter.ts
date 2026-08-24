@@ -2608,6 +2608,69 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       }
     });
 
+    runCase(results, 'late lineage attempt preserves an existing human-authority halt', () => {
+      const fixture = context.ledgerRecovery;
+      expect(fixture !== null, 'validated ledger fixture is unavailable');
+      const originalState = structuredClone(readRunState(fixture.runDir));
+      const statePath = join(fixture.runDir, 'control', 'run-state.json');
+      const lineagePath = join(fixture.runDir, 'ledgers', 'lineage.md');
+      const lineageBefore = existsSync(lineagePath) ? readFileSync(lineagePath) : null;
+      const chainPath = join(fixture.runDir, 'control', 'ledger-chain.jsonl');
+      const chainBefore = existsSync(chainPath) ? readFileSync(chainPath) : null;
+      try {
+        updateRunState(fixture.runDir, '2040-01-02T03:09:40.000Z', (draft) => {
+          draft.execution.core_state = 'BLOCKED';
+          draft.execution.stage = 'S5';
+          draft.execution.stage_status = 'awaiting-authority';
+          draft.execution.gate = {
+            id: 'GATE-S5-BUDGET',
+            type: 'budget-exhaustion',
+            status: 'awaiting-authority',
+            request_ref: 'control/gates/GATE-S5-BUDGET-request.json',
+            response_ref: null,
+          };
+          draft.execution.halt = {
+            code: 'HUMAN_AUTHORITY_GATE',
+            reason: 'fixture authority decision remains required',
+            at: '2040-01-02T03:09:40.000Z',
+            blocking: true,
+          };
+        });
+        const stateBefore = readFileSync(statePath);
+        expectThrows(
+          () => new LedgerWriter(fixture.runDir, CLOCK).append(
+            'ledgers/lineage.md',
+            fixture.validated,
+            () => '| LIN-9999 | S4 | replace | CC-9998 | CC-9999 | late correction | fixture |',
+          ),
+          /existing halt HUMAN_AUTHORITY_GATE is preserved/iu,
+          'late lineage append during a human-authority halt',
+        );
+        expect(
+          readFileSync(statePath).equals(stateBefore),
+          'late lineage attempt changed the existing human-authority halt or run state',
+        );
+        expect(
+          lineageBefore === null
+            ? !existsSync(lineagePath)
+            : readFileSync(lineagePath).equals(lineageBefore),
+          'late lineage attempt during authority halt changed lineage bytes',
+        );
+        expect(
+          chainBefore === null
+            ? !existsSync(chainPath)
+            : readFileSync(chainPath).equals(chainBefore),
+          'late lineage attempt during authority halt changed ledger-chain bytes',
+        );
+      } finally {
+        writeRunState(fixture.runDir, originalState);
+        if (lineageBefore === null) rmSync(lineagePath, { force: true });
+        else writeFileSync(lineagePath, lineageBefore);
+        if (chainBefore === null) rmSync(chainPath, { force: true });
+        else writeFileSync(chainPath, chainBefore);
+      }
+    });
+
     runCase(results, 'committed ledger retries return the original receipt without appending', () => {
       const fixture = context.ledgerRecovery;
       expect(fixture !== null, 'committed ledger fixture is unavailable');

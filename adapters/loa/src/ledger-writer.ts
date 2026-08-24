@@ -405,8 +405,14 @@ export class LedgerWriter {
         }
         if (stageIndex > s4Index) {
           const blockedAt = this.clock.now();
-          if (state.execution.core_state !== 'BLOCKED'
-            || state.execution.halt?.code !== LATE_LINEAGE_HALT_CODE) {
+          const existingHalt = state.execution.halt;
+          if (existingHalt !== null && existingHalt.code !== LATE_LINEAGE_HALT_CODE) {
+            throw new Error(
+              `Core late-correction boundary refused new lineage append at retained stage ${stage}; `
+              + `existing halt ${existingHalt.code} is preserved`,
+            );
+          }
+          if (state.execution.core_state !== 'BLOCKED' || existingHalt === null) {
             state = updateRunState(this.runDir, blockedAt, (draft) => {
               draft.execution.core_state = 'BLOCKED';
               draft.execution.halt = {

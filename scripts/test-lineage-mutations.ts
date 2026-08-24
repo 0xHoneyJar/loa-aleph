@@ -19,16 +19,52 @@ function replaceOne(path: string, before: string, after: string): void {
   writeFileSync(path, text.slice(0, index) + after + text.slice(index + before.length));
 }
 
-function check(name: string, mutate: (run: string) => void): void {
+function checkFailure(
+  name: string,
+  expectedCheck: string,
+  mutate: (run: string) => void,
+  exclusive = false,
+): void {
   const temp = mkdtempSync(join(tmpdir(), 'aleph-lineage-mutation-'));
   const run = join(temp, 'run');
   try {
     cpSync(BASE, run, { recursive: true });
     mutate(run);
     const report = validateRun({ root: ROOT, run, kind: 'run' });
-    const lineageFailure = report.checks.some((row) => row.id === 'K2.15' && row.status === 'FAIL');
-    if (report.result !== 'FAIL' || !lineageFailure) {
-      throw new Error(`expected K2.15 failure, got ${JSON.stringify(report.checks)}`);
+    const expectedFailure = report.checks.some(
+      (row) => row.id === expectedCheck && row.status === 'FAIL',
+    );
+    const failedCheckIds = [...new Set(
+      report.checks.filter((row) => row.status === 'FAIL').map((row) => row.id),
+    )];
+    if (
+      report.result !== 'FAIL'
+      || !expectedFailure
+      || (exclusive && (failedCheckIds.length !== 1 || failedCheckIds[0] !== expectedCheck))
+    ) {
+      throw new Error(`expected ${expectedCheck} failure, got ${JSON.stringify(report.checks)}`);
+    }
+    console.log(`PASS ${name}`);
+    passed++;
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
+function check(name: string, mutate: (run: string) => void): void {
+  checkFailure(name, 'K2.15', mutate);
+}
+
+function checkPass(name: string, mutate: (run: string) => void): void {
+  const temp = mkdtempSync(join(tmpdir(), 'aleph-lineage-positive-'));
+  const run = join(temp, 'run');
+  try {
+    cpSync(BASE, run, { recursive: true });
+    mutate(run);
+    const report = validateRun({ root: ROOT, run, kind: 'run' });
+    const statusCheck = report.checks.find((row) => row.id === 'K2.10');
+    if (report.result !== 'PASS' || statusCheck?.status !== 'PASS') {
+      throw new Error(`expected PASS including K2.10, got ${JSON.stringify(report.checks)}`);
     }
     console.log(`PASS ${name}`);
     passed++;
@@ -44,11 +80,25 @@ passed++;
 
 const lineage = (run: string) => join(run, 'ledgers/lineage.md');
 const claims = (run: string) => join(run, 'ledgers/claim-inventory.md');
+const evidenceRoles = (run: string) => join(run, 'ledgers/evidence-roles.md');
 const manifest = (run: string) => join(run, 'run-manifest.md');
 
+checkPass('retracted evidence edge remains legal in 1.3', (run) => replaceOne(
+  evidenceRoles(run),
+  '|----------|-----------|------|--------------|----------------|------|--------|\n\n## Synthesis/inference markers',
+  '|----------|-----------|------|--------------|----------------|------|--------|\n'
+    + '| CC-0412 | SRC-401 | contextual | verified-primary | | historical edge withdrawn | retracted:fixture correction |\n\n'
+    + '## Synthesis/inference markers',
+));
+checkFailure('non-active durable claim rejected in 1.3', 'K2.10', (run) => replaceOne(
+  claims(run),
+  '| CC-0401 | Original claim later split | PKT-0401, PKT-0403 | SRC-401 | factual |  |  |  | | active |',
+  '| CC-0401 | Original claim later split | PKT-0401, PKT-0403 | SRC-401 | factual |  |  |  | | retracted:unit currentness belongs to lineage |',
+), true);
 check('missing lineage artifact', (run) => rmSync(lineage(run)));
 check('missing lineage marker', (run) => replaceOne(lineage(run), '- lineage_format: aleph-lineage/v1\n\n', ''));
 check('duplicate LIN identity', (run) => replaceOne(lineage(run), '| LIN-0012 |', '| LIN-0001 |'));
+check('malformed LIN identity', (run) => replaceOne(lineage(run), '| LIN-0012 |', '| LIN-00X2 |'));
 check('invalid lineage type', (run) => replaceOne(lineage(run), '| LIN-0001 | S3 | split |', '| LIN-0001 | S3 | fuse |'));
 check('invalid owner stage', (run) => replaceOne(lineage(run), '| LIN-0002 | S3 | replace |', '| LIN-0002 | S5 | replace |'));
 check('illegal split cardinality', (run) => replaceOne(lineage(run), 'CC-0410, CC-0411 | original normalization', 'CC-0410 | original normalization'));

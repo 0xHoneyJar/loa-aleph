@@ -2,7 +2,7 @@
 
 > **Protocol version:** `1.0.0-provisional`
 >
-> **Run-format version:** `1.2.0-provisional`
+> **Run-format version:** `1.3.0-provisional`
 > **Status:** accepted foundation; the Loa host adapter is implemented but not
 > validated or sanctioned, while the other registered host remains planned
 
@@ -122,3 +122,8 @@ per-source closure. Review rows bind the terminal primary cursor and Core
 review-basis digest; open findings contain no future canonical IDs. Structural
 closure proves accounting only; it does not prove perfect recall, actual
 context isolation, or the semantic correctness of a gap reviewer.
+
+Run format `1.3.0-provisional` retains the complete 1.2 exact-evidence and
+source-walk contracts and additionally requires `ledgers/lineage.md` once S2
+begins. Durable packet and claim rows remain `active`; their currentness is
+derived from append-only unit-lineage events rather than status rewrites.

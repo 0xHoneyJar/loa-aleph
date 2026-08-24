@@ -2715,6 +2715,10 @@ function checkStatuses(results: ResultCollector, model: RunModel): void {
     const rows = allStatusRows(model);
     const indexes = makeIndexes(model);
     const lineageStatus = usesLineage(model.manifest?.runFormatVersion || '');
+    const durableUnitLocations = new Set([
+      ...model.packets.map((row) => location(row)),
+      ...model.claims.map((row) => location(row)),
+    ]);
     const homeRows = new Map<HomeFamily, Map<string, HomeStatusRow>>();
     const homeDefinitions: Array<{
       family: HomeFamily;
@@ -2744,7 +2748,11 @@ function checkStatuses(results: ResultCollector, model: RunModel): void {
     }
 
     for (const row of rows) {
-      if (lineageStatus && /^(?:PKT|CC)-\d+$/.test(row.id) && row.status !== 'active') {
+      if (
+        lineageStatus
+        && durableUnitLocations.has(location(row))
+        && row.status !== 'active'
+      ) {
         fail(`${row.id} run-format 1.3 unit rows must use durable status active; identity currentness belongs to lineage`);
         continue;
       }

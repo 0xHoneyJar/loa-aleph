@@ -145,7 +145,10 @@ scope.
 - K2.10 (`status discipline`): every non-`active` status cell matches
   `superseded-by:⟨existing row id⟩` or `retracted:⟨nonempty⟩`; a
   `superseded-by` target must exist and be `active` or itself superseded
-  (no dangling chains).
+  (no dangling chains). In run format 1.3, packet and claim home-definition
+  rows remain `active` because lineage determines unit currentness.
+  Evidence-role, merge-map, and other non-unit append-ledger rows retain the
+  generic status vocabulary even when they reference packet or claim IDs.
 - K2.11 (`precis consistency`, only when `precis.md` exists): run the
   existing fixture-layer Précis checks (envelope-17, neutrality boundary,
   C1–C8) against the run's `precis.md` with expectations derived from the
