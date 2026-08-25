@@ -81,8 +81,8 @@ export function runK2Lineage(results: ResultCollector, model: RunModel): void {
     if (markerCount !== 1 || lineage.format !== LINEAGE_FORMAT) {
       fail(`run format ${version} requires lineage_format ${LINEAGE_FORMAT} exactly once`);
     }
-    if (!lineage.table) {
-      fail('lineage event table is missing or has the wrong header');
+    if (lineage.tables.length !== 1) {
+      fail(`run format ${version} requires exactly one canonical lineage event table; found ${lineage.tables.length}`);
       return 'typed lineage rows and lineage-current closure are structurally valid';
     }
 
@@ -185,20 +185,30 @@ export function runK2Lineage(results: ResultCollector, model: RunModel): void {
         fail(`${lineageId || 'lineage row'} no-claim requires exactly one PKT predecessor and no successor`);
       }
 
+      const newlyTerminalized: string[] = [];
       for (const id of predecessors.ids) {
         const home = id.startsWith('PKT-') ? packets : claims;
         if (!home.has(id)) fail(`${lineageId || 'lineage row'} predecessor ${id} does not resolve`);
         const prior = terminalizedBy.get(id);
         if (prior) fail(`${id} is terminalized by both ${prior} and ${lineageId || 'another lineage row'}`);
-        else terminalizedBy.set(id, lineageId || '(malformed lineage row)');
+        else newlyTerminalized.push(id);
       }
       for (const id of successors.ids) {
         const home = id.startsWith('PKT-') ? packets : claims;
         if (!home.has(id)) fail(`${lineageId || 'lineage row'} successor ${id} does not resolve`);
+        const terminalizingEvent = terminalizedBy.get(id);
+        if (terminalizingEvent) {
+          fail(
+            `${lineageId || 'lineage row'} resurrects ${id} after it was terminalized by ${terminalizingEvent}; re-establishment requires a new identifier`,
+          );
+        }
       }
       const overlap = predecessors.ids.filter((id) => successors.ids.includes(id));
       if (overlap.length > 0) {
         fail(`${lineageId || 'lineage row'} uses predecessor(s) as successor(s): ${overlap.join(', ')}`);
+      }
+      for (const id of newlyTerminalized) {
+        terminalizedBy.set(id, lineageId || '(malformed lineage row)');
       }
 
       if (type === 'no-claim' && predecessors.ids.length === 1) {

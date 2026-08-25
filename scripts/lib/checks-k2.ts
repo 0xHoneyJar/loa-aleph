@@ -20,6 +20,7 @@ import {
 import {
   envelopeSection,
   findTable,
+  findTables,
   findTableByFirstHeader,
   headingSection,
   idsIn,
@@ -32,12 +33,14 @@ import {
 } from './markdown.ts';
 import {
   CURRENT_RUN_FORMAT_VERSION,
+  CLAIM_DEFINITION_HEADER,
   DISPOSITIONS,
   EXACT_EVIDENCE_FORMAT,
   EXACT_EVIDENCE_JOIN_POLICIES,
   EXACT_EVIDENCE_RUN_FORMAT_VERSION,
   forwardExecutionIdentityProblems,
   LEGACY_RUN_FORMAT_VERSION,
+  PACKET_DEFINITION_HEADER,
   SOURCE_POSITION_FORMAT,
   SOURCE_WALK_CURSOR_REASONS,
   SOURCE_WALK_FORMAT,
@@ -2715,10 +2718,32 @@ function checkStatuses(results: ResultCollector, model: RunModel): void {
     const rows = allStatusRows(model);
     const indexes = makeIndexes(model);
     const lineageStatus = usesLineage(model.manifest?.runFormatVersion || '');
-    const durableUnitLocations = new Set([
-      ...model.packets.map((row) => location(row)),
-      ...model.claims.map((row) => location(row)),
-    ]);
+    const durableUnitLocations = new Set<string>();
+    if (lineageStatus && distillingArtifactsApply(model)) {
+      const unitDefinitionSurfaces = [
+        {
+          label: 'packet',
+          document: model.packetDocument,
+          header: PACKET_DEFINITION_HEADER,
+        },
+        {
+          label: 'claim',
+          document: model.claimDocument,
+          header: CLAIM_DEFINITION_HEADER,
+        },
+      ] as const;
+      for (const surface of unitDefinitionSurfaces) {
+        const tables = findTables(surface.document?.tables || [], surface.header);
+        if (tables.length !== 1) {
+          fail(
+            `run-format 1.3 requires exactly one canonical ${surface.label} home-definition table; found ${tables.length}`,
+          );
+        }
+        for (const table of tables) {
+          for (const row of table.rows) durableUnitLocations.add(location(row));
+        }
+      }
+    }
     const homeRows = new Map<HomeFamily, Map<string, HomeStatusRow>>();
     const homeDefinitions: Array<{
       family: HomeFamily;

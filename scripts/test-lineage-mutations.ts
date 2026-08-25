@@ -19,11 +19,20 @@ function replaceOne(path: string, before: string, after: string): void {
   writeFileSync(path, text.slice(0, index) + after + text.slice(index + before.length));
 }
 
+function appendText(path: string, text: string): void {
+  writeFileSync(path, readFileSync(path, 'utf8') + text);
+}
+
+interface FailureExpectation {
+  exclusive?: boolean;
+  messages?: RegExp[];
+}
+
 function checkFailure(
   name: string,
   expectedCheck: string,
   mutate: (run: string) => void,
-  exclusive = false,
+  expectation: FailureExpectation = {},
 ): void {
   const temp = mkdtempSync(join(tmpdir(), 'aleph-lineage-mutation-'));
   const run = join(temp, 'run');
@@ -31,18 +40,29 @@ function checkFailure(
     cpSync(BASE, run, { recursive: true });
     mutate(run);
     const report = validateRun({ root: ROOT, run, kind: 'run' });
-    const expectedFailure = report.checks.some(
+    const expectedFailures = report.checks.filter(
       (row) => row.id === expectedCheck && row.status === 'FAIL',
     );
     const failedCheckIds = [...new Set(
       report.checks.filter((row) => row.status === 'FAIL').map((row) => row.id),
     )];
+    const missingMessages = (expectation.messages || []).filter(
+      (message) => !expectedFailures.some((row) => message.test(row.message)),
+    );
     if (
       report.result !== 'FAIL'
-      || !expectedFailure
-      || (exclusive && (failedCheckIds.length !== 1 || failedCheckIds[0] !== expectedCheck))
+      || expectedFailures.length === 0
+      || missingMessages.length > 0
+      || (
+        expectation.exclusive
+        && (failedCheckIds.length !== 1 || failedCheckIds[0] !== expectedCheck)
+      )
     ) {
-      throw new Error(`expected ${expectedCheck} failure, got ${JSON.stringify(report.checks)}`);
+      throw new Error(
+        `expected ${expectedCheck} failure`
+          + `${missingMessages.length > 0 ? ` matching ${missingMessages.join(', ')}` : ''}, `
+          + `got ${JSON.stringify(report.checks)}`,
+      );
     }
     console.log(`PASS ${name}`);
     passed++;
@@ -79,8 +99,11 @@ console.log('PASS baseline 1.3 lineage-current fixture');
 passed++;
 
 const lineage = (run: string) => join(run, 'ledgers/lineage.md');
+const packets = (run: string) => join(run, 'ledgers/packet-index.md');
 const claims = (run: string) => join(run, 'ledgers/claim-inventory.md');
+const mergeMap = (run: string) => join(run, 'ledgers/merge-map.md');
 const evidenceRoles = (run: string) => join(run, 'ledgers/evidence-roles.md');
+const boundaries = (run: string) => join(run, 'ledgers/negative-boundaries.md');
 const manifest = (run: string) => join(run, 'run-manifest.md');
 
 checkPass('retracted evidence edge remains legal in 1.3', (run) => replaceOne(
@@ -90,11 +113,79 @@ checkPass('retracted evidence edge remains legal in 1.3', (run) => replaceOne(
     + '| CC-0412 | SRC-401 | contextual | verified-primary | | historical edge withdrawn | retracted:fixture correction |\n\n'
     + '## Synthesis/inference markers',
 ));
+checkPass('retracted merge-map relation remains legal in 1.3', (run) => replaceOne(
+  mergeMap(run),
+  '| CC-0420 | CC-0418, CC-0419 | historical bad merge retained | SRC-401 | restatement | active |\n',
+  '| CC-0420 | CC-0418, CC-0419 | historical bad merge retained | SRC-401 | restatement | active |\n'
+    + '| CC-0412 | CC-0402 | withdrawn historical mapping | SRC-401 | restatement | retracted:fixture correction |\n',
+));
+checkPass('retracted negative-boundary row remains legal in 1.3', (run) => replaceOne(
+  boundaries(run),
+  '|-------------|----------|------|--------|--------|\n',
+  '|-------------|----------|------|--------|--------|\n'
+    + '| NB-0401 | CC-0412 | historical-only | withdrawn boundary | retracted:fixture correction |\n',
+));
+checkFailure('non-active durable packet rejected in 1.3', 'K2.10', (run) => replaceOne(
+  packets(run),
+  '| PKT-0401 | SRC-401 | L3-L3 | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | Shared alpha applies. | 1 | active |',
+  '| PKT-0401 | SRC-401 | L3-L3 | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | Shared alpha applies. | 1 | retracted:unit currentness belongs to lineage |',
+), {
+  exclusive: true,
+  messages: [/PKT-0401 run-format 1\.3 unit rows must use durable status active/],
+});
 checkFailure('non-active durable claim rejected in 1.3', 'K2.10', (run) => replaceOne(
   claims(run),
   '| CC-0401 | Original claim later split | PKT-0401, PKT-0403 | SRC-401 | factual |  |  |  | | active |',
   '| CC-0401 | Original claim later split | PKT-0401, PKT-0403 | SRC-401 | factual |  |  |  | | retracted:unit currentness belongs to lineage |',
-), true);
+), {
+  exclusive: true,
+  messages: [/CC-0401 run-format 1\.3 unit rows must use durable status active/],
+});
+checkFailure('second packet home-definition table rejected in 1.3', 'K2.10', (run) => appendText(
+  packets(run),
+  '\n## Duplicate packet definitions\n\n'
+    + '| packet_id | source_id | locator | span_hash | quote | criterion | status |\n'
+    + '|-----------|-----------|---------|-----------|-------|-----------|--------|\n'
+    + '| PKT-0401 | SRC-401 | L3-L3 | sha256:5b0ed9a64d05d3b326e2dc22ded33e6da5cba645d01d0d47ed9c64e933f82afb | Shared alpha applies. | 1 | superseded-by:PKT-0402 |\n',
+), {
+  exclusive: true,
+  messages: [
+    /requires exactly one canonical packet home-definition table; found 2/,
+    /PKT-0401 run-format 1\.3 unit rows must use durable status active/,
+  ],
+});
+checkFailure('second claim home-definition table rejected in 1.3', 'K2.10', (run) => appendText(
+  claims(run),
+  '\n## Duplicate claim definitions\n\n'
+    + '| claim_id | normalized claim | packets | sources | claim_type | disposition | rationale | judged_by | verified | status |\n'
+    + '|----------|------------------|---------|---------|------------|-------------|-----------|-----------|----------|--------|\n'
+    + '| CC-0401 | Restated durable claim | PKT-0401, PKT-0403 | SRC-401 | factual | | | | | retracted:duplicate table bypass |\n',
+), {
+  exclusive: true,
+  messages: [
+    /requires exactly one canonical claim home-definition table; found 2/,
+    /CC-0401 run-format 1\.3 unit rows must use durable status active/,
+  ],
+});
+checkFailure('second matching lineage table rejected', 'K2.15', (run) => appendText(
+  lineage(run),
+  '\n## Duplicate lineage table\n\n'
+    + '| lineage_id | owner_stage | type | predecessors | successors | basis | established_by |\n'
+    + '|------------|-------------|------|--------------|------------|-------|----------------|\n',
+), {
+  exclusive: true,
+  messages: [/requires exactly one canonical lineage event table; found 2/],
+});
+checkFailure('second matching lineage table with malformed row rejected', 'K2.15', (run) => appendText(
+  lineage(run),
+  '\n## Malformed duplicate lineage table\n\n'
+    + '| lineage_id | owner_stage | type | predecessors | successors | basis | established_by |\n'
+    + '|------------|-------------|------|--------------|------------|-------|----------------|\n'
+    + '| not-a-lineage-id | S9 | fuse | none | none | none | none |\n',
+), {
+  exclusive: true,
+  messages: [/requires exactly one canonical lineage event table; found 2/],
+});
 check('missing lineage artifact', (run) => rmSync(lineage(run)));
 check('missing lineage marker', (run) => replaceOne(lineage(run), '- lineage_format: aleph-lineage/v1\n\n', ''));
 check('duplicate LIN identity', (run) => replaceOne(lineage(run), '| LIN-0012 |', '| LIN-0001 |'));
@@ -106,6 +197,14 @@ check('generic N-to-M shape rejected', (run) => replaceOne(lineage(run), 'CC-041
 check('lineage self edge', (run) => replaceOne(lineage(run), '| LIN-0002 | S3 | replace | CC-0402 | CC-0412 |', '| LIN-0002 | S3 | replace | CC-0402 | CC-0402 |'));
 check('lineage cycle', (run) => replaceOne(lineage(run), 'CC-0416, CC-0417 | later correction', 'CC-0401, CC-0417 | later correction'));
 check('predecessor terminalized twice', (run) => replaceOne(lineage(run), '| LIN-0003 | S3 | supersede | CC-0403 |', '| LIN-0003 | S3 | supersede | CC-0402 |'));
+checkFailure('terminalized identity cannot be resurrected as a later successor', 'K2.15', (run) => replaceOne(
+  lineage(run),
+  '| LIN-0003 | S3 | supersede | CC-0403 | CC-0413 |',
+  '| LIN-0003 | S3 | supersede | CC-0403 | CC-0401 |',
+), {
+  exclusive: true,
+  messages: [/LIN-0003 resurrects CC-0401 after it was terminalized by LIN-0001/],
+});
 check('missing predecessor', (run) => replaceOne(lineage(run), '| LIN-0002 | S3 | replace | CC-0402 |', '| LIN-0002 | S3 | replace | CC-0999 |'));
 check('orphan successor', (run) => replaceOne(lineage(run), '| LIN-0003 | S3 | supersede | CC-0403 | CC-0413 |', '| LIN-0003 | S3 | supersede | CC-0403 | CC-0999 |'));
 check('terminal event with successor', (run) => replaceOne(lineage(run), '| LIN-0006 | S3 | reject | CC-0408 | none |', '| LIN-0006 | S3 | reject | CC-0408 | CC-0412 |'));

@@ -145,8 +145,10 @@ scope.
 - K2.10 (`status discipline`): every non-`active` status cell matches
   `superseded-by:⟨existing row id⟩` or `retracted:⟨nonempty⟩`; a
   `superseded-by` target must exist and be `active` or itself superseded
-  (no dangling chains). In run format 1.3, packet and claim home-definition
-  rows remain `active` because lineage determines unit currentness.
+  (no dangling chains). In run format 1.3, exactly one canonical packet
+  home-definition table and exactly one canonical claim home-definition table
+  are required once S2 applies, and every row in those tables remains `active`
+  because lineage determines unit currentness.
   Evidence-role, merge-map, and other non-unit append-ledger rows retain the
   generic status vocabulary even when they reference packet or claim IDs.
 - K2.11 (`precis consistency`, only when `precis.md` exists): run the
@@ -332,11 +334,13 @@ removal, and rejects an extractor cursor return with no Core `reason`.
 
 - K2.15 (`lineage and lineage-current closure`): run format
   `1.3.0-provisional` activates `lineage_format: aleph-lineage/v1`. The
-  checker verifies the closed event vocabulary/cardinalities, LIN identity,
-  PKT/CC resolution and same-family constraints, single terminalization,
-  acyclicity, legal multiple incoming successors, merge/duplicate provenance
-  union, aggregate claim-split provenance conservation, true packet no-claim
-  closure, and direct lineage-current claim→lineage-current packet provenance.
+  checker requires exactly one canonical lineage-event table and verifies the
+  closed event vocabulary/cardinalities, LIN identity, PKT/CC resolution and
+  same-family constraints, single terminalization, no later resurrection of a
+  terminalized identity as a successor, acyclicity, legal multiple incoming
+  successors, merge/duplicate provenance union, aggregate claim-split
+  provenance conservation, true packet no-claim closure, and direct
+  lineage-current claim→lineage-current packet provenance.
   Current S5 and Précis populations are derived from lineage-current claims,
   not durable `status = active` alone. 1.3 merge-map rows must agree with
   merge/duplicate lineage events. These checks are structural only and do not

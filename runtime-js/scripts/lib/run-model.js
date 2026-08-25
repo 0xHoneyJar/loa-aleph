@@ -24,6 +24,27 @@ export const LEGACY_RUN_FORMAT_VERSION = '1.0.0-provisional';
 export const EXACT_EVIDENCE_RUN_FORMAT_VERSION = '1.1.0-provisional';
 export const SOURCE_WALK_RUN_FORMAT_VERSION = '1.2.0-provisional';
 export const CURRENT_RUN_FORMAT_VERSION = '1.3.0-provisional';
+export const PACKET_DEFINITION_HEADER = [
+    'packet id',
+    'source id',
+    'locator',
+    'span hash',
+    'quote',
+    'criterion',
+    'status',
+];
+export const CLAIM_DEFINITION_HEADER = [
+    'claim id',
+    'normalized claim',
+    'packets',
+    'sources',
+    'claim type',
+    'disposition',
+    'rationale',
+    'judged by',
+    'verified',
+    'status',
+];
 export const SUPPORTED_RUN_FORMAT_VERSIONS = [
     LEGACY_RUN_FORMAT_VERSION,
     EXACT_EVIDENCE_RUN_FORMAT_VERSION,
@@ -334,9 +355,8 @@ function parseCorpus(document) {
 function parsePackets(document) {
     if (!document)
         return [];
-    const table = findTable(document.tables, [
-        'packet id', 'source id', 'locator', 'span hash', 'quote', 'criterion', 'status',
-    ]) || findTableByFirstHeader(document.tables, 'packet id');
+    const table = findTable(document.tables, PACKET_DEFINITION_HEADER)
+        || findTableByFirstHeader(document.tables, 'packet id');
     return rowObjects(table, [
         'packetId', 'sourceId', 'locator', 'spanHash', 'quote', 'criterion', 'status',
     ]);
@@ -576,10 +596,8 @@ function parseSourceWalk(document) {
 function parseClaims(document) {
     if (!document)
         return [];
-    const table = findTable(document.tables, [
-        'claim id', 'normalized claim', 'packets', 'sources', 'claim type',
-        'disposition', 'rationale', 'judged by', 'verified', 'status',
-    ]) || findTableByFirstHeader(document.tables, 'claim id');
+    const table = findTable(document.tables, CLAIM_DEFINITION_HEADER)
+        || findTableByFirstHeader(document.tables, 'claim id');
     return rowObjects(table, [
         'claimId', 'normalizedClaim', 'packets', 'sources', 'claimType',
         'disposition', 'rationale', 'judgedBy', 'verified', 'status',

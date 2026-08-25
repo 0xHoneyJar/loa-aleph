@@ -2,8 +2,8 @@ import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { TextDecoder } from 'node:util';
 import { activeClaims, allStatusRows, compareTimestamp, duplicateDefinitions, firstRunLogEntry, location, makeIndexes, mdLineSpan, normalizeSha256, parseTimestamp, pathIsWithin, reachedState, sha256, sourceFilePath, } from './check-helpers.js';
-import { envelopeSection, findTable, findTableByFirstHeader, headingSection, idsIn, normalizeHeader, numberedEnvelopeHeadings, parseBulletFields, parseTables, tableCells, isSeparatorRow, } from './markdown.js';
-import { CURRENT_RUN_FORMAT_VERSION, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, } from './run-model.js';
+import { envelopeSection, findTable, findTables, findTableByFirstHeader, headingSection, idsIn, normalizeHeader, numberedEnvelopeHeadings, parseBulletFields, parseTables, tableCells, isSeparatorRow, } from './markdown.js';
+import { CURRENT_RUN_FORMAT_VERSION, CLAIM_DEFINITION_HEADER, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, PACKET_DEFINITION_HEADER, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, } from './run-model.js';
 import { runK2Lineage } from './checks-k2-lineage.js';
 const CLAIM_TYPES = [
     'factual',
@@ -2179,10 +2179,31 @@ function checkStatuses(results, model) {
         const rows = allStatusRows(model);
         const indexes = makeIndexes(model);
         const lineageStatus = usesLineage(model.manifest?.runFormatVersion || '');
-        const durableUnitLocations = new Set([
-            ...model.packets.map((row) => location(row)),
-            ...model.claims.map((row) => location(row)),
-        ]);
+        const durableUnitLocations = new Set();
+        if (lineageStatus && distillingArtifactsApply(model)) {
+            const unitDefinitionSurfaces = [
+                {
+                    label: 'packet',
+                    document: model.packetDocument,
+                    header: PACKET_DEFINITION_HEADER,
+                },
+                {
+                    label: 'claim',
+                    document: model.claimDocument,
+                    header: CLAIM_DEFINITION_HEADER,
+                },
+            ];
+            for (const surface of unitDefinitionSurfaces) {
+                const tables = findTables(surface.document?.tables || [], surface.header);
+                if (tables.length !== 1) {
+                    fail(`run-format 1.3 requires exactly one canonical ${surface.label} home-definition table; found ${tables.length}`);
+                }
+                for (const table of tables) {
+                    for (const row of table.rows)
+                        durableUnitLocations.add(location(row));
+                }
+            }
+        }
         const homeRows = new Map();
         const homeDefinitions = [
             {

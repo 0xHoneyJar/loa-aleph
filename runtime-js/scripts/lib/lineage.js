@@ -1,4 +1,4 @@
-import { findTable, parseBulletFields } from './markdown.js';
+import { findTables, parseBulletFields } from './markdown.js';
 export const LINEAGE_FORMAT = 'aleph-lineage/v1';
 export const LINEAGE_TYPES = [
     'split',
@@ -9,6 +9,15 @@ export const LINEAGE_TYPES = [
     'reject',
     'exclude',
     'no-claim',
+];
+export const LINEAGE_TABLE_HEADER = [
+    'lineage_id',
+    'owner_stage',
+    'type',
+    'predecessors',
+    'successors',
+    'basis',
+    'established_by',
 ];
 export function parseUnitIds(value, allowNone = false) {
     const cleanValue = value.trim();
@@ -28,19 +37,19 @@ export function parseUnitIds(value, allowNone = false) {
 }
 export function parseLineage(model) {
     const document = model.documents.get('ledgers/lineage.md') || null;
-    if (!document)
-        return { document: null, format: '', table: null, rows: [] };
+    if (!document) {
+        return {
+            document: null,
+            format: '',
+            tables: [],
+            table: null,
+            rows: [],
+        };
+    }
     const bullets = parseBulletFields(document.text);
     const format = bullets.fields.get('lineage format') || '';
-    const table = findTable(document.tables, [
-        'lineage_id',
-        'owner_stage',
-        'type',
-        'predecessors',
-        'successors',
-        'basis',
-        'established_by',
-    ]);
+    const tables = findTables(document.tables, LINEAGE_TABLE_HEADER);
+    const table = tables[0] || null;
     const rows = (table?.rows || []).map((row) => ({
         ...row,
         values: {
@@ -53,7 +62,13 @@ export function parseLineage(model) {
             establishedBy: row.cells[6] || '',
         },
     }));
-    return { document, format, table, rows };
+    return {
+        document,
+        format,
+        tables,
+        table,
+        rows,
+    };
 }
 export function lineagePredecessorIds(model) {
     const predecessors = new Set();
