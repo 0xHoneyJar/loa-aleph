@@ -186,7 +186,8 @@ recall.
   transformation records (+ read-only corpus access for context windows
   around a packet).
 - **Outputs:** `ledgers/claim-inventory.md` (claims + provenance + claim type;
-  dispositions still blank).
+  dispositions still blank); in run format 1.3, S3 structural identity outcomes
+  append to `ledgers/lineage.md`.
 - **Actor:** Normalizers (fan out per packet batch).
 - **Blind-context rule:** normalizers do not assign dispositions and do not
   see other batches' outputs mid-pass (dedup is S4's job, done globally).
@@ -197,8 +198,9 @@ recall.
   it never edits, replaces, or relabels source fragments, display text, or
   exact-evidence hashes.
 - **DoD:**
-  - [ ] ⚙ every claim has ≥1 packet; every packet either yielded claims or is
-        marked `no-claim` with one of the recorded criteria-reasons
+  - [ ] ⚙ every claim has ≥1 packet; every packet either yielded claims or has
+        an explicit structural lineage closure; a true zero-claim packet uses
+        the `no-claim` lineage event
   - [ ] ⚖ entailment spot-check: sampled claims re-derived from their packets
         alone by fresh verifiers; non-entailed restatements fail the batch
   - [ ] ⚙ claim IDs unique, hash-stable
@@ -207,15 +209,18 @@ recall.
 
 - **Purpose:** compact by normalization; kill duplicate conviction.
 - **Inputs:** full claim inventory.
-- **Outputs:** `ledgers/merge-map.md`; inventory updated (absorbed claims keep
-  rows and get `merged`).
+- **Outputs:** `ledgers/merge-map.md`; for run format 1.3, each merge or
+  duplicate also appends one lineage event and materializes a new canonical
+  successor claim while every predecessor row remains immutable history.
 - **Actor:** Normalizer-Judge (global pass — this stage is a barrier).
 - **Work:** near-duplicates merge with all provenance retained; genuinely
   contradictory claims are *never* merged (they stay separate, flagged for
   S5/S9); the corroboration note distinguishes independent support from
   restatement.
 - **DoD:**
-  - [ ] ⚙ C8 provenance superset holds for every merge row
+  - [ ] ⚙ C8 provenance superset holds for every merge row; in 1.3 every
+        merge/duplicate map row matches one typed lineage event whose new
+        successor conserves predecessor packet provenance
   - [ ] ⚖ merge-precision spot-check: sampled merges defended to a refuter
         ("argue these are different claims"); refuted merges are unwound
   - [ ] ⚖ contradiction sweep: harness searches the inventory for
@@ -235,7 +240,9 @@ recall.
 - **Blind-context rule:** judges see the claim, its packets, the scope, and
   the criteria — not other judges' calls on unrelated batches.
 - **DoD:**
-  - [ ] ⚙ every claim exactly one disposition; accounting balances
+  - [ ] ⚙ every current research claim exactly one disposition; in 1.3 this
+        population is the lineage-current claim set, while historical
+        predecessors require no fabricated new disposition; accounting balances
   - [ ] ⚙ every `excluded-with-reason` has a reason; every exclusion citing
         scope maps to a negative boundary
   - [ ] ⚙ contradiction pairs from S4 are not silently resolved (each side

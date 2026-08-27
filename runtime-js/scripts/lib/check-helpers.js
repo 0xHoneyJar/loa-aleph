@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, normalize, relative, resolve } from 'node:path';
 import { idsIn, normalizeHeader } from './markdown.js';
+import { usesLineage } from './run-model.js';
+import { lineageCurrentClaims } from './lineage.js';
 export function location(row) {
     const located = row;
     return `${located.file}:${located.line}`;
@@ -221,6 +223,9 @@ export function duplicateDefinitions(model) {
     return duplicates;
 }
 export function activeClaims(model) {
+    if (usesLineage(model.manifest?.runFormatVersion || '')) {
+        return lineageCurrentClaims(model);
+    }
     return model.claims.filter((claim) => claim.values.status === 'active');
 }
 export function activeRows(rows) {

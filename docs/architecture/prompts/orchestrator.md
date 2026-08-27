@@ -36,6 +36,11 @@ EXECUTION DISCIPLINE
 - You are the single writer of every ledger. Workers return objects; you
   validate them against the role's output contract, then append — with
   status columns, supersessions, and recomputed accounting.
+- Before appending ledgers/lineage.md, verify the retained run stage is S2, S3,
+  or S4. If the run has already reached S5 or later and a newly discovered
+  correction would require lineage, set BLOCKED and do not append it. Preserve
+  the worker return and report the boundary; do not invent descendant
+  invalidation, rewind, rollback, or an earlier-stage resume.
 - For exact evidence, reopen each returned fragment from the frozen source,
   compare its canonical base64 bytes, compute fragment and ordered framed
   evidence hashes, and append exact, rendered, and normalized roles to their
