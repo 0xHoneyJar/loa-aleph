@@ -45,6 +45,17 @@ This file is design only. It does not:
 Human authority must adopt an exact immutable identity of this proposal before
 implementation can begin.
 
+### 1.1 Reconciled review findings
+
+| Finding | Disposition |
+|---|---|
+| S4-D01 | CLOSED — Slice 4 v1 defines no relation-specific human authority gate or authority closure field. |
+| S4-D02 | CLOSED — a source-locus target uses the Core addressing scheme declared by its canonical corpus-manifest source row. |
+| S4-D03 | CLOSED — static retained-state checking is separated from temporal write-window enforcement by the orchestrator or manual procedure. |
+| F-03 | MUST PRESERVE — live LedgerWriter/orchestrator wiring remains unvalidated end-to-end. |
+| F-04 | MUST PRESERVE — path/case portability remains unresolved. |
+| F-05 | MUST PRESERVE — the post-S4 lineage BLOCK remains tied to the F-03 surface. |
+
 ## 2. Purpose
 
 Slice 4 answers one bounded question:
@@ -179,8 +190,17 @@ generic graph-node family.
 
 ### 5.4 Exact source locus
 
-An exact source locus is a `SRC-*` row plus its declared `md-lines` locator
-and exact span hash. It is an endpoint form, not a fabricated packet or claim.
+An exact source locus is an existing frozen `SRC-*` row, a locator interpreted
+under the addressing scheme declared by that source's canonical
+`corpus/manifest.md` row, and an exact span hash over the deterministically
+reopened bytes. It is an endpoint form, not a fabricated packet or claim.
+
+Slice 4 derives the scheme from the source row; it does not duplicate the
+scheme in the relation row and does not define a new locator scheme. Only a
+scheme already defined and deterministically reopenable by the current Core
+contract may support an asserted source-locus target. If the declared scheme
+cannot establish the required exact target, no locator is fabricated; the
+appropriate typed-null state is used instead.
 
 Slice 4 v1 does not define table-cell coordinates, visual geometry, OCR
 reconstruction, or degraded-format semantics. Those remain Slice 6.
@@ -282,8 +302,30 @@ barrier, after Slice 3 lineage and S4 merge/duplicate decisions have
 established the lineage-current unit inventory.
 
 The file may be initialized earlier with the marker and an empty canonical
-table if the ordinary run-directory constructor requires it. No `REL-*` row
-may be present before S4 closure.
+table if the ordinary run-directory constructor requires it.
+
+The temporal write-window contract is:
+
+- no canonical `REL-*` row is appended before the S4 closure barrier;
+- canonical rows are written only at that barrier;
+- no canonical row is appended after S4 closure or S5 entry; and
+- a later correction requiring relation mutation fails closed before bytes
+  change.
+
+The orchestrator or manual procedure must enforce that write window. A host
+adapter may enforce it mechanically only as host mechanics. Future Slice 4
+implementation must make the same S4-only rule explicit in the applicable
+manual procedure because manual mode remains the only sanctioned execution
+path.
+
+`owner_stage` records semantic production ownership, not canonical append
+stage or time. The proposed relation row contains no timestamp or durable
+stage-bound append receipt. A host receipt's `written_at`, where present,
+records time but does not bind the append to a Core stage and is not K2
+evidence of the write window. A deterministic checker may therefore verify
+the retained state expected before or after S4 where the current Core run
+state makes that mechanically available, but it may not claim historical
+proof of the exact moment a row was appended.
 
 This barrier is required because it:
 
@@ -292,10 +334,6 @@ This barrier is required because it:
 - avoids lineage-snapshot or artifact-version fields;
 - avoids a relation-rewrite engine; and
 - preserves append-only canonical semantics.
-
-Once the run enters S5, no new canonical relation row may be appended under
-Slice 4 v1. A newly discovered required correction must fail closed under the
-existing correction boundary.
 
 ### 7.2 Relation identity and currentness
 
@@ -331,8 +369,8 @@ they are not copied into the new canonical ledger merely to preserve density.
 The proposed canonical table is:
 
 ```text
-| relation_id | owner_stage | family | type | source_kind | source_id | target_kind | target_id | target_source_id | target_locator | target_span_hash | record_state | null_reason | basis_packet_ids | proposed_by | reviewed_by | authority_ref |
-|-------------|-------------|--------|------|-------------|-----------|-------------|-----------|------------------|----------------|------------------|--------------|-------------|------------------|-------------|-------------|---------------|
+| relation_id | owner_stage | family | type | source_kind | source_id | target_kind | target_id | target_source_id | target_locator | target_span_hash | record_state | null_reason | basis_packet_ids | proposed_by | reviewed_by |
+|-------------|-------------|--------|------|-------------|-----------|-------------|-----------|------------------|----------------|------------------|--------------|-------------|------------------|-------------|-------------|
 ```
 
 Field rules:
@@ -348,14 +386,22 @@ Field rules:
 | `target_kind` | `CC`, `PKT`, `source-locus`, or `null` |
 | `target_id` | existing target ID for `CC`/`PKT`; otherwise `none` |
 | `target_source_id` | existing `SRC-*` only for `source-locus`; otherwise `none` |
-| `target_locator` | exact declared `md-lines` locator only for `source-locus`; otherwise `none` |
+| `target_locator` | exact locator valid under the addressing scheme derived from the canonical manifest row for `target_source_id`, only for `source-locus`; otherwise `none` |
 | `target_span_hash` | exact `sha256:<lowercase-hex>` of the source-locus bytes; otherwise `none` |
 | `record_state` | `asserted`, `unresolved-target`, `explicitly-absent`, or `indeterminate` |
 | `null_reason` | closed state-specific value; `none` for `asserted` |
 | `basis_packet_ids` | nonempty comma-separated existing `PKT-*` records reviewed as the frozen source basis |
 | `proposed_by` | `human:<actor-slug>` or `invocation:<producer-invocation-id>`; not narrative prose |
 | `reviewed_by` | one existing fresh-context `VER-*` verdict reference |
-| `authority_ref` | `none` or `manifest-signoff:relation:REL-NNNN` resolving to an exact run-manifest authority sign-off gate `relation:REL-NNNN` |
+
+There is no `target_scheme` field. The scheme is derived through
+`target_source_id` from `corpus/manifest.md`; duplicating it in a relation row
+would create a redundant binding that could disagree with the canonical
+source declaration.
+
+There is no append-stage or append-time field. `owner_stage` remains semantic
+production ownership and cannot be used as evidence of when the canonical row
+was written.
 
 `record_state` is the narrow answer to the slice plan's provisional `status`
 field. It is a relation-assessment state, not a generic correction state.
@@ -562,14 +608,22 @@ contain many unrelated passages.
 A `source-locus` target requires:
 
 - an existing frozen `SRC-*` manifest row;
-- the source's declared `md-lines` scheme;
-- a canonical `L<start>-L<end>` locator;
-- exact reopening of those lines; and
-- a matching SHA-256 span hash under Decision 0003's locator contract.
+- the Core addressing scheme declared by that canonical source row;
+- a locator valid under that declared scheme;
+- a scheme already defined and deterministically reopenable by the current
+  Core contract;
+- exact deterministic reopening under the existing Core locator contract; and
+- a matching SHA-256 span hash over the exact reopened bytes.
+
+Slice 4 does not create a convenience locator syntax. `md-lines` is one
+eligible existing scheme, not the source-locus definition. A non-`md-lines`
+scheme is eligible only where the exact implementation base can
+deterministically reopen it under the Core contract.
 
 Unsupported or layout-dependent target structures are not silently
-reconstructed. If the exact text locus cannot be established, use a typed
-null and preserve Slice 6's boundary.
+reconstructed. If the declared scheme cannot establish the required exact
+target, do not fabricate a locator; use the appropriate typed-null state and
+preserve Slice 6's boundary.
 
 The following are not legal endpoints:
 
@@ -630,7 +684,7 @@ It does not mean:
 
 - the source has no relations of any kind;
 - the full corpus is semantically complete;
-- future authority can never identify a relation; or
+- a future bounded review can never identify a relation; or
 - a missing row is equivalent to absence.
 
 Slice 4 does not require an exhaustive source x subtype absence matrix.
@@ -668,7 +722,7 @@ No canonical row means only:
 
 It does not mean explicit absence, not applicable, or semantic completeness.
 
-## 13. Provenance and optional authority reference
+## 13. Provenance and role separation
 
 ### 13.1 Source-bound basis
 
@@ -689,38 +743,37 @@ No free-prose target or external fact may be smuggled into
 `proposed_by` records either `human:<actor-slug>` or
 `invocation:<producer-invocation-id>`.
 
+The `human:` form identifies a producer. It is not an authority sign-off or a
+relation-specific human gate.
+
 `reviewed_by` records one existing `VER-*` verdict produced from fresh
 context. The producer and reviewer references must differ. Structural
 difference does not by itself prove context isolation; retained adapter
 dispatch receipts remain the process evidence.
 
-### 13.3 Optional authority reference
+### 13.3 No relation-specific human authority closure
 
-`authority_ref` has the smallest legitimate Slice 4 meaning:
+Slice 4 v1 defines no relation-specific human authority gate or authority
+closure field.
 
-- `none`; or
-- an exact reference
-  `manifest-signoff:relation:REL-NNNN`.
+The implementation-slice plan's provisional phrase `optional authority
+closure` was a design possibility, not an adopted requirement. The accepted
+stage contract gives S4 no authority gate. Slice 4 v1 therefore does not
+instantiate that possibility. Any future relation-specific human authority
+closure requires a separate adopted authority decision and is LATER.
 
-The non-`none` form requires a run-manifest authority sign-off whose gate cell
-is exactly `relation:REL-NNNN`.
+Existing human authority surfaces remain separately governed:
 
-That sign-off means only:
+- S0 scope, sensitivity, and corpus freeze;
+- S8 external referents;
+- S13 Précis acceptance;
+- projection commission and projection acceptance; and
+- budget or contamination gates where applicable.
 
-> the human authority explicitly reviewed or established this relation record.
-
-It does not:
-
-- adopt this architecture proposal;
-- accept the run;
-- resolve an external fact;
-- make an adapter sanctioned;
-- change relation currentness;
-- create correction closure; or
-- confer evidence support.
-
-Human sign-off is optional for an ordinary reviewed relation row unless an
-existing authority gate separately requires it.
+No relation field may carry or impersonate those responses. In particular, an
+`outside-frozen-corpus` typed null may motivate a future `REF-*` need, but the
+`REL-*` row does not carry the S8 authority response. Slice 4 does not replace
+the removed authority field with another disguised authority field.
 
 ## 14. Lineage interaction and endpoint currentness
 
@@ -973,11 +1026,19 @@ The orchestrator:
 - verifies producer/reviewer receipt binding;
 - reconciles upheld/refuted/cannot-determine outcomes;
 - refuses unresolved structural conflicts;
+- enforces the S4-only canonical write window and refuses an out-of-window
+  append before bytes change;
 - writes exact Core-defined rows at S4 closure; and
 - invokes deterministic checks.
 
 The orchestrator does not judge its own relation proposal and does not convert
 a checker PASS into semantic correctness.
+
+Temporal enforcement is a process obligation, not a historical claim derived
+from `owner_stage`. In manual mode, the operator procedure must make the same
+S4-only canonicalization rule explicit. Any host-adapter enforcement is
+host-mechanical evidence and does not resolve F-03 or prove the temporal
+property through K2.16.
 
 ## 19. Deterministic checker contract
 
@@ -1002,30 +1063,41 @@ the checker surface changes before authorized implementation.
 
 The checker may enforce:
 
-1. correct `relation_format` marker;
-2. exactly one canonical relation table;
+1. when the artifact is required or present, a correct `relation_format`
+   marker;
+2. when the artifact is present, exactly one canonical relation table;
 3. unique, well-formed `REL-*` IDs;
 4. closed family and subtype vocabularies;
 5. family/subtype compatibility;
 6. legal source kind and source existence;
 7. legal target kind and state-specific target fields;
 8. concrete target existence and matching kind;
-9. exact `source-locus` source/locator/hash resolution;
+9. exact `source-locus` source resolution, manifest-derived addressing scheme,
+   scheme-compatible locator, deterministic reopening, and span hash;
 10. typed-null syntax and state-specific null reason;
-11. owner-stage legality;
+11. semantic owner-stage legality, without treating it as append-time evidence;
 12. lineage-current durable source/target closure at S4;
 13. nonempty, existing `basis_packet_ids`;
 14. producer-reference grammar and producer/reviewer non-identity;
 15. `reviewed_by` verdict existence;
-16. optional authority-reference shape and matching manifest sign-off;
-17. absence of raw prose or compound/range targets;
-18. duplicate semantic tuples and conflicting typed-null scopes;
-19. self-edge rules;
-20. subtype-specific cycle rules;
-21. no support/evidence-role enum or field on a relation row;
-22. required artifact presence at/after S4 closure for 1.4;
-23. no post-S4 canonical append under the retained run stage; and
-24. legacy run-format isolation.
+16. absence of raw prose or compound/range targets;
+17. duplicate semantic tuples and conflicting typed-null scopes;
+18. self-edge rules;
+19. subtype-specific cycle rules;
+20. no support/evidence-role enum or field on a relation row;
+21. where the retained current Core state makes the stage condition
+    mechanically available, relation artifact absence or an empty canonical
+    table before S4 closure and required marker/table presence once S4 has
+    closed or S5 begins; and
+22. incompatible run-format activation and legacy run-format isolation.
+
+These are static checks over retained canonical Core state. A pre-closure
+snapshot containing a canonical row can fail, and a post-closure snapshot
+missing the required artifact can fail. A later snapshot containing relation
+rows does not reveal whether those rows were appended before, at, or after the
+S4 closure barrier. K2.16 must not report historical append timing as proved
+unless separately adopted Core-owned durable evidence is introduced that
+actually records it.
 
 ### 19.2 Semantic non-claims
 
@@ -1041,8 +1113,10 @@ The checker must not decide:
 - whether relation multiplicity is independent evidence; or
 - whether any relation should change a disposition.
 
-A deterministic PASS proves only schema, references, currentness closure, and
-encoded graph rules.
+A deterministic PASS proves only schema, references, currentness closure,
+encoded graph rules, and the retained current-state conditions that are
+mechanically available. It does not prove the historical temporal write
+window.
 
 ## 20. Run-format and capability recommendation
 
@@ -1095,8 +1169,14 @@ For a 1.4 run:
 - the canonical relation artifact becomes mandatory when S4 closes and before
   S5 begins;
 - if the artifact is initialized earlier, it contains only the marker and an
-  empty canonical table; any pre-closure `REL-*` row fails; and
+  empty canonical table; a retained pre-closure state containing a `REL-*` row
+  fails the static state check; and
 - at S5 or later, missing marker/artifact/table fails closed.
+
+Separately, the orchestrator or manual procedure must allow canonical append
+only at the S4 closure barrier and refuse both earlier and later attempts. A
+later deterministic PASS over the resulting artifact is not evidence of when
+the rows were appended.
 
 Historical 1.0-1.3 bytes and behavior remain unchanged.
 
@@ -1107,6 +1187,7 @@ run-format/capability use.
 ## 21. Future fixture and mutation design
 
 No fixture is created by this proposal.
+Historical fixtures are not migrated.
 
 One focused future 1.4 fixture should demonstrate:
 
@@ -1114,7 +1195,10 @@ One focused future 1.4 fixture should demonstrate:
 - one known `antecedent-context`;
 - one `qualifier-context` that is explicitly non-evidentiary;
 - one `configuration-context`;
-- one `structural-anchor` to an exact `md-lines` locus;
+- one `structural-anchor` to an exact `md-lines` source locus;
+- one exact non-`md-lines` Core-supported source locus, preferably `chat-msg`
+  if the future fixture's exact implementation base can deterministically
+  reopen it;
 - one `notation-definition`;
 - one `continuation-context`;
 - one `parallel-contrast-context`;
@@ -1147,15 +1231,17 @@ The focused mutation battery should include:
 - illegal self-edge;
 - forbidden subtype-only cycle;
 - malformed source locus;
+- locator incompatible with the source manifest's declared scheme;
+- locator that is valid under a different known scheme but not under the
+  scheme derived from the target source row;
 - source-locus hash mismatch;
 - relation type/endpoint mismatch;
 - missing provenance;
 - missing or same producer/reviewer identity;
 - missing reviewer verdict;
-- malformed authority reference;
-- missing artifact or marker;
+- missing required artifact or marker in a retained S4-closed or S5 state;
 - duplicate canonical relation table;
-- post-S4 append attempt;
+- canonical relation row present in a retained pre-S4-closure state;
 - unsupported support/evidence-role enum on a relation row; and
 - a 1.3 run accidentally reinterpreted as 1.4.
 
@@ -1179,6 +1265,22 @@ A structural mutation may also insert a prohibited support-like enum and fail
 K2.16. That does not replace the semantic mutation where a syntactically legal
 context relation is misused as support.
 
+### 21.3 Temporal process-enforcement tests
+
+Temporal write-window tests are separate from the K2.16 mutation battery.
+Future authorized implementation should demonstrate that:
+
+- a canonical append attempt before the S4 closure barrier is refused before
+  bytes change;
+- the reviewed relation set can be serialized at the S4 closure barrier;
+- a canonical append attempt after S4 closure or S5 entry is refused before
+  bytes change; and
+- the applicable manual-mode procedure explicitly permits canonicalization
+  only at the S4 closure barrier.
+
+Host-adapter test evidence may demonstrate host mechanics. It does not turn
+the temporal property into a static Core-checker proof or resolve F-03.
+
 ## 22. Core/adapter boundary and Slice 3 follow-ups
 
 Core owns:
@@ -1191,6 +1293,8 @@ Core owns:
 - producer/reviewer contracts;
 - checker behavior;
 - fixture/mutation behavior; and
+- the temporal S4-only write-window process contract and its separation from
+  static checker claims; and
 - run-format capability.
 
 An adapter may only:
@@ -1198,7 +1302,8 @@ An adapter may only:
 - dispatch the Core-defined producer/reviewer work;
 - preserve fresh-context mechanics;
 - validate the Core-defined return shape;
-- serialize review-cleared rows through the canonical single writer;
+- serialize review-cleared rows through the canonical single writer at the S4
+  closure barrier and refuse out-of-window appends as host mechanics;
 - invoke the Core checker; and
 - retain host receipts.
 
@@ -1210,7 +1315,12 @@ An adapter may not invent:
 - relation support semantics;
 - cycle exceptions;
 - correction propagation; or
-- authority closure.
+- a relation-specific human authority gate or closure field.
+
+Core static checking may verify only facts derivable from retained canonical
+Core state. Host mechanics may enforce the temporal write window, but neither
+an adapter receipt nor a K2.16 PASS may be generalized into validated
+end-to-end orchestration without the separate evidence required by F-03.
 
 No new public command or sanctioned agent surface is created by this design.
 
@@ -1222,7 +1332,8 @@ F-03 remains MUST PRESERVE:
 
 Any future relation implementation must use the existing canonical
 single-writer architecture and prove the S4 closure path separately. This
-proposal does not claim live relation enforcement.
+proposal does not claim live relation enforcement, and a static K2.16 PASS is
+not proof that the live writer honored the temporal window.
 
 ### 22.2 F-04 compatibility
 
@@ -1252,6 +1363,10 @@ that retained halt behavior:
 - do not overwrite lineage's halt semantics; and
 - do not claim agent-mode enforcement until the live writer/orchestrator path
   is independently validated.
+
+The same status distinction applies to relation writes: the process contract
+requires refusal outside the S4 barrier, while F-03/F-05 prevent this proposal
+from claiming validated live enforcement.
 
 No F-03/F-04/F-05 repair is authorized in Slice 4 architecture.
 
@@ -1290,8 +1405,9 @@ This proposal excludes:
 
 - Slice 5 full ambiguity/referent lifecycle;
 - ambiguity propagation, carry, or closure;
-- Slice 6 table/formal/layout extraction beyond exact `md-lines` locus
-  reference;
+- Slice 6 table-cell coordinates, new formal/layout locator schemes, visual
+  geometry, OCR reconstruction, or layout interpretation beyond existing
+  Core-defined deterministically reopenable loci;
 - Slice 6 degraded-format machinery;
 - Slice 7 semantic atomicity/context/qualifier/evidence-role review expansion;
 - Slice 8 duplicate-versus-overlap refutation redesign;
@@ -1303,8 +1419,11 @@ This proposal excludes:
 - generic `STALE`/`INVALIDATED` propagation;
 - descendant invalidation;
 - checkpoint or artifact revision;
+- append timestamps or append-stage fields on relation rows;
+- generic transaction-stage architecture;
 - rollback or rewind;
 - relation replacement or supersession;
+- a relation-specific human authority gate or closure field;
 - cross-run reuse;
 - successor-run correction execution;
 - post-ACCEPTED correction;
@@ -1341,13 +1460,16 @@ This proposal excludes:
 | MP-16 | F-05 post-S4 lineage BLOCK remains tied to the F-03 surface and must not be converted into an agent-mode claim. |
 | MP-17 | Manual mode remains the only sanctioned execution path. |
 | MP-18 | Structural implementation, checker PASS, fixture validation, replay, semantic validation, sanction, acceptance, and v1 remain separate claims. |
+| MP-19 | Slice 4 v1 has no relation-specific human authority gate or closure field; existing authority surfaces remain separate. |
+| MP-20 | A source-locus scheme is derived from its canonical source-manifest row and must already be Core-defined and deterministically reopenable; Slice 4 creates no locator scheme. |
+| MP-21 | K2.16 checks retained static state only; the orchestrator or manual procedure owns temporal S4-only write-window enforcement. |
 
 ### 25.2 LATER
 
 | ID | Deferred implication |
 |---|---|
 | L-01 | Slice 5 ambiguity/referent identification, propagation, carry, authority closure, and relation-null resolution |
-| L-02 | Slice 6 table-cell/header coordinates, formal-layout binding, OCR/degraded-format states, and unsupported-layout handling |
+| L-02 | Slice 6 table-cell/header coordinates, new formal/layout addressing schemes, formal-layout binding, OCR/degraded-format states, and unsupported-layout handling |
 | L-03 | Slice 7 mandatory semantic review coverage and any exhaustive explicit-absence obligations |
 | L-04 | Slice 8 duplicate-versus-overlap fresh refutation redesign |
 | L-05 | Generic relation correction, replacement, supersession, and currentness after correction |
@@ -1360,6 +1482,7 @@ This proposal excludes:
 | L-12 | Projection changes |
 | L-13 | Live adapter/orchestrator validation, agent-mode validation, and sanction |
 | L-14 | Semantic validation, replay validation, acceptance, golden promotion, production readiness, and Aleph v1 |
+| L-15 | Any relation-specific human authority closure, only through a separate adopted authority decision |
 
 ### 25.3 Open design questions
 
@@ -1381,28 +1504,36 @@ items below hold:
    successor, has been adopted by human authority;
 2. `1.4.0-provisional`, `aleph-relations/v1`, and the cumulative capability
    registry are consistent across Core contracts and checker/model code;
-3. `ledgers/relations.md` has exactly one marker and canonical table under the
-   required stage/run-format conditions;
+3. retained pre-S4 state has either no relation artifact or only the marker
+   and an empty canonical table, retained S4-closed/S5 state has the required
+   marker and table, and those static checks make no historical append-timing
+   claim;
 4. every `REL-*` identity, field, state, family, subtype, and endpoint matrix
    rule is mechanically enforced;
-5. exact source-locus targets reopen the declared frozen `md-lines` bytes and
-   hash;
+5. exact source-locus targets derive their scheme from the frozen source
+   manifest, use a locator valid under that Core-supported deterministic
+   scheme, reopen exact bytes, and match the hash; the focused fixture covers
+   `md-lines` and one compatible non-`md-lines` scheme;
 6. every canonical durable endpoint is lineage-current at S4 closure;
 7. a terminalized proposal endpoint is never silently retargeted and the
    focused fixture names the successor explicitly;
 8. typed-null, explicit-absence, indeterminate, not-applicable, and missing-row
    semantics remain distinct;
-9. source-bound provenance and producer/reviewer/optional-authority references
-   are structurally valid;
+9. source-bound provenance and producer/reviewer references are structurally
+   valid, with no relation-specific authority field;
 10. the producer/reviewer prompts enforce the named semantic challenge set
     without exposing SRC-001 answer keys or density targets;
-11. the orchestrator remains the only writer and reviewers cannot write
-    canonical ledgers;
-12. provisional K2.16 enforces only the named structural contract and reports
-    exact failures;
+11. the orchestrator remains the only writer, reviewers cannot write canonical
+    ledgers, out-of-window appends are refused before bytes change, and the
+    applicable manual runbook states the S4-only canonicalization rule;
+12. provisional K2.16 enforces only the named retained-state structural
+    contract, reports exact failures, and does not claim historical append
+    timing;
 13. all subtype-specific self-edge, duplicate/conflict, and cycle rules pass
     the focused positive fixture;
-14. all deterministic negative mutations fail at the intended check surface;
+14. all deterministic negative mutations fail at the intended check surface,
+    while the separate temporal process tests exercise pre-S4 and post-S4
+    append refusal;
 15. semantic-review cases demonstrate that structurally legal wrong relations,
     context-as-support, qualifier loss, and unjustified permitted cycles are
     rejected outside the checker;
@@ -1412,8 +1543,9 @@ items below hold:
     drift-clean;
 18. Core-boundary and immutable bundle verification retain byte-identical Core
     across host targets;
-19. adapter changes, if separately authorized, remain host-mechanical and
-    preserve F-03/F-04/F-05 without claiming live enforcement; and
+19. adapter changes, if separately authorized, remain host-mechanical, enforce
+    the Core write window only as host mechanics, and preserve F-03/F-04/F-05
+    without claiming validated end-to-end enforcement; and
 20. a fresh independent implementation audit reports no BLOCKING NOW
     violation and preserves all status limits.
 
