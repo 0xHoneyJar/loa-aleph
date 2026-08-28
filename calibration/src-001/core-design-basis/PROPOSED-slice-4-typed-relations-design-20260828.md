@@ -45,16 +45,32 @@ This file is design only. It does not:
 Human authority must adopt an exact immutable identity of this proposal before
 implementation can begin.
 
-### 1.1 Reconciled review findings
+### 1.1 Independent-audit reconciliation
 
-| Finding | Disposition |
-|---|---|
-| S4-D01 | CLOSED — Slice 4 v1 defines no relation-specific human authority gate or authority closure field. |
-| S4-D02 | CLOSED — a source-locus target uses the Core addressing scheme declared by its canonical corpus-manifest source row. |
-| S4-D03 | CLOSED — static retained-state checking is separated from temporal write-window enforcement by the orchestrator or manual procedure. |
-| F-03 | MUST PRESERVE — live LedgerWriter/orchestrator wiring remains unvalidated end-to-end. |
-| F-04 | MUST PRESERVE — path/case portability remains unresolved. |
-| F-05 | MUST PRESERVE — the post-S4 lineage BLOCK remains tied to the F-03 surface. |
+| Class | Finding | Disposition |
+|---|---|---|
+| CLOSED NOW | S4-D01 | CLOSED — Slice 4 v1 defines no relation-specific human authority gate or authority closure field. |
+| CLOSED NOW | S4-D02 | ORIGINAL DEFECT CLOSED; A4-01 successor defect CLOSED — a source-locus target uses its manifest-derived Core scheme, while fixture coverage is conditional on what the exact implementation base can mechanically reopen. |
+| CLOSED NOW | S4-D03 | CLOSED — static retained-state checking is separated from temporal write-window enforcement by the orchestrator or manual procedure. |
+| CLOSED NOW | A4-01 | CLOSED — `md-lines` positive exact-locus coverage is unconditional; a second positive scheme is required only if the exact implementation base can deterministically reopen one, otherwise a declared-but-unverified scheme must fail as an asserted locus. |
+| CLOSED NOW | A4-02 | CLOSED — all eight relation types permit S4 ownership where global lineage-current or cross-batch context is required, without broadening S2/S3 blind context. |
+| CLOSED NOW | A4-03 | CLOSED — this successor proposal resolves A4-01, A4-02, and A4-04 and leaves no implementation-critical schema or taxonomy choice hidden. |
+| CLOSED NOW | A4-04 | CLOSED — each canonical row carries a digest of its exact pre-canonical review subject and cites the `VER-*` verdict that targets that digest. |
+| CLOSED NOW | A4-05 | CLOSED — Core checks reference grammar and exact review-subject binding, while agent isolation and manual temporal separation remain process evidence. |
+| CLOSED NOW | A4-06 | CLOSED — subtype-scoped, family-level, and taxonomy-level indeterminate conflicts are defined without an impossible subtype exception. |
+| CLOSED NOW | A4-08 | CLOSED — a historical `contextual_overlaps` label is split into independently reviewed context and separately owned overlap judgments. |
+| CLOSED NOW | A4-09 | CLOSED — intra-S4 barrier timing remains process-only; retained state supports only the static checks it actually records. |
+| CLOSED NOW | A4-10 | CLOSED — the future Core contract, prompt, run-model, checker, manifest, fixture, and mutation amendment surfaces are named. |
+| PRESERVED | F-03 | MUST PRESERVE — live LedgerWriter/orchestrator wiring remains unvalidated end-to-end. |
+| PRESERVED | F-04 | MUST PRESERVE — path/case portability remains unresolved. |
+| PRESERVED | F-05 | MUST PRESERVE — the post-S4 lineage BLOCK remains tied to the F-03 surface. |
+| PRESERVED | A4-13 | MUST PRESERVE — future 1.4 activation uses a cumulative capability registry and must not regress to equality-to-current behavior. |
+| LATER | A4-07 | Claim-to-claim evidential relations have no current owner; Slice 4 does not annex them. |
+| LATER | A4-12 | The machine-to-final mapping retention gap is recorded; this proposal does not reconstruct the missing artifact. |
+| LATER | Existing Slice 5+ / correction / validation items | Existing deferred ambiguity, formal-layout, semantic-coverage, overlap-refutation, correction, replay, validation, sanction, acceptance, and v1 work remains deferred. |
+
+A4-11 is an audit-environment observation only. It creates no Slice 4
+architecture requirement.
 
 ## 2. Purpose
 
@@ -72,7 +88,9 @@ The smallest coherent Slice 4 result is:
 5. lineage-current endpoint closure at the S4 barrier;
 6. relation-specific structural cycle policy;
 7. source-bound provenance plus producer/reviewer receipts; and
-8. a deterministic checker that validates structure without deciding semantic
+8. exact pre-canonical review-subject binding to the cited verifier verdict;
+   and
+9. a deterministic checker that validates structure without deciding semantic
    truth.
 
 Slice 4 does not attempt to reproduce SRC-001's historical link count or exact
@@ -105,12 +123,18 @@ Exact evidence inspected for this design includes:
 
 | Artifact | Exact identity / location | Use in this design |
 |---|---|---|
-| Producer machine-to-final mapping | `SRC-001-machine-to-final-mapping.json`; SHA-256 `5b7648b3021a16b60d88ab67efbca96ed1aa1a42abad592b8950e96b21507613` | Final unit dependency arrays, prose targets, formal pseudo-targets, and non-active targets |
+| Producer machine-to-final mapping, not retained in the current repository/package surface | cited path `SRC-001-machine-to-final-mapping.json`; cited SHA-256 `5b7648b3021a16b60d88ab67efbca96ed1aa1a42abad592b8950e96b21507613` | The accepted/adopted calibration-delta record preserves its digest/provenance; retained checkpoints corroborate the cited dependency phenomena |
 | Closed development calibration package | `calibration/src-001/closed-reference/SRC-001-closed-development-calibration-reference-20260811T162619+0200.zip`; SHA-256 `f4c42e65d611395c9bacdb7ecf3ab7e4d01b1d21fd50c6c150b0cc6a8847a9f0` | Immutable checkpoint and authority records |
 | Batch 8 dependency ledger | closed package `:: evidence/authority/b07-b12/batch-08/SRC-001-checkpoint-through-batch-08-20260806T1050+0200.zip :: SRC-001-dependencies-through-batch-08.json` | Continuation, inherited-context, and mutual-context representations |
 | Batch 12 dependency ledger | closed package `:: evidence/authority/b07-b12/batch-12/SRC-001-checkpoint-through-batch-12-20260806T2302+0200.zip :: SRC-001-dependencies-through-batch-12.json` | Configuration, comparator, formal/table, non-independent context, overlap, and forward-resolution representations |
 | Effective final-state analytical overlay | `calibration/src-001/core-design-basis/SRC-001-effective-final-state-analytical-overlay-20260813.json` | Effective C-009 discourse preservation, C-186 unresolved referent carry, and corrected analytical boundaries |
 | Independent architecture audit | `calibration/src-001/core-design-basis/SRC-001-independent-calibration-delta-architecture-decision-20260813.md` | DC-02 and SL-02 checker/semantic split |
+
+The producer mapping itself is not present in the current repository/package
+surface inspected for this design. This proposal relies on its retained
+accepted/adopted digest and provenance plus corroborating retained checkpoints;
+it does not claim direct current retention and does not reconstruct the
+missing artifact.
 
 The historical dependency ledgers used labels including `dependencies`,
 `context_links`, `configuration_context`, `contextual_overlaps`,
@@ -144,7 +168,7 @@ retains contradictory or indeterminate historical representations.
 | Discourse relationship present in effective overlay but absent from mapping array: `C-009` with `C-008` | effective overlay and producer mapping | overlay says preserve "discourse/dependency relationship"; final `dependencies` is empty | retain a parallel example/discourse transition | discourse relation with contradictory historical representation | Historical link is `CANNOT_DETERMINE`; it motivates the subtype but is not silently normalized into a canonical edge |
 | Non-active/original targets: `E-003 -> C-161`; `M-002 -> C-104` | producer mapping | durable-looking ID targets that are not active final units | retain context from a rejected or split predecessor | historical dependency against superseded identity | OUT as a current 1.4 endpoint; a new relation must name a lineage-current successor or exact locus |
 | Split/supersession pattern around `S-190b` | final checkpoint and adopted Slice 3 design | source-parent/supersession history | answer what happened to unit identity | identity lineage | OUT; Slice 3 owns it |
-| `partial_overlaps` and `contextual_overlaps` among `C-184`, `C-185`, `C-200`-`C-202`, `S-190a/b`, and `S-192b` | batch 12 dependency ledger | overlap-like pairwise links | flag possible duplicate, partial-overlap, or contextual-overlap judgments | duplicate/overlap relation | OUT; S4 merge-map judgment and Slice 8 refutation design own it |
+| `partial_overlaps` and `contextual_overlaps` among `C-184`, `C-185`, `C-200`-`C-202`, `S-190a/b`, and `S-192b` | batch 12 dependency ledger | compound context/overlap pairwise labels | flag possible interpretive context separately from duplicate or partial-overlap judgment | context relation plus separately owned duplicate/overlap judgment | A fresh review may establish the context component in Slice 4; merge/overlap judgment and Slice 8 own the overlap component |
 | `C-186` same-LSTM ambiguity carried to `C-187`, `C-188`, and `C-206` | effective overlay | explicit unresolved referent with carry set | preserve unresolved antecedent and its downstream cone | ambiguity/referent issue | OUT beyond a narrow typed-null relation placeholder; Slice 5 owns carry and closure |
 | Claim-source load bearing, corroboration, contradiction, or contextual role | existing `evidence-roles.md` Core contract | typed `CC x SRC` evidence-role edge | say what evidentiary role a source plays for a claim | evidence role | OUT; Slice 4 relations never confer support |
 
@@ -248,6 +272,11 @@ that claim.
 Repeated relation rows, repeated targets, repeated wording, or relation
 multiplicity never create independent support.
 
+Historical calibration also contains claim-to-claim evidential-looking
+relations. Current S6 evidence roles are `CC x SRC` and do not own those
+`CC -> CC` judgments. Slice 4 does not annex them or add an evidential relation
+type. Their ownership requires separate future architecture.
+
 ### 6.4 Relation versus ambiguity/referent lifecycle
 
 Slice 4 may record only that a known relation has a typed-null target or that
@@ -273,6 +302,12 @@ relation types.
 S4 merge-map judgment and Slice 8 fresh refutation remain separate. A
 discourse or context edge between two units does not answer whether they are
 duplicates.
+
+A historical compound label such as `contextual_overlaps` may motivate two
+separate judgments: its context component may independently become a Slice 4
+context relation if fresh review supports it, while its overlap/duplicate
+component remains owned by merge/overlap judgment and Slice 8. A context row
+MUST NOT imply or encode the overlap judgment.
 
 ## 7. Canonical relation artifact model
 
@@ -369,9 +404,11 @@ they are not copied into the new canonical ledger merely to preserve density.
 The proposed canonical table is:
 
 ```text
-| relation_id | owner_stage | family | type | source_kind | source_id | target_kind | target_id | target_source_id | target_locator | target_span_hash | record_state | null_reason | basis_packet_ids | proposed_by | reviewed_by |
-|-------------|-------------|--------|------|-------------|-----------|-------------|-----------|------------------|----------------|------------------|--------------|-------------|------------------|-------------|-------------|
+| relation_id | owner_stage | family | type | source_kind | source_id | target_kind | target_id | target_source_id | target_locator | target_span_hash | record_state | null_reason | basis_packet_ids | proposed_by | review_subject_digest | reviewed_by |
+|-------------|-------------|--------|------|-------------|-----------|-------------|-----------|------------------|----------------|------------------|--------------|-------------|------------------|-------------|-----------------------|-------------|
 ```
+
+This is a 17-column schema.
 
 Field rules:
 
@@ -392,7 +429,8 @@ Field rules:
 | `null_reason` | closed state-specific value; `none` for `asserted` |
 | `basis_packet_ids` | nonempty comma-separated existing `PKT-*` records reviewed as the frozen source basis |
 | `proposed_by` | `human:<actor-slug>` or `invocation:<producer-invocation-id>`; not narrative prose |
-| `reviewed_by` | one existing fresh-context `VER-*` verdict reference |
+| `review_subject_digest` | exact `sha256:<lowercase-hex>` identity of the complete pre-canonical proposal defined in §13.2 |
+| `reviewed_by` | one existing `VER-*` verdict whose target is exactly this row's `review_subject_digest` subject and whose verdict upholds that exact subject |
 
 There is no `target_scheme` field. The scheme is derived through
 `target_source_id` from `corpus/manifest.md`; duplicating it in a relation row
@@ -468,10 +506,10 @@ SRC-001 frequency.
 | `source-context / antecedent-context` | a resolved same-corpus antecedent is required to read the source faithfully | CC, PKT | CC, PKT, source-locus | dependent unit -> antecedent provider | yes | forbidden | subtype-only graph must be acyclic | multiple only when the source genuinely has multiple antecedents | no | S2, S3, or S4 review | durable endpoints current |
 | `source-context / qualifier-context` | target supplies a scope, condition, caveat, comparator, or exception that qualifies the source | CC, PKT | CC, PKT, source-locus | qualified unit -> qualifier | yes | forbidden | cycles permitted structurally; fresh review required | multiple distinct qualifiers legal | no | S2, S3, or S4 review | durable endpoints current |
 | `source-context / configuration-context` | target supplies setup/configuration needed to interpret the source without acting as proof | CC, PKT | CC, PKT, source-locus | configured unit -> configuration provider | yes | forbidden | cycles permitted structurally; fresh review required | multiple distinct context providers legal | no | S2, S3, or S4 review | durable endpoints current |
-| `formal-reference / structural-anchor` | source refers to a heading, table header/title/row label, figure/caption label, equation label, or other exact structural anchor | CC, PKT | CC, PKT, source-locus | referring unit -> anchor | yes | forbidden | formal-reference-only graph must be acyclic | multiple distinct anchors legal | no | S2 or S3 | durable endpoints current |
-| `formal-reference / notation-definition` | target defines notation, a symbol, or a formal object used by source | CC, PKT | CC, PKT, source-locus | notation user -> definition | yes | forbidden | formal-reference-only graph must be acyclic | multiple definitions legal only for distinct notation | no | S2 or S3 | durable endpoints current |
-| `discourse / continuation-context` | source continues a bounded passage or configuration begun by target | CC, PKT | same durable kind as source, or source-locus | continuation -> prior anchor | yes | forbidden | subtype-only graph must be acyclic | multiple prior anchors require review | no | S2 or S3 | durable endpoints current |
-| `discourse / parallel-contrast-context` | source is presented as a parallel example, alternative, or contrast to target | CC, PKT | same durable kind as source, or source-locus | later/subject unit -> comparison anchor | yes | forbidden | subtype-only graph must be acyclic | multiple distinct comparison anchors legal | no | S2 or S3 | durable endpoints current |
+| `formal-reference / structural-anchor` | source refers to a heading, table header/title/row label, figure/caption label, equation label, or other exact structural anchor | CC, PKT | CC, PKT, source-locus | referring unit -> anchor | yes | forbidden | formal-reference-only graph must be acyclic | multiple distinct anchors legal | no | S2, S3, or S4 review | durable endpoints current |
+| `formal-reference / notation-definition` | target defines notation, a symbol, or a formal object used by source | CC, PKT | CC, PKT, source-locus | notation user -> definition | yes | forbidden | formal-reference-only graph must be acyclic | multiple definitions legal only for distinct notation | no | S2, S3, or S4 review | durable endpoints current |
+| `discourse / continuation-context` | source continues a bounded passage or configuration begun by target | CC, PKT | same durable kind as source, or source-locus | continuation -> prior anchor | yes | forbidden | subtype-only graph must be acyclic | multiple prior anchors require review | no | S2, S3, or S4 review | durable endpoints current |
+| `discourse / parallel-contrast-context` | source is presented as a parallel example, alternative, or contrast to target | CC, PKT | same durable kind as source, or source-locus | later/subject unit -> comparison anchor | yes | forbidden | subtype-only graph must be acyclic | multiple distinct comparison anchors legal | no | S2, S3, or S4 review | durable endpoints current |
 
 ### 10.2 Examples and counterexamples
 
@@ -620,6 +658,12 @@ eligible existing scheme, not the source-locus definition. A non-`md-lines`
 scheme is eligible only where the exact implementation base can
 deterministically reopen it under the Core contract.
 
+On the exact design base named in this proposal, `md-lines` is the only
+mechanically verified positive reopening scheme. `chat-msg` remains declared
+but mechanically unverified under Decision 0003 Q4. Slice 4 neither implements
+its serialization nor resolves Q4; a future implementation must test only the
+schemes its exact base can actually reopen.
+
 Unsupported or layout-dependent target structures are not silently
 reconstructed. If the declared scheme cannot establish the required exact
 target, do not fabricate a locator; use the appropriate typed-null state and
@@ -746,10 +790,72 @@ No free-prose target or external fact may be smuggled into
 The `human:` form identifies a producer. It is not an authority sign-off or a
 relation-specific human gate.
 
-`reviewed_by` records one existing `VER-*` verdict produced from fresh
-context. The producer and reviewer references must differ. Structural
-difference does not by itself prove context isolation; retained adapter
-dispatch receipts remain the process evidence.
+`review_subject_digest` binds one complete proposed relation payload before
+canonical `REL-*` assignment. The producer return carries the digest. Before
+review dispatch, the orchestrator recomputes it over the UTF-8 bytes of one
+compact JSON object in fixed field order with:
+
+1. `format = aleph-relation-review-subject/v1`;
+2. the exact canonical string values of `owner_stage`, `family`, `type`,
+   `source_kind`, `source_id`, `target_kind`, `target_id`,
+   `target_source_id`, `target_locator`, `target_span_hash`, `record_state`,
+   and `null_reason`, in that order;
+3. `basis_packet_ids` as a JSON array preserving the proposal order that the
+   canonical comma-separated cell must retain; and
+4. the exact canonical `proposed_by` value.
+
+The resulting field is `sha256:<lowercase-hex>`. `relation_id`,
+`review_subject_digest`, and `reviewed_by` are excluded because the first and
+last arise only through canonicalization/review and a digest cannot contain
+itself. Producer rationale, verifier outcome, and dispatch receipts are also
+excluded because they are evidence about the review, not fields of the
+proposed relation payload.
+
+The fresh semantic verifier verdict named by `reviewed_by` must use this exact
+target token:
+
+`relation-review-subject:<review_subject_digest>`
+
+For example, a digest value `sha256:<hex>` yields verdict target
+`relation-review-subject:sha256:<hex>`. One verdict target therefore identifies
+one exact proposed row rather than an unrelated multi-row worker output.
+
+Canonical serialization may assign `relation_id` and record `reviewed_by`, but
+it must preserve every digested field value and the packet-basis order exactly.
+A revised field requires a new complete proposal, digest, and verifier verdict.
+A `refuted` verdict cannot be cited by a canonical row; a replacement proposal
+is reviewed under its own digest. A `cannot-determine` verdict also cannot
+be cited to canonicalize a row; if the bounded result should be retained as
+`record_state = indeterminate`, that complete indeterminate proposal must
+receive its own `upheld` verdict.
+
+K2.16 recomputes the digest from the canonical row and verifies that
+`reviewed_by` names an existing `upheld` verdict whose target is exactly the
+derived token. This proves exact subject-to-verdict binding only. It does not
+prove semantic correctness, fresh-context isolation, reviewer independence,
+or dispatch honesty.
+
+The inspectable derivation is:
+
+```text
+canonical REL row
+-> recomputed review_subject_digest
+-> reviewed_by VER verdict
+-> exact relation-review-subject target
+-> digested source, target, state, and source-bound basis fields
+```
+
+The `proposed_by` and `reviewed_by` grammars are intentionally different, so
+string inequality between them is not an independence test. Agent-mode
+producer/reviewer separation remains process and dispatch evidence. In manual
+mode, relation proposal and review may be performed by the same human only in
+separate passes or sittings; the record must describe that as temporal
+separation, not proven fresh-context independence or independent isolation.
+
+`review_subject_digest` is a bounded relation-review identity. It is not a
+relation version, generic artifact version, transaction identifier,
+replacement pointer, currentness marker, or evidence of fresh-context
+isolation.
 
 ### 13.3 No relation-specific human authority closure
 
@@ -876,14 +982,37 @@ An exact duplicate semantic tuple is forbidden:
 
 Different `REL-*` IDs do not make identical tuples distinct.
 
-For one `(source, family, type)` scope:
+Conflict scope is explicit:
+
+- a subtype scope is
+  `(source_kind, source_id, family, concrete type)`;
+- a family-level indeterminate scope is
+  `(source_kind, source_id, concrete family, type = none)`; and
+- a taxonomy-level indeterminate scope is
+  `(source_kind, source_id, family = none, type = none)`.
+
+Within one subtype scope:
 
 - multiple concrete asserted targets may be legal;
 - at most one typed-null row may exist;
-- `explicitly-absent` conflicts with any asserted or unresolved row;
-- `indeterminate` conflicts with canonical asserted closure unless the
-  indeterminate record concerns a different concrete subtype; and
-- relation multiplicity never counts as corroboration or independent support.
+- `explicitly-absent` conflicts with any asserted or unresolved row; and
+- a subtype-scoped `indeterminate` row conflicts with any asserted closure in
+  that same subtype scope, but may coexist with an asserted row of a different
+  concrete subtype because the two rows answer different bounded questions.
+
+A family-level indeterminate row may not coexist with any concrete-subtype row
+for that source and family. Without a concrete subtype or separate candidate
+identity, Core cannot prove that the family-level uncertainty concerns
+something distinct from the asserted or otherwise resolved subtype row. The
+producer must either narrow the indeterminate question to a concrete subtype
+or leave the family-level result as the sole canonical assessment in that
+family.
+
+A taxonomy-level indeterminate row may not coexist with any other canonical
+relation row for the same source, because neither family nor subtype provides
+a mechanically distinct scope.
+
+Relation multiplicity never counts as corroboration or independent support.
 
 ## 17. Stage ownership
 
@@ -896,6 +1025,11 @@ S2 may propose:
 - exact formal/header anchors; and
 - packet-level discourse relations.
 
+Each S2 proposal is limited to the source/context bundle S2 is already
+authorized to see under the accepted blind-context rule. S2 cannot inspect
+another source or propose a cross-source relation. A relation requiring
+cross-source or global inventory context is owned by S4.
+
 S2 does not create claim dependencies because claims do not yet exist.
 
 ### S3 - neutral claim normalization
@@ -906,6 +1040,11 @@ S3 may propose:
 - claim-level source context;
 - claim-level formal reference; and
 - claim-level discourse relation.
+
+Each S3 proposal is limited to the current packet/claim batch and the legal
+source context supplied for that batch. S3 cannot inspect another claim batch
+merely to discover a relation. A cross-batch or global-inventory relation is
+owned by S4.
 
 The normalizer must not strengthen context into support.
 
@@ -918,8 +1057,16 @@ Fresh relation reviewers challenge the accumulated S2/S3 proposals against
 the lineage-current inventory. The orchestrator then writes the one canonical
 relation table.
 
-S4 may identify and review a missing relation. It may not create a
-`duplicate` or `overlap` relation subtype.
+S4 owns relation identification and reconciliation when the judgment requires
+the global lineage-current inventory, cross-batch context, cross-source
+context, or other context unavailable under the accepted S2/S3 blind rules.
+This applies to all eight relation types; it does not authorize broader S2/S3
+bundles.
+
+S4 remains the duplicate/merge barrier plus bounded relation closure. It may
+identify and review a missing relation, but it may not create a `duplicate` or
+`overlap` relation subtype and does not acquire downstream disposition,
+evidence-role, routing, ambiguity/referent, or human-authority responsibility.
 
 ### S5 - disposition
 
@@ -973,21 +1120,33 @@ The producer must include:
 - typed target or typed null;
 - packet-bounded source basis;
 - owner stage; and
+- the exact `review_subject_digest` over the complete proposed payload; and
 - a concise rationale in the worker return.
 
 Rationale is review evidence. It is not a canonical endpoint field.
+
+A producer may be dispatched only a relation task whose required context is
+legal for that producer's owner stage. S2 remains confined to its authorized
+source/context bundle; S3 remains confined to the current packet/claim batch
+and its legal source context. A task requiring cross-source, cross-batch,
+global lineage-current, or otherwise forbidden context must be owned and
+produced at S4 rather than broadening the earlier worker bundle.
 
 ### 18.2 Fresh-context semantic reviewer
 
 The reviewer receives:
 
-- the proposed row;
+- the complete proposed row and its `review_subject_digest`;
 - the relation schema;
 - the source unit and its packet evidence;
 - only the bounded current-unit summaries needed to test candidate targets;
 - relevant exact source loci;
 - the lineage-current inventory; and
 - no SRC-001 answer key, final link density, or external facts.
+
+The producer rationale and producer's hidden context are withheld. The
+verifier verdict's target is exactly
+`relation-review-subject:<review_subject_digest>`.
 
 The reviewer must challenge at least:
 
@@ -1010,7 +1169,8 @@ The reviewer uses the existing verifier verdict vocabulary:
 
 A `refuted` verdict names exactly one recommended action:
 
-- `revise`, with a complete replacement proposal;
+- `revise`, with a complete replacement proposal that receives a new digest
+  and review;
 - `reject`; or
 - `not-applicable`.
 
@@ -1023,7 +1183,11 @@ The reviewer never writes a canonical ledger.
 The orchestrator:
 
 - remains the only canonical writer;
-- verifies producer/reviewer receipt binding;
+- validates the complete proposal and recomputes its review-subject digest
+  before dispatch;
+- verifies that `reviewed_by` names an `upheld` verdict targeted to exactly
+  that digest;
+- refuses canonicalization if any digested field changed after review;
 - reconciles upheld/refuted/cannot-determine outcomes;
 - refuses unresolved structural conflicts;
 - enforces the S4-only canonical write window and refuses an out-of-window
@@ -1036,9 +1200,11 @@ a checker PASS into semantic correctness.
 
 Temporal enforcement is a process obligation, not a historical claim derived
 from `owner_stage`. In manual mode, the operator procedure must make the same
-S4-only canonicalization rule explicit. Any host-adapter enforcement is
-host-mechanical evidence and does not resolve F-03 or prove the temporal
-property through K2.16.
+S4-only canonicalization rule explicit and must conduct relation proposal and
+review in separate passes or sittings. A same-human review is recorded as
+temporal separation, not proven fresh-context independence or independently
+isolated review. Any host-adapter enforcement is host-mechanical evidence and
+does not resolve F-03 or prove the temporal property through K2.16.
 
 ## 19. Deterministic checker contract
 
@@ -1077,19 +1243,30 @@ The checker may enforce:
 10. typed-null syntax and state-specific null reason;
 11. semantic owner-stage legality, without treating it as append-time evidence;
 12. lineage-current durable source/target closure at S4;
-13. nonempty, existing `basis_packet_ids`;
-14. producer-reference grammar and producer/reviewer non-identity;
-15. `reviewed_by` verdict existence;
-16. absence of raw prose or compound/range targets;
-17. duplicate semantic tuples and conflicting typed-null scopes;
-18. self-edge rules;
-19. subtype-specific cycle rules;
-20. no support/evidence-role enum or field on a relation row;
-21. where the retained current Core state makes the stage condition
+13. nonempty, existing `basis_packet_ids` and preservation of their digested
+    order;
+14. valid `proposed_by` producer-reference grammar;
+15. valid `reviewed_by` reviewer-reference grammar and existing `VER-*`
+    verdict;
+16. valid `review_subject_digest` syntax, recomputation from every canonical
+    pre-review field, and exact binding to the cited verdict's
+    `relation-review-subject:<digest>` target and `upheld` outcome;
+17. absence of raw prose or compound/range targets;
+18. duplicate semantic tuples and subtype-, family-, and taxonomy-scoped
+    typed-null conflicts;
+19. self-edge rules;
+20. subtype-specific cycle rules;
+21. no support/evidence-role enum or field on a relation row;
+22. where the retained current Core state makes the stage condition
     mechanically available, relation artifact absence or an empty canonical
     table before S4 closure and required marker/table presence once S4 has
     closed or S5 begins; and
-22. incompatible run-format activation and legacy run-format isolation.
+23. incompatible run-format activation and legacy run-format isolation.
+
+K2.16 does not compare `proposed_by` and `reviewed_by` strings as an
+independence test. Their grammars describe different reference classes, and
+neither string inequality nor exact review-subject binding proves process
+isolation.
 
 These are static checks over retained canonical Core state. A pre-closure
 snapshot containing a canonical row can fail, and a post-closure snapshot
@@ -1098,6 +1275,13 @@ rows does not reveal whether those rows were appended before, at, or after the
 S4 closure barrier. K2.16 must not report historical append timing as proved
 unless separately adopted Core-owned durable evidence is introduced that
 actually records it.
+
+In particular, retained stage/state can support only the static or
+stage-granular conditions the current Core model records. Exact timing at the
+S4 closure barrier inside the broader S4 stage is enforced by the orchestrator,
+manual procedure, or authorized host mechanics. Temporal process tests may
+demonstrate that enforcement, but a later K2.16 PASS cannot prove the
+historical intra-S4 timing.
 
 ### 19.2 Semantic non-claims
 
@@ -1196,9 +1380,6 @@ One focused future 1.4 fixture should demonstrate:
 - one `qualifier-context` that is explicitly non-evidentiary;
 - one `configuration-context`;
 - one `structural-anchor` to an exact `md-lines` source locus;
-- one exact non-`md-lines` Core-supported source locus, preferably `chat-msg`
-  if the future fixture's exact implementation base can deterministically
-  reopen it;
 - one `notation-definition`;
 - one `continuation-context`;
 - one `parallel-contrast-context`;
@@ -1206,8 +1387,25 @@ One focused future 1.4 fixture should demonstrate:
 - one `explicitly-absent` relation;
 - one `indeterminate` record;
 - one legal mixed mutual-context cycle;
-- an S4 lineage successor targeted explicitly instead of its predecessor; and
+- an S4 lineage successor targeted explicitly instead of its predecessor;
+- an exact per-row review-subject digest and matching verifier target; and
 - relation multiplicity that does not alter evidence-role accounting.
+
+Positive exact-locus coverage is conditional on the exact future
+implementation base:
+
+- positive `md-lines` exact-locus coverage is always required;
+- if that exact base contains a second Core-defined, deterministically
+  reopenable scheme, the fixture must positively cover one such non-`md-lines`
+  scheme; and
+- otherwise, deterministic negative coverage must prove that a
+  declared-but-mechanically-unverified scheme cannot be used as an asserted
+  source locus.
+
+The last branch is the expected branch on the current design base:
+`chat-msg` remains declared but mechanically unverified. It does not require
+new serialization, new locator syntax, or resolution of Decision 0003 Q4 or
+Slice 6 work.
 
 ### 21.1 Deterministic negative mutations
 
@@ -1234,11 +1432,21 @@ The focused mutation battery should include:
 - locator incompatible with the source manifest's declared scheme;
 - locator that is valid under a different known scheme but not under the
   scheme derived from the target source row;
+- where no second mechanically verified scheme exists, an asserted locus
+  using a declared-but-unverified scheme;
 - source-locus hash mismatch;
 - relation type/endpoint mismatch;
 - missing provenance;
-- missing or same producer/reviewer identity;
+- malformed producer reference;
+- malformed reviewer reference;
 - missing reviewer verdict;
+- malformed review-subject digest;
+- canonical semantic field changed after review without a new digest;
+- cited verifier target names a different review-subject digest;
+- cited verifier verdict is `refuted` or `cannot-determine` rather than
+  `upheld`;
+- family-level indeterminate plus a concrete-subtype row in the same source
+  family;
 - missing required artifact or marker in a retained S4-closed or S5 state;
 - duplicate canonical relation table;
 - canonical relation row present in a retained pre-S4-closure state;
@@ -1276,10 +1484,13 @@ Future authorized implementation should demonstrate that:
 - a canonical append attempt after S4 closure or S5 entry is refused before
   bytes change; and
 - the applicable manual-mode procedure explicitly permits canonicalization
-  only at the S4 closure barrier.
+  only at the S4 closure barrier, performs relation proposal and relation
+  review in separate passes or sittings, and records same-human review only as
+  temporal separation.
 
 Host-adapter test evidence may demonstrate host mechanics. It does not turn
-the temporal property into a static Core-checker proof or resolve F-03.
+the temporal property into a static Core-checker proof, prove independently
+isolated review, or resolve F-03.
 
 ## 22. Core/adapter boundary and Slice 3 follow-ups
 
@@ -1291,8 +1502,9 @@ Core owns:
 - stage ownership;
 - currentness and cycle policies;
 - producer/reviewer contracts;
+- exact per-row review-subject identity and verdict targeting;
 - checker behavior;
-- fixture/mutation behavior; and
+- fixture/mutation behavior;
 - the temporal S4-only write-window process contract and its separation from
   static checker claims; and
 - run-format capability.
@@ -1369,6 +1581,48 @@ requires refusal outside the S4 barrier, while F-03/F-05 prevent this proposal
 from claiming validated live enforcement.
 
 No F-03/F-04/F-05 repair is authorized in Slice 4 architecture.
+
+### 22.4 Expected future Core amendment surface
+
+If an exact immutable identity of this proposal is adopted and Slice 4
+implementation is separately authorized, the bounded implementation must
+assess and update the applicable portions of:
+
+- `docs/architecture/03-artifact-contracts.md`;
+- `docs/architecture/04-pipeline-stages-and-dod.md`;
+- `docs/architecture/09-runbook-manual-mode.md`;
+- `docs/architecture/templates/03-extraction-claims.md` for the durable
+  relation surface and packet/claim joins;
+- `docs/architecture/templates/04-evidence-boundaries.md` for the explicit
+  non-evidentiary boundary;
+- `docs/architecture/templates/07-verification.md` for exact
+  review-subject verdict targets;
+- `docs/architecture/prompts/README.md`;
+- `docs/architecture/prompts/workers-intake-extraction.md` for S2/S3/S4
+  producer returns and blind-context limits;
+- `docs/architecture/prompts/workers-judgment.md` where downstream judgment
+  roles consume relations without annexing them;
+- `docs/architecture/prompts/verifier-lenses.md` for the relation-review lens
+  and exact digest target;
+- `docs/architecture/prompts/orchestrator.md` for digest recomputation,
+  verdict binding, single-writer reconciliation, and the S4 write window;
+- `docs/architecture/checker-spec/K1-K2-fixtures-and-runs.md`;
+- `scripts/lib/run-model.ts` and the exact Core run-format/capability helper
+  surface used by the implementation base;
+- the applicable K2 parser/check/helper entry points, including
+  `scripts/lib/checks-k2.ts` and any narrowly introduced relation module;
+- `scripts/test-conformance-mutations.ts` and any focused relation mutation
+  runner registered by the exact implementation;
+- one focused future 1.4 relation fixture, its exact verifier records, and its
+  positive, negative, semantic-review, and temporal-process contracts;
+- `core.manifest.json`, including classification of every newly introduced
+  Core path; and
+- the generated `runtime-js` projections corresponding to changed canonical
+  TypeScript Core files.
+
+This list names the expected classes of Core amendments; it does not authorize
+changing any of them now. The exact future diff must remain bounded by the
+adopted design, and generated JavaScript is never the canonical source fix.
 
 ## 23. Correction/effective-state compatibility
 
@@ -1463,6 +1717,7 @@ This proposal excludes:
 | MP-19 | Slice 4 v1 has no relation-specific human authority gate or closure field; existing authority surfaces remain separate. |
 | MP-20 | A source-locus scheme is derived from its canonical source-manifest row and must already be Core-defined and deterministically reopenable; Slice 4 creates no locator scheme. |
 | MP-21 | K2.16 checks retained static state only; the orchestrator or manual procedure owns temporal S4-only write-window enforcement. |
+| A4-13 | Future 1.4 activation uses an explicit cumulative capability registry; equality to the current run format must not disable prior capabilities when a newer format is registered. |
 
 ### 25.2 LATER
 
@@ -1483,10 +1738,19 @@ This proposal excludes:
 | L-13 | Live adapter/orchestrator validation, agent-mode validation, and sanction |
 | L-14 | Semantic validation, replay validation, acceptance, golden promotion, production readiness, and Aleph v1 |
 | L-15 | Any relation-specific human authority closure, only through a separate adopted authority decision |
+| A4-07 | Claim-to-claim evidential relations observed in historical calibration have no current owner and are not representable by the current `CC x SRC` S6 evidence-role contract. Slice 4 does not annex them; future ownership requires separate architecture. |
+| A4-12 | `SRC-001-machine-to-final-mapping.json` is cited by accepted/adopted calibration-delta digest and provenance but is not itself retained in the current repository/package surface inspected here. Retained checkpoints corroborate the cited phenomena; reconstruction is not authorized. |
 
 ### 25.3 Open design questions
 
-No unresolved schema or taxonomy choice is being hidden in this proposal.
+The independent audit exposed A4-01, A4-02, and A4-04 as
+implementation-critical defects in the predecessor proposal. This successor
+resolves their exact fixture condition, stage/context ownership, and
+review-subject binding designs.
+
+After those repairs, no unresolved implementation-critical schema, taxonomy,
+owner-stage, review-binding, or fixture-branch choice is being hidden in this
+proposal.
 
 There are no items currently marked:
 
@@ -1497,7 +1761,7 @@ decision rather than an unstated design variable.
 
 ## 26. Definition of Done for a future authorized implementation
 
-A future Slice 4 implementation is structurally complete only when all 20
+A future Slice 4 implementation is structurally complete only when all 21
 items below hold:
 
 1. an exact immutable identity of this proposal, or an exact amended
@@ -1508,32 +1772,49 @@ items below hold:
    and an empty canonical table, retained S4-closed/S5 state has the required
    marker and table, and those static checks make no historical append-timing
    claim;
-4. every `REL-*` identity, field, state, family, subtype, and endpoint matrix
-   rule is mechanically enforced;
+4. every `REL-*` identity, all 17 fields, each state, family, subtype,
+   owner-stage cell, endpoint matrix rule, and review-subject field is
+   mechanically enforced;
 5. exact source-locus targets derive their scheme from the frozen source
    manifest, use a locator valid under that Core-supported deterministic
-   scheme, reopen exact bytes, and match the hash; the focused fixture covers
-   `md-lines` and one compatible non-`md-lines` scheme;
+   scheme, reopen exact bytes, and match the hash; the focused fixture always
+   has positive `md-lines` coverage and, only if the exact implementation base
+   contains a second Core-defined deterministically reopenable scheme,
+   positive coverage of one such non-`md-lines` scheme, otherwise deterministic
+   negative coverage proving a declared-but-unverified scheme cannot be used
+   as an asserted locus;
 6. every canonical durable endpoint is lineage-current at S4 closure;
 7. a terminalized proposal endpoint is never silently retargeted and the
    focused fixture names the successor explicitly;
-8. typed-null, explicit-absence, indeterminate, not-applicable, and missing-row
-   semantics remain distinct;
-9. source-bound provenance and producer/reviewer references are structurally
-   valid, with no relation-specific authority field;
-10. the producer/reviewer prompts enforce the named semantic challenge set
-    without exposing SRC-001 answer keys or density targets;
+8. typed-null, explicit-absence, subtype-scoped indeterminate, family-level
+   indeterminate, taxonomy-level indeterminate, not-applicable, and missing-row
+   semantics and conflicts remain distinct;
+9. source-bound provenance is structurally valid, every canonical row's
+   review-subject digest recomputes from its exact pre-review fields, and
+   `reviewed_by` names the `upheld` verdict for that exact subject, with no
+   relation-specific authority field or generic versioning implication;
+10. producer and reviewer prompts enforce the named semantic challenge set and
+    the stage-legal context bundles: S2 cannot propose cross-source relations,
+    S3 cannot inspect other batches merely to discover relations, and S4 owns
+    judgments requiring global lineage-current, cross-batch, cross-source, or
+    otherwise unavailable context, without exposing SRC-001 answer keys or
+    density targets;
 11. the orchestrator remains the only writer, reviewers cannot write canonical
-    ledgers, out-of-window appends are refused before bytes change, and the
-    applicable manual runbook states the S4-only canonicalization rule;
+    ledgers, and exact intra-S4 barrier timing is enforced procedurally with
+    out-of-window attempts refused before bytes change; the manual runbook
+    requires proposal and review in separate passes or sittings and describes
+    same-human review only as temporal separation, while neither K2 nor a later
+    retained state claims historical intra-S4 timing or independent isolation;
 12. provisional K2.16 enforces only the named retained-state structural
-    contract, reports exact failures, and does not claim historical append
-    timing;
-13. all subtype-specific self-edge, duplicate/conflict, and cycle rules pass
-    the focused positive fixture;
-14. all deterministic negative mutations fail at the intended check surface,
-    while the separate temporal process tests exercise pre-S4 and post-S4
-    append refusal;
+    contract, including producer/reviewer reference grammar and exact
+    review-subject/verdict binding, reports exact failures, and does not claim
+    semantic correctness, context independence, or historical append timing;
+13. all subtype-specific self-edge, duplicate/conflict, indeterminate-scope,
+    and cycle rules pass the focused positive fixture;
+14. all deterministic negative mutations, including declared-but-unverified
+    asserted loci where required and review-subject/verdict mismatches, fail at
+    the intended check surface, while separate temporal process tests exercise
+    pre-barrier and post-barrier append refusal;
 15. semantic-review cases demonstrate that structurally legal wrong relations,
     context-as-support, qualifier loss, and unjustified permitted cycles are
     rejected outside the checker;
@@ -1545,8 +1826,12 @@ items below hold:
     across host targets;
 19. adapter changes, if separately authorized, remain host-mechanical, enforce
     the Core write window only as host mechanics, and preserve F-03/F-04/F-05
-    without claiming validated end-to-end enforcement; and
-20. a fresh independent implementation audit reports no BLOCKING NOW
+    without claiming validated end-to-end enforcement;
+20. every applicable Core contract, template, producer/reviewer/orchestrator
+    prompt, manual-runbook, run-model/capability, checker, manifest,
+    fixture/mutation, and generated-runtime surface named in §22.4 is updated
+    consistently and no required contract surface remains implicit; and
+21. a fresh independent implementation audit reports no BLOCKING NOW
     violation and preserves all status limits.
 
 A future deterministic PASS proves only the named checks. It does not confer
