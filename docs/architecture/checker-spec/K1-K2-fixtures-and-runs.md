@@ -401,8 +401,9 @@ removal, and rejects an extractor cursor return with no Core `reason`.
   rows cover all eight types, every typed-null scope, exact `md-lines`, a
   permitted mixed formal/configuration cycle, and explicit successor targeting
   while leaving evidence-role accounting unchanged. The focused runner
-  executes 42 deterministic relation mutations, three temporal write-window
-  cases, and the retained semantic-review challenge set outside K2.
+  executes 64 deterministic negative relation mutations, three targeted
+  positive controls, three temporal write-window cases, and the retained
+  semantic-review challenge set outside K2.
 
 The run-format capability registry is cumulative by construction: each
 registered format adds capabilities to the prefix established by every

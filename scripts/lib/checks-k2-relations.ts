@@ -12,7 +12,7 @@ import {
   lineageCurrentClaimIds,
   lineageCurrentPacketIds,
 } from './lineage.ts';
-import { parseFieldTable } from './markdown.ts';
+import { findTables, normalizeHeader } from './markdown.ts';
 import {
   RELATION_EXPLICIT_ABSENCE_REASON,
   RELATION_FAMILIES,
@@ -45,11 +45,23 @@ const POST_S4_STATES = [
   'PROJECTING',
   'PROJECTION-ACCEPTED',
 ] as const;
+const VERDICT_REQUIRED_FIELDS = [
+  'target',
+  'lens',
+  'stage',
+  'shown',
+  'withheld',
+  'verdict',
+  'consequence',
+] as const;
+const VERDICT_REQUIRED_FIELD_SET = new Set<string>(VERDICT_REQUIRED_FIELDS);
 
 interface VerifierVerdict {
   file: string;
   target: string;
   verdict: string;
+  canonicalFieldTableCount: number;
+  invalidFields: string[];
 }
 
 function isOneOf(value: string, values: readonly string[]): boolean {
@@ -97,12 +109,33 @@ function verifierVerdicts(model: RunModel, id: string): VerifierVerdict[] {
   for (const document of model.documents.values()) {
     if (!document) continue;
     if (!document.relativePath.startsWith('verification/harness/')) continue;
-    if (!new RegExp(`\\b${id}\\b`).test(document.text)) continue;
-    const fields = parseFieldTable(document.tables).fields;
+    if (document.relativePath.split('/').at(-1) !== `${id}.md`) continue;
+    const heading = document.lines.find((line) => line.trim() !== '');
+    if (heading !== `# Verdict ${id}`) continue;
+
+    const canonicalTables = findTables(document.tables, ['field', 'value']);
+    const fieldValues = new Map<string, string[]>();
+    if (canonicalTables.length === 1) {
+      for (const row of canonicalTables[0].rows) {
+        if (row.cells.length !== 2) continue;
+        const field = normalizeHeader(row.cells[0]);
+        if (!VERDICT_REQUIRED_FIELD_SET.has(field)) continue;
+        if (!fieldValues.has(field)) fieldValues.set(field, []);
+        fieldValues.get(field)!.push(row.cells[1].trim());
+      }
+    }
+    const invalidFields = canonicalTables.length === 1
+      ? VERDICT_REQUIRED_FIELDS.filter((field) => {
+        const values = fieldValues.get(field) || [];
+        return values.length !== 1 || values[0] === '';
+      })
+      : [];
     verdicts.push({
       file: document.relativePath,
-      target: fields.get('target') || '',
-      verdict: fields.get('verdict') || '',
+      target: fieldValues.get('target')?.[0] || '',
+      verdict: fieldValues.get('verdict')?.[0] || '',
+      canonicalFieldTableCount: canonicalTables.length,
+      invalidFields,
     });
   }
   return verdicts;
@@ -195,11 +228,23 @@ function checkSourceLocus(
   }
 }
 
-function endpointTypeLegal(row: RelationRow): boolean {
+function sourceKindLegal(row: RelationRow): boolean {
+  const values = row.values;
+  if (!isOneOf(values.sourceKind, SOURCE_KINDS)) return true;
+  if (
+    values.type === 'semantic-prerequisite'
+    || (values.family === 'claim-dependency' && values.type === 'none')
+  ) {
+    return values.sourceKind === 'CC';
+  }
+  return true;
+}
+
+function concreteTargetTypeLegal(row: RelationRow): boolean {
   const values = row.values;
   if (values.recordState !== 'asserted') return true;
   if (values.type === 'semantic-prerequisite') {
-    return values.sourceKind === 'CC' && values.targetKind === 'CC';
+    return values.targetKind === 'CC';
   }
   if (
     values.type === 'continuation-context'
@@ -355,7 +400,13 @@ function checkRow(
     }
   }
 
-  if (!endpointTypeLegal(row)) {
+  if (!sourceKindLegal(row)) {
+    fail(
+      `${label} ${values.family || '(blank)'}/${values.type || '(blank)'} `
+        + 'requires source_kind CC for every record_state',
+    );
+  }
+  if (!concreteTargetTypeLegal(row)) {
     fail(`${label} relation type/endpoint mismatch for ${values.type || '(blank)'}`);
   }
   if (values.type === 'semantic-prerequisite' && !['S3', 'S4'].includes(values.ownerStage)) {
@@ -414,12 +465,25 @@ function checkRow(
     if (verdicts.length !== 1) {
       fail(`${label} reviewed_by ${values.reviewedBy} must resolve to exactly one verifier verdict; found ${verdicts.length}`);
     } else {
-      const expectedTarget = `relation-review-subject:${values.reviewSubjectDigest}`;
-      if (verdicts[0].target !== expectedTarget) {
-        fail(`${label} ${values.reviewedBy} target must equal ${expectedTarget} exactly`);
-      }
-      if (verdicts[0].verdict !== 'upheld') {
-        fail(`${label} ${values.reviewedBy} verdict must be upheld, not ${verdicts[0].verdict || '(blank)'}`);
+      const verifier = verdicts[0];
+      if (verifier.canonicalFieldTableCount !== 1) {
+        fail(
+          `${label} ${values.reviewedBy} at ${verifier.file} must contain exactly one canonical `
+            + `field | value verdict table; found ${verifier.canonicalFieldTableCount}`,
+        );
+      } else if (verifier.invalidFields.length > 0) {
+        fail(
+          `${label} ${values.reviewedBy} canonical verdict field table requires exactly one `
+            + `nonblank row for: ${verifier.invalidFields.join(', ')}`,
+        );
+      } else {
+        const expectedTarget = `relation-review-subject:${values.reviewSubjectDigest}`;
+        if (verifier.target !== expectedTarget) {
+          fail(`${label} ${values.reviewedBy} target must equal ${expectedTarget} exactly`);
+        }
+        if (verifier.verdict !== 'upheld') {
+          fail(`${label} ${values.reviewedBy} verdict must be upheld, not ${verifier.verdict || '(blank)'}`);
+        }
       }
     }
   }

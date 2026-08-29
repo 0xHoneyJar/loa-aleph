@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { firstRunLogEntry, location, mdLineSpan, normalizeSha256, reachedState, sha256, sourceFilePath, } from './check-helpers.js';
 import { lineageCurrentClaimIds, lineageCurrentPacketIds, } from './lineage.js';
-import { parseFieldTable } from './markdown.js';
+import { findTables, normalizeHeader } from './markdown.js';
 import { RELATION_EXPLICIT_ABSENCE_REASON, RELATION_FAMILIES, RELATION_FAMILY_TYPES, RELATION_FORMAT, RELATION_INDETERMINATE_REASONS, RELATION_RECORD_STATES, RELATION_TABLE_HEADER, RELATION_TYPES, RELATION_UNRESOLVED_REASONS, parsePacketBasis, parseRelations, relationReviewSubjectDigest, } from './relations.js';
 import { SUPPORTED_RUN_FORMAT_VERSIONS, usesTypedRelations, } from './run-model.js';
 const SOURCE_KINDS = ['CC', 'PKT'];
@@ -14,6 +14,16 @@ const POST_S4_STATES = [
     'PROJECTING',
     'PROJECTION-ACCEPTED',
 ];
+const VERDICT_REQUIRED_FIELDS = [
+    'target',
+    'lens',
+    'stage',
+    'shown',
+    'withheld',
+    'verdict',
+    'consequence',
+];
+const VERDICT_REQUIRED_FIELD_SET = new Set(VERDICT_REQUIRED_FIELDS);
 function isOneOf(value, values) {
     return values.includes(value);
 }
@@ -48,13 +58,37 @@ function verifierVerdicts(model, id) {
             continue;
         if (!document.relativePath.startsWith('verification/harness/'))
             continue;
-        if (!new RegExp(`\\b${id}\\b`).test(document.text))
+        if (document.relativePath.split('/').at(-1) !== `${id}.md`)
             continue;
-        const fields = parseFieldTable(document.tables).fields;
+        const heading = document.lines.find((line) => line.trim() !== '');
+        if (heading !== `# Verdict ${id}`)
+            continue;
+        const canonicalTables = findTables(document.tables, ['field', 'value']);
+        const fieldValues = new Map();
+        if (canonicalTables.length === 1) {
+            for (const row of canonicalTables[0].rows) {
+                if (row.cells.length !== 2)
+                    continue;
+                const field = normalizeHeader(row.cells[0]);
+                if (!VERDICT_REQUIRED_FIELD_SET.has(field))
+                    continue;
+                if (!fieldValues.has(field))
+                    fieldValues.set(field, []);
+                fieldValues.get(field).push(row.cells[1].trim());
+            }
+        }
+        const invalidFields = canonicalTables.length === 1
+            ? VERDICT_REQUIRED_FIELDS.filter((field) => {
+                const values = fieldValues.get(field) || [];
+                return values.length !== 1 || values[0] === '';
+            })
+            : [];
         verdicts.push({
             file: document.relativePath,
-            target: fields.get('target') || '',
-            verdict: fields.get('verdict') || '',
+            target: fieldValues.get('target')?.[0] || '',
+            verdict: fieldValues.get('verdict')?.[0] || '',
+            canonicalFieldTableCount: canonicalTables.length,
+            invalidFields,
         });
     }
     return verdicts;
@@ -142,12 +176,22 @@ function checkSourceLocus(model, row, source, fail) {
         fail(`${label} target_span_hash does not match the exact reopened source-locus bytes`);
     }
 }
-function endpointTypeLegal(row) {
+function sourceKindLegal(row) {
+    const values = row.values;
+    if (!isOneOf(values.sourceKind, SOURCE_KINDS))
+        return true;
+    if (values.type === 'semantic-prerequisite'
+        || (values.family === 'claim-dependency' && values.type === 'none')) {
+        return values.sourceKind === 'CC';
+    }
+    return true;
+}
+function concreteTargetTypeLegal(row) {
     const values = row.values;
     if (values.recordState !== 'asserted')
         return true;
     if (values.type === 'semantic-prerequisite') {
-        return values.sourceKind === 'CC' && values.targetKind === 'CC';
+        return values.targetKind === 'CC';
     }
     if (values.type === 'continuation-context'
         || values.type === 'parallel-contrast-context') {
@@ -278,7 +322,11 @@ function checkRow(model, row, currentClaims, currentPackets, fail) {
             fail(`${label} indeterminate has illegal null_reason "${values.nullReason || '(blank)'}"`);
         }
     }
-    if (!endpointTypeLegal(row)) {
+    if (!sourceKindLegal(row)) {
+        fail(`${label} ${values.family || '(blank)'}/${values.type || '(blank)'} `
+            + 'requires source_kind CC for every record_state');
+    }
+    if (!concreteTargetTypeLegal(row)) {
         fail(`${label} relation type/endpoint mismatch for ${values.type || '(blank)'}`);
     }
     if (values.type === 'semantic-prerequisite' && !['S3', 'S4'].includes(values.ownerStage)) {
@@ -339,12 +387,23 @@ function checkRow(model, row, currentClaims, currentPackets, fail) {
             fail(`${label} reviewed_by ${values.reviewedBy} must resolve to exactly one verifier verdict; found ${verdicts.length}`);
         }
         else {
-            const expectedTarget = `relation-review-subject:${values.reviewSubjectDigest}`;
-            if (verdicts[0].target !== expectedTarget) {
-                fail(`${label} ${values.reviewedBy} target must equal ${expectedTarget} exactly`);
+            const verifier = verdicts[0];
+            if (verifier.canonicalFieldTableCount !== 1) {
+                fail(`${label} ${values.reviewedBy} at ${verifier.file} must contain exactly one canonical `
+                    + `field | value verdict table; found ${verifier.canonicalFieldTableCount}`);
             }
-            if (verdicts[0].verdict !== 'upheld') {
-                fail(`${label} ${values.reviewedBy} verdict must be upheld, not ${verdicts[0].verdict || '(blank)'}`);
+            else if (verifier.invalidFields.length > 0) {
+                fail(`${label} ${values.reviewedBy} canonical verdict field table requires exactly one `
+                    + `nonblank row for: ${verifier.invalidFields.join(', ')}`);
+            }
+            else {
+                const expectedTarget = `relation-review-subject:${values.reviewSubjectDigest}`;
+                if (verifier.target !== expectedTarget) {
+                    fail(`${label} ${values.reviewedBy} target must equal ${expectedTarget} exactly`);
+                }
+                if (verifier.verdict !== 'upheld') {
+                    fail(`${label} ${values.reviewedBy} verdict must be upheld, not ${verifier.verdict || '(blank)'}`);
+                }
             }
         }
     }

@@ -2,8 +2,10 @@
 
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
+  renameSync,
   rmSync,
   unlinkSync,
   writeFileSync,
@@ -95,6 +97,26 @@ function checkFailure(
     console.log(`PASS ${name}`);
     passed++;
     mutationCount++;
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
+function checkPass(
+  name: string,
+  mutate: (run: string) => void,
+): void {
+  const temp = mkdtempSync(join(tmpdir(), 'aleph-relation-positive-'));
+  const run = join(temp, 'run');
+  try {
+    cpSync(BASE, run, { recursive: true });
+    mutate(run);
+    const report = validateRun({ root: ROOT, run, kind: 'run' });
+    if (report.result !== 'PASS') {
+      throw new Error(`expected clean run, got ${JSON.stringify(report.checks)}`);
+    }
+    console.log(`PASS ${name}`);
+    passed++;
   } finally {
     rmSync(temp, { recursive: true, force: true });
   }
@@ -350,6 +372,60 @@ checkFailure('relation type and endpoint mismatch', (run) => {
   refreshDigest(run, 'REL-1407');
 }, [/relation type\/endpoint mismatch/]);
 
+checkFailure('semantic-prerequisite unresolved target requires CC source', (run) => {
+  replaceOne(
+    relations(run),
+    '| REL-1409 | S4 | source-context | antecedent-context | CC | CC-0421 | null |',
+    '| REL-1409 | S4 | claim-dependency | semantic-prerequisite | PKT | PKT-0405 | null |',
+  );
+  refreshDigest(run, 'REL-1409');
+}, [/claim-dependency\/semantic-prerequisite requires source_kind CC/]);
+
+checkFailure('semantic-prerequisite explicit absence requires CC source', (run) => {
+  replaceOne(
+    relations(run),
+    '| REL-1410 | S4 | source-context | qualifier-context | CC | CC-0422 | null |',
+    '| REL-1410 | S4 | claim-dependency | semantic-prerequisite | PKT | PKT-0405 | null |',
+  );
+  refreshDigest(run, 'REL-1410');
+}, [/claim-dependency\/semantic-prerequisite requires source_kind CC/]);
+
+checkFailure('semantic-prerequisite subtype indeterminate requires CC source', (run) => {
+  replaceOne(
+    relations(run),
+    '| REL-1411 | S4 | source-context | configuration-context | CC | CC-0423 | null |',
+    '| REL-1411 | S4 | claim-dependency | semantic-prerequisite | PKT | PKT-0405 | null |',
+  );
+  refreshDigest(run, 'REL-1411');
+}, [/claim-dependency\/semantic-prerequisite requires source_kind CC/]);
+
+checkFailure('claim-dependency family indeterminate requires CC source', (run) => {
+  replaceOne(
+    relations(run),
+    '| REL-1413 | S4 | source-context | none | PKT | PKT-0403 | null |',
+    '| REL-1413 | S4 | claim-dependency | none | PKT | PKT-0403 | null |',
+  );
+  refreshDigest(run, 'REL-1413');
+}, [/claim-dependency\/none requires source_kind CC/]);
+
+checkPass('semantic-prerequisite typed null accepts CC source', (run) => {
+  replaceOne(
+    relations(run),
+    '| REL-1409 | S4 | source-context | antecedent-context | CC | CC-0421 | null |',
+    '| REL-1409 | S4 | claim-dependency | semantic-prerequisite | CC | CC-0421 | null |',
+  );
+  refreshDigest(run, 'REL-1409');
+});
+
+checkPass('claim-dependency family indeterminate accepts CC source', (run) => {
+  replaceOne(
+    relations(run),
+    '| REL-1413 | S4 | source-context | none | PKT | PKT-0403 | null |',
+    '| REL-1413 | S4 | claim-dependency | none | CC | CC-0423 | null |',
+  );
+  refreshDigest(run, 'REL-1413');
+});
+
 checkFailure('missing packet-basis provenance', (run) => {
   replaceOne(relations(run), '| PKT-0404, PKT-0405 | invocation:s4-relations-01 |', '| none | invocation:s4-relations-01 |');
   refreshDigest(run, 'REL-1401');
@@ -367,6 +443,110 @@ checkFailure('malformed reviewer reference', (run) => {
 checkFailure('missing verifier record', (run) => {
   unlinkSync(verifier(run, 'VER-1401'));
 }, [/reviewed_by VER-1401 must resolve to exactly one verifier verdict; found 0/]);
+
+checkFailure('moved verifier bytes do not preserve verdict identity', (run) => {
+  renameSync(verifier(run, 'VER-1401'), verifier(run, 'VER-9999'));
+}, [/reviewed_by VER-1401 must resolve to exactly one verifier verdict; found 0/]);
+
+checkFailure('different verifier cannot impersonate cited identity through prose', (run) => {
+  const source = verifier(run, 'VER-1401');
+  const text = readFileSync(source, 'utf8');
+  unlinkSync(source);
+  writeFileSync(
+    verifier(run, 'VER-9999'),
+    text.replace('# Verdict VER-1401', '# Verdict VER-9999')
+      + '\nVER-1401 was discussed in unrelated rationale.\n',
+  );
+}, [/reviewed_by VER-1401 must resolve to exactly one verifier verdict; found 0/]);
+
+checkFailure('verifier basename and heading identity must agree', (run) => {
+  replaceOne(verifier(run, 'VER-1401'), '# Verdict VER-1401', '# Verdict VER-9999');
+}, [/reviewed_by VER-1401 must resolve to exactly one verifier verdict; found 0/]);
+
+checkFailure('duplicate canonical verifier identity', (run) => {
+  const duplicateDir = join(run, 'verification/harness/S3-relations');
+  mkdirSync(duplicateDir, { recursive: true });
+  writeFileSync(
+    join(duplicateDir, 'VER-1401.md'),
+    readFileSync(verifier(run, 'VER-1401')),
+  );
+}, [/reviewed_by VER-1401 must resolve to exactly one verifier verdict; found 2/]);
+
+checkPass('unrelated harness prose mention does not duplicate verifier identity', (run) => {
+  writeFileSync(
+    join(run, 'verification/harness/INDEX.md'),
+    '# Harness Index\n\nVER-1401 is listed for navigation only.\n',
+  );
+});
+
+checkFailure('missing verifier shown field', (run) => {
+  replaceOne(
+    verifier(run, 'VER-1401'),
+    '| shown | exact proposed row, frozen packet basis, current endpoints, and lineage-current inventory |\n',
+    '',
+  );
+}, [/canonical verdict field table requires exactly one nonblank row for: shown/]);
+
+checkFailure('missing verifier withheld field', (run) => {
+  replaceOne(
+    verifier(run, 'VER-1401'),
+    '| withheld | producer rationale, answer keys, external facts, and relation-density targets |\n',
+    '',
+  );
+}, [/canonical verdict field table requires exactly one nonblank row for: withheld/]);
+
+checkFailure('missing verifier lens field', (run) => {
+  replaceOne(
+    verifier(run, 'VER-1401'),
+    '| lens | typed-relation semantic challenge |\n',
+    '',
+  );
+}, [/canonical verdict field table requires exactly one nonblank row for: lens/]);
+
+checkFailure('blank verifier stage field', (run) => {
+  replaceOne(
+    verifier(run, 'VER-1401'),
+    '| stage | S4 relation closure |',
+    '| stage | |',
+  );
+}, [/canonical verdict field table requires exactly one nonblank row for: stage/]);
+
+checkFailure('missing verifier consequence field', (run) => {
+  replaceOne(
+    verifier(run, 'VER-1401'),
+    '| consequence | canonical fixture row may be serialized at the S4 closure barrier |\n',
+    '',
+  );
+}, [/canonical verdict field table requires exactly one nonblank row for: consequence/]);
+
+checkFailure('scratch notes cannot authorize reviewed_by', (run) => {
+  const source = verifier(run, 'VER-1401');
+  const text = readFileSync(source, 'utf8');
+  unlinkSync(source);
+  writeFileSync(
+    join(run, 'verification/harness/scratch-notes.md'),
+    text.replace('# Verdict VER-1401', '# Scratch Notes'),
+  );
+}, [/reviewed_by VER-1401 must resolve to exactly one verifier verdict; found 0/]);
+
+checkFailure('competing canonical verdict tables are rejected', (run) => {
+  const path = verifier(run, 'VER-1401');
+  replaceOne(path, '| verdict | upheld |', '| verdict | refuted |');
+  replaceOne(
+    path,
+    '# Verdict VER-1401\n\n',
+    '# Verdict VER-1401\n\n'
+      + '| field | value |\n'
+      + '|-------|-------|\n'
+      + '| target | relation-review-subject:sha256:2a449c9d115d3d2e087a02a8548a0b0aee36b3b0e97a7ebf08a1648ae1707b33 |\n'
+      + '| lens | decoy typed-relation semantic challenge |\n'
+      + '| stage | S4 relation closure |\n'
+      + '| shown | decoy proposed row |\n'
+      + '| withheld | decoy producer rationale |\n'
+      + '| verdict | upheld |\n'
+      + '| consequence | decoy canonicalization |\n\n',
+  );
+}, [/must contain exactly one canonical field \| value verdict table; found 2/]);
 
 checkFailure('malformed review-subject digest', (run) => {
   replaceOne(
