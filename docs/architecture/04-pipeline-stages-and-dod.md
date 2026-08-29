@@ -107,12 +107,18 @@ all ledgers final.
   re-entry coordinates while recording a complete structural source walk and
   then testing primary recall with a separate fresh gap review.
 - **Inputs:** frozen corpus; extraction criteria. Nothing else.
-- **Outputs:** `ledgers/packet-index.md`; `ledgers/source-walk.md`.
+- **Outputs:** `ledgers/packet-index.md`; `ledgers/source-walk.md`; retained
+  packet-level relation proposals when a separately bounded relation task is
+  legal from the same one-source context (never canonical REL rows).
 - **Actor:** Extractors (fan out per source), fresh gap reviewers, and the
   orchestrator as the only canonical ledger writer.
 - **Blind-context rule (hard):** extractors see corpus + criteria only — no
   scope-of-run chatter, no prior packets from other sources (prevents
   cross-source anchoring), no disposition vocabulary.
+- **Relation boundary:** S2 may propose context, formal-reference, or discourse
+  relations only from its legal one-source packet context. It cannot inspect
+  another source, propose a cross-source relation, or create claim dependency
+  before claims exist.
 - **Work:** walk each source in source order. Append contiguous half-open UTF-8
   byte intervals for admitted, non-candidate-observed, excluded, deferred, or
   unsupported regions. Record packet-producing events separately, including
@@ -186,11 +192,16 @@ recall.
   transformation records (+ read-only corpus access for context windows
   around a packet).
 - **Outputs:** `ledgers/claim-inventory.md` (claims + provenance + claim type;
-  dispositions still blank); in run format 1.3, S3 structural identity outcomes
-  append to `ledgers/lineage.md`.
+  dispositions still blank); in run format 1.3 and later, S3 structural
+  identity outcomes append to `ledgers/lineage.md`; retained claim-level
+  relation proposals may be returned but are not canonical REL rows.
 - **Actor:** Normalizers (fan out per packet batch).
 - **Blind-context rule:** normalizers do not assign dispositions and do not
   see other batches' outputs mid-pass (dedup is S4's job, done globally).
+- **Relation boundary:** S3 may propose any legally typed claim relation
+  available from the current packet/claim batch and its legal source context.
+  It may not inspect another batch merely to discover relations. Global,
+  cross-batch, or cross-source relation judgment belongs to S4.
 - **Work:** one packet may yield zero, one, or several claims; several packets
   may support one claim (recorded, not merged yet). The neutral restatement
   must be entailed by the packet spans — adding outside knowledge here is the
@@ -209,14 +220,27 @@ recall.
 
 - **Purpose:** compact by normalization; kill duplicate conviction.
 - **Inputs:** full claim inventory.
-- **Outputs:** `ledgers/merge-map.md`; for run format 1.3, each merge or
+- **Outputs:** `ledgers/merge-map.md`; for run format 1.3 and later, each merge or
   duplicate also appends one lineage event and materializes a new canonical
-  successor claim while every predecessor row remains immutable history.
-- **Actor:** Normalizer-Judge (global pass — this stage is a barrier).
+  successor claim while every predecessor row remains immutable history. In
+  run format 1.4, S4 also emits the one canonical
+  `ledgers/relations.md` table at closure.
+- **Actor:** Normalizer-Judge, relation producers, fresh relation reviewers,
+  and the orchestrator as sole canonical writer (global pass — this stage is a
+  barrier).
 - **Work:** near-duplicates merge with all provenance retained; genuinely
   contradictory claims are *never* merged (they stay separate, flagged for
   S5/S9); the corroboration note distinguishes independent support from
   restatement.
+- **Relation closure:** challenge accumulated S2/S3 proposals against the
+  lineage-current inventory. S4 owns any of the eight relation types when the
+  judgment requires global, cross-batch, cross-source, or otherwise
+  unavailable legal context. Producers propose only; fresh reviewers never
+  write the ledger; the orchestrator recomputes each exact review-subject
+  digest, requires the exact `upheld` VER target, resolves structural
+  conflicts, and serializes canonical REL rows only at the closure barrier.
+  S4 does not acquire disposition, evidence-role, routing, ambiguity,
+  duplicate/overlap relation, or human-authority responsibility.
 - **DoD:**
   - [ ] ⚙ C8 provenance superset holds for every merge row; in 1.3 every
         merge/duplicate map row matches one typed lineage event whose new
@@ -225,12 +249,25 @@ recall.
         ("argue these are different claims"); refuted merges are unwound
   - [ ] ⚖ contradiction sweep: harness searches the inventory for
         incompatible pairs the mapper missed; found pairs get flagged rows
+  - [ ] ⚙ every canonical REL row has the exact 17 fields, legal taxonomy,
+        typed state/endpoint/provenance, lineage-current durable endpoints,
+        recomputed review-subject digest, and one exact upheld VER target
+  - [ ] ⚙ prohibited relation subgraphs are acyclic, self-edges and
+        duplicate/conflicting scopes fail, and qualifier/configuration mixed
+        cycles do not trigger a false global-DAG rule
+  - [ ] ⚖ fresh relation review attacks missing/over-broad/wrong
+        type/target, context-as-support, qualifier loss, wrong semantic locus,
+        outside-corpus invention, explicit absence from incomplete context,
+        and unjustified permitted cycles
+  - [ ] ⚙ canonical relation bytes are absent/empty before closure, written
+        only at S4 closure, and refused unchanged after closure; retained K2
+        state does not claim historical intra-S4 timing
 
 ## S5 — Disposition pass
 
 - **Purpose:** resolve every candidate claim into exactly one of the seven
   dispositions, with reasons where the doctrine demands them.
-- **Inputs:** claim inventory + merge map + scope statement + negative-boundary
+- **Inputs:** claim inventory + merge map + read-only relation ledger + scope statement + negative-boundary
   drafts. **Not** the routing/cluster layers (which do not exist yet — the
   four-layer model keeps disposition upstream of stance).
 - **Outputs:** completed inventory; `ledgers/disposition-ledger.md`;
@@ -239,6 +276,8 @@ recall.
 - **Actor:** Disposition Judges (fan out per claim batch) + harness review.
 - **Blind-context rule:** judges see the claim, its packets, the scope, and
   the criteria — not other judges' calls on unrelated batches.
+- **Relation boundary:** relations may supply challenge context but never
+  mechanically select or change a disposition. S5 never rewrites REL rows.
 - **DoD:**
   - [ ] ⚙ every current research claim exactly one disposition; in 1.3 this
         population is the lineage-current claim set, while historical
@@ -256,9 +295,12 @@ recall.
 
 - **Purpose:** type every claim×source edge; declare removal effects for
   load-bearing support (artifact 8; issue #18's ALEPH-EVIDENCE-ROLE-001).
-- **Inputs:** inventory, merge map, source trust classes.
+- **Inputs:** inventory, merge map, read-only relation ledger, source trust classes.
 - **Outputs:** `ledgers/evidence-roles.md`.
 - **Actor:** Evidence-Role Judges.
+- **Relation boundary:** no REL family or multiplicity becomes
+  load-bearing/corroborative/contradictory support. S6 independently judges
+  the `CC x SRC` evidence-role surface and never rewrites REL rows.
 - **DoD:**
   - [ ] ⚙ role-coverage accounting: every carried claim has qualifying support
         or an explicit synthesis/inference marker with uncertainty
@@ -434,9 +476,9 @@ S13. A projection is never "done" by the renderer's say-so.
 |-------|-------|----------|---------|----------------|
 | S0 | manifest, frozen corpus | — | — | scope + sensitivity |
 | S1 | inventory, criteria | yes (criteria before packets) | — | — |
-| S2 | packet index | — | per source | — |
-| S3 | claim inventory (no dispositions) | — | per packet batch | — |
-| S4 | merge map | yes (global) | — | — |
+| S2 | packet index; retained one-source relation proposals | — | per source | — |
+| S3 | claim inventory (no dispositions); retained batch-local relation proposals | — | per packet batch | — |
+| S4 | merge map; lineage closure; canonical relation ledger | yes (global) | relation production/review may fan out under bounded bundles | — |
 | S5 | dispositions, boundaries, queue | — | per claim batch | — |
 | S6 | evidence roles | — | per claim batch | — |
 | S7 | pre-cluster tags | yes | — | — |

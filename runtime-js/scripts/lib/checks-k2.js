@@ -5,6 +5,7 @@ import { activeClaims, allStatusRows, compareTimestamp, duplicateDefinitions, fi
 import { envelopeSection, findTable, findTables, findTableByFirstHeader, headingSection, idsIn, normalizeHeader, numberedEnvelopeHeadings, parseBulletFields, parseTables, tableCells, isSeparatorRow, } from './markdown.js';
 import { CURRENT_RUN_FORMAT_VERSION, CLAIM_DEFINITION_HEADER, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, PACKET_DEFINITION_HEADER, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, } from './run-model.js';
 import { runK2Lineage } from './checks-k2-lineage.js';
+import { runK2Relations } from './checks-k2-relations.js';
 const CLAIM_TYPES = [
     'factual',
     'design-intent',
@@ -2178,7 +2179,9 @@ function checkStatuses(results, model) {
     results.run('K2.10', 'status discipline', (fail) => {
         const rows = allStatusRows(model);
         const indexes = makeIndexes(model);
-        const lineageStatus = usesLineage(model.manifest?.runFormatVersion || '');
+        const runFormatVersion = model.manifest?.runFormatVersion || '';
+        const runFormatLabel = runFormatVersion.split('.').slice(0, 2).join('.');
+        const lineageStatus = usesLineage(runFormatVersion);
         const durableUnitLocations = new Set();
         if (lineageStatus && distillingArtifactsApply(model)) {
             const unitDefinitionSurfaces = [
@@ -2196,7 +2199,8 @@ function checkStatuses(results, model) {
             for (const surface of unitDefinitionSurfaces) {
                 const tables = findTables(surface.document?.tables || [], surface.header);
                 if (tables.length !== 1) {
-                    fail(`run-format 1.3 requires exactly one canonical ${surface.label} home-definition table; found ${tables.length}`);
+                    fail(`run-format ${runFormatLabel} requires exactly one canonical `
+                        + `${surface.label} home-definition table; found ${tables.length}`);
                 }
                 for (const table of tables) {
                     for (const row of table.rows)
@@ -2232,7 +2236,8 @@ function checkStatuses(results, model) {
             if (lineageStatus
                 && durableUnitLocations.has(location(row))
                 && row.status !== 'active') {
-                fail(`${row.id} run-format 1.3 unit rows must use durable status active; identity currentness belongs to lineage`);
+                fail(`${row.id} run-format ${runFormatLabel} unit rows must use durable `
+                    + 'status active; identity currentness belongs to lineage');
                 continue;
             }
             if (row.status === 'active')
@@ -2583,4 +2588,5 @@ export function runK2(results, model, root) {
     checkExactEvidence(results, model);
     checkSourceWalk(results, model);
     runK2Lineage(results, model);
+    runK2Relations(results, model);
 }

@@ -33,6 +33,8 @@ CONSTRAINTS
   disposition for a historical predecessor simply to balance current counts.
 - Judge from the claim + its packets + the scope + the criteria. Nothing
   else exists for you.
+- Typed relations may be supplied only as read-only challenge context. Never
+  infer a disposition mechanically from a relation and never amend a REL row.
 - Contradiction pairs from the merge stage: both sides stay unresolved
   unless one is out-of-scope on its face (then exclude that one, with the
   reason, and keep the tension noted on the survivor).
@@ -74,6 +76,9 @@ CONSTRAINTS
   structure — a later adversarial stage will attack these declarations.
 - Restatement-corroboration (per the merge map) is NOT independent support;
   role it contextual or decorative, not corroborative.
+- A typed relation is not an evidence edge. Relation family, multiplicity,
+  mutuality, or target count never creates load-bearing/corroborative support
+  or satisfies removal-effect accounting.
 - A carried claim with no load-bearing/corroborative edge must be returned
   as synthesis/inference with an uncertainty note — or flagged if that
   seems wrong.

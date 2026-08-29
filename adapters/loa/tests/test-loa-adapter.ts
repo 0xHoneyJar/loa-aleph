@@ -1136,7 +1136,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       assertFixtureBoundary(readRunState(context.runDir), context.runDir);
     });
 
-    runCase(results, 'retained 1.3 run cannot downgrade its manifest to 1.2', () => {
+    runCase(results, 'retained 1.4 run cannot downgrade its manifest to 1.3', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
@@ -1145,12 +1145,12 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         writeFileSync(
           manifestPath,
           originalManifest.replace(
+            '- run_format_version: 1.4.0-provisional',
             '- run_format_version: 1.3.0-provisional',
-            '- run_format_version: 1.2.0-provisional',
           ),
         );
         const downgraded = dispatchLoaCommand(['resume', RUN_ID], startOptions(context));
-        expect(downgraded.result === 'FAIL', 'retained 1.3 run accepted a 1.2 manifest downgrade');
+        expect(downgraded.result === 'FAIL', 'retained 1.4 run accepted a 1.3 manifest downgrade');
         expect(
           downgraded.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
           `downgrade failure omitted retained identity diagnostic: ${downgraded.errors.join('; ')}`,
@@ -1161,7 +1161,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       }
     });
 
-    runCase(results, 'retained 1.3 run cannot remove its manifest version', () => {
+    runCase(results, 'retained 1.4 run cannot remove its manifest version', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
@@ -1169,7 +1169,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       try {
         writeFileSync(
           manifestPath,
-          originalManifest.replace('- run_format_version: 1.3.0-provisional\n', ''),
+          originalManifest.replace('- run_format_version: 1.4.0-provisional\n', ''),
         );
         let checkerInvoked = false;
         const removed = dispatchLoaCommand(['validate', RUN_ID], {
@@ -1179,7 +1179,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
             throw new Error('checker must not run after manifest identity removal');
           },
         });
-        expect(removed.result === 'FAIL', 'retained 1.3 run accepted a missing manifest version');
+        expect(removed.result === 'FAIL', 'retained 1.4 run accepted a missing manifest version');
         expect(!checkerInvoked, 'version removal reached the pinned checker');
         expect(
           removed.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),

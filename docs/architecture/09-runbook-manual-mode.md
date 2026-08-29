@@ -90,11 +90,36 @@ primary cursor or changing the primary review basis. Open or indeterminate
 results block S2. Neither a source-end cursor, review-basis digest, nor your
 no-gap result proves perfect recall or independent process isolation.
 
-**S3–S4 (claims, merges).** Draft claims on one pass, merge on a second,
-separate pass over the whole inventory (the barrier matters by hand too —
-merging while drafting is how duplicate conviction sneaks through). The
-contradiction rule is absolute: never merge two claims because reconciling
-prose is easy to write.
+**S3–S4 (claims, merges, relations).** Draft claims on one pass, merge on a
+second, separate pass over the whole inventory (the barrier matters by hand
+too — merging while drafting is how duplicate conviction sneaks through).
+The contradiction rule is absolute: never merge two claims because
+reconciling prose is easy to write.
+
+During an S2 one-source sitting or an S3 one-batch sitting, retain only
+relation proposals available from that legal context. Do not open another
+source or claim batch to discover a relation. Move any global, cross-source,
+cross-batch, or lineage-current-inventory question to S4. At S4, first finish
+lineage and merge/duplicate currentness. Then perform relation production and
+semantic challenge as separate passes or sittings. The same human may perform
+both only with recorded temporal separation; do not describe that as
+independent fresh-context isolation.
+
+For each complete proposal, serialize the fixed-order compact JSON review
+subject, preserving every canonical string and the packet-basis order, and
+compute `sha256:<lowercase hex>`. The review record's target must equal
+`relation-review-subject:<digest>` exactly. Only an `upheld` verdict for that
+exact subject may become a canonical row. `refuted` or `cannot-determine`
+cannot authorize it; retaining an indeterminate result requires a separate
+complete indeterminate proposal and upheld review.
+
+`ledgers/relations.md` may be absent or marker plus empty table before the S4
+closure barrier. Reconcile conflicts and write all canonical REL rows only at
+that barrier, after endpoint currentness is known. Refuse any earlier or later
+append before changing bytes. After S5 entry the ledger is read-only. Record
+the procedure in the run log, but do not claim that a later K2.16 PASS proves
+the historical append instant. A relation is context/structure only: never
+count it as support, corroboration, contradiction, disposition, or authority.
 
 **S5 (dispositions).** One claim, one disposition, one line of reason for
 anything not obviously carried. Do dispositions in a different sitting from

@@ -45,7 +45,9 @@ export const SOURCE_WALK_CURSOR_REASONS = [
 export const LEGACY_RUN_FORMAT_VERSION = '1.0.0-provisional';
 export const EXACT_EVIDENCE_RUN_FORMAT_VERSION = '1.1.0-provisional';
 export const SOURCE_WALK_RUN_FORMAT_VERSION = '1.2.0-provisional';
-export const CURRENT_RUN_FORMAT_VERSION = '1.3.0-provisional';
+export const LINEAGE_RUN_FORMAT_VERSION = '1.3.0-provisional';
+export const TYPED_RELATIONS_RUN_FORMAT_VERSION = '1.4.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = TYPED_RELATIONS_RUN_FORMAT_VERSION;
 export const PACKET_DEFINITION_HEADER = [
   'packet id',
   'source id',
@@ -71,30 +73,78 @@ export const SUPPORTED_RUN_FORMAT_VERSIONS = [
   LEGACY_RUN_FORMAT_VERSION,
   EXACT_EVIDENCE_RUN_FORMAT_VERSION,
   SOURCE_WALK_RUN_FORMAT_VERSION,
+  LINEAGE_RUN_FORMAT_VERSION,
   CURRENT_RUN_FORMAT_VERSION,
 ] as const;
 
+export const RUN_CAPABILITIES = [
+  'legacy',
+  'forward-execution-identity',
+  'exact-evidence',
+  'source-walk',
+  'lineage',
+  'typed-relations',
+] as const;
+
+export type RunCapability = typeof RUN_CAPABILITIES[number];
+
+const RUN_FORMAT_CAPABILITY_ADDITIONS: ReadonlyArray<{
+  version: typeof SUPPORTED_RUN_FORMAT_VERSIONS[number];
+  additions: readonly RunCapability[];
+}> = [
+  {
+    version: LEGACY_RUN_FORMAT_VERSION,
+    additions: ['legacy'],
+  },
+  {
+    version: EXACT_EVIDENCE_RUN_FORMAT_VERSION,
+    additions: ['forward-execution-identity', 'exact-evidence'],
+  },
+  {
+    version: SOURCE_WALK_RUN_FORMAT_VERSION,
+    additions: ['source-walk'],
+  },
+  {
+    version: LINEAGE_RUN_FORMAT_VERSION,
+    additions: ['lineage'],
+  },
+  {
+    version: TYPED_RELATIONS_RUN_FORMAT_VERSION,
+    additions: ['typed-relations'],
+  },
+];
+
+export function hasRunCapability(
+  runFormatVersion: string,
+  capability: RunCapability,
+): boolean {
+  const formatIndex = RUN_FORMAT_CAPABILITY_ADDITIONS.findIndex(
+    (entry) => entry.version === runFormatVersion,
+  );
+  if (formatIndex < 0) return false;
+  return RUN_FORMAT_CAPABILITY_ADDITIONS
+    .slice(0, formatIndex + 1)
+    .some((entry) => entry.additions.includes(capability));
+}
+
 export function usesForwardExecutionIdentity(runFormatVersion: string): boolean {
-  return [
-    EXACT_EVIDENCE_RUN_FORMAT_VERSION,
-    SOURCE_WALK_RUN_FORMAT_VERSION,
-    CURRENT_RUN_FORMAT_VERSION,
-  ].some((version) => version === runFormatVersion);
+  return hasRunCapability(runFormatVersion, 'forward-execution-identity');
 }
 
 export function usesExactEvidence(runFormatVersion: string): boolean {
-  return usesForwardExecutionIdentity(runFormatVersion);
+  return hasRunCapability(runFormatVersion, 'exact-evidence');
 }
 
 export function usesSourceWalk(runFormatVersion: string): boolean {
-  return [
-    SOURCE_WALK_RUN_FORMAT_VERSION,
-    CURRENT_RUN_FORMAT_VERSION,
-  ].some((version) => version === runFormatVersion);
+  return hasRunCapability(runFormatVersion, 'source-walk');
 }
 
 export function usesLineage(runFormatVersion: string): boolean {
-  return runFormatVersion === CURRENT_RUN_FORMAT_VERSION;
+  return hasRunCapability(runFormatVersion, 'lineage');
+}
+
+export function usesTypedRelations(runFormatVersion: string): boolean {
+  return hasRunCapability(runFormatVersion, 'typed-relations');
 }
 
 export const EXACT_EVIDENCE_JOIN_POLICIES = [

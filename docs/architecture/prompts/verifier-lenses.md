@@ -74,6 +74,26 @@ argue `independent` is actually restatement. **Shown:** the merge row + all
 member claims + their packet quotes + source kinds. **Withheld:** the rest
 of the merge map.
 
+### L3R — typed-relation semantic challenge (S4 closure)
+Attack exactly one complete proposed relation subject. Test for a missing
+required relation, over-broad scope, wrong family/subtype, wrong source,
+wrong existing/current target, context disguised as support, lost qualifier
+or antecedent, unjustified permitted cycle, exact legal locus aimed at the
+wrong semantic span, invented outside-corpus target, and explicit absence from
+incomplete context. **Shown:** the complete proposed subject and its digest;
+source unit and packet basis; only the bounded current-unit summaries and
+exact loci needed to test candidate targets; lineage-current inventory.
+**Withheld:** producer rationale/hidden context, SRC-001 answer keys, final
+relation density, external facts, and downstream dispositions/evidence roles.
+
+The verdict target is exactly
+`relation-review-subject:<review_subject_digest>`. `upheld` may authorize only
+that unchanged subject. `refuted` recommends exactly `revise` (with a complete
+new subject requiring a new digest/review), `reject`, or `not-applicable`.
+`cannot-determine` cannot authorize the subject. If indeterminate canonical
+state should be retained, review that complete indeterminate proposal
+separately. You never write `ledgers/relations.md`.
+
 ### L4 — disposition-refuter (S5 DoD)
 Argue the OPPOSITE disposition is more faithful to the packets and scope.
 For `excluded-with-reason`: attack the reason. For `carried`: hunt

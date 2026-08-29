@@ -56,6 +56,7 @@ import type {
 } from './markdown.ts';
 import type { ResultCollector } from './results.ts';
 import { runK2Lineage } from './checks-k2-lineage.ts';
+import { runK2Relations } from './checks-k2-relations.ts';
 import type {
   Disposition,
   ExactEvidenceFragmentRow,
@@ -2717,7 +2718,9 @@ function checkStatuses(results: ResultCollector, model: RunModel): void {
   results.run('K2.10', 'status discipline', (fail) => {
     const rows = allStatusRows(model);
     const indexes = makeIndexes(model);
-    const lineageStatus = usesLineage(model.manifest?.runFormatVersion || '');
+    const runFormatVersion = model.manifest?.runFormatVersion || '';
+    const runFormatLabel = runFormatVersion.split('.').slice(0, 2).join('.');
+    const lineageStatus = usesLineage(runFormatVersion);
     const durableUnitLocations = new Set<string>();
     if (lineageStatus && distillingArtifactsApply(model)) {
       const unitDefinitionSurfaces = [
@@ -2736,7 +2739,8 @@ function checkStatuses(results: ResultCollector, model: RunModel): void {
         const tables = findTables(surface.document?.tables || [], surface.header);
         if (tables.length !== 1) {
           fail(
-            `run-format 1.3 requires exactly one canonical ${surface.label} home-definition table; found ${tables.length}`,
+            `run-format ${runFormatLabel} requires exactly one canonical `
+              + `${surface.label} home-definition table; found ${tables.length}`,
           );
         }
         for (const table of tables) {
@@ -2778,7 +2782,10 @@ function checkStatuses(results: ResultCollector, model: RunModel): void {
         && durableUnitLocations.has(location(row))
         && row.status !== 'active'
       ) {
-        fail(`${row.id} run-format 1.3 unit rows must use durable status active; identity currentness belongs to lineage`);
+        fail(
+          `${row.id} run-format ${runFormatLabel} unit rows must use durable `
+            + 'status active; identity currentness belongs to lineage',
+        );
         continue;
       }
       if (row.status === 'active') continue;
@@ -3144,4 +3151,5 @@ export function runK2(results: ResultCollector, model: RunModel, root: string): 
   checkExactEvidence(results, model);
   checkSourceWalk(results, model);
   runK2Lineage(results, model);
+  runK2Relations(results, model);
 }
