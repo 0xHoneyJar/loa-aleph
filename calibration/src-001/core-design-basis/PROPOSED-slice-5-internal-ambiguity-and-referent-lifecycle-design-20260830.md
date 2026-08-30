@@ -1,6 +1,7 @@
 # PROPOSED Slice 5 Internal Ambiguity and Referent Lifecycle Design
 
-Status: PROPOSED — HUMAN AUTHORITY ADOPTION REQUIRED
+Status: PROPOSED — REPAIRED AFTER BLOCKING INDEPENDENT AUDIT; FRESH
+SUCCESSOR DESIGN AUDIT REQUIRED
 
 Date: 2026-08-30
 
@@ -28,6 +29,17 @@ golden declaration, or Aleph v1 declaration.
 
 No human adoption declaration appears in this file.
 
+Blocked predecessor proposal:
+`f8aadc2160826e2df736a946188c92158ec354aa`
+
+Predecessor independent design-audit verdict:
+`BLOCK_SLICE_5_HUMAN_ADOPTION`
+
+This successor preserves that predecessor unchanged and records its audit
+history in section 29. The repairs below are successor design claims pending a
+fresh independent audit. They are not adoption, implementation authority, or
+proof that the predecessor findings never existed.
+
 ## 1. Proposed decision scope
 
 This document presents a narrow Core design for retaining unresolved
@@ -51,11 +63,11 @@ The proposed design:
 8. forbids automatic graph traversal, automatic retargeting, and transitive
    ambiguity propagation;
 9. reuses exact-subject verifier binding for semantic review;
-10. finalizes canonical ambiguity state only at the S4 closure barrier, before
-    S5 begins; and
-11. leaves one authority question visibly unresolved because current adopted
-    architecture does not establish a general ambiguity
-    closure/preservation gate.
+10. defines future S4 closure as one composite ordered barrier whose first
+    subphase serializes canonical relations, whose second subphase finalizes
+    ambiguity state, and whose third subphase exits S4 before S5 begins; and
+11. leaves one authority decision-category question visibly unresolved even
+    though existing host mechanics can present a Core-defined human request.
 
 No implementation may begin from this proposal unless:
 
@@ -255,7 +267,7 @@ That result is not:
 | S8 external referent | Entered only after a separate semantic determination that the needed referent is outside the frozen corpus boundary. Internal failure alone does not create `REF-*`. |
 | contradiction | A candidate conflict may help a reviewer reject a resolution, but ambiguity does not own contradiction semantics. |
 | duplicate/overlap | Similar expressions or candidate multiplicity do not establish duplication. |
-| lineage | Currentness of `PKT`, `CC`, and `REL` references is checked through adopted Slice 3/4 rules. Slice 5 adds no lineage type. |
+| lineage | Currentness of `PKT` and `CC` references is checked through adopted Slice 3 rules. Affected `REL` references use the Slice 5 `eligible canonical relation` consumption predicate in §8.3; no relation lineage, predecessor, successor, or current pointer is introduced. |
 | correction/effective state | Historical ambiguity assessments remain visible. Post-barrier correction remains fail closed under adopted doctrine. |
 | projection | Projection intent and desired output wording are forbidden candidate evidence. |
 
@@ -338,7 +350,7 @@ authorize post-barrier correction.
 
 - exactly `PKT` or `CC`;
 - names the Core unit whose interpretation is affected;
-- must be lineage-current at S4 closure; and
+- must be lineage-current at S4-C2; and
 - does not replace the exact expression source basis.
 
 `source_entity_id`
@@ -461,7 +473,8 @@ authorize post-barrier correction.
 `affected_relation_ids`
 
 - `none` or a canonical comma-separated, numerically ordered, unique set of
-  lineage-current `REL-*` identities;
+  `REL-*` identities, each satisfying the `eligible canonical relation`
+  predicate in section 8.3;
 - explicit producer declarations reviewed as part of the exact subject;
 - never graph-derived by the checker;
 - may name many relations;
@@ -484,7 +497,11 @@ authorize post-barrier correction.
 - exactly `none` or `explicit`;
 - `explicit` requires `resolution_state = unresolved` and at least one
   affected relation;
-- `resolved-local` requires `none`; and
+- `resolved-local` requires `none`;
+- if `resolution_state = unresolved` and `affected_relation_ids` is nonempty,
+  `carry_state` must be `explicit`;
+- if `resolution_state = unresolved` and `carry_state = none`,
+  `affected_relation_ids` must be `none`; and
 - no graph traversal is implied.
 
 `proposed_by`
@@ -565,13 +582,14 @@ If later activated by a separate adopted decision:
 For each `AMB-*`:
 
 1. one and only one T5.1 definition exists;
-2. at least one reviewed T5.2 assessment exists at S4 closure;
+2. at least one reviewed T5.2 assessment exists by S4-C2;
 3. the current assessment is the highest contiguous sequence;
 4. every assessment binds the same immutable T5.1 expression;
 5. no two assessments for one ambiguity have the same review-subject digest;
 6. no assessment crosses the expression's `SRC-*`;
 7. every candidate is same-source and deterministically reopenable;
-8. each affected relation is explicit and current at S4 closure;
+8. each affected relation is explicit and is an eligible canonical relation
+   from S4-C1;
 9. carry is explicit and finite;
 10. no relation row stores ambiguity state;
 11. no evidence-role row stores ambiguity state;
@@ -616,18 +634,42 @@ This split is required:
 A source-locus is not itself the source entity because it has no durable unit
 identity. It remains the exact source basis.
 
-### 8.3 Currentness
+### 8.3 Reference eligibility and endpoint currentness
 
-At S4 closure:
+At S4-C2, `source_entity_id`, `basis_packet_ids`, and candidate `PKT`
+identities must be lineage-current under the adopted Slice 3 contract.
+Historical `PKT`/`CC` predecessors remain reopenable through lineage but are
+not legal current references. No checker or orchestrator auto-retargets one to
+its successor; a semantically appropriate successor must be proposed
+explicitly and freshly reviewed before S4-C2.
 
-- `source_entity_id`, `basis_packet_ids`, candidate `PKT` identities, and
-  affected `REL` identities must be lineage-current;
-- historical predecessors remain reopenable through lineage but are not
-  canonical endpoints;
-- no checker or orchestrator auto-retargets a predecessor to its successor;
-  and
-- if a current successor is semantically appropriate, a producer must propose
-  it explicitly and a fresh reviewer must review the changed subject.
+Slice 5 does not call a relation row lineage-current. It defines only this
+narrow consumption predicate:
+
+> **Eligible canonical relation:** a `REL-*` identity is eligible for a Slice
+> 5 `affected_relation_ids` reference if and only if it names exactly one
+> canonical row in `ledgers/relations.md` for the same current run; that row is
+> part of the closed canonical relation set serialized in S4-C1; the row is
+> structurally valid under the adopted Slice 4 contract and K2.16; its source
+> and any concrete durable target satisfy Slice 4 endpoint-currentness rules
+> while any source-locus target satisfies Slice 4 exact-reopening rules; and
+> the row has any one of the four adopted `record_state` values:
+> `asserted`, `unresolved-target`, `explicitly-absent`, or `indeterminate`.
+
+This is a Slice 5 read predicate over the closed Slice 4 artifact. It does not
+derive or imply:
+
+- a historical/current status for a relation row;
+- relation replacement, supersession, retraction, version, current pointer,
+  or rewind;
+- a relation predecessor or successor; or
+- automatic relation retargeting.
+
+If a referenced row becomes unusable because its underlying closed-run basis
+is changed under some separately authorized correction, Slice 5 does not
+invent a successor `REL-*` mechanism. The run follows the separately
+authorized correction/resumption contract if one applies and otherwise
+blocks without mutating or retargeting the relation or ambiguity record.
 
 ## 9. Bounded same-source search
 
@@ -810,11 +852,12 @@ and the fresh review result.
 
 - Producer: proposes exact candidates or typed null.
 - Fresh reviewer: challenges ambiguity existence, search boundary, candidate
-  legality, candidate adequacy, contamination, and affected relations.
+  legality, candidate adequacy, contamination, and affected relations,
+  including each affected relation's Slice 5 eligibility.
 - Orchestrator: validates structure and exact binding, then writes canonical
   rows at the legal barrier.
-- Checker: validates grammar, existence, same-source legality, currentness,
-  and binding.
+- Checker: validates grammar, existence, same-source candidate currentness,
+  eligible-relation consumption, and binding.
 - Human: may perform only a separately adopted authority function described
   in section 12; a human is not a candidate producer through this schema.
 
@@ -823,7 +866,10 @@ and the fresh review result.
 ### 11.1 Why resolution and carry are separate axes
 
 “Carried” is not a semantic resolution state. An ambiguity can be unresolved
-and either affect no relation or be explicitly carried to named relations.
+and either affect no relation or be explicitly carried to named relations. A
+locally resolved ambiguity can also retain a reviewed nonempty affected set as
+history of which relation interpretations depended on candidate selection,
+without carrying an unresolved caveat downstream.
 
 The design therefore uses:
 
@@ -861,7 +907,32 @@ or replace semantic uncertainty.
 - every named row is inside the exact review subject;
 - no transitive closure follows.
 
-### 11.3 Authority-derived lifecycle states
+### 11.3 Complete resolution/carry/affected-set matrix
+
+`affected_relation_ids = nonempty` means the assessment reviewed a material
+semantic dependency between the ambiguity and those exact eligible canonical
+relations. `carry_state` answers the narrower question of whether an
+**unresolved** qualification must continue downstream.
+
+| `resolution_state` | `carry_state` | `affected_relation_ids` | Legal? | Exact meaning |
+|---|---|---|---|---|
+| `resolved-local` | `none` | `none` | yes | The same-source candidate was upheld and no relation dependency was declared. |
+| `resolved-local` | `none` | nonempty | yes | Candidate selection was materially relevant to the named relation interpretations, but the ambiguity is locally resolved and no unresolved qualification is carried. |
+| `resolved-local` | `explicit` | `none` | no | Explicit carry cannot exist without an unresolved state or an affected relation. |
+| `resolved-local` | `explicit` | nonempty | no | A locally resolved ambiguity cannot carry an unresolved qualification. |
+| `unresolved` | `none` | `none` | yes | The ambiguity remains visible, but no relation effect is declared. |
+| `unresolved` | `none` | nonempty | no | A nonempty affected set on an unresolved ambiguity must be carried explicitly. |
+| `unresolved` | `explicit` | `none` | no | Explicit carry requires at least one exact affected relation. |
+| `unresolved` | `explicit` | nonempty | yes | The unresolved qualification is carried only to the finite reviewed set. |
+
+Therefore:
+
+- if `resolution_state = unresolved` and `affected_relation_ids` is nonempty,
+  `carry_state` must equal `explicit`; and
+- if `resolution_state = unresolved` and `carry_state = none`,
+  `affected_relation_ids` must equal `none`.
+
+### 11.4 Authority-derived lifecycle states
 
 The following derived states are defined semantically but are not legal in a
 future implementation until section 12's separate authority decision exists:
@@ -881,9 +952,9 @@ future implementation until section 12's separate authority decision exists:
 - original unresolved assessment remains visible; and
 - closure supplies no new corpus content.
 
-### 11.4 Closed transition rules
+### 11.5 Closed transition rules
 
-Before S4 closure, reviewed assessment history may contain:
+Before S4-C2 canonicalization, reviewed assessment history may contain:
 
 - `unresolved -> unresolved` after a changed search/candidate/affected-relation
   basis and a new exact review;
@@ -893,7 +964,7 @@ Before S4 closure, reviewed assessment history may contain:
 - `resolved-local -> resolved-local` after a changed pre-barrier basis and new
   review.
 
-After S4 closure:
+At and after S4-C2:
 
 - no T5.1 or T5.2 mutation is authorized;
 - no new T5.2 sequence is appended;
@@ -907,28 +978,52 @@ After S4 closure:
 
 ## 12. Human authority boundary
 
-### 12.1 Current adopted authority is insufficient
+### 12.1 Mechanics, ownership, and the missing decision category
 
-The current adopted stage architecture provides human authority surfaces for
-scope/sensitivity, external referents, acceptance, projection commission and
-acceptance, and named operational surprises. It does not establish a general
-human ambiguity closure or preservation gate between S4 and S5.
+The full authority basis is not silent:
 
-In particular:
+- adopted Slice 4 carries to Slice 5 ambiguity/referent identification,
+  propagation, carry, authority closure, and relation-null resolution;
+- the canonical Slice 5 plan names
+  `docs/architecture/04-pipeline-stages-and-dod.md` as an affected surface and
+  says existing human-gate mechanics can present a Core-defined closure
+  request; and
+- the audited Core-change design assigns humans the eventual role of
+  resolving or carrying source-internal referents where required.
 
-- S4 has no relation-specific authority gate;
-- Slice 4 expressly deferred any relation-specific closure;
-- S8 governs external referents, not source-internal antecedents;
-- S13 acceptance cannot silently rewrite closed S2-S4 semantic records; and
-- the retained SRC-001 calibration closure is development evidence, not a
-  general Core gate.
+Those statements establish Slice 5 ownership and available presentation
+mechanics. They do not by themselves establish the missing semantic authority
+category.
 
-Therefore this proposal does not assign T5.3 to an existing stage and does
-not invent a new stage or gate.
+The design therefore distinguishes four propositions:
+
+**A. Mechanics.** Existing host/human-gate mechanics may transport and present
+a Core-defined request. A thin adapter need not invent ambiguity semantics to
+display a request.
+
+**B. Decision category.** Current adopted doctrine does not clearly establish
+a human semantic decision category that may override or persist a result after
+a completed adverse or unresolved ambiguity review. S4 has no
+relation-specific authority gate; S8 governs external referents; and S13
+acceptance cannot silently rewrite closed S2-S4 semantic state.
+
+**C. Local semantic resolution.** A fresh reviewer may uphold
+`resolved-local` from frozen same-source material without human authority.
+That review supplies no new corpus fact and is canonicalized in T5.2 at
+S4-C2.
+
+**D. Human action.** A future `close-with-supported-candidate` action would be
+special because it would override or persist a result after semantic review,
+not because the human may introduce information. Even then, the candidate
+must already be inside the exact reviewed same-source set.
+
+Therefore this proposal keeps T5.3 inert. It does not assign T5.3 to an
+existing stage, activate an existing gate, or invent a new gate or decision
+category.
 
 ### 12.2 Blocking design question
 
-`OQ-01 — AMBIGUITY AUTHORITY PRESENTATION`
+`OQ-01 — AMBIGUITY AUTHORITY DECISION CATEGORY AND LEGAL ACTION`
 
 Classification:
 
@@ -941,9 +1036,15 @@ Backward authority:
 Question requiring separate human/architecture decision before
 implementation:
 
-> Is a Core ambiguity closure/preservation request legally presented at an
-> existing adopted human gate, and if so which exact gate and write barrier;
-> or must a separately adopted gate be created?
+> Does adopted Core doctrine authorize a human semantic action after an
+> unresolved or adverse ambiguity review to preserve unresolved state or
+> close with one already reviewed same-source candidate? If so, what exact
+> decision category, legal actions, stage/gate, authority-reference grammar,
+> and append barrier govern it?
+
+Which UI or host mechanism presents the request is secondary. Existing
+human-gate mechanics are capable of presentation but do not answer this
+decision-category question.
 
 Until that decision exists:
 
@@ -955,6 +1056,10 @@ Until that decision exists:
 - no S13 acceptance record may be treated as ambiguity closure; and
 - implementation of Slice 5 is blocked rather than silently omitting the
   authority part of the canonical slice basis.
+
+A fresh successor design audit must decide whether this repaired proposal is
+adoptable while OQ-01 remains implementation-blocking. This proposal does not
+resolve or adopt OQ-01 by interpretation.
 
 ### 12.3 Maximum permissible human action if later authorized
 
@@ -1003,40 +1108,105 @@ its sealed legal bundle. If local context is insufficient:
 
 ### 13.3 Relation availability
 
-Affected `REL-*` identities are not stable until S4 relation proposal,
-review, reconciliation, and canonical ID assignment.
+Affected `REL-*` identities are not available until S4 relation proposal,
+review, reconciliation, and canonical ID assignment are complete.
 
 Therefore:
 
 - ambiguity detection/search may occur earlier;
 - affected-relation proposals may be refined during S4;
-- T5.2's canonical affected set is reviewed after exact `REL-*` IDs exist;
-  and
-- canonical ambiguity finalization occurs after relations are canonicalized
-  but before S4 closes.
+- T5.2's canonical affected set is reviewed only after exact `REL-*` IDs exist
+  in S4-C1; and
+- canonical ambiguity finalization occurs in S4-C2, after relation
+  canonicalization and before S4-C3 exits to S5.
 
-### 13.4 Legal canonical write barrier
+### 13.4 Composite ordered S4 closure barrier
 
-For future `1.5.0-provisional` runs:
+For future `1.5.0-provisional` runs, **S4 closure is one composite ordered
+barrier**. Its ordered subphases are:
 
-- before S4 closure, the canonical ambiguity artifact is absent or contains
-  only the marker and empty canonical tables;
-- nonempty canonical ambiguity rows before the S4 finalization sub-barrier are
-  invalid;
-- at S4 closure/S5 entry, the marker and all three tables are required, even
-  when there are zero ambiguities;
-- every detected load-bearing ambiguity must have a final reviewed assessment;
-- every named relation must already exist and be current;
-- T5.3 remains empty until OQ-01 is resolved; and
-- after S4 closure, T5.1/T5.2 are read-only.
+**S4-C1 — RELATION CLOSURE STEP**
 
-The retained-state checker can prove only the allowed static shape at a
-declared stage. Manual procedure owns temporal enforcement unless later live
-writer wiring is separately validated. F-03/F-05 remain preserved.
+- all Slice 4 relation proposal, review, reconciliation, conflict handling,
+  and relation DoD are complete;
+- canonical `REL-*` rows are serialized;
+- exact relation identities become available for ambiguity assessment;
+- the resulting rows form the closed canonical relation set consumed by the
+  eligible-canonical-relation predicate; and
+- this serialization occurs in the first ordered subphase **of the S4 closure
+  barrier**, preserving Slice 4's adopted rule that canonical relation rows
+  are serialized only at that barrier.
+
+**S4-C2 — INTERNAL AMBIGUITY FINALIZATION STEP**
+
+- every `affected_relation_ids` value binds only an eligible canonical
+  relation serialized in S4-C1;
+- ambiguity assessment and exact-subject semantic review are complete;
+- canonical T5.1 and T5.2 rows are serialized;
+- the marker and all three canonical tables exist even when there are zero
+  ambiguities;
+- every detected load-bearing ambiguity has a final upheld reviewed
+  assessment; and
+- T5.3 remains empty while OQ-01 is unresolved.
+
+**S4-C3 — S4 EXIT**
+
+- relation and ambiguity closure Definitions of Done are complete;
+- `ledgers/relations.md` and T5.1/T5.2 become read-only;
+- the S4 exit event is retained; and
+- only then may the stage transition to S5.
+
+The retained phase representation is the existing append-only `run-log.md`
+event shape with these exact future Core marker lines:
+
+```text
+closure_phase: S4-C1-relations-closed
+closure_phase: S4-C2-ambiguities-finalized
+closure_phase: S4-C3-exit
+```
+
+The C1 and C2 markers occur in ordered `S4 — decision` entries. The C3 marker
+occurs in the `S4 — exit` entry. A retained `S5 — entry` is also post-C3
+evidence. The markers are monotonic and may not be skipped, duplicated, or
+reordered.
+
+This lets future K2.16/K2.17 inspect static retained state:
+
+| Highest retained phase | Permitted retained artifact state |
+|---|---|
+| no C1 marker | relation and ambiguity artifacts absent or marker plus empty canonical tables |
+| C1 only | closed canonical relation rows may exist; ambiguity artifact remains absent or marker plus empty tables |
+| C2 | relation rows and final T5.1/T5.2 state exist; T5.3 is empty while OQ-01 is unresolved |
+| C3 or S5 entry | the C2 state is complete and relation/T5.1/T5.2 artifacts are read-only |
+
+K2.17 may validate marker order and consistency between the highest retained
+phase and current bytes. It does not prove when a marker or row was actually
+appended. The orchestrator/manual procedure owns temporal ordering and
+write-window enforcement; process tests exercise refusal before bytes change.
+F-03/F-05 remain preserved.
+
+Establishing this composite barrier in a future implementation requires
+coordinated amendments to these current Core documents:
+
+- `docs/architecture/02-system-architecture.md` for the retained S4 phase
+  representation within `DISTILLING`;
+- `docs/architecture/03-artifact-contracts.md` for relation and ambiguity
+  activation/read-only rules;
+- `docs/architecture/04-pipeline-stages-and-dod.md` for S4-C1 through S4-C3
+  ordering and DoD;
+- `docs/architecture/templates/01-run-control.md` for the exact run-log phase
+  markers;
+- `docs/architecture/templates/03-extraction-claims.md` and
+  `docs/architecture/templates/04-evidence-boundaries.md` for the relation and
+  ambiguity artifact barriers;
+- `docs/architecture/08-runbook-agent-mode.md` and
+  `docs/architecture/09-runbook-manual-mode.md` for temporal procedure; and
+- `docs/architecture/checker-spec/K1-K2-fixtures-and-runs.md` for retained
+  phase-state checking and its historical-timing non-claim.
 
 ### 13.5 Late discovery
 
-An ambiguity discovered after S4 closure:
+An ambiguity discovered at or after S4-C2:
 
 - is recorded as a blocking run-log anomaly;
 - does not mutate T5.1/T5.2;
@@ -1072,7 +1242,8 @@ multiplicity does not make a relation affected.
 - Producer proposes affected relation IDs.
 - Fresh reviewer challenges omitted, over-broad, and contaminated entries.
 - Orchestrator writes only the reviewed exact set.
-- Checker validates identities/currentness/binding only.
+- Checker validates exact identity, eligible-canonical-relation consumption,
+  and binding only.
 
 The checker does not infer affectedness from relation family, subtype, path,
 cycle, source, target, or graph position.
@@ -1108,7 +1279,9 @@ it affected. No family is mechanically included or excluded solely by type.
 
 Special cautions:
 
-- a `resolved-local` ambiguity has `carry_state = none`;
+- a `resolved-local` ambiguity has `carry_state = none`, but may retain a
+  nonempty affected set as reviewed history of relation interpretations that
+  depended on the selected candidate;
 - a context relation does not become evidence;
 - carry does not automatically cross a relation merely because its role is
   resolved or context-only; that exact relation may be named only if its own
@@ -1129,6 +1302,14 @@ Where no such relation exists, Slice 5 does not fabricate one.
 
 This keeps the carry interface on the adopted Slice 4 relation boundary and
 prevents a second implicit dependency graph.
+
+**LATER limitation — relation-coverage bound:** Slice 5 carry completeness is
+bounded by the completeness of declared Slice 4 relations. If no relation
+exists for a materially affected downstream claim, Slice 5 cannot carry
+through an undeclared relation and must preserve the visible coverage gap.
+Later Slice 7 semantic coverage/review work may expose such gaps. This does
+not authorize relation-density targets, relation fabrication, A4-07, or Slice
+7 implementation.
 
 ### 14.7 Transitivity
 
@@ -1167,11 +1348,12 @@ The future checker protects the boundary by:
 
 - forbidding any derived/path/closure field;
 - requiring unique explicit `REL-*` IDs;
-- requiring every ID to exist and be current;
+- requiring every ID to satisfy the eligible-canonical-relation predicate;
 - binding the complete ordered set into the review subject;
 - rejecting any changed set with a stale review digest;
 - rejecting duplicate ambiguity definitions for one expression; and
-- rejecting any nonempty carry state with `affected_relation_ids = none`.
+- enforcing every legal and forbidden combination in the section 11.3
+  matrix.
 
 This detects unauthorized structural expansion. It cannot prove that a
 structurally reviewed relation is semantically related; that remains a review
@@ -1292,16 +1474,16 @@ architecture.
 
 ### 17.1 Ambiguity discovered after a candidate claim exists
 
-Before S4 closure:
+Before S4-C2:
 
 - retain the candidate claim;
 - create an ambiguity proposal bound to its exact current `CC`/packet basis;
 - perform same-source search and review;
 - revise relation proposals if semantically required;
 - do not rewrite claim history; and
-- finalize only at the S4 barrier.
+- finalize only in S4-C2 of the composite S4 closure barrier.
 
-After S4 closure:
+At or after S4-C2:
 
 - block;
 - record the anomaly;
@@ -1311,14 +1493,14 @@ After S4 closure:
 
 ### 17.2 Changed candidate antecedent
 
-Before S4 closure:
+Before S4-C2:
 
 - append a new T5.2 assessment sequence;
 - bind the changed candidate set;
 - obtain a new exact review;
 - retain the earlier assessment.
 
-After S4 closure:
+At or after S4-C2:
 
 - no automatic change;
 - no successor ambiguity is implicitly created;
@@ -1345,16 +1527,26 @@ reused.
 
 - no auto-retargeting;
 - no successor substitution based solely on graph lineage;
-- before S4 closure, a producer may explicitly propose the current successor
-  and obtain a fresh review;
-- after S4 closure, the mismatch blocks.
+- before S4-C2, a producer may explicitly propose a current successor
+  `PKT`/`CC` reference and obtain a fresh review;
+- at or after S4-C2, the mismatch blocks.
 
-### 17.7 Terminalized target
+This subsection does not apply a lineage relation to `REL-*` rows. If the
+closed basis of an affected relation becomes unusable under a separately
+authorized correction, section 8.3's fail-closed rule applies; Slice 5 does
+not select or manufacture a successor relation.
 
-If a candidate packet, source entity, or affected relation is terminal before
-S4 finalization, it is not a legal current reference. The producer must either
-propose an explicit current endpoint under fresh review or retain an
-unresolved/null result.
+### 17.7 Unusable reference basis
+
+If a candidate packet or source entity is terminal before S4-C2, it is not a
+legal current reference. The producer must either propose an explicit current
+`PKT`/`CC` successor under fresh review or retain an unresolved/null result.
+
+If an affected relation fails the eligible-canonical-relation predicate, it
+cannot be referenced. Slice 5 does not infer relation history or retarget it;
+the relation must be made structurally valid through separately authorized
+Slice 4/correction procedure before S4-C1, or the ambiguity assessment must
+omit it under fresh semantic review and preserve any resulting coverage gap.
 
 ### 17.8 Successor ambiguity records
 
@@ -1399,8 +1591,12 @@ Future behavior:
 - later formats must continue capability-based activation rather than exact
   version equality.
 
-This proposal does not change the current run format, registry, manifest,
-checker, fixtures, runtime JS, or bundle.
+Relative to the canonical base, this design PR changes
+`core.manifest.json` only by adding this proposal path to
+`files.repository_administration`. It does not change current run-format
+manifest values, the Core payload inventory, checker inventory, bundle inputs,
+checker source, fixtures, runtime JS, or adapters. This successor repair does
+not change `core.manifest.json` again.
 
 ### 18.2 Checker number
 
@@ -1422,10 +1618,11 @@ K2.17 may prove only declared structure.
 - exactly one of each canonical table;
 - exact column order;
 - no unknown columns;
-- required empty/nonempty shape by declared stage;
+- exact S4-C1/S4-C2/S4-C3 marker vocabulary, order, and uniqueness;
+- required empty/nonempty shape for the highest retained closure phase;
 - absent/inactive behavior for 1.0-1.4;
-- required artifact at 1.5 S4 closure/S5 entry;
-- no nonempty canonical rows before the legal barrier.
+- required artifact at 1.5 S4-C2, S4-C3, and S5 entry; and
+- no nonempty canonical ambiguity rows in a retained pre-C2 phase.
 
 ### 19.2 Identity and expression basis
 
@@ -1463,12 +1660,14 @@ K2.17 may prove only declared structure.
 
 ### 19.5 Relations and carry
 
-- affected `REL-*` exists and is current;
+- every affected `REL-*` satisfies the eligible-canonical-relation predicate,
+  including exact-one same-run resolution, S4-C1 membership, K2.16 structural
+  validity, and Slice 4 endpoint rules;
+- every adopted Slice 4 `record_state` is permitted by that predicate;
 - unique canonical order;
 - no automatic/derived/path fields;
-- compatible resolution/carry state;
-- explicit carry has at least one affected relation;
-- resolved-local has no carry;
+- all eight section 11.3 matrix combinations are accepted or rejected exactly
+  as specified;
 - one relation may appear under multiple ambiguities without changing evidence
   role.
 
@@ -1491,7 +1690,9 @@ Until OQ-01 is resolved:
 
 - T5.3 must be empty.
 
-If later activated:
+The following are not active K2.17 responsibilities in this proposal. If
+OQ-01 is resolved and a separate adopted design activates them, that design
+may add deterministic retained-state checks for:
 
 - action vocabulary;
 - exact bound assessment;
@@ -1510,17 +1711,34 @@ K2.17 does not:
 - detect an ambiguity from prose;
 - decide whether an expression is ambiguous;
 - select the correct antecedent;
-- judge semantic completeness of a source search;
+- judge cognitive or semantic adequacy of a source search;
 - decide which relations are actually affected;
 - infer propagation from paths or cycles;
+- prove reviewer independence;
+- prove the historical append time of a relation, ambiguity row, or phase
+  marker;
 - decide whether authority should close or preserve;
+- decide the legal semantics of a human authority action;
 - supply an external referent;
 - turn `CANNOT_DETERMINE` into resolution;
-- judge reviewer independence from field presence;
 - validate truth;
 - grant acceptance or sanction.
 
 A K2.17 PASS is structural only.
+
+### 19.9 Responsibility classification
+
+Every proposed responsibility is classified as follows:
+
+| Classification | Exact responsibilities |
+|---|---|
+| `DETERMINISTIC RETAINED-STATE` | All active checks in §§19.1-19.6; exact T5.3 emptiness while OQ-01 is unresolved; exact closure-phase marker syntax/order and consistency with retained bytes. |
+| `PROCESS/TEMPORAL` | Enforce actual REL serialization only in S4-C1; actual T5.1/T5.2 serialization only in S4-C2; refuse writes before their phase and after S4-C3/S5 before bytes change; append phase markers only after the corresponding procedure succeeds; preserve separate producer/reviewer passes. |
+| `SEMANTIC REVIEW` | Detect missing prose ambiguity; judge ambiguity existence, candidate correctness, source-search cognitive adequacy, affected-relation semantic correctness or completeness, contamination, and whether a declared relation is materially affected; challenge cycle/reachability reasoning; assess reviewer independence through process evidence rather than fields. |
+| `AUTHORITY-DEPENDENT` | Any positive T5.3 action, decision-category legality, action semantics, gate/stage choice, authority-reference grammar, closure provenance, or human override/preservation behavior. These remain disabled until OQ-01 is separately adopted. |
+
+K2.17 implements only the active `DETERMINISTIC RETAINED-STATE` row. The
+other rows are explicit evidence partitions, not hidden deterministic claims.
 
 ## 20. Prompt and worker roles
 
@@ -1553,7 +1771,9 @@ The fresh reviewer:
 - challenges expression/locus accuracy;
 - challenges local versus full-source search scope;
 - challenges candidate correctness and completeness;
-- challenges same-source legality/currentness;
+- challenges same-source candidate legality/currentness;
+- challenges whether every affected `REL-*` is an eligible canonical
+  relation and whether the finite set is semantically accurate;
 - challenges omitted or over-broad affected relations;
 - challenges answer-key, external-world, later-source, and projection
   contamination;
@@ -1568,12 +1788,13 @@ The orchestrator:
 
 - remains the only canonical writer;
 - validates worker-return shape;
-- validates exact source/search/candidate/currentness references;
+- validates exact source/search/candidate currentness and affected-relation
+  eligibility;
 - computes or verifies exact review-subject serialization;
 - resolves one exact `VER-*`;
 - rejects stale or non-upheld subjects;
 - assigns `AMB-*` and assessment sequence;
-- writes T5.1/T5.2 only at the S4 finalization barrier;
+- writes T5.1/T5.2 only in S4-C2 of the composite closure barrier;
 - leaves T5.3 empty absent OQ-01 authority;
 - blocks on late discovery or contamination that cannot be cleanly
   redispatched; and
@@ -1665,8 +1886,10 @@ S5 may begin with unresolved ambiguity only when:
 
 - the exact ambiguity is canonical and reviewed;
 - search accounting is complete for its declared state;
-- affected relations are explicit and reviewed;
-- carry state is structurally valid;
+- affected relations are explicit, reviewed, and eligible canonical
+  relations;
+- resolution, carry, and affected-set state matches the complete section 11.3
+  matrix;
 - no illegal outside candidate is present;
 - no required late correction is hidden; and
 - the unresolved state remains visible.
@@ -1727,24 +1950,52 @@ Future path:
 The fixture is synthetic, compact, and designed around proposition coverage,
 not final SRC-001 density.
 
-### 24.1 Fixture branches
+### 24.1 Positive fixture branches
 
 | Branch | Required proposition |
 |---|---|
-| F5-01 local antecedent | One exact expression has one same-source `PKT`/locus candidate and an upheld `resolved-local` assessment. |
-| F5-02 null antecedent | One expression has `null-no-candidate` after full same-source accounting. |
-| F5-03 multiple candidates | One expression retains two plausible same-source candidates and remains unresolved. |
+| F5-01 local antecedent, empty dependency set | One exact expression has one same-source candidate and an upheld `resolved-local / none / none` assessment. |
+| F5-02 resolved dependency history | One `resolved-local / none / nonempty` assessment names an eligible canonical asserted relation, recording reviewed dependency without unresolved carry. |
+| F5-03 unresolved without relation effect | One expression has `null-no-candidate` after full same-source accounting and uses `unresolved / none / none`. |
 | F5-04 CANNOT_DETERMINE | One expression has `null-cannot-determine`; the result stays visible through S5 input. |
-| F5-05 carried ambiguity | One unresolved ambiguity has `carry_state = explicit` and names two exact affected relations. |
-| F5-06 unrelated descendant | One reachable relation/descendant is deliberately absent from the affected set. |
-| F5-07 permitted cycle | Two valid Slice 4 context relations form a permitted cycle; only the explicitly reviewed member is affected and no traversal occurs. |
-| F5-08 lineage currentness | A historical packet predecessor is rejected as a candidate; its explicitly reviewed current successor is legal. |
-| F5-09 many-to-many | One ambiguity affects multiple relations and one relation is named by two ambiguities without changing relation/evidence semantics. |
-| F5-10 S5 separation | Existing disposition vocabulary remains unchanged and no automatic outcome is selected. |
-| F5-11 S8 separation | An unresolved internal ambiguity does not create a `REF-*`; a distinct branch demonstrates the separately reviewed handoff condition. |
-| F5-12 relation/evidence separation | Relation and ambiguity rows add no support/evidence-role fields and do not change evidence-role accounting. |
+| F5-05 multiple candidates | One expression retains two plausible same-source candidates and remains unresolved. |
+| F5-06 explicit carry to asserted and typed-null relations | One `unresolved / explicit / nonempty` assessment names both an eligible asserted row and an eligible typed-null Slice 4 row, such as `record_state = unresolved-target`. |
+| F5-07 unrelated relation not affected | One reachable or adjacent eligible relation is deliberately absent from the reviewed affected set. |
+| F5-08 permitted cycle without propagation | Two valid Slice 4 context relations form a permitted cycle; only an explicitly reviewed member is named and no traversal or multiplication occurs. |
+| F5-09 packet lineage currentness | A historical packet predecessor is rejected as a candidate; its explicitly reviewed current successor is legal. No relation predecessor is invented. |
+| F5-10 many-to-many | One ambiguity affects multiple relations and one relation is named by two ambiguities without changing relation/evidence semantics. |
+| F5-11 S5 separation | Existing disposition vocabulary remains unchanged and no automatic outcome is selected. |
+| F5-12 S8 separation | An unresolved internal ambiguity does not create a `REF-*`; a distinct branch demonstrates the separately reviewed handoff condition. |
+| F5-13 relation/evidence separation | Relation and ambiguity rows add no support/evidence-role fields and do not change evidence-role accounting. |
 
-### 24.2 Authority fixture branch
+### 24.2 Complete matrix cases
+
+The clean fixture and its targeted mutation copies cover every matrix row:
+
+| Case | Expected result |
+|---|---|
+| `resolved-local / none / none` | positive |
+| `resolved-local / none / nonempty` | positive |
+| `resolved-local / explicit / none` | negative |
+| `resolved-local / explicit / nonempty` | negative |
+| `unresolved / none / none` | positive |
+| `unresolved / none / nonempty` | negative |
+| `unresolved / explicit / none` | negative |
+| `unresolved / explicit / nonempty` | positive |
+
+### 24.3 Relation-eligibility negative cases
+
+At least one targeted negative must reference a `REL-*` row that exists once
+but fails the eligible-canonical-relation predicate because the row is
+structurally invalid under K2.16, for example an `unresolved-target` row that
+illegally retains a concrete target. A second exact-one negative duplicates
+the same `REL-*` identity in the canonical relation table.
+
+Neither case invents a historical relation predecessor. A missing `REL-*`
+case remains useful but is not sufficient by itself to prove the full
+eligibility predicate.
+
+### 24.4 Authority fixture branch
 
 Current adopted authority does not support T5.3 activation. Therefore the
 initial focused fixture must:
@@ -1764,7 +2015,7 @@ separately adopted authority design to add:
 
 This deferral is explicit rather than a hidden invented gate.
 
-### 24.3 Prompt hygiene
+### 24.5 Prompt hygiene
 
 - no expected `AMB-*`, candidate, or affected relation answer appears in a
   producer bundle;
@@ -1776,131 +2027,173 @@ This deferral is explicit rather than a hidden invented gate.
 N-09/A-03's positive nonzero evidence-role coexistence fixture remains LATER.
 F5-12 proves non-conflation without claiming to close that separate finding.
 
-## 25. Future deterministic mutation battery
+## 25. Future evidence partition
 
-The future battery must include at least the following structural mutations.
-Every mutation starts from a clean focused fixture copy and proves only the
-named fail-closed property.
+The successor design partitions future evidence into four disjoint classes:
 
-### 25.1 Artifact, identity, and expression
+- 71 deterministic retained-state K2.17 mutations;
+- 6 process/temporal tests;
+- 16 fresh-context semantic challenges in section 26; and
+- 10 authority-dependent cases disabled until OQ-01 is resolved.
 
-1. remove `ambiguity_id`;
-2. duplicate an `AMB-*`;
-3. duplicate the same exact expression under another `AMB-*`;
-4. remove expression byte basis;
-5. use a non-reopenable locator;
-6. alter expression bytes without changing hash;
-7. alter hash without changing bytes;
-8. split a UTF-8 code point;
-9. use an expression interval outside the source;
-10. use a nonexistent source entity;
-11. use a historical source entity predecessor;
-12. use a packet basis that does not cover the expression.
+Every deterministic mutation starts from a clean focused fixture copy and
+proves only the named fail-closed retained-state property.
 
-Additional dropped-ambiguity structural mutation:
+Predecessor mutation dispositions:
 
-- remove a T5.1 definition while retaining its T5.2 assessment or another
-  exact reference to its `AMB-*`; K2.17 must fail the orphan.
+- predecessor mutation 47's genuinely semantic “cycle-caused propagation
+  explosion” remains SC5-11; exact duplicate/path-derived structural variants
+  are DM5-049 and DM5-050;
+- predecessor mutation 75 becomes DM5-067, which relies on the exact retained
+  S4-C2 phase marker; and
+- predecessor mutation 77 moves to PT5-05 because final bytes cannot prove
+  historical append timing.
+
+### 25.1 Deterministic retained-state: artifact, identity, and expression
+
+- `DM5-001` remove `ambiguity_id`;
+- `DM5-002` duplicate an `AMB-*`;
+- `DM5-003` duplicate the same exact expression under another `AMB-*`;
+- `DM5-004` remove expression byte basis;
+- `DM5-005` use a non-reopenable locator;
+- `DM5-006` alter expression bytes without changing hash;
+- `DM5-007` alter hash without changing bytes;
+- `DM5-008` split a UTF-8 code point;
+- `DM5-009` use an expression interval outside the source;
+- `DM5-010` use a nonexistent source entity;
+- `DM5-011` use a historical source-entity predecessor;
+- `DM5-012` use a packet basis that does not cover the expression; and
+- `DM5-013` remove a T5.1 definition while retaining its T5.2 assessment or
+  another exact `AMB-*` reference.
 
 Removing an otherwise self-contained ambiguity unit together with every
-reference is not mechanically distinguishable from a missed ambiguity in
-prose. That case belongs to semantic challenge SC5-02 and must not be
-misrepresented as K2 detection.
+reference is not mechanically distinguishable from a missed prose ambiguity.
+That case remains SC5-02.
 
-### 25.2 Search boundary
+### 25.2 Deterministic retained-state: search boundary
 
-13. candidate/search source differs from expression source;
-14. local scope names a nonexistent `WLK-*`;
-15. local scope crosses sources;
-16. full scope names a stale/nonterminal cursor;
-17. full scope binds the wrong source hash;
-18. multiple/null candidate state uses only local scope;
-19. alter search basis with stale digest;
-20. omit required full-source completion.
+- `DM5-014` candidate/search source differs from expression source;
+- `DM5-015` local scope names a nonexistent `WLK-*`;
+- `DM5-016` local scope crosses sources;
+- `DM5-017` full scope names a stale/nonterminal cursor;
+- `DM5-018` full scope binds the wrong source hash;
+- `DM5-019` multiple/null candidate state uses only local scope;
+- `DM5-020` alter search basis with stale digest; and
+- `DM5-021` omit required full-source completion.
 
-### 25.3 Candidate/null
+### 25.3 Deterministic retained-state: candidate/null
 
-21. use a candidate outside the same source;
-22. use a nonexistent candidate packet;
-23. use a historical candidate predecessor;
-24. use a `CC` candidate;
-25. use a prose-only candidate;
-26. use a URL/external candidate;
-27. use malformed candidate JSON;
-28. use malformed typed null;
-29. mix null and non-null candidates;
-30. declare `single` with two candidates;
-31. declare `multiple` with one candidate;
-32. add a confidence score;
-33. claim `resolved-local` from multiple/null;
-34. invent a local candidate without an exact upheld review.
+- `DM5-022` use a candidate outside the same source;
+- `DM5-023` use a nonexistent candidate packet;
+- `DM5-024` use a historical candidate predecessor;
+- `DM5-025` use a `CC` candidate;
+- `DM5-026` use a prose-only candidate;
+- `DM5-027` use a URL/external candidate;
+- `DM5-028` use malformed candidate JSON;
+- `DM5-029` use malformed typed null;
+- `DM5-030` mix null and non-null candidates;
+- `DM5-031` declare `single` with two candidates;
+- `DM5-032` declare `multiple` with one candidate;
+- `DM5-033` add a confidence score;
+- `DM5-034` claim `resolved-local` from multiple/null; and
+- `DM5-035` invent a local candidate without an exact upheld review.
 
-### 25.4 Affected relations and propagation
+### 25.4 Deterministic retained-state: affected relations and matrix
 
-35. omit a required affected-relation field;
-36. name a nonexistent `REL-*`;
-37. name a historical/noncurrent relation endpoint state where forbidden;
-38. duplicate an affected relation;
-39. use noncanonical affected-relation order;
-40. set explicit carry with no affected relation;
-41. set explicit carry on `resolved-local`;
-42. remove an affected relation without recomputing the review subject;
-43. add an unrelated relation without recomputing review subject;
-44. simulate indiscriminate transitive expansion with stale review binding;
-45. add path/derived-closure metadata forbidden by schema;
-46. duplicate rows through a permitted cycle;
-47. simulate cycle-caused propagation explosion;
-48. mutate a canonical `REL-*` row to store ambiguity state;
-49. add ambiguity as a relation family/subtype;
-50. add ambiguity as an evidence-role field.
+- `DM5-036` omit the required affected-relation field;
+- `DM5-037` name a nonexistent `REL-*`;
+- `DM5-038` reference a `REL-*` row that exists once but is structurally
+  invalid under K2.16, such as an `unresolved-target` row with a concrete
+  target;
+- `DM5-039` make one affected `REL-*` identity resolve to two canonical
+  relation rows;
+- `DM5-040` duplicate an affected relation ID in one assessment;
+- `DM5-041` use noncanonical affected-relation order;
+- `DM5-042` use `unresolved / none / nonempty`;
+- `DM5-043` use `unresolved / explicit / none`;
+- `DM5-044` use `resolved-local / explicit / none`;
+- `DM5-045` use `resolved-local / explicit / nonempty`;
+- `DM5-046` remove an affected relation without recomputing the review
+  subject;
+- `DM5-047` add an unrelated relation without recomputing the review subject;
+- `DM5-048` add transitive/path-derived affected IDs with stale review
+  binding;
+- `DM5-049` add a forbidden path/derived-closure field;
+- `DM5-050` duplicate an `(AMB, assessment_seq, REL)` tuple in response to a
+  permitted relation cycle;
+- `DM5-051` mutate a canonical `REL-*` row to store ambiguity state;
+- `DM5-052` add ambiguity as a relation family/subtype; and
+- `DM5-053` add ambiguity as an evidence-role field.
 
-If mutation 42, 43, or 44 also supplies a fresh structurally valid upheld
-review,
-K2.17 cannot determine semantic unrelatedness; that variant belongs to the
-semantic challenge set.
+If DM5-047 or DM5-048 supplies a fresh structurally valid upheld review,
+K2.17 cannot determine semantic unrelatedness or over-propagation. Those
+variants belong to SC5-10 and SC5-11.
 
-### 25.5 Assessment/review history
+### 25.5 Deterministic retained-state: assessment/review history
 
-51. noncontiguous assessment sequence;
-52. wrong predecessor sequence;
-53. illegal state-field combination;
-54. changed candidate with stale review;
-55. changed affected set with stale review;
-56. changed search basis with stale review;
-57. wrong verifier target;
-58. nonexistent verifier;
-59. duplicate verifier identity;
-60. `refuted` verdict used as authorization;
-61. reviewer `cannot-determine` used as authorization;
-62. authority/reference text used in place of semantic review.
+- `DM5-054` use a noncontiguous assessment sequence;
+- `DM5-055` use the wrong predecessor sequence;
+- `DM5-056` change a candidate with stale review;
+- `DM5-057` change the affected set with stale review;
+- `DM5-058` change the search basis with stale review;
+- `DM5-059` use the wrong verifier target;
+- `DM5-060` cite a nonexistent verifier;
+- `DM5-061` cite a duplicate verifier identity;
+- `DM5-062` use a `refuted` verdict as authorization;
+- `DM5-063` use reviewer `cannot-determine` as authorization; and
+- `DM5-064` use authority/reference text in place of semantic review.
 
-### 25.6 Authority boundary
+### 25.6 Deterministic retained-state: inactive authority surface
 
-Before OQ-01 resolution:
+- `DM5-065` add any nonempty T5.3 row while OQ-01 is unresolved.
 
-63. any nonempty authority row;
-64. closed state without adopted authority capability;
-65. preserved state without adopted authority capability.
+### 25.7 Deterministic retained-state: phase and format
 
-After a separately authorized implementation:
+- `DM5-066` activate the artifact under run format 1.0-1.4;
+- `DM5-067` retain nonempty canonical ambiguity rows while the highest
+  closure phase is earlier than S4-C2;
+- `DM5-068` omit the required artifact or final T5.1/T5.2 state at S4-C2,
+  S4-C3, or S5 entry;
+- `DM5-069` retain ambiguity rows without the 1.5 capability;
+- `DM5-070` register a later run format that loses a prior cumulative
+  capability; and
+- `DM5-071` duplicate, skip, or reorder the retained S4-C1/S4-C2/S4-C3 phase
+  markers.
 
-66. authority reference to wrong subject;
-67. changed subject with stale authority response;
-68. close action selects a candidate not in the reviewed set;
-69. preserve action supplies a candidate;
-70. `CANNOT_DETERMINE` converted to resolved without valid action;
-71. human closure introduces an external fact/prose candidate;
-72. model identity used as authority;
-73. authority history overwritten or sequence skipped.
+DM5-067 and DM5-071 prove only consistency between retained marker state and
+retained bytes. They do not prove historical append timing.
 
-### 25.7 Stage and format
+### 25.8 Process/temporal tests
 
-74. active artifact under run format 1.0-1.4;
-75. canonical nonempty artifact before the S4 finalization barrier;
-76. missing required artifact at S4 closure/S5 entry;
-77. late append to T5.1/T5.2 after S4 closure;
-78. ambiguity rows present without the 1.5 capability;
-79. later run format loses a prior cumulative capability.
+These are not K2 mutations:
+
+- `PT5-01` refuse a canonical relation append before S4-C1 before bytes
+  change;
+- `PT5-02` serialize the reviewed relation set in S4-C1 and expose exact
+  `REL-*` identities only after relation closure succeeds;
+- `PT5-03` refuse S4-C2 ambiguity finalization before S4-C1 completes;
+- `PT5-04` refuse T5.1/T5.2 canonical append before S4-C2 before bytes change;
+- `PT5-05` refuse any T5.1/T5.2 append after S4-C2, S4-C3, or S5 entry before
+  bytes change; and
+- `PT5-06` demonstrate the legal C1 → C2 → C3 sequence and refuse S5 entry
+  until both relation and ambiguity closure DoD are complete.
+
+### 25.9 Authority-dependent cases
+
+These cases are specified but disabled until OQ-01 is resolved by separately
+adopted authority doctrine:
+
+- `AD5-01` valid `preserve-unresolved` positive;
+- `AD5-02` valid `close-with-supported-candidate` positive;
+- `AD5-03` authority reference bound to the wrong subject;
+- `AD5-04` changed assessment basis with stale authority response;
+- `AD5-05` close action selects a candidate outside the reviewed set;
+- `AD5-06` preserve action supplies a candidate;
+- `AD5-07` convert `CANNOT_DETERMINE` to resolved without a valid action;
+- `AD5-08` introduce an external fact, new candidate, or prose answer through
+  human closure;
+- `AD5-09` use a model identity as authority; and
+- `AD5-10` overwrite authority history or skip its sequence.
 
 ## 26. Fresh-context semantic challenge set
 
@@ -1937,7 +2230,7 @@ No finding below is opportunistically repaired by this proposal.
 
 | Finding | Classification | Backward authority | Slice 5 disposition |
 |---|---|---|---|
-| OQ-01 ambiguity authority presentation | BLOCKING NOW | authority/doctrine | Current adopted architecture does not locate a legal closure/preservation gate. Implementation must not begin until a separate adopted decision resolves it. |
+| OQ-01 ambiguity authority decision category and legal action | BLOCKING NOW | authority/doctrine | Existing human-gate mechanics may present a Core-defined request, but current adopted doctrine does not clearly authorize the post-review human semantic decision category or its legal actions. T5.3 and all authority-positive cases remain disabled; implementation must not begin until a separate adopted decision resolves it. |
 
 ### 27.2 MUST PRESERVE
 
@@ -1960,6 +2253,8 @@ No finding below is opportunistically repaired by this proposal.
 | N-09 / A-03 positive nonzero evidence-role coexistence fixture | LATER | proof/checking | The Slice 5 fixture proves separation but does not claim this separate positive coexistence fixture. |
 | A-01 VER heading comparison over-rejects trailing horizontal whitespace | LATER | local implementation | No verifier parser repair. Fail-closed behavior remains. |
 | A-02 Slice 4 VER lens/consequence exemplars differ from T7.1 forms | LATER | contract/interface | No Slice 4 fixture/exemplar repair. Slice 5 defines its own future target contract. |
+| S5-F09 relation-coverage completeness bound | LATER | semantic coverage/review | Slice 5 carry completeness is bounded by the completeness of declared Slice 4 relations. If no relation exists for a materially affected downstream claim, Slice 5 does not fabricate one and cannot carry through an undeclared relation. Later Slice 7 semantic coverage/review work may expose such gaps; this does not authorize density targets, relation fabrication, A4-07, or Slice 7 implementation. |
+| Slice 4 implementation reconciliation DoD-21 wording | LATER / OUT OF SCOPE | local reconciliation | The pre-existing wording is not edited or re-adjudicated by this design repair. |
 
 ### 27.4 Confirmed correct
 
@@ -1970,13 +2265,13 @@ No finding below is opportunistically repaired by this proposal.
 ## 28. Future implementation Definition of Done
 
 A future authorized Slice 5 implementation is structurally complete only when
-all 28 items below hold. Every item is OPEN in this proposal.
+all 33 items below hold. Every item is OPEN in this proposal.
 
-1. The exact immutable proposal bytes, or an exact amended successor, are
-   adopted by human authority.
+1. The exact immutable repaired successor design has received a fresh
+   independent design audit and is then adopted by human authority.
 2. OQ-01 is resolved by a separate adopted authority/architecture decision
-   naming the legal gate, stage, decisions, authority-reference grammar, and
-   append barrier.
+   naming the post-review human decision category, legal actions, stage/gate,
+   authority-reference grammar, and append barrier.
 3. `1.5.0-provisional` and cumulative `internal-ambiguity-lifecycle`
    capability activation are consistent across Core contracts, model,
    checker, runtime projection, and manifests.
@@ -1996,86 +2291,148 @@ all 28 items below hold. Every item is OPEN in this proposal.
 11. Multiple candidates and both typed-null states remain distinct and
     `CANNOT_DETERMINE` remains visible.
 12. Candidate confidence/ranking and arbitrary prose antecedents are rejected.
-13. Affected relation IDs are explicit, reviewed, current declarations and no
-    relation row is mutated.
-14. Unrelated descendants do not inherit ambiguity mechanically.
-15. No transitive propagation, graph closure, path inference, or automatic
-    endpoint retargeting exists.
-16. Permitted relation cycles remain finite and do not multiply ambiguity
+13. `affected_relation_ids` implements the exact eligible-canonical-relation
+    consumption predicate: exact-one same-run row, S4-C1 closed-set
+    membership, K2.16 validity, Slice 4 endpoint rules, and acceptance of all
+    four adopted `record_state` values without relation lineage.
+14. The complete eight-row
+    resolution/carry/affected-set matrix is implemented exactly, including
+    legal `resolved-local / none / nonempty` dependency history.
+15. Affected relation IDs are finite explicit reviewed declarations and no
+    relation row stores or is mutated by ambiguity state.
+16. Unrelated descendants do not inherit ambiguity, and no transitive
+    propagation, graph closure, path inference, relation lifecycle, or
+    automatic endpoint retargeting exists.
+17. Permitted relation cycles remain finite and do not multiply ambiguity
     state or evidence.
-17. Exact ambiguity review-subject serialization, digest, verifier target,
+18. Exact ambiguity review-subject serialization, digest, verifier target,
     allowed verdicts, and stale-review behavior match this design.
-18. Human authority, if activated under OQ-01's decision, can only preserve
-    unresolved state or select an already reviewed same-source candidate and
-    can never add corpus facts.
-19. Changed authority basis invalidates automatic response carry-forward and
-    prior state remains inspectable.
-20. S2/S3/S4 detection, S4 finalization, S5 entry, late-discovery blocking,
-    and read-only barriers are implemented and documented.
-21. S5 receives ambiguity as visible input but no disposition vocabulary or
+19. The composite ordered S4 barrier is implemented as S4-C1 relation
+    closure, S4-C2 ambiguity finalization, and S4-C3 exit, without moving REL
+    serialization outside the adopted S4 closure barrier.
+20. Exact retained phase markers are monotonic and K2.17 validates only their
+    static consistency with retained bytes, never historical timing.
+21. Manual/orchestrator temporal enforcement and all six PT5 process tests
+    refuse out-of-window writes before bytes change.
+22. Fresh same-source review may establish `resolved-local` without human
+    authority, while T5.3 remains empty and all authority-positive behavior
+    remains disabled until OQ-01 is resolved.
+23. Human authority, if later activated under OQ-01's adopted decision, can
+    only preserve unresolved state or select an already reviewed same-source
+    candidate, can never add corpus facts, and cannot reuse a stale subject.
+24. S5 receives ambiguity as visible input but no disposition vocabulary or
     mechanical selection changes.
-22. S8 remains separate and no unresolved internal ambiguity automatically
+25. S8 remains separate and no unresolved internal ambiguity automatically
     creates an external referent.
-23. Correction/effective-state interaction remains narrow, append-only before
-    the barrier, and fail closed after it without generic correction
-    machinery.
-24. K2.17 implements the complete deterministic/non-deterministic split and
-    reports PASS as structural only.
-25. The focused fixture covers every branch in section 24, with authority
-    positives only after OQ-01 is resolved.
-26. The deterministic mutation battery and fresh-context semantic challenge
-    set are implemented and pass on the exact candidate.
-27. TypeScript canonical source and locked `runtime-js` projection are in
+26. Correction/effective-state interaction remains narrow, append-only only
+    in the legal pre-exit phases, and fail closed after S4-C3 without generic
+    correction or relation-successor machinery.
+27. K2.17 implements only deterministic retained-state responsibilities,
+    reports PASS as structural only, and preserves the process/semantic/
+    authority non-claims in section 19.
+28. The focused fixture covers every section 24 branch, both eligible asserted
+    and typed-null relations, the complete matrix, a noneligible relation
+    reference, a permitted cycle without propagation, and an unrelated
+    relation not affected.
+29. All 71 DM5 deterministic retained-state mutations fail for the intended
+    reason while the clean fixture passes.
+30. All 6 PT5 process tests and 16 SC5 semantic challenges are implemented;
+    the 10 AD5 authority-dependent cases remain disabled until OQ-01 is
+    separately resolved and then must be implemented under that adopted
+    contract.
+31. The late relation-coverage limitation is documented: Slice 5 cannot carry
+    through an undeclared relation, does not fabricate one, and does not claim
+    Slice 7 coverage, density targets, or A4-07.
+32. TypeScript canonical source and locked `runtime-js` projection are in
     parity; Core boundary, checker digest accounting, bundle equality, and
     adapter boundary tests pass without adapter-local ambiguity semantics.
-28. A fresh independent implementation audit reviews the exact commit/tree,
-    reproduces the complete structural battery, and returns an explicit
+33. A fresh independent implementation audit reviews the exact commit/tree,
+    reproduces the complete partitioned evidence, and returns an explicit
     implementation verdict; that verdict still does not establish replay,
     semantic validation, sanction, acceptance, production readiness, golden
     status, or v1.
 
 ## 29. Self-audit
 
-The proposal was attacked against the requested failure modes.
+### 29.1 Preserved predecessor audit history
 
-| Attack | Result | Classification or design control |
-|---|---|---|
-| invented human gate | SURVIVES AS EXPLICIT GAP | OQ-01 BLOCKING NOW; T5.3 empty until separate authority decision |
-| hidden external-research path | CLOSED BY DESIGN | one same frozen source only; contamination fails |
-| automatic pronoun/reference resolution | CLOSED BY DESIGN | semantic producer/reviewer only; no checker inference |
-| answer-key leakage | CLOSED BY DESIGN | withheld context and contamination failure |
-| indiscriminate graph propagation | CLOSED BY DESIGN | finite explicit reviewed `REL-*` list |
-| transitive propagation as truth | CLOSED BY DESIGN | forbidden; no reachability closure |
-| ambiguity as REL subtype | CLOSED BY DESIGN | separate artifact and ID family |
-| ambiguity as evidence | CLOSED BY DESIGN | no support/evidence-role fields |
-| checker deciding semantics | CLOSED BY DESIGN | explicit non-checker list |
-| human inventing corpus facts | CLOSED BY DESIGN | maximum authority bound selects only reviewed candidate or preserves |
-| conflation with S8 | CLOSED BY DESIGN | separate handoff and no automatic `REF-*` |
-| conflation with S5 | CLOSED BY DESIGN | read-only input; no automatic disposition |
-| implicit correction/versioning | CLOSED BY DESIGN | narrow pre-barrier assessment history only; post-barrier fail closed |
-| endpoint auto-retargeting | CLOSED BY DESIGN | explicit current successor plus fresh review required |
-| missing lineage-current rules | CLOSED BY DESIGN | currentness required at S4 closure |
-| stale review after subject change | CLOSED BY DESIGN | exact digest changes |
-| cycles causing ambiguity explosion | CLOSED BY DESIGN | no traversal or fixed point |
-| historical bytes overwritten | CLOSED BY DESIGN | immutable T5.1 and retained assessment/authority history |
-| hidden implementation authorization | CLOSED BY STATUS | design-only, all DoD open |
-| run-format bump in design PR | CLOSED BY CHANGE BOUNDARY | future plan only; no code/manifest run-format value changed |
-| adapter-local semantics | CLOSED BY DESIGN | Core-owned schema and prompts |
-| status inflation | CLOSED BY STATUS | proposed only; all validation/sanction/acceptance claims denied |
+The exact predecessor proposal commit
+`f8aadc2160826e2df736a946188c92158ec354aa`, tree
+`74061400d1dd7a3e6e0f5cd5e180e88e900140c8`, was independently audited and
+returned:
 
-Surviving finding:
+`BLOCK_SLICE_5_HUMAN_ADOPTION`
 
-- OQ-01 only, classified `BLOCKING NOW` with backward authority
-  `authority/doctrine`.
+That result is preserved. The blocked proposal contained at least:
 
-Carried findings:
+- S5-F01 — undefined affected-REL eligibility/currentness through invalid
+  “lineage-current REL” terminology;
+- S5-F02 — no singular composite ordered S4 closure barrier;
+- S5-F08 — a false “CLOSED BY DESIGN” statement and false “OQ-01 only”
+  surviving-finding claim.
 
-- MUST PRESERVE: F-03, F-04, F-05, manual-only sanction, relations
-  non-evidentiary.
-- LATER: A4-07, A4-14, A4-16, A4-17, N-09/A-03, A-01, A-02.
+The successor does not state that those findings never existed.
+
+### 29.2 Successor repair dispositions
+
+Each disposition below is a successor design repair pending fresh independent
+audit, not an independently verified closure:
+
+| Finding | Successor disposition |
+|---|---|
+| S5-F01 | Defines `eligible canonical relation` as a narrow same-run consumption predicate; permits all four Slice 4 record states; removes REL lineage/predecessor/successor language and blocks rather than inventing relation retargeting. |
+| S5-F02 | Defines one composite S4 closure barrier with ordered S4-C1 relation closure, S4-C2 ambiguity finalization, and S4-C3 exit, plus exact retained run-log phase markers and explicit temporal non-claims. |
+| S5-F03 / OQ-01 | Reconciles adopted Slice 5 ownership and existing presentation mechanics while narrowing the unresolved issue to the human decision category/legal action. T5.3 remains inert. |
+| S5-F04 | Defines all eight resolution/carry/affected-set combinations and permits reviewed resolved-local dependency history without unresolved carry. |
+| S5-F05 | Separates 71 deterministic retained-state mutations from 6 process/temporal tests; predecessor mutation 75 is static only through a retained phase marker and mutation 77 is process-only. |
+| S5-F06 | Removes “cycle-caused propagation explosion” as a freestanding deterministic semantic claim; exact duplicate/path structural violations are DM5-049/050 and semantic reachability reasoning remains SC5-11. |
+| S5-F07 | Adds eligible asserted and typed-null relation positives, actual noneligible relation-reference negatives, complete matrix cases, and mechanically recounted evidence totals. |
+| S5-F08 | Records the predecessor block and false closure statements here; no “findings never existed” claim remains. |
+| S5-F09 | Adds the explicit LATER limitation that carry completeness is bounded by declared Slice 4 relation completeness, without relation fabrication, density targets, A4-07, or Slice 7 authority. |
+| S5-F10 | States precisely that the PR changes `core.manifest.json` by one repository-administration path while run-format values, Core payload, checker inventory, and bundle inputs remain unchanged. |
+
+### 29.3 Current successor self-audit
+
+The successor was re-attacked against the original design boundaries:
+
+| Attack | Current successor control |
+|---|---|
+| invented human gate | OQ-01 remains `BLOCKING NOW`; mechanics are distinguished from decision authority; T5.3 is empty |
+| hidden external-research path | one same frozen source only; contamination fails |
+| automatic pronoun/reference resolution | semantic producer/reviewer only; no checker inference |
+| indiscriminate graph propagation | finite explicit reviewed affected set; no reachability closure |
+| ambiguity as relation/evidence/disposition | separate artifact and role boundaries |
+| relation lifecycle invention | eligible-relation consumption only; no predecessor, successor, status, version, or retargeting |
+| checker deciding semantics or timing | section 19 partition; K2.17 retained-state only |
+| incomplete field matrix | all eight combinations explicit with targeted cases |
+| barrier ambiguity | one C1 → C2 → C3 vocabulary with retained phase markers |
+| human inventing corpus facts | any later action is bounded to a reviewed candidate or preservation |
+| conflation with S8/S5 | separate handoff; no automatic `REF-*` or disposition |
+| implicit correction/versioning | pre-exit assessment history only; post-exit fail closed |
+| cycles causing ambiguity explosion | no traversal; structural duplicate/path cases separate from SC5-11 |
+| hidden implementation authorization | design-only; all 33 implementation DoD items OPEN |
+| run-format or manifest overclaim | future 1.5 only; current values unchanged; one administrative manifest classification accurately disclosed |
+| adapter-local semantics or status inflation | Core-owned future design; all implementation/validation/sanction/acceptance claims denied |
+
+Current unresolved/pending state:
+
+- OQ-01 remains `BLOCKING NOW` for implementation;
+- fresh independent successor design audit is required before any human
+  adoption request;
+- 71 deterministic mutations, 6 process/temporal tests, 16 semantic
+  challenges, and 10 authority-dependent cases are future plans only; and
+- all 33 future implementation DoD items remain OPEN.
+
+Carried findings remain:
+
+- MUST PRESERVE: F-03, F-04, F-05, manual-only sanction, and relations
+  non-evidentiary;
+- LATER: A4-07, A4-14, A4-16, A4-17, N-09/A-03, A-01, A-02, S5-F09, and the
+  pre-existing Slice 4 reconciliation DoD-21 wording; and
 - A4-15 remains confirmed correct.
 
-No unclassified self-audit finding remains.
+This self-audit found no additional successor-design issue, but it is not a
+substitute for the required fresh independent audit.
 
 ## 30. Proposed future change surface
 
@@ -2097,21 +2454,26 @@ surfaces may include:
 
 This list is planning context, not permission to edit any surface.
 
-This design task changes only:
+Relative to the canonical base, the design PR changes only:
 
 - this proposal; and
-- its repository-administration classification in `core.manifest.json`.
+- one `core.manifest.json` `files.repository_administration` entry that
+  classifies the proposal path.
 
-It does not modify current Core contracts, checker source, runtime JS, adapter
-source, fixtures, run-format pins, payload manifests, or implementation
-manifests.
+The successor repair commit changes only this proposal; it leaves the already
+correct administrative classification unchanged.
+
+Current run-format manifest values, Core payload inventory, checker inventory,
+bundle inputs, Core contracts, checker source, runtime JS, adapter source,
+fixtures, package files, and implementation manifests remain unchanged.
 
 ## 31. Status boundary
 
 If this proposal is published in a draft PR, its maximum status is:
 
-- PROPOSED DESIGN
-- HUMAN AUTHORITY ADOPTION REQUIRED
+- PROPOSED DESIGN — REPAIRED AFTER BLOCKING INDEPENDENT AUDIT
+- FRESH SUCCESSOR DESIGN AUDIT REQUIRED
+- HUMAN AUTHORITY ADOPTION NOT YET REQUESTED
 - AUTHORITY QUESTION OQ-01 BLOCKS IMPLEMENTATION
 - NOT IMPLEMENTED
 - NOT REPLAY-VALIDATED
