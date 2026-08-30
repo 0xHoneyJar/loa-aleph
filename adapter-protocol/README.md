@@ -2,7 +2,7 @@
 
 > **Protocol version:** `1.0.0-provisional`
 >
-> **Run-format version:** `1.3.0-provisional`
+> **Run-format version:** `1.4.0-provisional`
 > **Status:** accepted foundation; the Loa host adapter is implemented but not
 > validated or sanctioned, while the other registered host remains planned
 
@@ -127,3 +127,11 @@ Run format `1.3.0-provisional` retains the complete 1.2 exact-evidence and
 source-walk contracts and additionally requires `ledgers/lineage.md` once S2
 begins. Durable packet and claim rows remain `active`; their currentness is
 derived from append-only unit-lineage events rather than status rewrites.
+
+Run format `1.4.0-provisional` retains every 1.0–1.3 capability through the
+Core cumulative capability registry and adds `ledgers/relations.md`. Core owns
+the exact relation taxonomy, 17-column artifact, typed-null and graph rules,
+review-subject digest/verdict binding, and S4-only canonical write window.
+Adapters may expose only host mechanics for that Core contract; this format
+does not validate the Loa writer path, resolve F-03/F-04/F-05, or sanction
+agent mode.

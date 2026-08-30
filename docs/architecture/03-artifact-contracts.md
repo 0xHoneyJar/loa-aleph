@@ -145,8 +145,9 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   cursors; the orchestrator validates and appends them as single writer; a
   distinct fresh-context gap reviewer records semantic gap results; K2 and
   auditors consume the final ledger.
-- **Activation:** run formats `1.2.0-provisional` and
-  `1.3.0-provisional` require
+- **Activation:** run format `1.2.0-provisional` and every later registered
+  cumulative format, including `1.3.0-provisional` and
+  `1.4.0-provisional`, require
   `source_walk_format: aleph-source-walk/v1` and
   `source_position_format: zero-based-utf8-byte-half-open/v1` once S2 begins.
   The prior `1.1.0-provisional` exact-evidence fixture remains a 1.1 artifact
@@ -230,7 +231,8 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
 
 - **Purpose:** preserve append-only packet/claim identity history while deriving a
   structural current view without rewriting predecessor rows.
-- **Activation:** run format `1.3.0-provisional` requires
+- **Activation:** run format `1.3.0-provisional` and every later registered
+  cumulative format, including `1.4.0-provisional`, require
   `lineage_format: aleph-lineage/v1` once S2 begins. Historical 1.0-1.2
   runs retain their pinned status/merge interpretation and are not migrated.
 - **Fields:** `LIN-NNNN`; owner stage (S2-S4); one type from `split`,
@@ -245,7 +247,8 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   events, while a predecessor is terminalized once.
 - **Currentness:** `lineage-current` is derived mechanically as a valid durable
   PKT/CC definition that never appears as a lineage predecessor. It is not the
-  broader architectural EFFECTIVE state. In 1.3, packet/claim `status = active`
+  broader architectural EFFECTIVE state. In 1.3 and later cumulative formats,
+  packet/claim `status = active`
   means the durable row is admitted/readable; it does not mean identity-current.
 - **Provenance:** packet→claim derivation remains claim provenance, not
   replacement lineage. Merge/duplicate create a new successor CC whose packet
@@ -266,11 +269,71 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   judgment. Generic STALE/INVALIDATED propagation, artifact revision, rewind,
   cross-run reuse, and accepted-run correction remain outside this format.
 
+## 5b. Typed-relation ledger (`ledgers/relations.md`)
+
+- **Purpose:** retain reviewed, projection-neutral semantic relations between
+  lineage-current packets/claims or an exact frozen source locus without
+  converting context into support, disposition, ambiguity lifecycle, or
+  lineage.
+- **Activation and write window:** run format `1.4.0-provisional` adds
+  capability `typed-relations` cumulatively over 1.0–1.3. The artifact uses
+  exactly one `relation_format: aleph-relations/v1` marker and one canonical
+  table. Before S4 closure it may be absent or marker plus empty table.
+  Canonical rows are serialized only at the S4 closure barrier and are
+  read-only after closure/S5. Static K2.16 checks retained state; it does not
+  prove the historical append instant.
+- **Exact table:** `relation_id | owner_stage | family | type | source_kind |
+  source_id | target_kind | target_id | target_source_id | target_locator |
+  target_span_hash | record_state | null_reason | basis_packet_ids |
+  proposed_by | review_subject_digest | reviewed_by`. No target scheme,
+  timestamp, append stage, authority, correction, replacement, supersession,
+  version, status, support, or evidence-role field exists.
+- **Vocabulary:** families are `claim-dependency`, `source-context`,
+  `formal-reference`, and `discourse`. Their closed subtypes are,
+  respectively, `semantic-prerequisite`;
+  `antecedent-context`/`qualifier-context`/`configuration-context`;
+  `structural-anchor`/`notation-definition`; and
+  `continuation-context`/`parallel-contrast-context`.
+- **States:** `asserted`, `unresolved-target`, `explicitly-absent`, and
+  `indeterminate`. Asserted rows use one concrete `CC`, `PKT`, or
+  `source-locus` target and `null_reason = none`. Every other state uses
+  `target_kind = null` and `none` in all target-value fields. Unresolved
+  reasons are `unresolved-in-frozen-corpus`, `outside-frozen-corpus`, or
+  `target-not-materialized`; explicit absence uses only
+  `bounded-review-found-none`; indeterminate uses
+  `insufficient-frozen-context`, `conflicting-durable-representations`, or
+  `unsupported-source-structure`. `not-applicable` is review-only and creates
+  no canonical row.
+- **Endpoints:** sources are `CC` or `PKT`; every durable source/target is
+  lineage-current at S4 closure. A `source-locus` derives its scheme from the
+  frozen `SRC-*` manifest row, uses an already Core-defined deterministic
+  locator, reopens exact bytes, and matches `target_span_hash`. On this Core
+  base `md-lines` is the sole positive reopener; asserted `chat-msg` loci fail
+  closed. Historical endpoints are rejected, and the checker never chooses or
+  substitutes a successor.
+- **Review binding:** `review_subject_digest` is SHA-256 over the UTF-8 compact
+  JSON `aleph-relation-review-subject/v1` object containing, in fixed order,
+  the 14 pre-review fields from `owner_stage` through `proposed_by`, with
+  `basis_packet_ids` preserved as an ordered JSON array. The cited verifier
+  target is exactly `relation-review-subject:<digest>` and its verdict must be
+  `upheld`. Any changed digested field requires a new proposal, digest, and
+  verdict.
+- **Graph rules:** all durable self-edges are forbidden.
+  `semantic-prerequisite`, `antecedent-context`, all formal-reference edges,
+  `continuation-context`, and `parallel-contrast-context` are acyclic in their
+  named subgraphs. Qualifier/configuration cycles are structurally permitted;
+  a mixed cycle is permitted only when no prohibited subgraph itself cycles.
+  Semantic review, not K2, decides whether a permitted cycle or relation is
+  justified.
+- **Boundary:** a relation never proves, supports, corroborates, contradicts,
+  supplies independent evidence, changes evidence-role accounting, or decides
+  disposition. S6 remains the separate `CC x SRC` evidence-role contract.
+
 ## 6. Disposition-ledger summary (`ledgers/disposition-ledger.md`)
 
 Précis §5 records per-disposition counts and claim-id lists. In predecessor
 formats, totals retain their original active-row interpretation. In run format
-1.3, totals equal the lineage-current claim population and every lineage-current
+1.3 and later cumulative formats, totals equal the lineage-current claim population and every lineage-current
 claim appears exactly once; historical predecessors remain in durable history
 without fabricated current dispositions. Exists as its own ledger so accounting
 is checkable before the Précis is assembled.
@@ -413,6 +476,10 @@ keeps deferred/unresolved claims visible with what would resolve them.
   ([`06-verification-and-conformance.md`](06-verification-and-conformance.md) §4);
   `cannot-determine` is a first-class outcome that propagates to `unresolved`,
   never silently to "pass".
+- **Typed-relation target:** a relation verdict names exactly one complete
+  proposed subject as `relation-review-subject:sha256:<64 lowercase hex>`.
+  Only `upheld` may be cited by a canonical REL row. `refuted` and
+  `cannot-determine` remain retained verdicts but cannot authorize that row.
 
 ## 16. Kernel report (`verification/kernel-report.md`)
 
@@ -490,7 +557,7 @@ mode never has to produce them.
 
 | # | Invariant | Today | Under this plan |
 |---|-----------|-------|-----------------|
-| X1 | Every ID resolves to its fixed home; no phantoms, no duplicate definitions | C1–C7 for `CC`/`SRC`/`STM` in fixtures | generalized to `RUN`/`SRC`/`PKT`/`CC`/`NB`/`PC`/`RC`/`REF`/`STM`/`VER`/`PRJ` across a run directory |
+| X1 | Every ID resolves to its fixed home; no phantoms, no duplicate definitions | C1–C7 for `CC`/`SRC`/`STM` in fixtures | generalized to `RUN`/`SRC`/`PKT`/`CC`/`REL`/`NB`/`PC`/`RC`/`REF`/`STM`/`VER`/`PRJ` across a run directory |
 | X2 | Accounting balances (inventory ↔ ledger ↔ sections) | enforced | unchanged, plus evidence-role coverage accounting |
 | X3 | Corpus is blind; answer-key leakage fails | enforced | generalized: later-stage vocabulary may not leak into earlier-stage artifacts |
 | X4 | Merges retain provenance | C8 | unchanged, plus per-source roles retained |
@@ -500,9 +567,9 @@ mode never has to produce them.
 | X8 | Verifier verdicts append, never edit | — | new |
 | X9 | Kernel green before VERIFIED; authority before ACCEPTED | culture | recorded in manifest, checked |
 
-### Run-format 1.3 duplicate/merge identity rule
+### Run-format 1.3+ duplicate/merge identity rule
 
-For `1.3.0-provisional`, every S4 duplicate or merge decision has two
+For `1.3.0-provisional` and later cumulative formats, every S4 duplicate or merge decision has two
 cooperating records: the merge map records the semantic/corroboration judgment,
 and `ledgers/lineage.md` records the identity transformation. The canonical
 claim is a newly materialized successor CC; no predecessor claim is mutated in

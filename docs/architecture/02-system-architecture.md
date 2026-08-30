@@ -96,6 +96,8 @@ runs/<run-id>/
     packet-index.md          # packets + versioned exact-evidence fragments
     source-walk.md           # byte coverage, events, cursors, gap review
     claim-inventory.md       # candidate claims + dispositions (the §4 table)
+    lineage.md               # append-only packet/claim identity transformations
+    relations.md             # reviewed typed relations, serialized at S4 closure
     disposition-ledger.md    # the §5 summary accounting
     merge-map.md             # duplicate/merge map with provenance
     evidence-roles.md        # claim×source role edges + removal effects
@@ -232,6 +234,7 @@ Traceability is only as strong as the IDs. Proposed scheme (provisional):
 | `SRC-NNN` | a source in the corpus | S1 | a file (or file section) in `corpus/sources/` |
 | `PKT-NNNN` | a packet: one contiguous source fragment elevated during extraction | S2 | `SRC-NNN` + span locator + content hash |
 | `CC-NNN` | a candidate claim | S3 | ≥1 `PKT-NNNN` |
+| `REL-NNNN` | one immutable typed relation record | S4 closure | one row in `ledgers/relations.md` |
 | `NB-N` | a negative boundary | S5 | one row in `ledgers/negative-boundaries.md` |
 | `PC-N` | a structural pre-cluster tag | S7 | a tag written against packet/claim ids — never a document |
 | `RC-NN` | a route cluster | S8 | a sparse card listing exact `PKT`/`CC` ids |

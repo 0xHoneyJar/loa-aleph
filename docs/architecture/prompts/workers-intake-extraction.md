@@ -209,7 +209,7 @@ CONSTRAINTS
 - NEVER merge contradictory or tension-bearing claims. If two claims
   conflict, return them as a contradiction pair instead — both will stay
   visible and unresolved.
-- For each merge/duplicate in run format 1.3, do NOT reuse or mutate a
+- For each merge/duplicate in run format 1.3 and later, do NOT reuse or mutate a
   predecessor as canonical. Propose a new successor claim specification with
   normalized text, claim type, and the complete packet-provenance union; the
   orchestrator assigns its new CC id and the LIN id only after validation.
@@ -234,3 +234,101 @@ claim_type; no dispositions yet); packet quotes on demand.
   "corroboration": "independent|restatement", "rationale": "", "flags": [] }],
   "contradiction_pairs": [{ "a": "CC-…", "b": "CC-…", "why": "" }] }
 ```
+
+---
+
+## Role: Local Relation Producer (S2 or S3)
+
+```text
+ROLE: Typed-relation producer for one legally bounded local context.
+GOAL: propose complete typed relation subjects without writing the canonical
+relation ledger or converting context into support.
+
+CONSTRAINTS
+- At S2, you see one source and its already materialized packet IDs only.
+  Propose packet-source context, formal-reference, or discourse relations
+  available from that source. Never inspect another source, propose a
+  cross-source relation, target a claim, or create semantic-prerequisite.
+- At S3, you see one current packet/claim batch and only its legal source
+  context. You may propose claim-level relations, including
+  semantic-prerequisite, but never inspect another batch merely to discover
+  relations.
+- Use only the closed four-family/eight-subtype vocabulary and the exact
+  state/endpoint matrix. A missing target is typed null, never prose.
+- Every durable endpoint you propose must be the explicit candidate ID. Never
+  infer a successor for a historical identity.
+- `basis_packet_ids` is ordered, nonempty, and source-bound. Relations are not
+  proof, support, corroboration, contradiction, disposition, or authority.
+- Serialize the complete 14-field pre-review subject as fixed-order compact
+  JSON with format `aleph-relation-review-subject/v1`; preserve packet order;
+  return its full lowercase `sha256:` digest.
+- Propose only. You never assign REL IDs, cite a reviewer, or write
+  ledgers/relations.md.
+```
+
+**Bundle at S2:** one frozen source, its manifest row, materialized packets,
+and exact evidence.
+
+**Bundle at S3:** the current packet/claim batch and its legal source context.
+
+**Withhold:** every other source/batch, dispositions, evidence roles, routing,
+answer keys, relation-density targets, and downstream artifacts.
+
+**Output contract:**
+```json
+{ "relation_proposals": [{
+  "owner_stage": "S2|S3",
+  "family": "claim-dependency|source-context|formal-reference|discourse|none",
+  "type": "semantic-prerequisite|antecedent-context|qualifier-context|configuration-context|structural-anchor|notation-definition|continuation-context|parallel-contrast-context|none",
+  "source_kind": "PKT|CC",
+  "source_id": "PKT-…|CC-…",
+  "target_kind": "PKT|CC|source-locus|null",
+  "target_id": "PKT-…|CC-…|none",
+  "target_source_id": "SRC-…|none",
+  "target_locator": "",
+  "target_span_hash": "sha256:…|none",
+  "record_state": "asserted|unresolved-target|explicitly-absent|indeterminate",
+  "null_reason": "none|unresolved-in-frozen-corpus|outside-frozen-corpus|target-not-materialized|bounded-review-found-none|insufficient-frozen-context|conflicting-durable-representations|unsupported-source-structure",
+  "basis_packet_ids": ["PKT-…"],
+  "proposed_by": "human:…|invocation:…",
+  "review_subject_digest": "sha256:…",
+  "rationale": "",
+  "flags": []
+}], "not_applicable": [] }
+```
+
+---
+
+## Role: Global Relation Producer (S4)
+
+```text
+ROLE: Typed-relation producer at the S4 global barrier.
+GOAL: identify and reconcile relations that require the lineage-current global
+inventory, cross-batch context, cross-source context, or other context
+legally unavailable to S2/S3.
+
+CONSTRAINTS
+- All eight relation types are available when required by the bounded task.
+- Start from the lineage-current inventory. Historical endpoints may appear
+  in retained review evidence or packet basis, never as canonical endpoints.
+  Do not auto-retarget a historical proposal; assess an explicit successor
+  anew.
+- Apply the exact schema, typed-null scopes, conflict rules, self-edge rules,
+  and subtype-specific cycle policy. Qualifier/configuration cycles are only
+  structurally permitted and still require fresh semantic challenge.
+- Do not create duplicate/overlap/evidence/lineage relation types; do not
+  decide disposition, evidence role, routing, ambiguity lifecycle, or human
+  authority.
+- Produce complete review subjects and digests exactly as the local producer
+  does. Propose only; the fresh reviewer challenges, and the orchestrator is
+  the sole canonical writer.
+```
+
+**Bundle:** complete lineage-current PKT/CC inventory; frozen source manifest
+and exact loci needed for the bounded questions; retained S2/S3 proposals.
+
+**Withhold:** producer rationales from the later reviewer, SRC-001 answer keys,
+external facts, final density targets, and downstream decisions.
+
+**Output contract:** the same `relation_proposals` contract as the local
+producer, with `owner_stage = S4`.

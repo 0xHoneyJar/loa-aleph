@@ -30,7 +30,8 @@ Column rules:
   `M14:S2`). `span_hash` = sha256 of the exact span bytes at freeze.
 - In `aleph-exact-evidence/v1`, use one packet per exact fragment. `quote` is
   a bounded display preview only and is never exact evidence. Run formats
-  `1.1.0-provisional`, `1.2.0-provisional`, and `1.3.0-provisional`
+  `1.1.0-provisional`, `1.2.0-provisional`, `1.3.0-provisional`, and
+  `1.4.0-provisional`
   require this marker and the three versioned tables once S2 is reached. Historical
   `1.0.0-provisional` and pre-versioned packet ledgers without the marker
   retain their predecessor behavior and are not reinterpreted.
@@ -39,7 +40,7 @@ Column rules:
   two-level boundary); a span refused by a classifier gets a row with
   `criterion = refusal-blocked` so completeness accounting still balances.
 - `status`: predecessor formats retain `active` |
-  `superseded-by:PKT-xxxx` | `retracted:⟨reason⟩`. In run format 1.3,
+  `superseded-by:PKT-xxxx` | `retracted:⟨reason⟩`. In run format 1.3 and later,
   durable PKT/CC rows use `active`; unit identity currentness is derived from
   T3.3a lineage instead of encoded in the status cell.
 - `evidence_state`: `exact` | `degraded-non-exact`. Every packet appears in
@@ -170,7 +171,7 @@ Column rules:
   a negative boundary when scope-based.
 - `judged_by`: worker/actor id. `verified`: blank | `VER-…` refs.
 - **Précis §4 rendering:** exactly `claim_id | normalized claim | source(s) |
-  disposition`. Predecessor formats retain their active-row rule; 1.3 renders
+  disposition`. Predecessor formats retain their active-row rule; 1.3 and later render
   lineage-current claims only.
 
 <!-- example -->
@@ -187,11 +188,53 @@ Column rules:
 |------------|-------------|------|--------------|------------|-------|----------------|
 ```
 
-Rules for run format 1.3: `LIN-NNNN` is unique; owner stage is S2-S4; type
+Rules for run format 1.3 and later: `LIN-NNNN` is unique; owner stage is S2-S4; type
 is exactly split/merge/replace/supersede/duplicate/reject/exclude/no-claim;
 cardinality follows the artifact contract; `none` is used only when the event
 has zero successors. Packet-to-claim ancestry remains claim provenance.
 Lineage is append-only and predecessors are never rewritten or resurrected.
+
+## T3.3b Typed relations → `runs/<run-id>/ledgers/relations.md`
+
+```markdown
+# Typed Relations — ⟨RUN-slug⟩
+
+- relation_format: aleph-relations/v1
+
+| relation_id | owner_stage | family | type | source_kind | source_id | target_kind | target_id | target_source_id | target_locator | target_span_hash | record_state | null_reason | basis_packet_ids | proposed_by | review_subject_digest | reviewed_by |
+|-------------|-------------|--------|------|-------------|-----------|-------------|-----------|------------------|----------------|------------------|--------------|-------------|------------------|-------------|-----------------------|-------------|
+```
+
+Rules for run format 1.4:
+
+- This exact 17-column table is the sole canonical relation table. IDs are
+  unique `REL-NNNN`. Do not add scheme, append-time, status, authority,
+  correction, replacement, supersession, version, support, or evidence-role
+  fields.
+- Families/types are closed: `claim-dependency /
+  semantic-prerequisite`; `source-context / antecedent-context |
+  qualifier-context | configuration-context`; `formal-reference /
+  structural-anchor | notation-definition`; `discourse /
+  continuation-context | parallel-contrast-context`.
+- Sources are current `CC` or `PKT`. Asserted targets are current `CC`/`PKT`
+  or an exact `source-locus`; other states use `target_kind = null` and
+  `none` in every target-value field. A source locus derives its scheme from
+  `target_source_id`'s frozen manifest row and must reopen/hash exactly.
+- `record_state` is `asserted`, `unresolved-target`, `explicitly-absent`, or
+  `indeterminate`. `not-applicable` remains a review-only outcome and creates
+  no row. Concrete subtype, family-level, and taxonomy-level indeterminate
+  scopes remain distinct.
+- `basis_packet_ids` is a nonempty ordered comma list. `proposed_by` is
+  `human:<actor-slug>` or `invocation:<producer-invocation-id>`.
+- `review_subject_digest` hashes the fixed-order compact JSON
+  `aleph-relation-review-subject/v1` subject containing all 14 pre-review
+  fields from `owner_stage` through `proposed_by`, with packet IDs as an
+  ordered array. `reviewed_by` names one existing `upheld` verdict targeted
+  exactly to `relation-review-subject:<digest>`.
+- Canonical rows are written only at S4 closure after lineage currentness is
+  established. Before closure the artifact is absent or marker plus empty
+  table; after closure/S5 it is read-only.
+- A relation never asserts support or changes S6 evidence-role accounting.
 
 ## T3.4 Disposition ledger → `runs/<run-id>/ledgers/disposition-ledger.md`
 
@@ -211,7 +254,7 @@ Lineage is append-only and predecessors are never rewritten or resurrected.
 
 Rules: recomputed (never hand-edited) after any inventory change; all seven
 rows always present even at count 0 — a zero row is information. Predecessor
-formats retain active-row totals; in 1.3 total equals the lineage-current claim
+formats retain active-row totals; in 1.3 and later total equals the lineage-current claim
 count.
 
 ## T3.5 Merge map → `runs/<run-id>/ledgers/merge-map.md`
@@ -232,9 +275,9 @@ and both claims go/stay `unresolved`.
 <!-- example -->
 | CC-104 | CC-113, CC-114 | same underlying retention claim, three wordings | SRC-101 + SRC-102 + SRC-104 | independent | active |
 
-### 1.3 merge-map rule
+### 1.3+ merge-map rule
 
-For run format 1.3, `canonical` is a newly materialized successor CC and
+For run format 1.3 and later, `canonical` is a newly materialized successor CC and
 `absorbs` lists its lineage predecessors. The same predecessor/successor set
 must appear in one `merge` or `duplicate` lineage event. Absorbed historical
 claims do not receive an S5 `merged` disposition merely because they were

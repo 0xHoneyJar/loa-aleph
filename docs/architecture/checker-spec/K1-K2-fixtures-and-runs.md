@@ -65,9 +65,11 @@ scope.
   (merge-map, evidence-roles, clusters/, arms/, precis.md, verification/) are
   required **iff** the manifest's state log shows the run reached the state
   that produces them (state→artifact table hardcoded from doc 04's "Emits"
-  column). Run formats `1.2.0-provisional` and `1.3.0-provisional` additionally
-  require `ledgers/source-walk.md` whenever S2 applies; 1.3 also requires
-  `ledgers/lineage.md`.
+  column). Run format `1.2.0-provisional` and later cumulative formats
+  additionally require `ledgers/source-walk.md` whenever S2 applies; 1.3 and
+  later also require `ledgers/lineage.md`. K2.16 separately governs the
+  stage-granular presence/emptiness contract for `ledgers/relations.md` in
+  1.4.
 - K2.2 (`manifest`): every format carries mode, doctrine_sha (40-hex), corpus
   hash, exactly one `run_id` (`RUN-<slug>`), exactly one `predecessor_run`
   (`none` or a different `RUN-<slug>`), and ≥1 state-log row; every state-log
@@ -82,7 +84,8 @@ scope.
   or exact-evidence tables — cannot coexist with a state log that stops before
   `DISTILLING`.
   Decision 0004's forward run formats (`1.1.0-provisional`,
-  `1.2.0-provisional`, and `1.3.0-provisional`) additionally require
+  `1.2.0-provisional`, `1.3.0-provisional`, and
+  `1.4.0-provisional`) additionally require
   exactly one structurally valid Core ID/version/digest; adapter
   ID/version/digest; bundle ID/digest/lock reference; checker digest;
   adapter-protocol and run-format version; host identity; model identities and
@@ -145,7 +148,7 @@ scope.
 - K2.10 (`status discipline`): every non-`active` status cell matches
   `superseded-by:⟨existing row id⟩` or `retracted:⟨nonempty⟩`; a
   `superseded-by` target must exist and be `active` or itself superseded
-  (no dangling chains). In run format 1.3, exactly one canonical packet
+  (no dangling chains). In run format 1.3 and later, exactly one canonical packet
   home-definition table and exactly one canonical claim home-definition table
   are required once S2 applies, and every row in those tables remains `active`
   because lineage determines unit currentness.
@@ -165,8 +168,9 @@ scope.
 - K2.13 (`exact evidence and ordered fragments`): retained
   `1.0.0-provisional` and pre-versioned historical runs without
   `exact_evidence_format` preserve the legacy K2.4 interpretation and are not
-  reinterpreted. In run formats `1.1.0-provisional`, `1.2.0-provisional`, and
-  `1.3.0-provisional`, the marker is mandatory once `DISTILLING` is reached
+  reinterpreted. In run formats `1.1.0-provisional`, `1.2.0-provisional`,
+  `1.3.0-provisional`, and `1.4.0-provisional`, the marker is mandatory once
+  `DISTILLING` is reached
   and must equal
   `aleph-exact-evidence/v1`; its absence is a failure, not a legacy fallback.
   The packet index must contain exact-evidence, ordered-fragment, and
@@ -187,8 +191,8 @@ scope.
   but no Core reopener remain explicitly structurally checked but mechanically
   unverified. None of these checks compare degraded rendered text to exact
   bytes or claim that rendering is faithful.
-- K2.14 (`source walk, gap review, and resume accounting`): run formats
-  `1.2.0-provisional` and `1.3.0-provisional` activate
+- K2.14 (`source walk, gap review, and resume accounting`): run format
+  `1.2.0-provisional` and later cumulative formats activate
   `source_walk_format: aleph-source-walk/v1` with
   `source_position_format: zero-based-utf8-byte-half-open/v1`. Once S2 is
   mechanically observable, the dedicated ledger and all five tables are
@@ -333,7 +337,8 @@ separately tests retained 1.2 authority against manifest downgrade and version
 removal, and rejects an extractor cursor return with no Core `reason`.
 
 - K2.15 (`lineage and lineage-current closure`): run format
-  `1.3.0-provisional` activates `lineage_format: aleph-lineage/v1`. The
+  `1.3.0-provisional` and later cumulative formats activate
+  `lineage_format: aleph-lineage/v1`. The
   checker requires exactly one canonical lineage-event table and verifies the
   closed event vocabulary/cardinalities, LIN identity, PKT/CC resolution and
   same-family constraints, single terminalization, no later resurrection of a
@@ -346,3 +351,61 @@ removal, and rejects an extractor cursor return with no Core `reason`.
   merge/duplicate lineage events. These checks are structural only and do not
   decide semantic transformation quality. Earlier run formats must not be
   reinterpreted as lineage runs.
+
+- K2.16 (`typed relation structure and current-endpoint closure`): run format
+  `1.4.0-provisional` cumulatively retains exact evidence, source walk, and
+  lineage, then activates `relation_format: aleph-relations/v1`. Earlier
+  formats containing the relation marker/table fail incompatible activation.
+  Before retained S4 closure the canonical artifact may be absent or contain
+  exactly the marker and empty adopted table; once S4 closure or S5 is
+  mechanically recorded, the artifact, marker, and exact one-table schema are
+  required. This is retained-state checking, not proof of the historical
+  intra-S4 append instant.
+
+  The canonical table has exactly 17 columns:
+  `relation_id`, `owner_stage`, `family`, `type`, `source_kind`, `source_id`,
+  `target_kind`, `target_id`, `target_source_id`, `target_locator`,
+  `target_span_hash`, `record_state`, `null_reason`, `basis_packet_ids`,
+  `proposed_by`, `review_subject_digest`, and `reviewed_by`. K2.16 enforces
+  unique `REL-NNNN` identities; the four closed families/eight compatible
+  subtypes; `CC`/`PKT` sources; exact state-specific target/null fields and
+  reasons; owner-stage legality; nonempty ordered packet basis; producer and
+  reviewer reference grammar; and absence of support/evidence-role fields.
+
+  Concrete durable endpoints must resolve with matching kind and be
+  lineage-current. A source-locus resolves its frozen `SRC-*` row, derives the
+  declared scheme, requires a locator the exact Core can deterministically
+  reopen, verifies whole-source bytes, reopens the exact span, and checks its
+  SHA-256. On this base `md-lines` is the positive scheme; asserted
+  `chat-msg` loci fail as declared but mechanically unverified. K2.16 never
+  chooses a successor for a historical endpoint.
+
+  For every row, K2.16 recomputes the fixed-order compact JSON
+  `aleph-relation-review-subject/v1` SHA-256 over all 14 pre-review fields,
+  preserving packet order, then requires the cited existing verifier's target
+  to equal `relation-review-subject:<digest>` exactly and its verdict to be
+  `upheld`. It rejects duplicate semantic tuples; conflicting explicit
+  absence/asserted/unresolved closure; subtype-, family-, and taxonomy-scoped
+  indeterminate conflicts; all durable self-edges; and cycles in the
+  semantic-prerequisite, antecedent, combined formal-reference, continuation,
+  and parallel-contrast subgraphs. Qualifier/configuration cycles and mixed
+  cycles with no prohibited subgraph cycle remain structurally permitted.
+
+  The checker does not decide whether a target is semantically correct, a
+  relation is necessary or complete, a permitted cycle is justified, an
+  absence is correct, a review was independently isolated, the S4 append
+  instant was honored, or any relation supplies evidence/support/disposition.
+  Those remain semantic/process contracts.
+
+  The focused 1.4 fixture is `docs/fixtures/typed-relations/`. Its positive
+  rows cover all eight types, every typed-null scope, exact `md-lines`, a
+  permitted mixed formal/configuration cycle, and explicit successor targeting
+  while leaving evidence-role accounting unchanged. The focused runner
+  executes 64 deterministic negative relation mutations, three targeted
+  positive controls, three temporal write-window cases, and the retained
+  semantic-review challenge set outside K2.
+
+The run-format capability registry is cumulative by construction: each
+registered format adds capabilities to the prefix established by every
+earlier format. Moving the current format to 1.4 therefore cannot deactivate
+exact evidence, source walk, or lineage.

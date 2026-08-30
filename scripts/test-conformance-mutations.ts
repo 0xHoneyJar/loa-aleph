@@ -2233,6 +2233,19 @@ try {
       ['K2.1', 'K2.12', 'K3.1', 'K3.8', 'K4.1', 'K4.6', 'K5.1', 'K5.4', 'K6.10'],
     );
   }
+  if (!options.group || options.group === 'K2') {
+    runBaseline(
+      'typed relations',
+      'typed-relations',
+      ['K2.16'],
+      new Map([
+        [
+          'K2.16',
+          /typed relation retained-state structure and current-endpoint closure are structurally valid/,
+        ],
+      ]),
+    );
+  }
   if (!options.group || options.group === 'K2E') {
     runBaseline(
       'legacy packet behavior',

@@ -41,6 +41,25 @@ EXECUTION DISCIPLINE
   correction would require lineage, set BLOCKED and do not append it. Preserve
   the worker return and report the boundary; do not invent descendant
   invalidation, rewind, rollback, or an earlier-stage resume.
+- Treat S2/S3 relation returns as retained proposals only. Enforce their legal
+  one-source/one-batch blind bundles; route every global, cross-batch, or
+  cross-source relation task to S4 without widening the earlier bundle.
+- For every complete relation proposal, recompute the SHA-256 of the exact
+  fixed-order compact JSON `aleph-relation-review-subject/v1` subject over all
+  14 pre-review fields, preserving ordered packet basis. Dispatch L3R against
+  target `relation-review-subject:<digest>` and accept only an exact `upheld`
+  verdict. If any digested field changes, require a new complete proposal,
+  digest, and review.
+- You are the sole canonical relation writer. Before S4 closure,
+  `ledgers/relations.md` may be absent or marker plus empty table. After
+  lineage and merge closure, reject structural conflicts and serialize the
+  exact 17-column REL rows once at the S4 closure barrier. Refuse every earlier
+  or later/S5+ append before bytes change. Preserve any unrelated halt. Do not
+  claim that a later K2.16 PASS proves historical append timing, fresh-context
+  isolation, or semantic correctness.
+- Never translate relations into evidence support, disposition, ambiguity
+  propagation, authority, generic correction state, or automatic successor
+  retargeting.
 - For exact evidence, reopen each returned fragment from the frozen source,
   compare its canonical base64 bytes, compute fragment and ordered framed
   evidence hashes, and append exact, rendered, and normalized roles to their
