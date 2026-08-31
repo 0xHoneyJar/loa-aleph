@@ -1,9 +1,11 @@
 # PROPOSED Slice 5 Internal Ambiguity and Referent Lifecycle Design
 
-Status: PROPOSED — REPAIRED AFTER BLOCKING INDEPENDENT AUDIT; FRESH
-SUCCESSOR DESIGN AUDIT REQUIRED
+Status: PROPOSED — SECOND NARROW REPAIR AFTER TWO BLOCKING INDEPENDENT
+AUDITS; FRESH SUCCESSOR DESIGN AUDIT REQUIRED
 
 Date: 2026-08-30
+
+Second narrow repair date: 2026-08-31
 
 Repository: `0xHoneyJar/loa-aleph`
 
@@ -35,10 +37,24 @@ Blocked predecessor proposal:
 Predecessor independent design-audit verdict:
 `BLOCK_SLICE_5_HUMAN_ADOPTION`
 
-This successor preserves that predecessor unchanged and records its audit
-history in section 29. The repairs below are successor design claims pending a
-fresh independent audit. They are not adoption, implementation authority, or
-proof that the predecessor findings never existed.
+Second blocked successor proposal:
+`53adf0c95672774f07b094f5e1a262542aedad3e`
+
+Second fresh independent design-audit verdict:
+`BLOCK_SLICE_5_HUMAN_ADOPTION`
+
+Second blocking finding:
+`S5-F11 — relation immutability between S4-C1 and ambiguity finalization was
+undefined`
+
+The second audit concluded `OQ-01-A`: this proposal may ultimately be adopted
+while OQ-01 remains open, but Slice 5 implementation remains blocked until a
+separate adopted authority decision resolves OQ-01.
+
+This second narrow successor preserves both blocked proposals unchanged and
+records their audit history in section 29. The repairs below are successor
+design claims pending a fresh independent audit. They are not adoption,
+implementation authority, or proof that either blocked finding never existed.
 
 ## 1. Proposed decision scope
 
@@ -64,8 +80,10 @@ The proposed design:
    ambiguity propagation;
 9. reuses exact-subject verifier binding for semantic review;
 10. defines future S4 closure as one composite ordered barrier whose first
-    subphase serializes canonical relations, whose second subphase finalizes
-    ambiguity state, and whose third subphase exits S4 before S5 begins; and
+    subphase serializes and immediately read-closes the canonical relation
+    set, whose second subphase consumes that exact set while finalizing
+    ambiguity state, and whose third subphase carries those closures forward
+    while exiting S4 before S5 begins; and
 11. leaves one authority decision-category question visibly unresolved even
     though existing host mechanics can present a Core-defined human request.
 
@@ -147,7 +165,11 @@ closed here.
 
 ## 3. Canonical Slice 5 basis
 
-This proposal preserves the canonical Slice 5 basis without broadening it.
+This proposal preserves the non-authority portions of the canonical Slice 5
+basis without broadening them. It makes one bounded narrowing: authority
+closure remains inactive pending OQ-01 and current authority doctrine, so the
+present design specifies only its maximum permissible bounds rather than an
+operative authority lifecycle.
 
 Purpose:
 
@@ -171,7 +193,8 @@ Required conceptual content:
 - affected typed-relation identities;
 - carry state;
 - semantic-review provenance;
-- authority closure, when legally available; and
+- authority closure only if and when OQ-01 is separately resolved by adopted
+  authority doctrine; and
 - closure provenance.
 
 Required prompt boundary:
@@ -528,10 +551,18 @@ authorize post-barrier correction.
 ### 6.6 T5.3 field rules
 
 T5.3 is deliberately defined but not activated by current adopted authority.
-Until section 12's authority question is resolved, a future checker must
-require this table to be empty.
+Until section 12's authority question is resolved, future implementation
+requirements are limited to the canonical column shape, table presence where
+required, empty authority-action population, and inactive authority
+capability. A future checker must require this table to be empty.
 
-If later activated by a separate adopted decision:
+The field descriptions below are provisional upper bounds for disabled
+authority-dependent cases. They are not an operative closed checker
+vocabulary. A separately adopted OQ-01 decision owns any eventual action
+vocabulary, authority-subject format, `authority_ref` grammar,
+closure-provenance contract, and positive-action checks.
+
+If later activated by that separate adopted decision:
 
 `authority_seq`
 
@@ -545,8 +576,12 @@ If later activated by a separate adopted decision:
 
 `action`
 
-- exactly `preserve-unresolved` or `close-with-supported-candidate`;
-- no other action is implied or authorized.
+- the disabled examples use the provisional labels `preserve-unresolved` and
+  `close-with-supported-candidate`;
+- those labels are not active implementation or checker vocabulary while
+  OQ-01 remains open; and
+- no eventual action outside section 12.3's upper bounds is implied or
+  authorized.
 
 `selected_candidate_ref`
 
@@ -596,7 +631,11 @@ For each `AMB-*`:
 12. no authority action introduces a candidate or corpus fact;
 13. at most one authority action exists for one authority-subject digest;
 14. earlier assessments and authority actions remain inspectable; and
-15. no post-S4 change is silently applied to canonical state.
+15. no post-S4 change is silently applied to canonical state;
+16. the S4-C1 canonical relation set is immutable through S4-C2 and S4-C3;
+    and
+17. any unauthorized post-C1 relation write invalidates and blocks the run,
+    even when every `REL-*` identity remains textually unchanged.
 
 Duplicate ambiguity definitions are rejected when they share the same
 `source_id`, expression byte interval, and expression hash. Different
@@ -665,11 +704,13 @@ derive or imply:
 - a relation predecessor or successor; or
 - automatic relation retargeting.
 
-If a referenced row becomes unusable because its underlying closed-run basis
-is changed under some separately authorized correction, Slice 5 does not
-invent a successor `REL-*` mechanism. The run follows the separately
-authorized correction/resumption contract if one applies and otherwise
-blocks without mutating or retargeting the relation or ambiguity record.
+The predicate is evaluated against the exact immutable canonical relation set
+committed at S4-C1. If a referenced row becomes unusable because its
+underlying closed-run basis is challenged or changed under some separately
+authorized correction, Slice 5 does not invent a successor `REL-*` mechanism.
+The run follows the separately authorized correction/resumption contract if
+one applies and otherwise blocks without mutating or retargeting the relation
+or ambiguity record.
 
 ## 9. Bounded same-source search
 
@@ -1057,9 +1098,11 @@ Until that decision exists:
 - implementation of Slice 5 is blocked rather than silently omitting the
   authority part of the canonical slice basis.
 
-A fresh successor design audit must decide whether this repaired proposal is
-adoptable while OQ-01 remains implementation-blocking. This proposal does not
-resolve or adopt OQ-01 by interpretation.
+The latest fresh independent audit concluded `OQ-01-A`: the proposal may be
+adopted while OQ-01 remains open, but OQ-01 blocks implementation rather than
+adoption. That conclusion does not resolve or adopt OQ-01, activate T5.3,
+authorize any positive authority case, or make this newly repaired successor
+adoption-ready without its own fresh independent design audit.
 
 ### 12.3 Maximum permissible human action if later authorized
 
@@ -1129,18 +1172,44 @@ barrier**. Its ordered subphases are:
 
 - all Slice 4 relation proposal, review, reconciliation, conflict handling,
   and relation DoD are complete;
-- canonical `REL-*` rows are serialized;
+- `ledgers/relations.md` exists with its required relation marker and table
+  shape;
+- the complete canonical `REL-*` set for the current S4 closure attempt is
+  serialized;
+- the retained relation artifact is structurally valid under K2.16;
 - exact relation identities become available for ambiguity assessment;
 - the resulting rows form the closed canonical relation set consumed by the
-  eligible-canonical-relation predicate; and
+  eligible-canonical-relation predicate;
+- the C1 closure-phase marker is retained only after those conditions hold;
+  and
 - this serialization occurs in the first ordered subphase **of the S4 closure
   barrier**, preserving Slice 4's adopted rule that canonical relation rows
   are serialized only at that barrier.
+
+**S4-C1 IS A COMMIT POINT FOR THE CANONICAL RELATION SET.**
+
+Upon successful completion of S4-C1:
+
+1. all canonical `REL-*` rows for the current S4 closure attempt have been
+   serialized;
+2. the C1 closure-phase marker is retained;
+3. `ledgers/relations.md` becomes immediately read-only for the remainder of
+   the current run;
+4. S4-C2 ambiguity producers and reviewers may consume those exact `REL-*`
+   identities but may not mutate, replace, delete, retarget, supersede, or
+   append relation rows; and
+5. S4-C3 carries forward the relation immutability already established at C1
+   rather than newly establishing it.
+
+This commit point introduces no relation replacement, successor, version,
+rewind, current pointer, or relation-correction architecture.
 
 **S4-C2 — INTERNAL AMBIGUITY FINALIZATION STEP**
 
 - every `affected_relation_ids` value binds only an eligible canonical
   relation serialized in S4-C1;
+- producers and reviewers consume the exact immutable C1 relation set without
+  writing it;
 - ambiguity assessment and exact-subject semantic review are complete;
 - canonical T5.1 and T5.2 rows are serialized;
 - the marker and all three canonical tables exist even when there are zero
@@ -1152,12 +1221,35 @@ barrier**. Its ordered subphases are:
 **S4-C3 — S4 EXIT**
 
 - relation and ambiguity closure Definitions of Done are complete;
-- `ledgers/relations.md` and T5.1/T5.2 become read-only;
+- `ledgers/relations.md` remains read-only under the C1 commit point;
+- T5.1/T5.2 remain read-only under the C2 finalization barrier;
 - the S4 exit event is retained; and
 - only then may the stage transition to S5.
 
-The retained phase representation is the existing append-only `run-log.md`
-event shape with these exact future Core marker lines:
+**C2-discovered relation defect.** C2 semantic review may reveal that a C1
+relation is semantically wrong or would require a changed source, target,
+type, or state, but C2 cannot itself repair C1. For example, if C2 consumes
+`REL-100` and determines that `REL-100` is defective:
+
+- do not mutate or replace `REL-100`;
+- do not silently rerun C1;
+- do not auto-retarget any ambiguity reference;
+- do not canonicalize a stale T5.2 assessment;
+- record the relation defect or closure failure through the existing legal
+  append-only run-log/process mechanism;
+- halt before S4-C2 canonicalization, or, if the defect is detected after
+  attempted C2 work, halt before S4-C3;
+- apply only an already-adopted correction/resumption mechanism if one
+  actually applies; and
+- otherwise remain blocked or use successor-run handling under existing
+  doctrine.
+
+No generic rewind is authorized by Slice 5, and no C3 transition may follow
+the defective C1 basis.
+
+Future Slice 5 implementation **extends** the existing append-only
+`run-log.md` event shape with exactly one new `closure_phase` marker line in
+each corresponding S4 event, using these exact values:
 
 ```text
 closure_phase: S4-C1-relations-closed
@@ -1175,15 +1267,18 @@ This lets future K2.16/K2.17 inspect static retained state:
 | Highest retained phase | Permitted retained artifact state |
 |---|---|
 | no C1 marker | relation and ambiguity artifacts absent or marker plus empty canonical tables |
-| C1 only | closed canonical relation rows may exist; ambiguity artifact remains absent or marker plus empty tables |
-| C2 | relation rows and final T5.1/T5.2 state exist; T5.3 is empty while OQ-01 is unresolved |
-| C3 or S5 entry | the C2 state is complete and relation/T5.1/T5.2 artifacts are read-only |
+| C1 only | `ledgers/relations.md` exists with the complete canonical relation set and is K2.16-valid; ambiguity artifact remains absent or marker plus empty tables |
+| C2 | the required C1 relation artifact remains present and K2.16-valid; final T5.1/T5.2 state exists; T5.3 is empty while OQ-01 is unresolved |
+| C3 or S5 entry | the C2 retained state is complete; the required C1 relation artifact remains present and K2.16-valid |
 
 K2.17 may validate marker order and consistency between the highest retained
-phase and current bytes. It does not prove when a marker or row was actually
-appended. The orchestrator/manual procedure owns temporal ordering and
-write-window enforcement; process tests exercise refusal before bytes change.
-F-03/F-05 remain preserved.
+phase and current bytes, including that C2/C3 has a valid C1 marker and
+required K2.16-valid relation artifact. It does not prove that relation bytes
+were never historically modified after C1, that a writer actually refused a
+mutation, or that no transient altered bytes existed. The orchestrator/manual
+procedure owns temporal ordering, byte-preserving refusal, and write-window
+enforcement; process tests exercise those obligations. F-03/F-05 remain
+preserved.
 
 Establishing this composite barrier in a future implementation requires
 coordinated amendments to these current Core documents:
@@ -1204,7 +1299,26 @@ coordinated amendments to these current Core documents:
 - `docs/architecture/checker-spec/K1-K2-fixtures-and-runs.md` for retained
   phase-state checking and its historical-timing non-claim.
 
-### 13.5 Late discovery
+### 13.5 Interruption and resume
+
+If a run stops after a valid C1 marker and before C2 completion:
+
+- resume uses the same pinned run, runtime, bundle, and retained bytes;
+- `ledgers/relations.md` remains read-only and byte-identical;
+- work continues from the first unmet C2 Definition of Done; and
+- C1 is not silently rerun, rewritten, or replaced.
+
+If retained state contains unauthorized partial canonical T5.1/T5.2 rows
+before a valid C2 completion marker, neither implementation nor an operator
+may normalize, silently clean, or rewrite them away. The retained-state
+contract and process procedure fail closed, no C3 transition occurs, and only
+an already-adopted correction/resumption mechanism or successor-run handling
+may proceed.
+
+This is a narrow composite-barrier resume rule, not a generic rollback or
+checkpoint design.
+
+### 13.6 Late discovery
 
 An ambiguity discovered at or after S4-C2:
 
@@ -1435,6 +1549,22 @@ This includes:
 - changed resolution/carry state; or
 - changed producer identity.
 
+An ambiguity assessment that names `REL-*` IDs is valid only against the exact
+immutable C1 canonical relation set. The review subject binds the ordered
+relation identities; the C1 commit point supplies the load-bearing guarantee
+that the named relation-row contents cannot later change. If any unauthorized
+process changes the relation artifact after C1, the run is invalid and
+blocked. The old ambiguity review does not remain authorized merely because
+the `REL-*` IDs are textually unchanged.
+
+This design does not add a C1 relation-set digest. Immediate C1 read-only
+state, exact retained relation bytes, K2.16/K2.17 inspection of the current
+artifact, and byte-preserving process-refusal evidence are sufficient for the
+proposed boundary. They do not prove historical immutability from final bytes
+alone. If future implementation cannot enforce and evidence that refusal, it
+must stop and reopen the design rather than silently add a digest or relation
+version lifecycle.
+
 The checker can prove digest equality and exact target binding. It cannot
 prove:
 
@@ -1444,9 +1574,12 @@ prove:
 - that affected relations are semantically affected; or
 - that the reviewer was genuinely independent merely because fields say so.
 
-## 16. Authority-subject binding
+## 16. Provisional authority-subject upper bound
 
-If OQ-01 is later resolved, authority presentation uses:
+This section is a disabled design sketch, not an active implementation or
+checker contract. The separately adopted OQ-01 decision owns any eventual
+authority-subject format. If that decision adopts this bounded shape,
+authority presentation may use:
 
 `aleph-internal-ambiguity-authority-subject/v1`
 
@@ -1621,7 +1754,12 @@ K2.17 may prove only declared structure.
 - exact S4-C1/S4-C2/S4-C3 marker vocabulary, order, and uniqueness;
 - required empty/nonempty shape for the highest retained closure phase;
 - absent/inactive behavior for 1.0-1.4;
-- required artifact at 1.5 S4-C2, S4-C3, and S5 entry; and
+- S4-C1 as the 1.5 activation point at which `ledgers/relations.md` must
+  exist, contain its required marker/table shape and complete canonical
+  relation set, and be K2.16-valid;
+- a valid C1 marker and retained K2.16-valid relation artifact whenever C2,
+  C3, or S5 entry is retained;
+- required ambiguity artifact at 1.5 S4-C2, S4-C3, and S5 entry; and
 - no nonempty canonical ambiguity rows in a retained pre-C2 phase.
 
 ### 19.2 Identity and expression basis
@@ -1645,6 +1783,8 @@ K2.17 may prove only declared structure.
 - existing complete source row/final cursor/hash for full scope;
 - recomputed search-basis digest;
 - full-same-source requirement for multiple/null states;
+- full-same-source requirement for
+  `resolution_state = unresolved` with `candidate_state = single`; and
 - no other-source reference.
 
 ### 19.4 Candidate structure
@@ -1682,7 +1822,9 @@ K2.17 may prove only declared structure.
 - exact target token;
 - one allowed review record;
 - only `upheld` canonicalizes the exact subject;
-- changed subject with stale review fails.
+- changed subject with stale review fails; and
+- a higher assessment sequence with an identical `review_subject_digest` and
+  no changed allowed basis fails.
 
 ### 19.7 Authority structure
 
@@ -1717,6 +1859,9 @@ K2.17 does not:
 - prove reviewer independence;
 - prove the historical append time of a relation, ambiguity row, or phase
   marker;
+- prove that relation bytes were never historically modified after C1;
+- prove that a writer actually refused a post-C1 relation mutation;
+- prove that no transient altered relation bytes existed;
 - decide whether authority should close or preserve;
 - decide the legal semantics of a human authority action;
 - supply an external referent;
@@ -1732,13 +1877,15 @@ Every proposed responsibility is classified as follows:
 
 | Classification | Exact responsibilities |
 |---|---|
-| `DETERMINISTIC RETAINED-STATE` | All active checks in §§19.1-19.6; exact T5.3 emptiness while OQ-01 is unresolved; exact closure-phase marker syntax/order and consistency with retained bytes. |
-| `PROCESS/TEMPORAL` | Enforce actual REL serialization only in S4-C1; actual T5.1/T5.2 serialization only in S4-C2; refuse writes before their phase and after S4-C3/S5 before bytes change; append phase markers only after the corresponding procedure succeeds; preserve separate producer/reviewer passes. |
-| `SEMANTIC REVIEW` | Detect missing prose ambiguity; judge ambiguity existence, candidate correctness, source-search cognitive adequacy, affected-relation semantic correctness or completeness, contamination, and whether a declared relation is materially affected; challenge cycle/reachability reasoning; assess reviewer independence through process evidence rather than fields. |
+| `DETERMINISTIC RETAINED-STATE` | All active checks in §§19.1-19.6; exact T5.3 emptiness while OQ-01 is unresolved; exact closure-phase marker syntax/order and consistency with retained bytes; C2/C3 requires a valid C1 marker; the C1 relation artifact exists and is K2.16-valid; affected `REL-*` IDs resolve to eligible rows in that retained artifact; phase/artifact combinations are legal. |
+| `PROCESS/TEMPORAL` | Enforce actual REL serialization only in S4-C1; establish immediate read-only relation state at the C1 commit point; refuse every C2/C3 relation append, delete, alteration, replacement, retarget, or supersession before bytes change; prove byte preservation across refused writes; prevent silent C1 rerun on resume; serialize T5.1/T5.2 only in S4-C2; refuse out-of-window ambiguity writes; append phase markers only after the corresponding procedure succeeds; preserve separate producer/reviewer passes. |
+| `SEMANTIC REVIEW` | Detect missing prose ambiguity; judge ambiguity existence, candidate correctness, source-search cognitive adequacy, affected-relation semantic correctness or completeness, contamination, and whether a declared relation is materially affected; expose a semantic defect in a C1 relation without repairing it; challenge cycle/reachability reasoning; assess reviewer independence through process evidence rather than fields. |
 | `AUTHORITY-DEPENDENT` | Any positive T5.3 action, decision-category legality, action semantics, gate/stage choice, authority-reference grammar, closure provenance, or human override/preservation behavior. These remain disabled until OQ-01 is separately adopted. |
 
 K2.17 implements only the active `DETERMINISTIC RETAINED-STATE` row. The
 other rows are explicit evidence partitions, not hidden deterministic claims.
+In particular, K2.17 does not claim historical immutability from a currently
+valid relation artifact.
 
 ## 20. Prompt and worker roles
 
@@ -1774,6 +1921,8 @@ The fresh reviewer:
 - challenges same-source candidate legality/currentness;
 - challenges whether every affected `REL-*` is an eligible canonical
   relation and whether the finite set is semantically accurate;
+- reports any discovered semantic defect in a C1 relation as a blocking
+  closure failure rather than proposing an in-C2 relation rewrite;
 - challenges omitted or over-broad affected relations;
 - challenges answer-key, external-world, later-source, and projection
   contamination;
@@ -1794,7 +1943,15 @@ The orchestrator:
 - resolves one exact `VER-*`;
 - rejects stale or non-upheld subjects;
 - assigns `AMB-*` and assessment sequence;
+- retains the C1 marker only after the complete relation set is serialized and
+  K2.16-valid;
+- establishes immediate read-only relation state at C1 and refuses every
+  later relation write before bytes change;
+- treats a C2-discovered relation defect as blocking and never repairs,
+  replaces, retargets, or silently reruns C1;
 - writes T5.1/T5.2 only in S4-C2 of the composite closure barrier;
+- resumes an interrupted post-C1/pre-C2 run from the first unmet C2 DoD under
+  the same pins and relation bytes;
 - leaves T5.3 empty absent OQ-01 authority;
 - blocks on late discovery or contamination that cannot be cleanly
   redispatched; and
@@ -2031,13 +2188,23 @@ F5-12 proves non-conflation without claiming to close that separate finding.
 
 The successor design partitions future evidence into four disjoint classes:
 
-- 71 deterministic retained-state K2.17 mutations;
-- 6 process/temporal tests;
+- 74 deterministic retained-state K2.17 mutations;
+- 8 process/temporal tests;
 - 16 fresh-context semantic challenges in section 26; and
 - 10 authority-dependent cases disabled until OQ-01 is resolved.
 
 Every deterministic mutation starts from a clean focused fixture copy and
 proves only the named fail-closed retained-state property.
+
+When a case intentionally violates both an earlier checker and K2.17, the
+future test must assert the specific K2.17 diagnostic or intended K2.17
+failure surface in addition to the overall run failure. A generic `FAIL` is
+not evidence that K2.17 enforced its own rule, and checker logic need not be
+duplicated to make that assertion.
+
+The second repair preserves DM5-001 through DM5-071 and allocates
+DM5-072 through DM5-074 to the added retained-state cases rather than
+renumbering already reviewed cases.
 
 Predecessor mutation dispositions:
 
@@ -2079,7 +2246,10 @@ That case remains SC5-02.
 - `DM5-018` full scope binds the wrong source hash;
 - `DM5-019` multiple/null candidate state uses only local scope;
 - `DM5-020` alter search basis with stale digest; and
-- `DM5-021` omit required full-source completion.
+- `DM5-021` omit required full-source completion; and
+- `DM5-072` use `resolution_state = unresolved`,
+  `candidate_state = single`, and `search_scope_kind = local-intervals` in an
+  otherwise structurally valid assessment.
 
 ### 25.3 Deterministic retained-state: candidate/null
 
@@ -2141,7 +2311,10 @@ variants belong to SC5-10 and SC5-11.
 - `DM5-061` cite a duplicate verifier identity;
 - `DM5-062` use a `refuted` verdict as authorization;
 - `DM5-063` use reviewer `cannot-determine` as authorization; and
-- `DM5-064` use authority/reference text in place of semantic review.
+- `DM5-064` use authority/reference text in place of semantic review; and
+- `DM5-073` append a contiguous new assessment sequence for the same
+  ambiguity with an identical `review_subject_digest` and no changed allowed
+  review subject or basis.
 
 ### 25.6 Deterministic retained-state: inactive authority surface
 
@@ -2152,16 +2325,19 @@ variants belong to SC5-10 and SC5-11.
 - `DM5-066` activate the artifact under run format 1.0-1.4;
 - `DM5-067` retain nonempty canonical ambiguity rows while the highest
   closure phase is earlier than S4-C2;
-- `DM5-068` omit the required artifact or final T5.1/T5.2 state at S4-C2,
-  S4-C3, or S5 entry;
+- `DM5-068` omit the required ambiguity artifact or final T5.1/T5.2 state at
+  S4-C2, S4-C3, or S5 entry;
 - `DM5-069` retain ambiguity rows without the 1.5 capability;
 - `DM5-070` register a later run format that loses a prior cumulative
   capability; and
 - `DM5-071` duplicate, skip, or reorder the retained S4-C1/S4-C2/S4-C3 phase
-  markers.
+  markers; and
+- `DM5-074` retain an S4-C2 marker while the required S4-C1
+  `ledgers/relations.md` artifact is absent.
 
-DM5-067 and DM5-071 prove only consistency between retained marker state and
-retained bytes. They do not prove historical append timing.
+DM5-067, DM5-071, and DM5-074 prove only consistency between retained marker
+state and retained bytes. They do not prove historical append timing or
+historical relation immutability.
 
 ### 25.8 Process/temporal tests
 
@@ -2174,9 +2350,26 @@ These are not K2 mutations:
 - `PT5-03` refuse S4-C2 ambiguity finalization before S4-C1 completes;
 - `PT5-04` refuse T5.1/T5.2 canonical append before S4-C2 before bytes change;
 - `PT5-05` refuse any T5.1/T5.2 append after S4-C2, S4-C3, or S5 entry before
-  bytes change; and
+  bytes change;
 - `PT5-06` demonstrate the legal C1 → C2 → C3 sequence and refuse S5 entry
-  until both relation and ambiguity closure DoD are complete.
+  until both relation and ambiguity closure DoD are complete;
+- `PT5-07 — POST-C1 RELATION WRITE REFUSAL`:
+  - setup: the relation ledger has valid canonical bytes and the C1 closure
+    phase is established;
+  - attempt: append, delete, or alter a `REL-*` row during C2;
+  - expected: the operation is refused, relation bytes remain byte-identical,
+    C2 cannot obtain canonical authorization from mutated bytes, and no C3
+    transition occurs because of the attempted mutation; and
+- `PT5-08 — POST-C1 RESUME WITHOUT C1 REWRITE`:
+  - setup: a run with valid C1 state stops before C2 completion;
+  - attempt: resume under the same pins, including a variant retaining
+    unauthorized partial canonical T5.1/T5.2 rows before a valid C2 marker;
+  - expected: relation bytes remain byte-identical, work starts at the first
+    unmet C2 DoD, C1 is not rerun or rewritten, partial rows are not
+    normalized away, and no C3 transition occurs until valid C2 completion.
+
+PT5-07 and PT5-08 prove only process/helper refusal and resume semantics. They
+do not prove live writer integration unless F-03 is separately closed.
 
 ### 25.9 Authority-dependent cases
 
@@ -2279,13 +2472,19 @@ all 33 items below hold. Every item is OPEN in this proposal.
    not activate Slice 5.
 5. `ledgers/internal-ambiguities.md` and
    `aleph-internal-ambiguity/v1` are documented exactly.
-6. T5.1/T5.2/T5.3 schemas, column order, markers, and closed vocabularies are
-   implemented without extra speculative fields.
+6. T5.1/T5.2 schemas, column order, markers, and active closed vocabularies
+   are implemented without extra speculative fields. While OQ-01 remains
+   unresolved, T5.3 implementation is limited to canonical columns, required
+   table presence, empty authority-action population, and inactive authority
+   capability; the separate adopted OQ-01 decision owns any operative action
+   vocabulary, authority subject, `authority_ref`, closure provenance, and
+   positive-action checks.
 7. `AMB-NNNN` uniqueness and duplicate-expression prevention are enforced.
 8. Every expression reopens exact frozen bytes through source identity,
    existing locator scheme, byte interval, hash, base64, and packet basis.
 9. Bounded search reuses source-walk identities and proves legal byte
-   accounting without claiming semantic adequacy.
+   accounting without claiming semantic adequacy, including rejection of an
+   unresolved single candidate unless full-same-source search completed.
 10. Candidate grammar permits only same-source current `PKT` and exact
     source-locus endpoints.
 11. Multiple candidates and both typed-null states remain distinct and
@@ -2294,7 +2493,8 @@ all 33 items below hold. Every item is OPEN in this proposal.
 13. `affected_relation_ids` implements the exact eligible-canonical-relation
     consumption predicate: exact-one same-run row, S4-C1 closed-set
     membership, K2.16 validity, Slice 4 endpoint rules, and acceptance of all
-    four adopted `record_state` values without relation lineage.
+    four adopted `record_state` values without relation lineage, against the
+    exact immutable C1 relation set.
 14. The complete eight-row
     resolution/carry/affected-set matrix is implemented exactly, including
     legal `resolved-local / none / nonempty` dependency history.
@@ -2306,14 +2506,23 @@ all 33 items below hold. Every item is OPEN in this proposal.
 17. Permitted relation cycles remain finite and do not multiply ambiguity
     state or evidence.
 18. Exact ambiguity review-subject serialization, digest, verifier target,
-    allowed verdicts, and stale-review behavior match this design.
+    allowed verdicts, and stale-review behavior match this design; reviews
+    name the exact immutable C1 relation set, and an identical unchanged
+    review basis cannot inflate `assessment_seq`.
 19. The composite ordered S4 barrier is implemented as S4-C1 relation
-    closure, S4-C2 ambiguity finalization, and S4-C3 exit, without moving REL
-    serialization outside the adopted S4 closure barrier.
-20. Exact retained phase markers are monotonic and K2.17 validates only their
-    static consistency with retained bytes, never historical timing.
-21. Manual/orchestrator temporal enforcement and all six PT5 process tests
-    refuse out-of-window writes before bytes change.
+    closure and immediate read-only commit point, S4-C2 ambiguity
+    finalization that consumes but cannot mutate the C1 relation set, and
+    S4-C3 exit that carries forward C1 immutability. A C2-discovered relation
+    defect blocks rather than rewriting, replacing, retargeting, or silently
+    rerunning C1.
+20. Exact retained phase markers are monotonic. S4-C1 is the 1.5 activation
+    point for a present, complete, K2.16-valid relation artifact, and K2.17
+    validates only retained phase/artifact consistency, never historical
+    write timing or immutability.
+21. Manual/orchestrator temporal enforcement and all eight PT5 process tests
+    refuse out-of-window writes before bytes change, preserve relation bytes
+    across post-C1 write attempts, and resume post-C1 work without rerunning
+    or rewriting C1.
 22. Fresh same-source review may establish `resolved-local` without human
     authority, while T5.3 remains empty and all authority-positive behavior
     remains disabled until OQ-01 is resolved.
@@ -2326,17 +2535,21 @@ all 33 items below hold. Every item is OPEN in this proposal.
     creates an external referent.
 26. Correction/effective-state interaction remains narrow, append-only only
     in the legal pre-exit phases, and fail closed after S4-C3 without generic
-    correction or relation-successor machinery.
+    correction or relation-successor machinery. C2 may expose a C1 relation
+    defect but cannot repair it; only an already-adopted applicable mechanism
+    or successor-run handling may proceed.
 27. K2.17 implements only deterministic retained-state responsibilities,
     reports PASS as structural only, and preserves the process/semantic/
-    authority non-claims in section 19.
+    authority non-claims in section 19, including no claim that it proves
+    historical relation immutability or actual writer refusal.
 28. The focused fixture covers every section 24 branch, both eligible asserted
     and typed-null relations, the complete matrix, a noneligible relation
     reference, a permitted cycle without propagation, and an unrelated
     relation not affected.
-29. All 71 DM5 deterministic retained-state mutations fail for the intended
-    reason while the clean fixture passes.
-30. All 6 PT5 process tests and 16 SC5 semantic challenges are implemented;
+29. All 74 DM5 deterministic retained-state mutations fail for the intended
+    reason while the clean fixture passes; cases that also violate an earlier
+    checker assert the intended K2.17-specific diagnostic.
+30. All 8 PT5 process tests and 16 SC5 semantic challenges are implemented;
     the 10 AD5 authority-dependent cases remain disabled until OQ-01 is
     separately resolved and then must be implemented under that adopted
     contract.
@@ -2373,7 +2586,30 @@ That result is preserved. The blocked proposal contained at least:
 
 The successor does not state that those findings never existed.
 
-### 29.2 Successor repair dispositions
+### 29.2 Preserved second blocked-successor audit history
+
+The exact second blocked proposal commit
+`53adf0c95672774f07b094f5e1a262542aedad3e`, tree
+`f24cfc299e09c9f45d5c230a2c8909f46733e100`, was freshly and independently
+audited and returned:
+
+`BLOCK_SLICE_5_HUMAN_ADOPTION`
+
+The blocking finding was:
+
+`S5-F11 — relation immutability between S4-C1 and ambiguity finalization was
+undefined`
+
+The audit concluded `OQ-01-A`: the proposal may be adopted while OQ-01
+remains open; OQ-01 blocks implementation, not adoption. That result is
+preserved without claiming that OQ-01 is resolved or adopted.
+
+The second audit left S5-F01, S5-F04, S5-F05, S5-F06, S5-F07, S5-F08, and
+S5-F10 closed on that blocked successor, and left S5-F09 as LATER. This second
+narrow repair preserves those dispositions unless its changed text is found
+to regress them by the required fresh successor audit.
+
+### 29.3 Second narrow successor repair dispositions
 
 Each disposition below is a successor design repair pending fresh independent
 audit, not an independently verified closure:
@@ -2382,16 +2618,25 @@ audit, not an independently verified closure:
 |---|---|
 | S5-F01 | Defines `eligible canonical relation` as a narrow same-run consumption predicate; permits all four Slice 4 record states; removes REL lineage/predecessor/successor language and blocks rather than inventing relation retargeting. |
 | S5-F02 | Defines one composite S4 closure barrier with ordered S4-C1 relation closure, S4-C2 ambiguity finalization, and S4-C3 exit, plus exact retained run-log phase markers and explicit temporal non-claims. |
-| S5-F03 / OQ-01 | Reconciles adopted Slice 5 ownership and existing presentation mechanics while narrowing the unresolved issue to the human decision category/legal action. T5.3 remains inert. |
+| S5-F03 / OQ-01 | Preserves the audit's OQ-01-A conclusion: proposal adoption may occur while OQ-01 remains open, but implementation remains blocked. T5.3 remains inert and OQ-01 is neither resolved nor adopted. |
 | S5-F04 | Defines all eight resolution/carry/affected-set combinations and permits reviewed resolved-local dependency history without unresolved carry. |
-| S5-F05 | Separates 71 deterministic retained-state mutations from 6 process/temporal tests; predecessor mutation 75 is static only through a retained phase marker and mutation 77 is process-only. |
+| S5-F05 | Separates 74 deterministic retained-state mutations from 8 process/temporal tests; predecessor mutation 75 is static only through a retained phase marker and mutation 77 is process-only. |
 | S5-F06 | Removes “cycle-caused propagation explosion” as a freestanding deterministic semantic claim; exact duplicate/path structural violations are DM5-049/050 and semantic reachability reasoning remains SC5-11. |
 | S5-F07 | Adds eligible asserted and typed-null relation positives, actual noneligible relation-reference negatives, complete matrix cases, and mechanically recounted evidence totals. |
 | S5-F08 | Records the predecessor block and false closure statements here; no “findings never existed” claim remains. |
 | S5-F09 | Adds the explicit LATER limitation that carry completeness is bounded by declared Slice 4 relation completeness, without relation fabrication, density targets, A4-07, or Slice 7 authority. |
 | S5-F10 | States precisely that the PR changes `core.manifest.json` by one repository-administration path while run-format values, Core payload, checker inventory, and bundle inputs remain unchanged. |
+| S5-F11 | Makes S4-C1 the immediate commit/read-only point for the exact canonical relation set; C2 may consume but cannot mutate it, and a C2-discovered relation defect blocks rather than rewriting C1. |
+| S5-F13 | Limits unresolved-OQ-01 T5.3 implementation to canonical columns, required table presence, empty population, and inactive capability; the separate authority decision owns every operative positive vocabulary and binding. |
+| S5-F14 | Adds DM5-072 for an otherwise valid `unresolved / single / local-intervals` retained state. |
+| S5-F15 | Adds DM5-073 to reject assessment-sequence inflation with an identical digest and no changed allowed basis. |
+| S5-F16 | Qualifies the canonical basis as a bounded authority narrowing pending OQ-01 rather than claiming unqualified preservation. |
+| S5-F17 | Makes S4-C1 the future 1.5 K2.16 activation point and adds DM5-074 for C2 without the required C1 relation artifact. |
+| S5-F18 | States that future Slice 5 extends the run-log event shape with one new `closure_phase` marker line per corresponding event. |
+| S5-F19 | Adds same-pin post-C1/pre-C2 resume rules and PT5-08 without generic rollback/checkpoint architecture. |
+| S5-F20 | Requires a K2.17-specific diagnostic when a mutation also fails an earlier checker. |
 
-### 29.3 Current successor self-audit
+### 29.4 Current successor self-audit
 
 The successor was re-attacked against the original design boundaries:
 
@@ -2403,7 +2648,11 @@ The successor was re-attacked against the original design boundaries:
 | indiscriminate graph propagation | finite explicit reviewed affected set; no reachability closure |
 | ambiguity as relation/evidence/disposition | separate artifact and role boundaries |
 | relation lifecycle invention | eligible-relation consumption only; no predecessor, successor, status, version, or retargeting |
-| checker deciding semantics or timing | section 19 partition; K2.17 retained-state only |
+| post-C1 relation mutation | C1 is the immediate read-only commit point; PT5-07 requires refusal and byte identity |
+| C2 repairing a C1 defect | C2 may expose the defect but must block; no mutation, replacement, silent rerun, or C3 |
+| stale review after unchanged-ID relation mutation | unauthorized changed relation bytes invalidate the run and old review; no relation-version lifecycle is added |
+| resume rewriting C1 or partial T5 state | same pins and bytes, first unmet C2 DoD, no C1 rerun, no silent normalization, PT5-08 |
+| checker deciding semantics, timing, or history | section 19 partition; K2.17 retained-state only and no historical-immutability claim |
 | incomplete field matrix | all eight combinations explicit with targeted cases |
 | barrier ambiguity | one C1 → C2 → C3 vocabulary with retained phase markers |
 | human inventing corpus facts | any later action is bounded to a reviewed candidate or preservation |
@@ -2416,10 +2665,11 @@ The successor was re-attacked against the original design boundaries:
 
 Current unresolved/pending state:
 
-- OQ-01 remains `BLOCKING NOW` for implementation;
+- OQ-01 remains implementation-blocking under `OQ-01-A`, while proposal
+  adoption is not blocked solely by OQ-01;
 - fresh independent successor design audit is required before any human
   adoption request;
-- 71 deterministic mutations, 6 process/temporal tests, 16 semantic
+- 74 deterministic mutations, 8 process/temporal tests, 16 semantic
   challenges, and 10 authority-dependent cases are future plans only; and
 - all 33 future implementation DoD items remain OPEN.
 
@@ -2431,8 +2681,9 @@ Carried findings remain:
   pre-existing Slice 4 reconciliation DoD-21 wording; and
 - A4-15 remains confirmed correct.
 
-This self-audit found no additional successor-design issue, but it is not a
-substitute for the required fresh independent audit.
+The fresh audit did find S5-F11 on the second blocked proposal. This self-audit
+records the new repair and nonblocking reconciliations; it does not close them
+and is not a substitute for the required fresh independent successor audit.
 
 ## 30. Proposed future change surface
 
@@ -2471,7 +2722,7 @@ fixtures, package files, and implementation manifests remain unchanged.
 
 If this proposal is published in a draft PR, its maximum status is:
 
-- PROPOSED DESIGN — REPAIRED AFTER BLOCKING INDEPENDENT AUDIT
+- PROPOSED DESIGN — SECOND NARROW REPAIR AFTER TWO BLOCKING INDEPENDENT AUDITS
 - FRESH SUCCESSOR DESIGN AUDIT REQUIRED
 - HUMAN AUTHORITY ADOPTION NOT YET REQUESTED
 - AUTHORITY QUESTION OQ-01 BLOCKS IMPLEMENTATION
