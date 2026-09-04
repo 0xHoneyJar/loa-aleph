@@ -20,7 +20,12 @@ import {
   buildProceduralAuthorityRequest,
   buildProceduralAuthorityResponse,
   buildProceduralAuthoritySubject,
+  materialImpactSubjectDigest,
+  materialImpactSubjectJson,
   proceduralAuthorityRequestJson,
+  resolvePinnedCoreRequirement,
+  type MaterialImpactSubject,
+  type PinnedCoreAuthority,
 } from '../../../scripts/lib/internal-ambiguity.ts';
 import { verifyAndLoadLoaBundle } from '../src/core-loader.ts';
 import {
@@ -40,6 +45,7 @@ import {
   type Clock,
   type ExactModelIdentity,
   type JsonValue,
+  type LoaRoleId,
   type LoaRunState,
   type WorkerDispatchReceipt,
 } from '../src/types.ts';
@@ -196,10 +202,11 @@ function emptyAmbiguityLedger(runId: string): string {
 function withheldInventory(
   bundle: ReturnType<typeof verifyAndLoadLoaBundle>,
   runDir: string,
+  role: LoaRoleId,
   allowlist: string[],
 ) {
   const allowed = new Set(allowlist);
-  const coreRef = coreBlindPolicyReference(bundle, 'merge-judge', 'S4');
+  const coreRef = coreBlindPolicyReference(bundle, role, 'S4');
   return walkRegularFiles(runDir)
     .map((path) => relative(runDir, path).split(sep).join('/'))
     .filter((path) => !path.startsWith('control/') && !allowed.has(path))
@@ -221,7 +228,7 @@ function validatedFixtureReturn(
     role: 'merge-judge',
     kind: 'producer',
     allowlist: [],
-    withheld: withheldInventory(bundle, runDir, []),
+    withheld: withheldInventory(bundle, runDir, 'merge-judge', []),
     taskLine: 'Return the sealed fixture merge-judge exemplar.',
     modelIdentity: state.identity.models['merge-judge'],
   });
@@ -276,6 +283,39 @@ function main(): void {
     expect(bundle.lock.run_format_version === '1.5.0-provisional',
       `temporary bundle retained ${bundle.lock.run_format_version}`);
     pass('immutable temporary Loa bundle activates run format 1.5');
+
+    const pinnedCoreAuthority: PinnedCoreAuthority = {
+      source_kind: 'retained-immutable-bundle',
+      root: bundle.root,
+      lock: bundle.lock,
+      expected_bundle_digest: bundle.lock.bundle.digest,
+      expected_core_digest: bundle.lock.core.tree_digest,
+      files: bundle.files,
+      file_bytes: bundle.fileBytes,
+    };
+    const requirementRef = 'core:docs/architecture/04-pipeline-stages-and-dod.md#S5 — Disposition pass';
+    const resolvedRequirement = resolvePinnedCoreRequirement(pinnedCoreAuthority, requirementRef);
+    expect(resolvedRequirement.path === 'docs/architecture/04-pipeline-stages-and-dod.md'
+      && resolvedRequirement.selector === 'S5 — Disposition pass'
+      && resolvedRequirement.selector_kind === 'heading'
+      && resolvedRequirement.bytes.byteLength > 0,
+    'pinned Core requirement did not reopen the exact retained heading bytes');
+    pass('requirement_ref resolves only through the retained immutable bundle and exact Core bytes');
+
+    const tamperedCoreBytes = new Map(bundle.fileBytes);
+    tamperedCoreBytes.set(
+      resolvedRequirement.path,
+      Buffer.concat([tamperedCoreBytes.get(resolvedRequirement.path) || Buffer.alloc(0), Buffer.from('\nmutated\n')]),
+    );
+    expectThrows(
+      () => resolvePinnedCoreRequirement({
+        ...pinnedCoreAuthority,
+        file_bytes: tamperedCoreBytes,
+      }, requirementRef),
+      /retained Core bytes are absent or disagree with the pinned inventory/u,
+      'tampered retained Core requirement bytes',
+    );
+    pass('requirement_ref resolution fails closed on retained Core byte drift');
 
     const runDir = join(tempRoot, 'run');
     cpSync(FIXTURE_ROOT, runDir, { recursive: true });
@@ -352,32 +392,85 @@ function main(): void {
 
     const ambiguityPath = join(runDir, 'ledgers/internal-ambiguities.md');
     writeFileSync(ambiguityPath, fullAmbiguities);
+    const t52Line = readFileSync(ambiguityPath, 'utf8')
+      .split('\n')
+      .find((line) => line.startsWith('| AMB-1503 | 1 |'));
+    expect(t52Line !== undefined, 'fixture lacks AMB-1503 T5.2 row');
+    const ambiguityReviewPath = join(
+      runDir,
+      'verification/harness/S4-ambiguities/VER-1503.md',
+    );
+    const operativeScope = {
+      affected_ids: ['CC-0413'],
+      impact_rows: [{
+        affected_id: 'CC-0413',
+        operation_kind: 'load-bearing-reasoning' as const,
+        requirement_ref: 'core:docs/architecture/04-pipeline-stages-and-dod.md#S5 — Disposition pass',
+        unresolved_treatment: 'carry-or-restriction' as const,
+        consequence_if_unresolved: 'The downstream use remains explicitly contingent on the unresolved expression.',
+      }],
+    };
+    const materialSubject: MaterialImpactSubject = {
+      format: 'aleph-internal-ambiguity-material-impact-review-subject/v1',
+      run_id: runId,
+      ambiguity_id: 'AMB-1503',
+      assessment_seq: 1,
+      material_impact_seq: 1,
+      t5_2_assessment_ref: `internal-ambiguity:T5.2:AMB-1503:A1@${sha256Digest(t52Line)}`,
+      t5_2_review_subject_digest: 'sha256:971c8b4b48522d87dc994a48823f1f4eabce05cd1c990b1bd08f506e5caf201d',
+      t5_2_review_ref: `ambiguity-review-verdict:VER-1503@${sha256Digest(readFileSync(ambiguityReviewPath))}`,
+      c1_relation_basis_ref: 'none',
+      materiality_class: 'C',
+      operative_scope: operativeScope,
+      source_locators: ['SRC-0401:L8-L8'],
+      reviewed_unaffected_ids: [],
+      unresolved_statement: 'The frozen same-source bytes do not identify one local referent.',
+      review_proposition: 'class-B-or-C-and-canonical-operative-scope-complete-and-accurate-under-cited-Core-requirements',
+      proposed_by: 'invocation:material-impact-producer-0001',
+    };
+    const materialSubjectText = materialImpactSubjectJson(materialSubject);
+    const materialDigest = materialImpactSubjectDigest(materialSubject);
+    const materialSubjectPath = join(
+      runDir,
+      'verification/harness/S4/material-impact-subjects/AMB-1503-A1-M1.json',
+    );
+    mkdirSync(dirname(materialSubjectPath), { recursive: true });
+    writeFileSync(materialSubjectPath, materialSubjectText);
+    const materialReviewPath = join(
+      runDir,
+      'verification/harness/S4-material-impact/VER-1591.md',
+    );
+    mkdirSync(dirname(materialReviewPath), { recursive: true });
+    writeFileSync(
+      materialReviewPath,
+      '# Verdict VER-1591\n\n'
+        + '| field | value |\n'
+        + '|-------|-------|\n'
+        + `| target | internal-ambiguity-material-impact-review-subject:${materialDigest} |\n`
+        + '| lens | fresh material-impact exact-subject challenge |\n'
+        + '| stage | S4-C2 material-impact review |\n'
+        + '| shown | exact material subject, bound T5.2 review, cited Core requirement, reopened object, and C1 basis |\n'
+        + '| withheld | human comments, observations, forecasts, desired actions, candidate preferences, and desired conclusions |\n'
+        + '| verdict | upheld |\n'
+        + '| consequence | fixture Class C basis may proceed to bounded human procedure |\n',
+    );
     const authoritySubject = buildProceduralAuthoritySubject({
       run_id: runId,
       ambiguity_id: 'AMB-1503',
       assessment_seq: 1,
-      t5_2_assessment_ref: `internal-ambiguity:T5.2:AMB-1503:A1@sha256:${'1'.repeat(64)}`,
+      t5_2_assessment_ref: materialSubject.t5_2_assessment_ref,
       t5_2_review_subject_digest: 'sha256:971c8b4b48522d87dc994a48823f1f4eabce05cd1c990b1bd08f506e5caf201d',
-      t5_2_review_ref: `ambiguity-review-verdict:VER-1503@sha256:${'2'.repeat(64)}`,
+      t5_2_review_ref: materialSubject.t5_2_review_ref,
       prior_indeterminate_review_refs: [],
       candidate_state: 'null-no-candidate',
       candidate_refs: [],
       carry_state: 'none',
       affected_relation_ids: [],
-      c1_relation_basis_ref: 'relations-basis:closure_phase=S4-C1-relations-closed;artifact=ledgers/relations.md',
+      c1_relation_basis_ref: 'none',
       material_impact_seq: 1,
-      material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M1@sha256:${'3'.repeat(64)}`,
-      material_impact_review_ref: `material-impact-verdict:VER-1591@sha256:${'4'.repeat(64)}`,
-      operative_scope: {
-        affected_ids: ['CC-0413'],
-        impact_rows: [{
-          affected_id: 'CC-0413',
-          operation_kind: 'load-bearing-reasoning',
-          requirement_ref: 'core:docs/architecture/04-pipeline-stages-and-dod.md#S5 — Disposition pass',
-          unresolved_treatment: 'carry-or-restriction',
-          consequence_if_unresolved: 'The downstream use remains explicitly contingent on the unresolved expression.',
-        }],
-      },
+      material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M1@${materialDigest}`,
+      material_impact_review_ref: `material-impact-verdict:VER-1591@${sha256Digest(readFileSync(materialReviewPath))}`,
+      operative_scope: structuredClone(operativeScope),
       source_locators: ['SRC-0401:L8-L8'],
       reviewed_unaffected_ids: [],
       unresolved_statement: 'The frozen same-source bytes do not identify one local referent.',
@@ -438,6 +531,78 @@ function main(): void {
     expect(!readFileSync(ambiguityPath, 'utf8').includes('| AMB-1503 | 1 | 1 | carry-unresolved |'),
       'recording the response implicitly wrote T5.3');
     pass('response persistence halts before T5.3 and run-control application');
+
+    const observationToken = 'SLICE5-HUMAN-OBSERVATION-EXACT-BYTES-DO-NOT-EXPOSE';
+    const observationPath = 'control/gates/withheld-human-observation.txt';
+    writeFileSync(join(runDir, observationPath), observationToken);
+    const roleCases: Array<{
+      role: LoaRoleId;
+      kind: 'producer' | 'refuter';
+      allowlist: string[];
+      producerContextId?: string;
+    }> = [
+      {
+        role: 'ambiguity-producer',
+        kind: 'producer',
+        allowlist: ['corpus/sources/SRC-0401-source-walk.txt', 'ledgers/source-walk.md'],
+      },
+      {
+        role: 'ambiguity-reviewer',
+        kind: 'refuter',
+        allowlist: ['corpus/sources/SRC-0401-source-walk.txt', 'ledgers/internal-ambiguities.md'],
+        producerContextId: 'CTX-AMBIGUITY-PRODUCER-0001',
+      },
+      {
+        role: 'material-impact-producer',
+        kind: 'producer',
+        allowlist: ['ledgers/internal-ambiguities.md', 'ledgers/relations.md'],
+      },
+      {
+        role: 'material-impact-reviewer',
+        kind: 'refuter',
+        allowlist: ['ledgers/internal-ambiguities.md', 'ledgers/relations.md'],
+        producerContextId: 'CTX-MATERIAL-IMPACT-PRODUCER-0001',
+      },
+    ];
+    for (const [index, roleCase] of roleCases.entries()) {
+      const assembled = assembleWorkerBundle({
+        bundle,
+        runDir,
+        callId: `CALL-SLICE5-WITHHOLD-${String(index + 1).padStart(4, '0')}`,
+        runId,
+        stage: 'S4',
+        role: roleCase.role,
+        kind: roleCase.kind,
+        allowlist: roleCase.allowlist,
+        withheld: withheldInventory(bundle, runDir, roleCase.role, roleCase.allowlist),
+        taskLine: 'Return only the exact bounded Slice 5 structured result.',
+        modelIdentity: readRunState(runDir).identity.models[roleCase.role],
+        producerContextId: roleCase.producerContextId,
+      });
+      const bundleBytes = Buffer.concat(walkRegularFiles(assembled.root).map((path) => readFileSync(path)));
+      expect(!bundleBytes.includes(Buffer.from(observationToken, 'utf8')),
+        `${roleCase.role} bundle exposed exact human observation bytes`);
+      expect(!bundleBytes.includes(Buffer.from('human:fixture-operator', 'utf8')),
+        `${roleCase.role} bundle exposed retained authority identity/response bytes`);
+    }
+    expectThrows(
+      () => assembleWorkerBundle({
+        bundle,
+        runDir,
+        callId: 'CALL-SLICE5-WITHHOLD-ILLEGAL',
+        runId,
+        stage: 'S4',
+        role: 'material-impact-producer',
+        kind: 'producer',
+        allowlist: [observationPath],
+        withheld: withheldInventory(bundle, runDir, 'material-impact-producer', [observationPath]),
+        taskLine: 'Return only the exact bounded Slice 5 structured result.',
+        modelIdentity: readRunState(runDir).identity.models['material-impact-producer'],
+      }),
+      /may not expose adapter control state/u,
+      'human observation allowlist injection',
+    );
+    pass('all four Slice 5 worker bundles withhold human response and observation bytes');
 
     const authorityReceipt = writer.appendProceduralAuthorityResponse(request.request_id);
     const authorityLedger = readFileSync(ambiguityPath, 'utf8');

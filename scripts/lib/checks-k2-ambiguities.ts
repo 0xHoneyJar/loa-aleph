@@ -22,6 +22,9 @@ import {
   buildProceduralAuthorityLedgerRow,
   CLOSURE_PHASES,
   closurePhases,
+  materialImpactSubjectDigest,
+  materialImpactSubjectJson,
+  materialImpactSubjectProblems,
   nextClosurePhase,
   operativeScopeProblems,
   parseCandidateRefs,
@@ -33,6 +36,7 @@ import {
   validateProceduralAuthorityRequest,
   validateProceduralAuthorityResponse,
   type AmbiguityReviewSubject,
+  type MaterialImpactSubject,
   type ProceduralAuthorityRequest,
   type ProceduralAuthorityResponse,
   type SearchBasis,
@@ -119,6 +123,35 @@ function verdictFor(model: RunModel, id: string): Verdict | null {
     }
     matches.push({
       target: values.get('target')?.[0] || '',
+      verdict: values.get('verdict')?.[0] || '',
+      valid: tables.length === 1 && VERDICT_FIELDS.every((field) => (
+        values.get(field)?.length === 1 && values.get(field)?.[0] !== ''
+      )),
+      path: document.relativePath,
+    });
+  }
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function verdictForTarget(model: RunModel, target: string): Verdict | null {
+  const matches: Verdict[] = [];
+  for (const document of model.documents.values()) {
+    if (!document?.relativePath.startsWith('verification/harness/')) continue;
+    if (!/^VER-\d{4,}\.md$/u.test(basename(document.relativePath))) continue;
+    const tables = findTables(document.tables, ['field', 'value']);
+    const values = new Map<string, string[]>();
+    if (tables.length === 1) {
+      for (const row of tables[0].rows) {
+        const field = normalizeHeader(row.cells[0] || '');
+        if (!(VERDICT_FIELDS as readonly string[]).includes(field)) continue;
+        const bucket = values.get(field) || [];
+        bucket.push((row.cells[1] || '').trim());
+        values.set(field, bucket);
+      }
+    }
+    if (values.get('target')?.[0] !== target) continue;
+    matches.push({
+      target,
       verdict: values.get('verdict')?.[0] || '',
       valid: tables.length === 1 && VERDICT_FIELDS.every((field) => (
         values.get(field)?.length === 1 && values.get(field)?.[0] !== ''
@@ -495,6 +528,106 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
       for (const id of definitions.keys()) if (!assessments.has(id)) fail(`${id} has no reviewed T5.2 assessment at C2`);
     }
 
+    interface RetainedMaterialImpact {
+      subject: MaterialImpactSubject;
+      digest: string;
+      subjectRef: string;
+      reviewRef: string;
+      verdict: string;
+    }
+    const materialHistories = new Map<string, RetainedMaterialImpact[]>();
+    for (const file of model.files.filter((entry) => (
+      /^verification\/harness\/S4\/material-impact-subjects\/AMB-\d{4,}-A\d+-M\d+\.json$/u
+        .test(entry.relativePath)
+    ))) {
+      try {
+        const subject = JSON.parse(file.text) as MaterialImpactSubject;
+        const match = file.relativePath.match(/\/(AMB-\d{4,})-A(\d+)-M(\d+)\.json$/u);
+        if (!match
+          || subject.ambiguity_id !== match[1]
+          || subject.assessment_seq !== Number(match[2])
+          || subject.material_impact_seq !== Number(match[3])) {
+          fail(`${file.relativePath} identity does not match its canonical path`);
+        }
+        if (materialImpactSubjectJson(subject) !== file.text) {
+          fail(`${file.relativePath} is not exact canonical compact JSON`);
+        }
+        materialImpactSubjectProblems(subject)
+          .forEach((problem) => fail(`${file.relativePath}: ${problem}`));
+        const assessment = assessments.get(subject.ambiguity_id)?.find((row) => (
+          Number(row.values.assessmentSeq) === subject.assessment_seq
+        ));
+        if (!assessment || assessment.values.resolutionState !== 'unresolved') {
+          fail(`${file.relativePath} does not bind one unresolved T5.2 assessment`);
+        } else {
+          const expectedAssessmentRef = `internal-ambiguity:T5.2:${subject.ambiguity_id}:A${String(subject.assessment_seq)}@${sha256Digest(assessment.raw)}`;
+          if (subject.t5_2_assessment_ref !== expectedAssessmentRef
+            || subject.t5_2_review_subject_digest !== assessment.values.reviewSubjectDigest) {
+            fail(`${file.relativePath} T5.2 row or review-subject binding is stale`);
+          }
+          const ambiguityVerdict = verdictFor(model, assessment.values.reviewedBy);
+          const ambiguityVerdictFile = ambiguityVerdict
+            ? model.files.find((entry) => entry.relativePath === ambiguityVerdict.path)
+            : null;
+          const expectedReviewRef = ambiguityVerdictFile
+            ? `ambiguity-review-verdict:${assessment.values.reviewedBy}@${sha256Digest(ambiguityVerdictFile.text)}`
+            : '';
+          if (!ambiguityVerdict?.valid || ambiguityVerdict.verdict !== 'upheld'
+            || subject.t5_2_review_ref !== expectedReviewRef) {
+            fail(`${file.relativePath} does not bind the exact upheld ambiguity-review bytes`);
+          }
+          const affected = parseOrderedIds(assessment.values.affectedRelationIds, 'REL', true);
+          const expectedC1 = affected.ids.length > 0
+            ? 'relations-basis:closure_phase=S4-C1-relations-closed;artifact=ledgers/relations.md'
+            : 'none';
+          if (subject.c1_relation_basis_ref !== expectedC1) {
+            fail(`${file.relativePath} C1 relation basis reference is wrong`);
+          }
+        }
+        const digest = materialImpactSubjectDigest(subject);
+        const review = verdictForTarget(
+          model,
+          `internal-ambiguity-material-impact-review-subject:${digest}`,
+        );
+        const reviewFile = review
+          ? model.files.find((entry) => entry.relativePath === review.path)
+          : null;
+        const reviewId = review ? basename(review.path, '.md') : '';
+        const reviewRef = reviewFile
+          ? `material-impact-verdict:${reviewId}@${sha256Digest(reviewFile.text)}`
+          : '';
+        if (!review?.valid || !['upheld', 'refuted', 'cannot-determine'].includes(review.verdict)) {
+          fail(`${file.relativePath} has no exact fresh material-impact verdict`);
+        }
+        const key = `${subject.ambiguity_id}\0${String(subject.assessment_seq)}`;
+        const history = materialHistories.get(key) || [];
+        history.push({
+          subject,
+          digest,
+          subjectRef: `material-impact-subject:${subject.ambiguity_id}:A${String(subject.assessment_seq)}:M${String(subject.material_impact_seq)}@${digest}`,
+          reviewRef,
+          verdict: review?.verdict || '',
+        });
+        materialHistories.set(key, history);
+      } catch (error) {
+        fail(`${file.relativePath} is malformed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    const latestMaterial = new Map<string, RetainedMaterialImpact>();
+    for (const [key, history] of materialHistories) {
+      history.sort((left, right) => (
+        left.subject.material_impact_seq - right.subject.material_impact_seq
+      ));
+      if (history.some((entry, index) => entry.subject.material_impact_seq !== index + 1)) {
+        fail(`${key.replace('\0', ' A')} material-impact M history is forked or noncontiguous`);
+      }
+      const latest = history.at(-1);
+      if (latest) latestMaterial.set(key, latest);
+      if (latest && latest.verdict !== 'upheld') {
+        fail(`${key.replace('\0', ' A')} latest material-impact verdict must be upheld to continue`);
+      }
+    }
+
     const control = checkControlState(model, fail);
     const requestSeqs = new Map<string, number[]>();
     for (const request of control.requests.values()) {
@@ -514,6 +647,22 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
         || value.authority_subject.affected_relation_ids.join(',')
           !== (current.values.affectedRelationIds === 'none' ? '' : current.values.affectedRelationIds)) {
         fail(`${value.request_id} is stale or disagrees with the current unresolved T5.2 basis`);
+      }
+      const material = latestMaterial.get(key);
+      if (!material || material.subject.materiality_class !== 'C'
+        || material.verdict !== 'upheld'
+        || value.authority_subject.material_impact_seq !== material.subject.material_impact_seq
+        || value.authority_subject.material_impact_subject_ref !== material.subjectRef
+        || value.authority_subject.material_impact_review_ref !== material.reviewRef
+        || value.authority_subject.materiality_class !== material.subject.materiality_class
+        || JSON.stringify(value.authority_subject.operative_scope)
+          !== JSON.stringify(material.subject.operative_scope)
+        || JSON.stringify(value.authority_subject.source_locators)
+          !== JSON.stringify(material.subject.source_locators)
+        || JSON.stringify(value.authority_subject.reviewed_unaffected_ids)
+          !== JSON.stringify(material.subject.reviewed_unaffected_ids)
+        || value.authority_subject.unresolved_statement !== material.subject.unresolved_statement) {
+        fail(`${value.request_id} does not exactly project the latest upheld Class C material-impact basis`);
       }
     }
     for (const [key, sequences] of requestSeqs) {
@@ -632,22 +781,6 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
       }
     }
 
-    for (const file of model.files.filter((entry) => (
-      /^verification\/harness\/S4\/material-impact-subjects\/AMB-\d{4,}-A\d+-M\d+\.json$/u.test(entry.relativePath)
-    ))) {
-      try {
-        const subject = JSON.parse(file.text) as Record<string, unknown>;
-        if (JSON.stringify(subject) !== file.text) fail(`${file.relativePath} is not compact canonical JSON`);
-        if (subject.format !== 'aleph-internal-ambiguity-material-impact-review-subject/v1') fail(`${file.relativePath} format is invalid`);
-        const scope = subject.operative_scope as Parameters<typeof operativeScopeProblems>[0];
-        const problems = operativeScopeProblems(scope);
-        problems.forEach((problem) => fail(`${file.relativePath}: ${problem}`));
-        if (subject.materiality_class === 'B' && (scope.affected_ids.length || scope.impact_rows.length)) fail(`${file.relativePath} Class B scope must be empty`);
-        if (subject.materiality_class === 'C' && (!scope.affected_ids.length || !scope.impact_rows.length)) fail(`${file.relativePath} Class C scope must be nonempty`);
-      } catch (error) {
-        fail(`${file.relativePath} is malformed: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
     return `${String(definitions.size)} ambiguity definition(s), ${String(ambiguity.t5_2Rows.length)} assessment(s), and ${String(ambiguity.t5_3Rows.length)} procedural row(s) are structurally valid; STRUCTURAL ONLY`;
   });
 }

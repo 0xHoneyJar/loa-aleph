@@ -755,6 +755,62 @@ export function materialImpactSubjectDigest(subject: MaterialImpactSubject): str
   return sha256Digest(Buffer.from(materialImpactSubjectJson(subject), 'utf8'));
 }
 
+export function materialImpactSubjectProblems(subject: MaterialImpactSubject): string[] {
+  const problems: string[] = [];
+  if (subject.format !== MATERIAL_IMPACT_SUBJECT_FORMAT) problems.push('material-impact format is invalid');
+  if (!/^RUN-[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/u.test(subject.run_id)) problems.push('run_id is invalid');
+  if (!/^AMB-\d{4,}$/u.test(subject.ambiguity_id)) problems.push('ambiguity_id is invalid');
+  if (!Number.isSafeInteger(subject.assessment_seq) || subject.assessment_seq < 1
+    || !Number.isSafeInteger(subject.material_impact_seq) || subject.material_impact_seq < 1) {
+    problems.push('assessment/material-impact sequence is invalid');
+  }
+  const expectedAssessmentPrefix = `internal-ambiguity:T5.2:${subject.ambiguity_id}:A${String(subject.assessment_seq)}@`;
+  if (!subject.t5_2_assessment_ref.startsWith(expectedAssessmentPrefix)
+    || !/^internal-ambiguity:T5\.2:AMB-\d{4,}:A[1-9]\d*@sha256:[a-f0-9]{64}$/u.test(subject.t5_2_assessment_ref)) {
+    problems.push('t5_2_assessment_ref is invalid');
+  }
+  if (!/^sha256:[a-f0-9]{64}$/u.test(subject.t5_2_review_subject_digest)) {
+    problems.push('t5_2_review_subject_digest is invalid');
+  }
+  if (!/^ambiguity-review-verdict:VER-\d{4,}@sha256:[a-f0-9]{64}$/u.test(subject.t5_2_review_ref)) {
+    problems.push('t5_2_review_ref is invalid');
+  }
+  if (subject.c1_relation_basis_ref !== 'none'
+    && subject.c1_relation_basis_ref
+      !== 'relations-basis:closure_phase=S4-C1-relations-closed;artifact=ledgers/relations.md') {
+    problems.push('c1_relation_basis_ref is invalid');
+  }
+  const scopeProblems = operativeScopeProblems(subject.operative_scope);
+  problems.push(...scopeProblems);
+  if (subject.materiality_class === 'B') {
+    if (subject.operative_scope.affected_ids.length || subject.operative_scope.impact_rows.length) {
+      problems.push('Class B operative scope must be empty');
+    }
+  } else if (subject.materiality_class === 'C') {
+    if (!subject.operative_scope.affected_ids.length || !subject.operative_scope.impact_rows.length) {
+      problems.push('Class C operative scope must be nonempty');
+    }
+  } else problems.push('materiality_class is invalid');
+  for (const [label, values] of [
+    ['source_locators', subject.source_locators],
+    ['reviewed_unaffected_ids', subject.reviewed_unaffected_ids],
+  ] as const) {
+    if (values.some((value) => !value || value !== value.trim())
+      || new Set(values).size !== values.length) {
+      problems.push(`${label} is malformed or duplicated`);
+    }
+  }
+  if (!subject.unresolved_statement || subject.unresolved_statement !== subject.unresolved_statement.trim()) {
+    problems.push('unresolved_statement is malformed');
+  }
+  if (subject.review_proposition
+    !== 'class-B-or-C-and-canonical-operative-scope-complete-and-accurate-under-cited-Core-requirements') {
+    problems.push('review_proposition is invalid');
+  }
+  if (!/^(?:human|invocation):\S+$/u.test(subject.proposed_by)) problems.push('proposed_by is invalid');
+  return problems;
+}
+
 function orderedOperativeScope(scope: OperativeScope): OperativeScope {
   return {
     affected_ids: [...scope.affected_ids],

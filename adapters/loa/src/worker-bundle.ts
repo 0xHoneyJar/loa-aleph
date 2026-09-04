@@ -69,6 +69,26 @@ const ROLE_SPECS: Partial<Record<LoaRoleId, RoleSpec>> = {
     heading: 'Role: Merge Judge (S4, global barrier)',
     stages: ['S4'],
   },
+  'ambiguity-producer': {
+    path: 'docs/architecture/prompts/workers-internal-ambiguity.md',
+    heading: 'Role: Internal Ambiguity Producer (S4-C2)',
+    stages: ['S4'],
+  },
+  'ambiguity-reviewer': {
+    path: 'docs/architecture/prompts/workers-internal-ambiguity.md',
+    heading: 'Role: Fresh Internal Ambiguity Reviewer (S4-C2)',
+    stages: ['S4'],
+  },
+  'material-impact-producer': {
+    path: 'docs/architecture/prompts/workers-internal-ambiguity.md',
+    heading: 'Role: Material-Impact Producer (S4-C2)',
+    stages: ['S4'],
+  },
+  'material-impact-reviewer': {
+    path: 'docs/architecture/prompts/workers-internal-ambiguity.md',
+    heading: 'Role: Fresh Material-Impact Reviewer (S4-C2)',
+    stages: ['S4'],
+  },
   'disposition-judge': {
     path: 'docs/architecture/prompts/workers-judgment.md',
     heading: 'Role: Disposition Judge (S5)',
@@ -403,7 +423,9 @@ export function assembleWorkerBundle(
     throw new Error(`invalid worker call ID: ${options.callId}`);
   }
   if (options.kind === 'refuter' && !options.role.startsWith('verifier-l')
-    && options.role !== 'adversarial-panel') {
+    && options.role !== 'adversarial-panel'
+    && options.role !== 'ambiguity-reviewer'
+    && options.role !== 'material-impact-reviewer') {
     throw new Error(`refuter dispatch requires a verifier or adversarial role: ${options.role}`);
   }
   if (options.kind === 'producer' && options.role.startsWith('verifier-l')) {

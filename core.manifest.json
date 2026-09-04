@@ -51,6 +51,7 @@
       "docs/architecture/prompts/orchestrator.md",
       "docs/architecture/prompts/verifier-lenses.md",
       "docs/architecture/prompts/workers-arms-synthesis.md",
+      "docs/architecture/prompts/workers-internal-ambiguity.md",
       "docs/architecture/prompts/workers-intake-extraction.md",
       "docs/architecture/prompts/workers-judgment.md",
       "docs/architecture/templates/01-run-control.md",
