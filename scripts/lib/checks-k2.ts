@@ -57,6 +57,7 @@ import type {
 import type { ResultCollector } from './results.ts';
 import { runK2Lineage } from './checks-k2-lineage.ts';
 import { runK2Relations } from './checks-k2-relations.ts';
+import { runK2Ambiguities } from './checks-k2-ambiguities.ts';
 import type {
   Disposition,
   ExactEvidenceFragmentRow,
@@ -3152,4 +3153,5 @@ export function runK2(results: ResultCollector, model: RunModel, root: string): 
   checkSourceWalk(results, model);
   runK2Lineage(results, model);
   runK2Relations(results, model);
+  runK2Ambiguities(results, model);
 }

@@ -24,6 +24,7 @@ import {
   closurePhasesFromText,
   exactTextBlob,
   materialImpactSubjectJson,
+  legalResolutionCarryState,
   nextClosurePhase,
   operativeScopeProblems,
   parseCandidateRefs,
@@ -286,6 +287,25 @@ check('closure phases are single-headed and contiguous', () => {
     () => nextClosurePhase(['S4-C1-relations-closed', 'S4-C1-relations-closed']),
     /duplicated, skipped, or out of order/u,
   );
+});
+
+check('all eight resolution/carry/affected-set matrix branches are exact', () => {
+  const cases = [
+    ['resolved-local', 'none', 0, true],
+    ['resolved-local', 'none', 1, true],
+    ['resolved-local', 'explicit', 0, false],
+    ['resolved-local', 'explicit', 1, false],
+    ['unresolved', 'none', 0, true],
+    ['unresolved', 'none', 1, false],
+    ['unresolved', 'explicit', 0, false],
+    ['unresolved', 'explicit', 1, true],
+  ] as const;
+  for (const [resolution, carry, count, expected] of cases) {
+    expect(
+      legalResolutionCarryState(resolution, carry, count) === expected,
+      `matrix branch ${resolution}/${carry}/${String(count)} drifted`,
+    );
+  }
 });
 
 check('requirement_ref resolves only retained immutable pinned Core bytes', () => {

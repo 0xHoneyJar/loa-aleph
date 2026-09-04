@@ -444,6 +444,19 @@ export function parseOrderedIds(
   };
 }
 
+export function legalResolutionCarryState(
+  resolutionState: string,
+  carryState: string,
+  affectedRelationCount: number,
+): boolean {
+  const nonempty = affectedRelationCount > 0;
+  return (
+    (resolutionState === 'resolved-local' && carryState === 'none')
+    || (resolutionState === 'unresolved' && carryState === 'none' && !nonempty)
+    || (resolutionState === 'unresolved' && carryState === 'explicit' && nonempty)
+  );
+}
+
 function exactObjectKeys(value: object, keys: readonly string[]): boolean {
   return Object.keys(value).join('\0') === keys.join('\0');
 }
