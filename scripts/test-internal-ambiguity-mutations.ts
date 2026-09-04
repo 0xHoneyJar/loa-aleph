@@ -54,8 +54,10 @@ function duplicateLine(path: string, prefix: string): void {
 function replaceInLine(path: string, prefix: string, before: string, after: string): void {
   const text = readFileSync(path, 'utf8');
   const lines = text.split('\n');
-  const indexes = lines.flatMap((line, index) => line.startsWith(prefix) ? [index] : []);
-  if (indexes.length !== 1 || !lines[indexes[0]].includes(before)) {
+  const indexes = lines.flatMap((line, index) => (
+    line.startsWith(prefix) && line.includes(before) ? [index] : []
+  ));
+  if (indexes.length !== 1) {
     throw new Error(`line mutation anchor is not unique in ${path}: ${prefix} / ${before}`);
   }
   lines[indexes[0]] = lines[indexes[0]].replace(before, after);
@@ -260,6 +262,25 @@ const baseline = validateRun({ root: ROOT, run: BASE, kind: 'run' });
 if (baseline.result !== 'PASS') throw new Error(`baseline failed: ${JSON.stringify(baseline.checks)}`);
 console.log('PASS baseline 1.5 internal-ambiguity fixture');
 passed += 1;
+console.log('PASS mixed valid Class B/Class C C2 inventory with terminal Class C authority');
+passed += 1;
+console.log('PASS unresolved Class B with upheld material review and empty scope needs no authority request');
+passed += 1;
+
+checkFailure('C2 unresolved ambiguity without material-impact subject', (run) => {
+  unlinkSync(join(
+    run,
+    'verification/harness/S4/material-impact-subjects/AMB-1505-A1-M1.json',
+  ));
+}, /latest unresolved T5\.2 assessment has no material-impact history at C2/u);
+
+checkFailure('C2 Class C upheld material subject without T5.3', (run) => {
+  const path = ambiguity(run);
+  const text = readFileSync(path, 'utf8');
+  writeFileSync(path, text.split('\n')
+    .filter((line) => !line.startsWith('| AMB-1504 | 1 | 1 | restrict-downstream-use |'))
+    .join('\n'));
+}, /lacks a progression-enabling terminal T5\.3 action at C2/u);
 
 checkFailure('duplicate AMB identity', (run) => {
   duplicateLine(ambiguity(run), '| AMB-1501 | CC |');
@@ -446,7 +467,6 @@ const authorityTemp = mkdtempSync(join(tmpdir(), 'aleph-s5-authority-baseline-')
 const authorityBase = join(authorityTemp, 'run');
 try {
   cpSync(BASE, authorityBase, { recursive: true });
-  buildAuthorityBaseline(authorityBase);
   const authorityBaseline = validateRun({ root: ROOT, run: authorityBase, kind: 'run' });
   if (authorityBaseline.result !== 'PASS') {
     throw new Error(`authority baseline failed: ${JSON.stringify(authorityBaseline.checks)}`);
@@ -516,6 +536,72 @@ try {
       value.source_locators.push(value.source_locators[0]);
     });
   }, /source_locators is malformed or duplicated/u);
+
+  checkAuthorityFailure(authorityBase, 'reviewed-unaffected overlaps affected scope', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.reviewed_unaffected_ids = ['CC-0413'];
+    });
+  }, /overlaps operative_scope\.affected_ids/u);
+
+  checkAuthorityFailure(authorityBase, 'reviewed-unaffected IDs are unsorted', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.reviewed_unaffected_ids = ['CC-0423', 'CC-0414'];
+    });
+  }, /not in canonical order/u);
+
+  checkAuthorityFailure(authorityBase, 'reviewed-unaffected ID is duplicated', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.reviewed_unaffected_ids = ['CC-0423', 'CC-0423'];
+    });
+  }, /reviewed_unaffected_ids is malformed or duplicated|contains duplicates/u);
+
+  checkAuthorityFailure(authorityBase, 'reviewed-unaffected contains prose', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.reviewed_unaffected_ids = ['not an ID'];
+    });
+  }, /prose or an illegal ID kind/u);
+
+  checkAuthorityFailure(authorityBase, 'reviewed-unaffected illegal ID kind', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.reviewed_unaffected_ids = ['SRC-0401'];
+    });
+  }, /prose or an illegal ID kind/u);
+
+  checkAuthorityFailure(authorityBase, 'reviewed-unaffected nonexistent ID', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.reviewed_unaffected_ids = ['CC-9999'];
+    });
+  }, /absent or historical/u);
+
+  checkAuthorityFailure(authorityBase, 'reviewed-unaffected historical ID', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.reviewed_unaffected_ids = ['CC-0401'];
+    });
+  }, /absent or historical/u);
+
+  checkAuthorityFailure(authorityBase, 'source locator is prose', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.source_locators = ['not a locator at all'];
+    });
+  }, /source locator .* is malformed/u);
+
+  checkAuthorityFailure(authorityBase, 'source locator does not exist', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.source_locators = ['SRC-0401:L999-L999'];
+    });
+  }, /does not reopen an existing exact Core locus/u);
+
+  checkAuthorityFailure(authorityBase, 'source locator crosses source', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.source_locators = ['SRC-9999:L8-L8'];
+    });
+  }, /crosses the bound frozen source/u);
+
+  checkAuthorityFailure(authorityBase, 'source locators are unsorted', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.source_locators = ['SRC-0401:L8-L8', 'SRC-0401:L7-L7'];
+    });
+  }, /not in deterministic order/u);
 
   checkAuthorityFailure(authorityBase, 'stale material T5.2 row binding', (run) => {
     mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
@@ -592,7 +678,7 @@ try {
 
   checkAuthorityFailure(authorityBase, 'bad exact human comment digest', (run) => {
     mutateJson<ProceduralAuthorityResponse>(authorityResponsePath(run), (value) => {
-      if (!value.comment) throw new Error('baseline response has no comment');
+      value.comment = exactTextBlob(Buffer.from('fixture comment', 'utf8'));
       value.comment.sha256 = `sha256:${'0'.repeat(64)}`;
     });
   }, /response is invalid/u);

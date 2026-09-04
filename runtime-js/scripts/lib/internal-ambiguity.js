@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { canonicalJsonBytes, } from './bundle-format.js';
-import { findTables, normalizeHeader, parseBulletFields, } from './markdown.js';
+import { basename, dirname, join, resolve } from 'node:path';
+import { bundleLockBytes, canonicalJsonBytes, resealBundleLock, } from './bundle-format.js';
+import { findTables, normalizeHeader, parseBulletFields, parseTables, } from './markdown.js';
 export const INTERNAL_AMBIGUITY_FORMAT = 'aleph-internal-ambiguity/v1';
 export const INTERNAL_AMBIGUITY_SEARCH_BASIS_FORMAT = 'aleph-internal-ambiguity-search-basis/v1';
 export const INTERNAL_AMBIGUITY_REVIEW_SUBJECT_FORMAT = 'aleph-internal-ambiguity-review-subject/v1';
@@ -93,6 +93,61 @@ export const CLOSURE_PHASES = [
     'S4-C2-ambiguities-finalized',
     'S4-C3-exit',
 ];
+export function loadPinnedCoreAuthority(options) {
+    const lockPath = resolve(options.bundle_lock_path);
+    const root = dirname(lockPath);
+    const raw = readFileSync(lockPath);
+    let lock;
+    try {
+        lock = JSON.parse(raw.toString('utf8'));
+    }
+    catch {
+        throw new Error('retained bundle lock is not valid JSON');
+    }
+    if (!raw.equals(bundleLockBytes(lock))) {
+        throw new Error('retained bundle lock is not canonical');
+    }
+    const resealed = resealBundleLock(lock);
+    if (resealed.lock_digest !== lock.lock_digest
+        || resealed.bundle.digest !== lock.bundle.digest) {
+        throw new Error('retained bundle lock does not reproduce its sealed identity');
+    }
+    if (lock.bundle.digest !== options.expected_bundle_digest
+        || lock.core.tree_digest !== options.expected_core_digest) {
+        throw new Error('retained bundle/Core identity disagrees with the run pin');
+    }
+    if (lock.source.manifest_projection_digest
+        !== sha256Digest(canonicalJsonBytes(lock.source.manifest_projection))) {
+        throw new Error('retained Core manifest projection digest is invalid');
+    }
+    const files = new Map();
+    const fileBytes = new Map();
+    for (const record of lock.files) {
+        if (files.has(record.path)) {
+            throw new Error(`retained bundle inventory duplicates ${record.path}`);
+        }
+        files.set(record.path, record);
+        if (record.classification !== 'core')
+            continue;
+        const path = join(root, record.path);
+        if (!existsSync(path))
+            throw new Error(`retained Core file is absent: ${record.path}`);
+        const bytes = readFileSync(path);
+        if (sha256Digest(bytes) !== record.digest) {
+            throw new Error(`retained Core file disagrees with its inventory: ${record.path}`);
+        }
+        fileBytes.set(record.path, bytes);
+    }
+    return {
+        source_kind: 'retained-immutable-bundle',
+        root,
+        lock,
+        expected_bundle_digest: options.expected_bundle_digest,
+        expected_core_digest: options.expected_core_digest,
+        files,
+        file_bytes: fileBytes,
+    };
+}
 function rowValues(table, keys) {
     return (table?.rows || []).map((row) => {
         const values = {};
@@ -326,6 +381,9 @@ const ACTION_CONSEQUENCES = {
     },
 };
 export function projectProceduralActions(scope) {
+    if (scope.impact_rows.length === 0) {
+        return { allowed_actions: [], action_consequences: [] };
+    }
     const allowed = PROCEDURAL_ACTIONS.filter((action) => {
         if (action === 'carry-unresolved') {
             return scope.impact_rows.every((row) => (row.unresolved_treatment === 'carry-only'
@@ -500,7 +558,8 @@ export function materialImpactSubjectProblems(subject) {
         ['source_locators', subject.source_locators],
         ['reviewed_unaffected_ids', subject.reviewed_unaffected_ids],
     ]) {
-        if (values.some((value) => !value || value !== value.trim())
+        if (!Array.isArray(values)
+            || values.some((value) => typeof value !== 'string' || !value || value !== value.trim())
             || new Set(values).size !== values.length) {
             problems.push(`${label} is malformed or duplicated`);
         }
@@ -1065,9 +1124,125 @@ function headingMatches(bytes, selector) {
 function tokenMatches(bytes, selector) {
     if (!/^[A-Za-z][A-Za-z0-9]*(?:[-_.][A-Za-z0-9]+)+$/u.test(selector))
         return [];
-    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-    const pattern = new RegExp(`(?<![A-Za-z0-9_.-])${escaped}(?![A-Za-z0-9_.-])`, 'gu');
-    return [...bytes.toString('utf8').matchAll(pattern)].map((match) => Buffer.from(match[0], 'utf8'));
+    const text = bytes.toString('utf8');
+    const matches = [];
+    let offset = 0;
+    while (offset <= text.length - selector.length) {
+        const index = text.indexOf(selector, offset);
+        if (index < 0)
+            break;
+        const before = index > 0 ? text[index - 1] : '';
+        const beforeBefore = index > 1 ? text[index - 2] : '';
+        const afterIndex = index + selector.length;
+        const after = afterIndex < text.length ? text[afterIndex] : '';
+        const afterAfter = afterIndex + 1 < text.length ? text[afterIndex + 1] : '';
+        const joinedOnLeft = /[A-Za-z0-9_-]/u.test(before)
+            || (before === '.' && /[A-Za-z0-9]/u.test(beforeBefore));
+        const joinedOnRight = /[A-Za-z0-9_-]/u.test(after)
+            || (after === '.' && /[A-Za-z0-9]/u.test(afterAfter));
+        if (!joinedOnLeft && !joinedOnRight) {
+            matches.push(Buffer.from(selector, 'utf8'));
+        }
+        offset = index + 1;
+    }
+    return matches;
+}
+const STRUCTURED_VERIFIER_FIELDS = [
+    'target',
+    'lens',
+    'stage',
+    'shown',
+    'withheld',
+    'verdict',
+    'consequence',
+];
+export function parseStructuredVerifierRecord(bytes, path = 'verifier record') {
+    const tables = findTables(parseTables(bytes.toString('utf8'), path), ['field', 'value']);
+    if (tables.length !== 1) {
+        throw new Error('verifier requires exactly one canonical field/value table');
+    }
+    const values = new Map();
+    for (const row of tables[0].rows) {
+        if (row.cells.length !== 2)
+            continue;
+        const field = normalizeHeader(row.cells[0]);
+        if (!STRUCTURED_VERIFIER_FIELDS.includes(field))
+            continue;
+        const bucket = values.get(field) || [];
+        bucket.push((row.cells[1] || '').trim());
+        values.set(field, bucket);
+    }
+    for (const field of STRUCTURED_VERIFIER_FIELDS) {
+        const retained = values.get(field) || [];
+        if (retained.length !== 1 || retained[0] === '') {
+            throw new Error(`verifier field ${field} must occur exactly once and be nonempty`);
+        }
+    }
+    const verdict = values.get('verdict')[0];
+    if (!['upheld', 'refuted', 'cannot-determine'].includes(verdict)) {
+        throw new Error('verifier verdict is outside the closed vocabulary');
+    }
+    return {
+        target: values.get('target')[0],
+        lens: values.get('lens')[0],
+        stage: values.get('stage')[0],
+        shown: values.get('shown')[0],
+        withheld: values.get('withheld')[0],
+        verdict: verdict,
+        consequence: values.get('consequence')[0],
+    };
+}
+export function validateMaterialImpactAuthorityBasis(options) {
+    let material;
+    try {
+        material = JSON.parse(options.material_subject_bytes.toString('utf8'));
+    }
+    catch {
+        throw new Error('retained material-impact subject is not valid JSON');
+    }
+    const problems = materialImpactSubjectProblems(material);
+    if (problems.length > 0
+        || materialImpactSubjectJson(material) !== options.material_subject_bytes.toString('utf8')) {
+        throw new Error(`retained material-impact subject is not exact canonical Core state: ${problems.join('; ')}`);
+    }
+    const subject = options.authority_subject;
+    const digest = materialImpactSubjectDigest(material);
+    const subjectRef = `material-impact-subject:${material.ambiguity_id}:A${String(material.assessment_seq)}:M${String(material.material_impact_seq)}@${digest}`;
+    if (material.materiality_class !== 'C'
+        || subject.material_impact_subject_ref !== subjectRef
+        || subject.material_impact_seq !== material.material_impact_seq
+        || material.t5_2_assessment_ref !== subject.t5_2_assessment_ref
+        || material.t5_2_review_subject_digest !== subject.t5_2_review_subject_digest
+        || material.t5_2_review_ref !== subject.t5_2_review_ref
+        || material.c1_relation_basis_ref !== subject.c1_relation_basis_ref
+        || JSON.stringify(material.operative_scope) !== JSON.stringify(subject.operative_scope)
+        || JSON.stringify(material.source_locators) !== JSON.stringify(subject.source_locators)
+        || JSON.stringify(material.reviewed_unaffected_ids)
+            !== JSON.stringify(subject.reviewed_unaffected_ids)
+        || material.unresolved_statement !== subject.unresolved_statement) {
+        throw new Error('procedural authority subject disagrees with its retained Class C material-impact basis');
+    }
+    const reviewMatch = subject.material_impact_review_ref.match(/^material-impact-verdict:(VER-\d{4,})@(sha256:[a-f0-9]{64})$/u);
+    if (!reviewMatch) {
+        throw new Error('procedural authority subject has an invalid material-impact review ref');
+    }
+    const matches = options.verifier_files.filter((file) => basename(file.path) === `${reviewMatch[1]}.md`);
+    if (matches.length !== 1 || sha256Digest(matches[0].bytes) !== reviewMatch[2]) {
+        throw new Error('material-impact review ref does not resolve to one exact retained verifier');
+    }
+    const review = parseStructuredVerifierRecord(matches[0].bytes, matches[0].path);
+    const target = `internal-ambiguity-material-impact-review-subject:${digest}`;
+    if (review.target !== target || review.verdict !== 'upheld') {
+        throw new Error('material-impact verifier target or verdict does not authorize a request');
+    }
+    return {
+        material_subject: material,
+        material_subject_digest: digest,
+        material_subject_ref: subjectRef,
+        material_review_id: reviewMatch[1],
+        material_review_ref: subject.material_impact_review_ref,
+        material_review: review,
+    };
 }
 export function resolvePinnedCoreRequirement(authority, requirementRef) {
     if (authority.source_kind !== 'retained-immutable-bundle') {
@@ -1118,6 +1293,79 @@ export function restrictionOverlay(scope) {
         operation_kind: row.operation_kind,
         requirement_ref: row.requirement_ref,
     }));
+}
+function restrictionTupleKey(value) {
+    return `${value.affected_id}\0${value.operation_kind}\0${value.requirement_ref}`;
+}
+export function retainedRestrictionOverlays(model) {
+    const retained = new Map();
+    const ambiguity = parseInternalAmbiguities(model);
+    for (const row of ambiguity.t5_3Rows) {
+        if (row.values.action !== 'restrict-downstream-use')
+            continue;
+        const provenance = row.values.closureProvenance.match(/^request:(GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*)@(sha256:[a-f0-9]{64});response:(RESP-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*)@(sha256:[a-f0-9]{64})$/u);
+        if (!provenance) {
+            throw new Error(`${row.values.ambiguityId} retained restriction has invalid closure provenance`);
+        }
+        const requestPath = join(model.runDir, 'control', 'gates', `${provenance[1]}-request.json`);
+        const responsePath = join(model.runDir, 'control', 'gates', `${provenance[1]}-response.json`);
+        if (!existsSync(requestPath) || !existsSync(responsePath)) {
+            throw new Error(`${row.values.ambiguityId} retained restriction lacks exact request/response bytes`);
+        }
+        const requestBytes = readFileSync(requestPath);
+        const responseBytes = readFileSync(responsePath);
+        if (sha256Digest(requestBytes) !== provenance[2]
+            || sha256Digest(responseBytes) !== provenance[4]) {
+            throw new Error(`${row.values.ambiguityId} retained restriction request/response digest is wrong`);
+        }
+        let request;
+        let response;
+        try {
+            request = JSON.parse(requestBytes.toString('utf8'));
+            response = JSON.parse(responseBytes.toString('utf8'));
+        }
+        catch {
+            throw new Error(`${row.values.ambiguityId} retained restriction request/response is not JSON`);
+        }
+        if (response.response_id !== provenance[3]
+            || response.selected_action !== 'restrict-downstream-use') {
+            throw new Error(`${row.values.ambiguityId} retained restriction response does not select restriction`);
+        }
+        const projected = buildProceduralAuthorityLedgerRow({
+            request,
+            request_bytes: requestBytes,
+            response,
+            response_bytes: responseBytes,
+            authority_seq: Number(row.values.authoritySeq),
+        });
+        if (JSON.stringify(projected) !== JSON.stringify(row.values)) {
+            throw new Error(`${row.values.ambiguityId} retained restriction is not the exact Core T5.3 projection`);
+        }
+        for (const restriction of restrictionOverlay(request.authority_subject.operative_scope)) {
+            retained.set(restrictionTupleKey(restriction), restriction);
+        }
+    }
+    return [...retained.values()].sort((left, right) => (Buffer.from(restrictionTupleKey(left), 'utf8')
+        .compare(Buffer.from(restrictionTupleKey(right), 'utf8'))));
+}
+export function assertDownstreamOperationsAllowed(restrictions, operations) {
+    const prohibited = new Set(restrictions.map(restrictionTupleKey));
+    const seen = new Set();
+    for (const operation of operations) {
+        if (!/^(?:PKT|CC|REL)-\d{4,}$/u.test(operation.affected_id)
+            || !OPERATION_KINDS.includes(operation.operation_kind)) {
+            throw new Error('downstream operation tuple is malformed');
+        }
+        parseRequirementRef(operation.requirement_ref);
+        const key = restrictionTupleKey(operation);
+        if (seen.has(key))
+            throw new Error('downstream operation tuple is duplicated');
+        seen.add(key);
+        if (prohibited.has(key)) {
+            throw new Error(`downstream operation is prohibited by retained procedural restriction: `
+                + `${operation.affected_id} + ${operation.operation_kind} + ${operation.requirement_ref}`);
+        }
+    }
 }
 export function tableLooksLike(table, first) {
     return normalizeHeader(table.header[0]) === normalizeHeader(first);

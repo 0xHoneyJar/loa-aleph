@@ -50,8 +50,10 @@ closure_phase: S4-C1-relations-closed
 
 ## 2026-08-14 09:03 UTC — S4 — C2
 
-Retained the exact ambiguity definitions and fixture-simulated upheld
-same-source assessment reviews. No semantic validation is claimed.
+Retained the exact ambiguity definitions, fixture-simulated upheld same-source
+assessment reviews, material-impact reviews for every unresolved ambiguity,
+the Class B no-request path, and legal carry/restriction Class C actions. No
+semantic validation is claimed.
 
 closure_phase: S4-C2-ambiguities-finalized
 

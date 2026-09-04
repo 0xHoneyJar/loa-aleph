@@ -11,6 +11,12 @@
 > Human authority record:
 > `calibration/src-001/core-design-basis/AUTHORIZED-slice-5-implementation-20260903.md`
 
+This is the producer-authored pre-audit implementation reconciliation for
+audited head `46a46359ab63084592d36fc8c430e63afa603992` (tree
+`499eff7006e8b0d653020df8e1c86a9ac0d0c5f4`). It is retained as a historical
+snapshot; current repair evidence is recorded in
+`16-slice-5-implementation-repair-reconciliation.md`.
+
 This document reconciles the implementation branch with the adopted Slice 5
 internal-ambiguity/referent lifecycle and adopted OQ-01 human procedural
 authority doctrine. It is not an independent audit or authority acceptance

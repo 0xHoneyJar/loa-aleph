@@ -30,6 +30,8 @@ import {
   parseCandidateRefs,
   parseInternalAmbiguities,
   parseOrderedIds,
+  parseStructuredVerifierRecord,
+  resolvePinnedCoreRequirement,
   searchBasisDigest,
   sha256Digest,
   tableLooksLike,
@@ -37,6 +39,7 @@ import {
   validateProceduralAuthorityResponse,
   type AmbiguityReviewSubject,
   type MaterialImpactSubject,
+  type PinnedCoreAuthority,
   type ProceduralAuthorityRequest,
   type ProceduralAuthorityResponse,
   type SearchBasis,
@@ -55,15 +58,44 @@ import {
   type RunModel,
 } from './run-model.ts';
 
-const VERDICT_FIELDS = [
-  'target', 'lens', 'stage', 'shown', 'withheld', 'verdict', 'consequence',
-] as const;
-
 interface Verdict {
   target: string;
   verdict: string;
   valid: boolean;
   path: string;
+}
+
+function verdictFromDocument(document: RunDocument): Verdict {
+  try {
+    const parsed = parseStructuredVerifierRecord(
+      Buffer.from(document.text, 'utf8'),
+      document.relativePath,
+    );
+    return {
+      target: parsed.target,
+      verdict: parsed.verdict,
+      valid: true,
+      path: document.relativePath,
+    };
+  } catch {
+    const tables = findTables(document.tables, ['field', 'value']);
+    const values = new Map<string, string[]>();
+    for (const table of tables) {
+      for (const row of table.rows) {
+        const field = normalizeHeader(row.cells[0] || '');
+        if (field !== 'target' && field !== 'verdict') continue;
+        const bucket = values.get(field) || [];
+        bucket.push((row.cells[1] || '').trim());
+        values.set(field, bucket);
+      }
+    }
+    return {
+      target: values.get('target')?.[0] || '',
+      verdict: values.get('verdict')?.[0] || '',
+      valid: false,
+      path: document.relativePath,
+    };
+  }
 }
 
 function ambiguitySignals(model: RunModel): string[] {
@@ -110,25 +142,7 @@ function verdictFor(model: RunModel, id: string): Verdict | null {
   for (const document of model.documents.values()) {
     if (!document?.relativePath.startsWith('verification/harness/')) continue;
     if (basename(document.relativePath) !== `${id}.md`) continue;
-    const tables = findTables(document.tables, ['field', 'value']);
-    const values = new Map<string, string[]>();
-    if (tables.length === 1) {
-      for (const row of tables[0].rows) {
-        const field = normalizeHeader(row.cells[0] || '');
-        if (!(VERDICT_FIELDS as readonly string[]).includes(field)) continue;
-        const bucket = values.get(field) || [];
-        bucket.push((row.cells[1] || '').trim());
-        values.set(field, bucket);
-      }
-    }
-    matches.push({
-      target: values.get('target')?.[0] || '',
-      verdict: values.get('verdict')?.[0] || '',
-      valid: tables.length === 1 && VERDICT_FIELDS.every((field) => (
-        values.get(field)?.length === 1 && values.get(field)?.[0] !== ''
-      )),
-      path: document.relativePath,
-    });
+    matches.push(verdictFromDocument(document));
   }
   return matches.length === 1 ? matches[0] : null;
 }
@@ -138,26 +152,8 @@ function verdictForTarget(model: RunModel, target: string): Verdict | null {
   for (const document of model.documents.values()) {
     if (!document?.relativePath.startsWith('verification/harness/')) continue;
     if (!/^VER-\d{4,}\.md$/u.test(basename(document.relativePath))) continue;
-    const tables = findTables(document.tables, ['field', 'value']);
-    const values = new Map<string, string[]>();
-    if (tables.length === 1) {
-      for (const row of tables[0].rows) {
-        const field = normalizeHeader(row.cells[0] || '');
-        if (!(VERDICT_FIELDS as readonly string[]).includes(field)) continue;
-        const bucket = values.get(field) || [];
-        bucket.push((row.cells[1] || '').trim());
-        values.set(field, bucket);
-      }
-    }
-    if (values.get('target')?.[0] !== target) continue;
-    matches.push({
-      target,
-      verdict: values.get('verdict')?.[0] || '',
-      valid: tables.length === 1 && VERDICT_FIELDS.every((field) => (
-        values.get(field)?.length === 1 && values.get(field)?.[0] !== ''
-      )),
-      path: document.relativePath,
-    });
+    const verdict = verdictFromDocument(document);
+    if (verdict.target === target) matches.push(verdict);
   }
   return matches.length === 1 ? matches[0] : null;
 }
@@ -187,6 +183,105 @@ function sameSourceEntity(model: RunModel, row: T5_1Row): boolean {
     ));
   }
   return false;
+}
+
+function materialIdOrder(id: string): [number, bigint] {
+  const match = id.match(/^(PKT|CC|REL)-(\d{4,})$/u);
+  return match
+    ? [['PKT', 'CC', 'REL'].indexOf(match[1]), BigInt(match[2])]
+    : [99, BigInt('999999999999999999999999999999999999')];
+}
+
+function compareMaterialIds(left: string, right: string): number {
+  const a = materialIdOrder(left);
+  const b = materialIdOrder(right);
+  if (a[0] !== b[0]) return a[0] - b[0];
+  return a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0;
+}
+
+function validateReviewedUnaffectedIds(
+  subject: MaterialImpactSubject,
+  currentPackets: ReadonlySet<string>,
+  currentClaims: ReadonlySet<string>,
+  relationIds: ReadonlySet<string>,
+  fail: (message: string) => void,
+  label: string,
+): void {
+  const values = subject.reviewed_unaffected_ids;
+  if (!Array.isArray(values)) {
+    fail(`${label} reviewed_unaffected_ids must be an array`);
+    return;
+  }
+  if (new Set(values).size !== values.length) {
+    fail(`${label} reviewed_unaffected_ids contains duplicates`);
+  }
+  if (values.some((id) => typeof id !== 'string' || !/^(?:PKT|CC|REL)-\d{4,}$/u.test(id))) {
+    fail(`${label} reviewed_unaffected_ids contains prose or an illegal ID kind`);
+  }
+  for (let index = 1; index < values.length; index += 1) {
+    if (compareMaterialIds(values[index - 1], values[index]) >= 0) {
+      fail(`${label} reviewed_unaffected_ids is not in canonical order`);
+      break;
+    }
+  }
+  const affected = new Set(subject.operative_scope.affected_ids);
+  for (const id of values) {
+    if (affected.has(id)) {
+      fail(`${label} reviewed_unaffected_ids overlaps operative_scope.affected_ids at ${id}`);
+    }
+    if (id.startsWith('PKT-') && !currentPackets.has(id)) {
+      fail(`${label} reviewed_unaffected_ids packet ${id} is absent or historical`);
+    } else if (id.startsWith('CC-') && !currentClaims.has(id)) {
+      fail(`${label} reviewed_unaffected_ids claim ${id} is absent or historical`);
+    } else if (id.startsWith('REL-') && !relationIds.has(id)) {
+      fail(`${label} reviewed_unaffected_ids relation ${id} is absent`);
+    }
+  }
+}
+
+function validateSourceLocators(
+  model: RunModel,
+  sourceId: string,
+  subject: MaterialImpactSubject,
+  fail: (message: string) => void,
+  label: string,
+): void {
+  const values = subject.source_locators;
+  if (!Array.isArray(values)) {
+    fail(`${label} source_locators must be an array`);
+    return;
+  }
+  let previous: [number, number] | null = null;
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      fail(`${label} source_locators contains non-string prose`);
+      continue;
+    }
+    const match = value.match(/^(SRC-\d{4,}):L([1-9]\d*)-L([1-9]\d*)$/u);
+    if (!match) {
+      fail(`${label} source locator ${value || '(blank)'} is malformed`);
+      continue;
+    }
+    const start = Number(match[2]);
+    const end = Number(match[3]);
+    if (match[1] !== sourceId) {
+      fail(`${label} source locator ${value} crosses the bound frozen source`);
+      continue;
+    }
+    const source = sourceRow(model, sourceId);
+    const path = source ? sourceFilePath(model.runDir, source.values.locus) : null;
+    if (!source || source.values.scheme.replace(/`/gu, '').trim() !== 'md-lines'
+      || !path || !locatorSpan(path, `L${String(start)}-L${String(end)}`)) {
+      fail(`${label} source locator ${value} does not reopen an existing exact Core locus`);
+    }
+    if (end < start) fail(`${label} source locator ${value} is malformed`);
+    const order: [number, number] = [start, end];
+    if (previous && (previous[0] > order[0]
+      || (previous[0] === order[0] && previous[1] >= order[1]))) {
+      fail(`${label} source_locators is not in deterministic order`);
+    }
+    previous = order;
+  }
 }
 
 function localScopeRefs(model: RunModel, row: T5_2Row): string[] | null {
@@ -315,7 +410,11 @@ function checkControlState(
   return { requests, responses, active, latestRequestIds };
 }
 
-export function runK2Ambiguities(results: ResultCollector, model: RunModel): void {
+export function runK2Ambiguities(
+  results: ResultCollector,
+  model: RunModel,
+  pinnedCoreAuthority?: PinnedCoreAuthority,
+): void {
   results.run('K2.17', 'internal ambiguity lifecycle structure (STRUCTURAL ONLY)', (fail) => {
     const version = model.manifest?.runFormatVersion || '';
     const active = usesInternalAmbiguityLifecycle(version);
@@ -535,6 +634,9 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
     for (const [id, rows] of assessments) {
       const sequences = rows.map((row) => Number(row.values.assessmentSeq)).sort((a, b) => a - b);
       if (sequences.some((value, index) => value !== index + 1)) fail(`${id} assessment history is forked or noncontiguous`);
+      rows.sort((left, right) => (
+        Number(left.values.assessmentSeq) - Number(right.values.assessmentSeq)
+      ));
     }
     if (hasC2) {
       for (const id of definitions.keys()) if (!assessments.has(id)) fail(`${id} has no reviewed T5.2 assessment at C2`);
@@ -595,6 +697,34 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
           if (subject.c1_relation_basis_ref !== expectedC1) {
             fail(`${file.relativePath} C1 relation basis reference is wrong`);
           }
+          validateReviewedUnaffectedIds(
+            subject,
+            currentPackets,
+            currentClaims,
+            relationIds,
+            fail,
+            file.relativePath,
+          );
+          validateSourceLocators(
+            model,
+            definitions.get(subject.ambiguity_id)?.values.sourceId || '',
+            subject,
+            fail,
+            file.relativePath,
+          );
+          for (const row of subject.operative_scope.impact_rows) {
+            if (!pinnedCoreAuthority) {
+              fail(`${file.relativePath} requirement_ref resolution requires verified run-pinned Core authority`);
+              continue;
+            }
+            try {
+              resolvePinnedCoreRequirement(pinnedCoreAuthority, row.requirement_ref);
+            } catch (error) {
+              fail(`${file.relativePath} requirement_ref ${row.requirement_ref} does not resolve under the run pin: ${
+                error instanceof Error ? error.message : String(error)
+              }`);
+            }
+          }
         }
         const digest = materialImpactSubjectDigest(subject);
         const review = verdictForTarget(
@@ -639,6 +769,18 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
         fail(`${key.replace('\0', ' A')} latest material-impact verdict must be upheld to continue`);
       }
     }
+    if (hasC2) {
+      for (const [id, rows] of assessments) {
+        const latestAssessment = rows.at(-1);
+        if (!latestAssessment || latestAssessment.values.resolutionState !== 'unresolved') continue;
+        const key = `${id}\0${latestAssessment.values.assessmentSeq}`;
+        if (!materialHistories.has(key)) {
+          fail(`${id} latest unresolved T5.2 assessment has no material-impact history at C2`);
+        } else if (!latestMaterial.has(key)) {
+          fail(`${id} latest unresolved T5.2 assessment has no usable material-impact head at C2`);
+        }
+      }
+    }
 
     const control = checkControlState(model, fail);
     const requestSeqs = new Map<string, number[]>();
@@ -656,7 +798,7 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
         || value.authority_subject.candidate_state !== current.values.candidateState
         || JSON.stringify(value.authority_subject.candidate_refs) !== current.values.candidateRefs
         || value.authority_subject.carry_state !== current.values.carryState
-        || value.authority_subject.affected_relation_ids.join(',')
+        || value.authority_subject.affected_relation_ids.join(', ')
           !== (current.values.affectedRelationIds === 'none' ? '' : current.values.affectedRelationIds)) {
         fail(`${value.request_id} is stale or disagrees with the current unresolved T5.2 basis`);
       }
@@ -787,6 +929,25 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
         && latest.action !== 'carry-unresolved'
         && latest.action !== 'restrict-downstream-use') {
         fail(`${key.replace('\0', ' A')} has no progression-enabling terminal response at C2`);
+      }
+    }
+    if (hasC2) {
+      for (const [id, rows] of assessments) {
+        const latestAssessment = rows.at(-1);
+        if (!latestAssessment || latestAssessment.values.resolutionState !== 'unresolved') continue;
+        const key = `${id}\0${latestAssessment.values.assessmentSeq}`;
+        const material = latestMaterial.get(key);
+        if (!material || material.verdict !== 'upheld') continue;
+        if (material.subject.materiality_class === 'C') {
+          const latestAction = actionsByAssessment.get(key)
+            ?.sort((left, right) => left.sequence - right.sequence)
+            .at(-1);
+          if (!latestAction
+            || (latestAction.action !== 'carry-unresolved'
+              && latestAction.action !== 'restrict-downstream-use')) {
+            fail(`${id} latest upheld Class C material-impact basis lacks a progression-enabling terminal T5.3 action at C2`);
+          }
+        }
       }
     }
     if (hasC2 && control.active > 0) {

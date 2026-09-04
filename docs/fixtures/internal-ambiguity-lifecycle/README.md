@@ -39,11 +39,12 @@ status, or v1.
 | F5-12 | stale/wrong/duplicate review and relation/state failures in the mutation battery |
 | F5-13 | positive 1.5 activation and rejection of the same artifact under legacy format |
 
-The fixture-simulated retained run is intentionally Class A/B and contains no
-fabricated human authority response. Adopted OQ-01 Class C coverage, all six
-actions, nonterminal Q+1, material M+1/Q+1, presentation replacement,
-suspensive resume, exact optional comment/observation bytes, withholding, and
-the ten crash positions are exercised by generated temporary runs in
+The fixture-simulated retained run includes a Class B no-request path and two
+Class C paths with exact fixture-simulated human responses: one
+`carry-unresolved` and one `restrict-downstream-use`. All six actions,
+nonterminal Q+1, material M+1/Q+1, presentation replacement, suspensive
+resume, exact optional comment/observation bytes, withholding, and the ten
+crash positions are exercised by generated temporary runs in
 `test-internal-ambiguity-contracts.ts`,
 `test-internal-ambiguity-mutations.ts`, and
 `adapters/loa/tests/test-slice5-process.ts`. Those tests are structural and

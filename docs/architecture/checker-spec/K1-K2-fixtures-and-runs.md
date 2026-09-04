@@ -429,12 +429,23 @@ removal, and rejects an extractor cursor return with no Core `reason`.
   subject path/format/key order; T5.2/C1 binding; contiguous single-headed M
   history; Class B empty and Class C nonempty operative scope; legal current
   affected IDs; unique noncontradictory impact tuples; exact pinned-Core
-  `requirement_ref` resolution; exact material verifier target/verdict; Core
+  `requirement_ref` resolution against the run-bound retained lock, manifest
+  projection, inventory, identities, and bytes; canonical ordered,
+  current, disjoint `reviewed_unaffected_ids`; exact same-source reopening,
+  uniqueness, and order for `source_locators`; exact structured material
+  verifier target/verdict; Core
   action projection; complete machine/presentation correspondence; exact
   request/response bytes and digests; required human identity; one active
   request; contiguous single-headed Q history; stale/reused response refusal;
   exact T5.3 projection with `selected_candidate_ref = none`; and legal
   terminal/nonterminal C2 state.
+
+  C2 is keyed from every latest canonical unresolved T5.2 assessment, not
+  merely from material or action histories that happen to exist. Every such
+  assessment requires a contiguous material-impact history and latest usable
+  upheld head. Every latest upheld Class C head requires a retained
+  progression-enabling `carry-unresolved` or `restrict-downstream-use` action.
+  Empty maps and absent T5.3 histories never satisfy those obligations.
 
   It also checks the C1/C2/C3 marker sequence, retained relation/C1
   consistency, and the absence of references that would introduce human
@@ -449,11 +460,12 @@ removal, and rejects an extractor cursor return with no Core `reason`.
   `STRUCTURAL ONLY`.
 
   The focused fixture is `docs/fixtures/internal-ambiguity-lifecycle/`. The
-  focused Core suite covers eleven canonical contract cases, the deterministic
-  battery currently contains 76 named mutations plus two positive baselines,
-  and the Loa process suite contains 37 temporal cases including all ten crash
-  positions. These exact counts describe this implementation head and must be
-  updated if the suites change.
+  focused Core suite covers twelve canonical contract cases, the deterministic
+  battery contains 89 named mutations plus four positive baselines, and the
+  Loa process suite contains 48 temporal and live-path cases including all ten
+  crash positions, real C2 pinned-Core failures, cannot-determine blocking,
+  and downstream restriction consumption. These exact counts describe this
+  implementation head and must be updated if the suites change.
 
 The run-format capability registry is cumulative by construction: each
 registered format adds capabilities to the prefix established by every

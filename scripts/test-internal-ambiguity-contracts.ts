@@ -229,6 +229,11 @@ check('Core action projection is prose-independent and exactly ordered', () => {
   const second = projectProceduralActions(proseOnly);
   expect(JSON.stringify(first) === JSON.stringify(second), 'prose changed machine action behavior');
   expect(JSON.stringify(first.allowed_actions) === JSON.stringify(PROCEDURAL_ACTIONS), 'six-action order drifted');
+  expect(
+    JSON.stringify(projectProceduralActions({ affected_ids: [], impact_rows: [] }).allowed_actions)
+      === '[]',
+    'empty Class B scope projected procedural actions',
+  );
   const required = structuredClone(scope);
   required.impact_rows[0].unresolved_treatment = 'resolution-required';
   expect(
@@ -490,6 +495,29 @@ check('requirement_ref resolves only retained immutable pinned Core bytes', () =
     () => resolvePinnedCoreRequirement(authority, 'core:docs/repository-admin.md#Exact requirement'),
     /path is not Core-classified/u,
   );
+});
+
+check('durable-token punctuation boundaries fail closed on duplicates', () => {
+  const cases = [
+    ['DO-S5-001 DO-S5-001', false, 'twice both space-delimited'],
+    ['DO-S5-001 DO-S5-001.', false, 'twice second period'],
+    ['DO-S5-001. DO-S5-001.', false, 'twice both period'],
+    ['DO-S5-001, DO-S5-001', false, 'twice comma'],
+    ['(DO-S5-001) (DO-S5-001)', false, 'twice parentheses'],
+    ['DO-S5-001.', true, 'once period'],
+    ['DO-S5-001-bis', false, 'hyphen-suffixed longer token'],
+    ['DO.S5.001. End.', true, 'period-containing token plus sentence punctuation'],
+    ['DO.S5.001.more', false, 'period-containing token prefix'],
+  ] as const;
+  for (const [text, valid, label] of cases) {
+    const authority = pinnedAuthority(Buffer.from(text, 'utf8'));
+    const operation = () => resolvePinnedCoreRequirement(
+      authority,
+      `core:docs/requirement.md#${text.startsWith('DO.S5') ? 'DO.S5.001' : 'DO-S5-001'}`,
+    );
+    if (valid) expect(operation().selector_kind === 'token', `${label} did not resolve`);
+    else expectThrows(operation, /does not resolve/u);
+  }
 });
 
 const scratch = mkdtempSync(join(tmpdir(), 'aleph-internal-ambiguity-contracts-'));
