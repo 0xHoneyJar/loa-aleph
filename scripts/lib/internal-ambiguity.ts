@@ -712,6 +712,11 @@ export function operativeScopeProblems(scope: OperativeScope): string[] {
     if (!(UNRESOLVED_TREATMENTS as readonly string[]).includes(row.unresolved_treatment)) {
       problems.push(`${row.affected_id || 'impact row'} has illegal unresolved_treatment`);
     }
+    try {
+      parseRequirementRef(row.requirement_ref);
+    } catch {
+      problems.push(`${row.affected_id || 'impact row'} has malformed requirement_ref`);
+    }
     if (!row.consequence_if_unresolved
       || row.consequence_if_unresolved !== row.consequence_if_unresolved.trim()) {
       problems.push(`${row.affected_id || 'impact row'} has malformed consequence prose`);

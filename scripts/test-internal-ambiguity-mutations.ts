@@ -2,6 +2,7 @@
 
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -9,7 +10,24 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import {
+  buildProceduralAuthorityLedgerRow,
+  buildProceduralAuthorityRequest,
+  buildProceduralAuthorityResponse,
+  buildProceduralAuthoritySubject,
+  exactTextBlob,
+  materialImpactSubjectDigest,
+  materialImpactSubjectJson,
+  proceduralAuthorityLedgerRowMarkdown,
+  proceduralAuthorityRequestJson,
+  proceduralAuthorityResponseJson,
+  sha256Digest,
+  type MaterialImpactSubject,
+  type OperativeScope,
+  type ProceduralAuthorityRequest,
+  type ProceduralAuthorityResponse,
+} from './lib/internal-ambiguity.ts';
 import { validateRun } from './validate-run.ts';
 
 const ROOT = resolve('.');
@@ -70,12 +88,173 @@ function checkFailure(
   }
 }
 
+function checkAuthorityFailure(
+  base: string,
+  name: string,
+  mutate: (run: string) => void,
+  expected: RegExp,
+): void {
+  const temp = mkdtempSync(join(tmpdir(), 'aleph-s5-authority-mutation-'));
+  const run = join(temp, 'run');
+  try {
+    cpSync(base, run, { recursive: true });
+    mutate(run);
+    const report = validateRun({ root: ROOT, run, kind: 'run' });
+    const messages = report.checks
+      .filter((check) => check.status === 'FAIL')
+      .map((check) => `${check.id} ${check.message}`)
+      .join('\n');
+    if (report.result !== 'FAIL' || !expected.test(messages)) {
+      throw new Error(`expected ${String(expected)}, got ${messages || 'PASS'}`);
+    }
+    passed += 1;
+    mutationCount += 1;
+    console.log(`PASS ${name}`);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
 const ambiguity = (run: string) => join(run, 'ledgers/internal-ambiguities.md');
 const manifest = (run: string) => join(run, 'run-manifest.md');
 const runLog = (run: string) => join(run, 'run-log.md');
 const relations = (run: string) => join(run, 'ledgers/relations.md');
 const sourceWalk = (run: string) => join(run, 'ledgers/source-walk.md');
 const verifier = (run: string, id: string) => join(run, `verification/harness/S4-ambiguities/${id}.md`);
+const materialSubjectPath = (run: string, sequence = 1) => join(
+  run,
+  `verification/harness/S4/material-impact-subjects/AMB-1503-A1-M${String(sequence)}.json`,
+);
+const materialReviewPath = (run: string, id = 'VER-1591') => join(
+  run,
+  `verification/harness/S4-material-impact/${id}.md`,
+);
+const authorityRequestPath = (run: string, sequence = 1) => join(
+  run,
+  `control/gates/GATE-S4-AMB-1503-A1-Q${String(sequence)}-request.json`,
+);
+const authorityResponsePath = (run: string, sequence = 1) => join(
+  run,
+  `control/gates/GATE-S4-AMB-1503-A1-Q${String(sequence)}-response.json`,
+);
+
+function materialReviewText(
+  id: string,
+  digest: string,
+  verdict: 'upheld' | 'refuted' | 'cannot-determine',
+): string {
+  return `# Verdict ${id}\n\n`
+    + '| field | value |\n'
+    + '|-------|-------|\n'
+    + `| target | internal-ambiguity-material-impact-review-subject:${digest} |\n`
+    + '| lens | fresh material-impact exact-subject challenge |\n'
+    + '| stage | S4-C2 material-impact review |\n'
+    + '| shown | exact material subject and bound retained basis |\n'
+    + '| withheld | human response, observation, comment, preference, and desired conclusion |\n'
+    + `| verdict | ${verdict} |\n`
+    + '| consequence | deterministic authority mutation fixture only |\n';
+}
+
+function authorityScope(): OperativeScope {
+  return {
+    affected_ids: ['CC-0413'],
+    impact_rows: [{
+      affected_id: 'CC-0413',
+      operation_kind: 'load-bearing-reasoning',
+      requirement_ref: 'core:docs/architecture/04-pipeline-stages-and-dod.md#S5 — Disposition pass',
+      unresolved_treatment: 'carry-or-restriction',
+      consequence_if_unresolved: 'The exact downstream use remains contingent on the unresolved expression.',
+    }],
+  };
+}
+
+function buildAuthorityBaseline(run: string): void {
+  const ambiguityText = readFileSync(ambiguity(run), 'utf8');
+  const t52Line = ambiguityText.split('\n').find((line) => line.startsWith('| AMB-1503 | 1 |'));
+  if (!t52Line) throw new Error('authority baseline lacks AMB-1503 T5.2');
+  const ambiguityReview = readFileSync(verifier(run, 'VER-1503'));
+  const material: MaterialImpactSubject = {
+    format: 'aleph-internal-ambiguity-material-impact-review-subject/v1',
+    run_id: 'RUN-internal-ambiguity-lifecycle',
+    ambiguity_id: 'AMB-1503',
+    assessment_seq: 1,
+    material_impact_seq: 1,
+    t5_2_assessment_ref: `internal-ambiguity:T5.2:AMB-1503:A1@${sha256Digest(t52Line)}`,
+    t5_2_review_subject_digest: 'sha256:971c8b4b48522d87dc994a48823f1f4eabce05cd1c990b1bd08f506e5caf201d',
+    t5_2_review_ref: `ambiguity-review-verdict:VER-1503@${sha256Digest(ambiguityReview)}`,
+    c1_relation_basis_ref: 'none',
+    materiality_class: 'C',
+    operative_scope: authorityScope(),
+    source_locators: ['SRC-0401:L8-L8'],
+    reviewed_unaffected_ids: [],
+    unresolved_statement: 'The frozen same-source bytes do not identify one local referent.',
+    review_proposition: 'class-B-or-C-and-canonical-operative-scope-complete-and-accurate-under-cited-Core-requirements',
+    proposed_by: 'invocation:material-impact-producer-mutation-fixture',
+  };
+  mkdirSync(dirname(materialSubjectPath(run)), { recursive: true });
+  writeFileSync(materialSubjectPath(run), materialImpactSubjectJson(material));
+  const materialDigest = materialImpactSubjectDigest(material);
+  const reviewText = materialReviewText('VER-1591', materialDigest, 'upheld');
+  mkdirSync(dirname(materialReviewPath(run)), { recursive: true });
+  writeFileSync(materialReviewPath(run), reviewText);
+  const subject = buildProceduralAuthoritySubject({
+    run_id: material.run_id,
+    ambiguity_id: material.ambiguity_id,
+    assessment_seq: material.assessment_seq,
+    t5_2_assessment_ref: material.t5_2_assessment_ref,
+    t5_2_review_subject_digest: material.t5_2_review_subject_digest,
+    t5_2_review_ref: material.t5_2_review_ref,
+    prior_indeterminate_review_refs: [],
+    candidate_state: 'null-no-candidate',
+    candidate_refs: [],
+    carry_state: 'none',
+    affected_relation_ids: [],
+    c1_relation_basis_ref: 'none',
+    material_impact_seq: 1,
+    material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M1@${materialDigest}`,
+    material_impact_review_ref: `material-impact-verdict:VER-1591@${sha256Digest(reviewText)}`,
+    operative_scope: authorityScope(),
+    source_locators: material.source_locators,
+    reviewed_unaffected_ids: [],
+    unresolved_statement: material.unresolved_statement,
+  });
+  const request = buildProceduralAuthorityRequest({
+    request_seq: 1,
+    subject,
+    presentation: true,
+    required_authority_identity: 'human:fixture-operator',
+    prepared_by: 'invocation:loa-orchestrator',
+    requested_at: '2040-01-02T03:10:00.000Z',
+  });
+  const requestBytes = Buffer.from(proceduralAuthorityRequestJson(request), 'utf8');
+  const response = buildProceduralAuthorityResponse({
+    request,
+    request_bytes: requestBytes,
+    authority_identity: 'human:fixture-operator',
+    selected_action: 'carry-unresolved',
+    observation: null,
+    comment: exactTextBlob(Buffer.from(' fixture-only non-operative comment ', 'utf8')),
+    recorded_at: '2040-01-02T03:11:00.000Z',
+  });
+  const responseBytes = Buffer.from(proceduralAuthorityResponseJson(response), 'utf8');
+  mkdirSync(dirname(authorityRequestPath(run)), { recursive: true });
+  writeFileSync(authorityRequestPath(run), requestBytes);
+  writeFileSync(authorityResponsePath(run), responseBytes);
+  const row = buildProceduralAuthorityLedgerRow({
+    request,
+    request_bytes: requestBytes,
+    response,
+    response_bytes: responseBytes,
+    authority_seq: 1,
+  });
+  writeFileSync(ambiguity(run), `${ambiguityText}${proceduralAuthorityLedgerRowMarkdown(row)}\n`);
+}
+
+function mutateJson<T>(path: string, mutate: (value: T) => void): void {
+  const value = JSON.parse(readFileSync(path, 'utf8')) as T;
+  mutate(value);
+  writeFileSync(path, JSON.stringify(value));
+}
 
 const baseline = validateRun({ root: ROOT, run: BASE, kind: 'run' });
 if (baseline.result !== 'PASS') throw new Error(`baseline failed: ${JSON.stringify(baseline.checks)}`);
@@ -262,5 +441,295 @@ checkFailure('unknown closure phase', (run) => {
 checkFailure('duplicate closure phase', (run) => {
   replaceOne(runLog(run), 'closure_phase: S4-C2-ambiguities-finalized', 'closure_phase: S4-C1-relations-closed');
 }, /duplicated, skipped, or out of order/u);
+
+const authorityTemp = mkdtempSync(join(tmpdir(), 'aleph-s5-authority-baseline-'));
+const authorityBase = join(authorityTemp, 'run');
+try {
+  cpSync(BASE, authorityBase, { recursive: true });
+  buildAuthorityBaseline(authorityBase);
+  const authorityBaseline = validateRun({ root: ROOT, run: authorityBase, kind: 'run' });
+  if (authorityBaseline.result !== 'PASS') {
+    throw new Error(`authority baseline failed: ${JSON.stringify(authorityBaseline.checks)}`);
+  }
+  passed += 1;
+  console.log('PASS authority-positive retained-state baseline');
+
+  checkAuthorityFailure(authorityBase, 'malformed material-impact format', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.format = 'invalid' as MaterialImpactSubject['format'];
+    });
+  }, /material-impact format is invalid/u);
+
+  checkAuthorityFailure(authorityBase, 'material-impact path identity mismatch', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.material_impact_seq = 2;
+    });
+  }, /identity does not match its canonical path/u);
+
+  checkAuthorityFailure(authorityBase, 'noncanonical material-impact key order', (run) => {
+    const value = JSON.parse(readFileSync(materialSubjectPath(run), 'utf8')) as MaterialImpactSubject;
+    const { format, run_id: runId, ...remainder } = value;
+    writeFileSync(materialSubjectPath(run), JSON.stringify({ run_id: runId, format, ...remainder }));
+  }, /not exact canonical compact JSON/u);
+
+  checkAuthorityFailure(authorityBase, 'Class B with nonempty operative scope', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.materiality_class = 'B';
+    });
+  }, /Class B operative scope must be empty/u);
+
+  checkAuthorityFailure(authorityBase, 'Class C with empty operative scope', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.operative_scope = { affected_ids: [], impact_rows: [] };
+    });
+  }, /Class C operative scope must be nonempty/u);
+
+  checkAuthorityFailure(authorityBase, 'illegal operative affected ID kind', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.operative_scope.affected_ids = ['SRC-0401'];
+      value.operative_scope.impact_rows[0].affected_id = 'SRC-0401';
+    });
+  }, /illegal ID kind/u);
+
+  checkAuthorityFailure(authorityBase, 'duplicate impact tuple', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.operative_scope.impact_rows.push(structuredClone(value.operative_scope.impact_rows[0]));
+    });
+  }, /duplicate tuple/u);
+
+  checkAuthorityFailure(authorityBase, 'contradictory impact rows', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      const row = structuredClone(value.operative_scope.impact_rows[0]);
+      row.unresolved_treatment = 'resolution-required';
+      value.operative_scope.impact_rows.push(row);
+    });
+  }, /contradictory duplicate tuples/u);
+
+  checkAuthorityFailure(authorityBase, 'malformed requirement_ref', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.operative_scope.impact_rows[0].requirement_ref = '../working-main#fuzzy';
+    });
+  }, /malformed requirement_ref/u);
+
+  checkAuthorityFailure(authorityBase, 'duplicate material source locator', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.source_locators.push(value.source_locators[0]);
+    });
+  }, /source_locators is malformed or duplicated/u);
+
+  checkAuthorityFailure(authorityBase, 'stale material T5.2 row binding', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.t5_2_assessment_ref = value.t5_2_assessment_ref.replace(/sha256:[a-f0-9]{64}$/u, `sha256:${'0'.repeat(64)}`);
+    });
+  }, /T5\.2 row or review-subject binding is stale/u);
+
+  checkAuthorityFailure(authorityBase, 'wrong material C1 relation basis', (run) => {
+    mutateJson<MaterialImpactSubject>(materialSubjectPath(run), (value) => {
+      value.c1_relation_basis_ref = 'relations-basis:closure_phase=S4-C1-relations-closed;artifact=ledgers/relations.md';
+    });
+  }, /C1 relation basis reference is wrong/u);
+
+  checkAuthorityFailure(authorityBase, 'wrong material verifier target', (run) => {
+    replaceOne(materialReviewPath(run), 'internal-ambiguity-material-impact-review-subject:', 'internal-ambiguity-material-impact-review-subject:sha256:0000');
+  }, /no exact fresh material-impact verdict/u);
+
+  checkAuthorityFailure(authorityBase, 'refuted material verifier cannot continue', (run) => {
+    replaceOne(materialReviewPath(run), '| verdict | upheld |', '| verdict | refuted |');
+  }, /latest material-impact verdict must be upheld/u);
+
+  checkAuthorityFailure(authorityBase, 'cannot-determine material verifier cannot continue', (run) => {
+    replaceOne(materialReviewPath(run), '| verdict | upheld |', '| verdict | cannot-determine |');
+  }, /latest material-impact verdict must be upheld/u);
+
+  checkAuthorityFailure(authorityBase, 'forked material M sequence', (run) => {
+    const value = JSON.parse(readFileSync(materialSubjectPath(run), 'utf8')) as MaterialImpactSubject;
+    value.material_impact_seq = 3;
+    writeFileSync(materialSubjectPath(run, 3), materialImpactSubjectJson(value));
+  }, /material-impact M history is forked or noncontiguous/u);
+
+  checkAuthorityFailure(authorityBase, 'producer-authored allowed action set', (run) => {
+    mutateJson<ProceduralAuthorityRequest>(authorityRequestPath(run), (value) => {
+      value.authority_subject.allowed_actions = ['inspect-source'];
+    });
+  }, /request is inconsistent/u);
+
+  checkAuthorityFailure(authorityBase, 'producer-authored action consequence', (run) => {
+    mutateJson<ProceduralAuthorityRequest>(authorityRequestPath(run), (value) => {
+      value.authority_subject.action_consequences[0].c2_effect = 'not-eligible';
+    });
+  }, /request is inconsistent/u);
+
+  checkAuthorityFailure(authorityBase, 'hidden operative presentation row', (run) => {
+    mutateJson<ProceduralAuthorityRequest>(authorityRequestPath(run), (value) => {
+      if (!value.presentation) throw new Error('baseline request has no presentation');
+      value.presentation.operative_scope = { affected_ids: [], impact_rows: [] };
+    });
+  }, /request is inconsistent/u);
+
+  checkAuthorityFailure(authorityBase, 'non-human required authority kind', (run) => {
+    mutateJson<ProceduralAuthorityRequest>(authorityRequestPath(run), (value) => {
+      value.required_authority.kind = 'model' as 'human';
+    });
+  }, /request is inconsistent/u);
+
+  checkAuthorityFailure(authorityBase, 'response request digest mismatch', (run) => {
+    mutateJson<ProceduralAuthorityResponse>(authorityResponsePath(run), (value) => {
+      value.request_digest = `sha256:${'0'.repeat(64)}`;
+    });
+  }, /response is invalid/u);
+
+  checkAuthorityFailure(authorityBase, 'response authority identity mismatch', (run) => {
+    mutateJson<ProceduralAuthorityResponse>(authorityResponsePath(run), (value) => {
+      value.authority.identity = 'human:other-operator';
+    });
+  }, /response is invalid/u);
+
+  checkAuthorityFailure(authorityBase, 'observation bytes on non-observation action', (run) => {
+    mutateJson<ProceduralAuthorityResponse>(authorityResponsePath(run), (value) => {
+      value.observation = exactTextBlob(Buffer.from('illegal observation', 'utf8'));
+    });
+  }, /response is invalid/u);
+
+  checkAuthorityFailure(authorityBase, 'bad exact human comment digest', (run) => {
+    mutateJson<ProceduralAuthorityResponse>(authorityResponsePath(run), (value) => {
+      if (!value.comment) throw new Error('baseline response has no comment');
+      value.comment.sha256 = `sha256:${'0'.repeat(64)}`;
+    });
+  }, /response is invalid/u);
+
+  checkAuthorityFailure(authorityBase, 'selected candidate in T5.3', (run) => {
+    replaceInLine(ambiguity(run), '| AMB-1503 | 1 | 1 | carry-unresolved |', '| carry-unresolved | none |', '| carry-unresolved | PKT-0401 |');
+  }, /selected_candidate_ref must equal none/u);
+
+  checkAuthorityFailure(authorityBase, 'fabricated authority_ref in T5.3', (run) => {
+    replaceInLine(ambiguity(run), '| AMB-1503 | 1 | 1 | carry-unresolved |', 'authority-response:RESP-S4-AMB-1503-A1-Q1@', 'authority-response:RESP-S4-AMB-1503-A1-Q9@');
+  }, /does not resolve one retained request\/response pair/u);
+
+  checkAuthorityFailure(authorityBase, 'obsolete provisional authority label', (run) => {
+    replaceInLine(ambiguity(run), '| AMB-1503 | 1 | 1 | carry-unresolved |', 'carry-unresolved', 'preserve-unresolved');
+  }, /T5\.3 action is invalid/u);
+
+  checkAuthorityFailure(authorityBase, 'reused response in second T5.3 row', (run) => {
+    const text = readFileSync(ambiguity(run), 'utf8');
+    const row = text.split('\n').find((line) => line.startsWith('| AMB-1503 | 1 | 1 | carry-unresolved |'));
+    if (!row) throw new Error('baseline T5.3 row is absent');
+    writeFileSync(ambiguity(run), `${text}${row.replace('| AMB-1503 | 1 |', '| AMB-1503 | 2 |')}\n`);
+  }, /reuses authority response/u);
+
+  checkAuthorityFailure(authorityBase, 'forked Q request history', (run) => {
+    const q1 = JSON.parse(readFileSync(authorityRequestPath(run), 'utf8')) as ProceduralAuthorityRequest;
+    const q3 = buildProceduralAuthorityRequest({
+      request_seq: 3,
+      subject: q1.authority_subject,
+      presentation: true,
+      required_authority_identity: q1.required_authority.identity,
+      prepared_by: q1.prepared_by,
+      requested_at: '2040-01-02T03:12:00.000Z',
+    });
+    writeFileSync(authorityRequestPath(run, 3), proceduralAuthorityRequestJson(q3));
+  }, /request Q history is forked or noncontiguous/u);
+
+  checkAuthorityFailure(authorityBase, 'stale response after replacement request', (run) => {
+    const q1 = JSON.parse(readFileSync(authorityRequestPath(run), 'utf8')) as ProceduralAuthorityRequest;
+    const q2 = buildProceduralAuthorityRequest({
+      request_seq: 2,
+      subject: q1.authority_subject,
+      presentation: false,
+      required_authority_identity: q1.required_authority.identity,
+      prepared_by: q1.prepared_by,
+      requested_at: '2040-01-02T03:12:00.000Z',
+    });
+    writeFileSync(authorityRequestPath(run, 2), proceduralAuthorityRequestJson(q2));
+    const text = readFileSync(ambiguity(run), 'utf8');
+    const row = text.split('\n').find((line) => line.startsWith('| AMB-1503 | 1 | 1 | carry-unresolved |'));
+    if (!row) throw new Error('baseline T5.3 row is absent');
+    writeFileSync(ambiguity(run), text.replace(`${row}\n`, ''));
+  }, /stale response to a replaced request/u);
+
+  checkAuthorityFailure(authorityBase, 'C2 with active authority request', (run) => {
+    unlinkSync(authorityResponsePath(run));
+    const text = readFileSync(ambiguity(run), 'utf8');
+    const row = text.split('\n').find((line) => line.startsWith('| AMB-1503 | 1 | 1 | carry-unresolved |'));
+    if (!row) throw new Error('baseline T5.3 row is absent');
+    writeFileSync(ambiguity(run), text.replace(`${row}\n`, ''));
+  }, /C2 finalization is illegal while an authority request remains active/u);
+
+  checkAuthorityFailure(authorityBase, 'nonterminal action cannot finalize C2', (run) => {
+    const request = JSON.parse(readFileSync(authorityRequestPath(run), 'utf8')) as ProceduralAuthorityRequest;
+    const requestBytes = readFileSync(authorityRequestPath(run));
+    const response = buildProceduralAuthorityResponse({
+      request,
+      request_bytes: requestBytes,
+      authority_identity: request.required_authority.identity,
+      selected_action: 'inspect-source',
+      observation: null,
+      comment: null,
+      recorded_at: '2040-01-02T03:11:00.000Z',
+    });
+    const responseBytes = Buffer.from(proceduralAuthorityResponseJson(response), 'utf8');
+    writeFileSync(authorityResponsePath(run), responseBytes);
+    const row = buildProceduralAuthorityLedgerRow({
+      request, request_bytes: requestBytes, response, response_bytes: responseBytes, authority_seq: 1,
+    });
+    const text = readFileSync(ambiguity(run), 'utf8');
+    const old = text.split('\n').find((line) => line.startsWith('| AMB-1503 | 1 | 1 | carry-unresolved |'));
+    if (!old) throw new Error('baseline T5.3 row is absent');
+    writeFileSync(ambiguity(run), text.replace(old, proceduralAuthorityLedgerRowMarkdown(row)));
+  }, /no progression-enabling terminal response at C2/u);
+
+  checkAuthorityFailure(authorityBase, 'successor-run action cannot finalize current C2', (run) => {
+    const request = JSON.parse(readFileSync(authorityRequestPath(run), 'utf8')) as ProceduralAuthorityRequest;
+    const requestBytes = readFileSync(authorityRequestPath(run));
+    const response = buildProceduralAuthorityResponse({
+      request,
+      request_bytes: requestBytes,
+      authority_identity: request.required_authority.identity,
+      selected_action: 'request-successor-corpus-run',
+      observation: null,
+      comment: null,
+      recorded_at: '2040-01-02T03:11:00.000Z',
+    });
+    const responseBytes = Buffer.from(proceduralAuthorityResponseJson(response), 'utf8');
+    writeFileSync(authorityResponsePath(run), responseBytes);
+    const row = buildProceduralAuthorityLedgerRow({
+      request, request_bytes: requestBytes, response, response_bytes: responseBytes, authority_seq: 1,
+    });
+    const text = readFileSync(ambiguity(run), 'utf8');
+    const old = text.split('\n').find((line) => line.startsWith('| AMB-1503 | 1 | 1 | carry-unresolved |'));
+    if (!old) throw new Error('baseline T5.3 row is absent');
+    writeFileSync(ambiguity(run), text.replace(old, proceduralAuthorityLedgerRowMarkdown(row)));
+  }, /no progression-enabling terminal response at C2/u);
+
+  checkAuthorityFailure(authorityBase, 'action appended after terminal response', (run) => {
+    const q1 = JSON.parse(readFileSync(authorityRequestPath(run), 'utf8')) as ProceduralAuthorityRequest;
+    const q2 = buildProceduralAuthorityRequest({
+      request_seq: 2,
+      subject: q1.authority_subject,
+      presentation: true,
+      required_authority_identity: q1.required_authority.identity,
+      prepared_by: q1.prepared_by,
+      requested_at: '2040-01-02T03:12:00.000Z',
+    });
+    const q2Bytes = Buffer.from(proceduralAuthorityRequestJson(q2), 'utf8');
+    const r2 = buildProceduralAuthorityResponse({
+      request: q2,
+      request_bytes: q2Bytes,
+      authority_identity: q2.required_authority.identity,
+      selected_action: 'restrict-downstream-use',
+      observation: null,
+      comment: null,
+      recorded_at: '2040-01-02T03:13:00.000Z',
+    });
+    const r2Bytes = Buffer.from(proceduralAuthorityResponseJson(r2), 'utf8');
+    writeFileSync(authorityRequestPath(run, 2), q2Bytes);
+    writeFileSync(authorityResponsePath(run, 2), r2Bytes);
+    const row = buildProceduralAuthorityLedgerRow({
+      request: q2, request_bytes: q2Bytes, response: r2, response_bytes: r2Bytes, authority_seq: 2,
+    });
+    writeFileSync(ambiguity(run), `${readFileSync(ambiguity(run), 'utf8')}${proceduralAuthorityLedgerRowMarkdown(row)}\n`);
+  }, /conflicting action after a terminal response/u);
+} finally {
+  rmSync(authorityTemp, { recursive: true, force: true });
+}
 
 console.log(`RESULT: PASS (${String(passed)}/${String(passed)}; ${String(mutationCount)} deterministic mutations)`);

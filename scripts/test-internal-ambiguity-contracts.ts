@@ -486,6 +486,10 @@ check('requirement_ref resolves only retained immutable pinned Core bytes', () =
     () => resolvePinnedCoreRequirement(duplicate, 'core:docs/requirement.md#Repeated'),
     /does not resolve to one exact heading/u,
   );
+  expectThrows(
+    () => resolvePinnedCoreRequirement(authority, 'core:docs/repository-admin.md#Exact requirement'),
+    /path is not Core-classified/u,
+  );
 });
 
 const scratch = mkdtempSync(join(tmpdir(), 'aleph-internal-ambiguity-contracts-'));
