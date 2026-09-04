@@ -31,6 +31,7 @@ import type { RelationRow } from './relations.ts';
 import type { ResultCollector } from './results.ts';
 import {
   SUPPORTED_RUN_FORMAT_VERSIONS,
+  usesInternalAmbiguityLifecycle,
   usesTypedRelations,
 } from './run-model.ts';
 import type { RunModel, SourceRow } from './run-model.ts';
@@ -69,6 +70,12 @@ function isOneOf(value: string, values: readonly string[]): boolean {
 }
 
 function relationClosureRecorded(model: RunModel): boolean {
+  const version = model.manifest?.runFormatVersion || '';
+  if (usesInternalAmbiguityLifecycle(version)) {
+    return Boolean(model.runLog?.lines.some((line) => (
+      /^\s*closure_phase:\s*S4-C1-relations-closed\s*$/u.test(line)
+    )));
+  }
   if (POST_S4_STATES.some((state) => reachedState(model, state))) return true;
   if (firstRunLogEntry(model.runLog, 'S5')) return true;
   return Boolean(model.runLog?.lines.some((line) => (
@@ -522,7 +529,11 @@ export function runK2Relations(results: ResultCollector, model: RunModel): void 
         fail('typed relation structure must use canonical path ledgers/relations.md');
       }
       if (closureRecorded) {
-        fail(`run format ${version} requires ledgers/relations.md once S4 is closed or S5 begins`);
+        fail(
+          usesInternalAmbiguityLifecycle(version)
+            ? `run format ${version} requires ledgers/relations.md at S4-C1`
+            : `run format ${version} requires ledgers/relations.md once S4 is closed or S5 begins`,
+        );
       }
       return `typed relation artifact is not required before retained S4 closure in run format ${version}`;
     }

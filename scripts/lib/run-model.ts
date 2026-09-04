@@ -47,7 +47,8 @@ export const EXACT_EVIDENCE_RUN_FORMAT_VERSION = '1.1.0-provisional';
 export const SOURCE_WALK_RUN_FORMAT_VERSION = '1.2.0-provisional';
 export const LINEAGE_RUN_FORMAT_VERSION = '1.3.0-provisional';
 export const TYPED_RELATIONS_RUN_FORMAT_VERSION = '1.4.0-provisional';
-export const CURRENT_RUN_FORMAT_VERSION = TYPED_RELATIONS_RUN_FORMAT_VERSION;
+export const INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION = '1.5.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION;
 export const PACKET_DEFINITION_HEADER = [
   'packet id',
   'source id',
@@ -74,6 +75,7 @@ export const SUPPORTED_RUN_FORMAT_VERSIONS = [
   EXACT_EVIDENCE_RUN_FORMAT_VERSION,
   SOURCE_WALK_RUN_FORMAT_VERSION,
   LINEAGE_RUN_FORMAT_VERSION,
+  TYPED_RELATIONS_RUN_FORMAT_VERSION,
   CURRENT_RUN_FORMAT_VERSION,
 ] as const;
 
@@ -84,6 +86,7 @@ export const RUN_CAPABILITIES = [
   'source-walk',
   'lineage',
   'typed-relations',
+  'internal-ambiguity-lifecycle',
 ] as const;
 
 export type RunCapability = typeof RUN_CAPABILITIES[number];
@@ -111,6 +114,10 @@ const RUN_FORMAT_CAPABILITY_ADDITIONS: ReadonlyArray<{
   {
     version: TYPED_RELATIONS_RUN_FORMAT_VERSION,
     additions: ['typed-relations'],
+  },
+  {
+    version: INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION,
+    additions: ['internal-ambiguity-lifecycle'],
   },
 ];
 
@@ -145,6 +152,10 @@ export function usesLineage(runFormatVersion: string): boolean {
 
 export function usesTypedRelations(runFormatVersion: string): boolean {
   return hasRunCapability(runFormatVersion, 'typed-relations');
+}
+
+export function usesInternalAmbiguityLifecycle(runFormatVersion: string): boolean {
+  return hasRunCapability(runFormatVersion, 'internal-ambiguity-lifecycle');
 }
 
 export const EXACT_EVIDENCE_JOIN_POLICIES = [
