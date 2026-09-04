@@ -6,6 +6,7 @@ import { envelopeSection, findTable, findTables, findTableByFirstHeader, heading
 import { CURRENT_RUN_FORMAT_VERSION, CLAIM_DEFINITION_HEADER, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, PACKET_DEFINITION_HEADER, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, } from './run-model.js';
 import { runK2Lineage } from './checks-k2-lineage.js';
 import { runK2Relations } from './checks-k2-relations.js';
+import { runK2Ambiguities } from './checks-k2-ambiguities.js';
 const CLAIM_TYPES = [
     'factual',
     'design-intent',
@@ -2589,4 +2590,5 @@ export function runK2(results, model, root) {
     checkSourceWalk(results, model);
     runK2Lineage(results, model);
     runK2Relations(results, model);
+    runK2Ambiguities(results, model);
 }
