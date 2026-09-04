@@ -37,6 +37,9 @@ import { ValidatedWorkerReturn } from './worker-return.ts';
 import {
   buildProceduralAuthorityLedgerRow,
   closurePhasesFromText,
+  materialImpactSubjectDigest,
+  materialImpactSubjectJson,
+  materialImpactSubjectProblems,
   nextClosurePhase,
   nextProceduralAuthoritySequence,
   parseInternalAmbiguities,
@@ -45,6 +48,7 @@ import {
   validateProceduralAuthorityRequest,
   validateProceduralAuthorityResponse,
   type ClosurePhase,
+  type MaterialImpactSubject,
   type ProceduralAuthoritySubject,
   type ProceduralFollowupReason,
   type ProceduralAuthorityRequest,
@@ -86,6 +90,81 @@ const RELATION_LEDGER_PATH = 'ledgers/relations.md';
 const AMBIGUITY_LEDGER_PATH = 'ledgers/internal-ambiguities.md';
 const RUN_LOG_PATH = 'run-log.md';
 const LATE_LINEAGE_HALT_CODE = 'LATE_UNIT_LINEAGE_CORRECTION';
+
+function retainedMaterialImpactSequences(
+  runDir: string,
+  ambiguityId: string,
+  assessmentSeq: number,
+): number[] {
+  const root = join(runDir, 'verification', 'harness', 'S4', 'material-impact-subjects');
+  if (!existsSync(root)) return [];
+  const pattern = new RegExp(`^${ambiguityId}-A${String(assessmentSeq)}-M([1-9]\\d*)\\.json$`, 'u');
+  const sequences = readdirSync(root)
+    .map((name) => Number(name.match(pattern)?.[1] || '0'))
+    .filter((value) => value > 0)
+    .sort((left, right) => left - right);
+  if (sequences.some((value, index) => value !== index + 1)) {
+    throw new Error('retained material-impact M history is forked or noncontiguous');
+  }
+  return sequences;
+}
+
+function assertRetainedMaterialImpactAuthorityBasis(
+  runDir: string,
+  subject: ProceduralAuthoritySubject,
+): void {
+  const subjectPath = join(
+    runDir,
+    'verification',
+    'harness',
+    'S4',
+    'material-impact-subjects',
+    `${subject.ambiguity_id}-A${String(subject.assessment_seq)}-M${String(subject.material_impact_seq)}.json`,
+  );
+  if (!existsSync(subjectPath)) throw new Error('procedural authority subject has no retained material-impact subject');
+  const subjectBytes = readFileSync(subjectPath);
+  let material: MaterialImpactSubject;
+  try {
+    material = JSON.parse(subjectBytes.toString('utf8')) as MaterialImpactSubject;
+  } catch {
+    throw new Error('retained material-impact subject is not valid JSON');
+  }
+  if (materialImpactSubjectProblems(material).length
+    || materialImpactSubjectJson(material) !== subjectBytes.toString('utf8')) {
+    throw new Error('retained material-impact subject is not exact canonical Core state');
+  }
+  const digest = materialImpactSubjectDigest(material);
+  const expectedSubjectRef = `material-impact-subject:${subject.ambiguity_id}:A${String(subject.assessment_seq)}:M${String(subject.material_impact_seq)}@${digest}`;
+  if (subject.material_impact_subject_ref !== expectedSubjectRef
+    || material.materiality_class !== 'C'
+    || material.t5_2_assessment_ref !== subject.t5_2_assessment_ref
+    || material.t5_2_review_subject_digest !== subject.t5_2_review_subject_digest
+    || material.t5_2_review_ref !== subject.t5_2_review_ref
+    || material.c1_relation_basis_ref !== subject.c1_relation_basis_ref
+    || JSON.stringify(material.operative_scope) !== JSON.stringify(subject.operative_scope)
+    || JSON.stringify(material.source_locators) !== JSON.stringify(subject.source_locators)
+    || JSON.stringify(material.reviewed_unaffected_ids) !== JSON.stringify(subject.reviewed_unaffected_ids)
+    || material.unresolved_statement !== subject.unresolved_statement) {
+    throw new Error('procedural authority subject disagrees with its retained material-impact basis');
+  }
+  const reviewMatch = subject.material_impact_review_ref.match(
+    /^material-impact-verdict:(VER-\d{4,})@(sha256:[a-f0-9]{64})$/u,
+  );
+  if (!reviewMatch) throw new Error('procedural authority subject has an invalid material-impact review ref');
+  const model = loadRun(runDir);
+  const reviews = model.files.filter((file) => (
+    file.relativePath.startsWith('verification/harness/')
+    && file.relativePath.endsWith(`/${reviewMatch[1]}.md`)
+  ));
+  if (reviews.length !== 1 || sha256Digest(reviews[0].text) !== reviewMatch[2]) {
+    throw new Error('material-impact review ref does not resolve to one exact retained verifier');
+  }
+  const target = `internal-ambiguity-material-impact-review-subject:${digest}`;
+  if (!reviews[0].text.includes(`| target | ${target} |`)
+    || !reviews[0].text.includes('| verdict | upheld |')) {
+    throw new Error('material-impact verifier target or verdict does not authorize a request');
+  }
+}
 
 function retainedClosurePhases(runDir: string): ClosurePhase[] {
   const path = join(runDir, RUN_LOG_PATH);
@@ -713,12 +792,19 @@ export class LedgerWriter {
       ));
     const currentSequence = Number(options.request_id.slice(prefix.length));
     const currentHistory = existing.filter((id) => Number(id.slice(prefix.length)) <= currentSequence);
+    const materialSequences = retainedMaterialImpactSequences(
+      this.runDir,
+      request.ambiguity_id,
+      request.assessment_seq,
+    );
+    assertRetainedMaterialImpactAuthorityBasis(this.runDir, options.next_subject);
     const nextRequest = planProceduralAuthorityFollowup({
       current_request: request,
       current_request_bytes: requestBytes,
       current_response: response,
       current_response_bytes: responseBytes,
       existing_request_ids: currentHistory,
+      retained_material_impact_seqs: materialSequences,
       reason: options.reason,
       next_subject: options.next_subject,
       presentation: options.presentation,

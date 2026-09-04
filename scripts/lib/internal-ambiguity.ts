@@ -1179,6 +1179,7 @@ export function planProceduralAuthorityFollowup(options: {
   current_response: ProceduralAuthorityResponse | null;
   current_response_bytes: Buffer | null;
   existing_request_ids: string[];
+  retained_material_impact_seqs: number[];
   reason: ProceduralFollowupReason;
   next_subject: ProceduralAuthoritySubject;
   presentation: boolean;
@@ -1211,6 +1212,13 @@ export function planProceduralAuthorityFollowup(options: {
   ));
   if (JSON.stringify(options.existing_request_ids) !== JSON.stringify(expectedIds)) {
     throw new Error('procedural follow-up request Q history is forked, reused, or noncontiguous');
+  }
+  if (options.retained_material_impact_seqs.some((value, index) => (
+    !Number.isSafeInteger(value) || value !== index + 1
+  )) || !options.retained_material_impact_seqs.includes(
+    options.current_request.authority_subject.material_impact_seq,
+  )) {
+    throw new Error('procedural follow-up material-impact M history is forked or noncontiguous');
   }
   if (immutableProceduralBasis(options.next_subject)
     !== immutableProceduralBasis(options.current_request.authority_subject)) {
@@ -1245,9 +1253,10 @@ export function planProceduralAuthorityFollowup(options: {
       || action === 'request-successor-corpus-run') {
       throw new Error('material-impact revision is forbidden after a terminal authority consequence');
     }
-    if (options.next_subject.material_impact_seq
-      !== options.current_request.authority_subject.material_impact_seq + 1) {
-      throw new Error('material-impact revision must advance M by exactly one');
+    const latestMaterialSequence = options.retained_material_impact_seqs.at(-1) || 0;
+    if (options.next_subject.material_impact_seq !== latestMaterialSequence
+      || latestMaterialSequence <= options.current_request.authority_subject.material_impact_seq) {
+      throw new Error('material-impact revision must bind the latest contiguous new M subject');
     }
     if (sameSubject) throw new Error('material-impact revision must change the authority subject digest');
   } else {

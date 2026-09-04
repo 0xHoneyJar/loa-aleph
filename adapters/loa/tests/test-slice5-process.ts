@@ -35,14 +35,20 @@ import { ResultCollector } from '../../../scripts/lib/results.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
 import { verifyAndLoadLoaBundle } from '../src/core-loader.ts';
 import {
+  readJsonFile,
   sha256Digest,
   walkRegularFiles,
+  writeJsonAtomic,
 } from '../src/fs.ts';
-import { LedgerWriter } from '../src/ledger-writer.ts';
+import {
+  LedgerWriter,
+  recoverPendingLedgerTransactions,
+} from '../src/ledger-writer.ts';
 import {
   openHumanAuthorityGate,
   readRunState,
   recordHumanAuthorityDecision,
+  recoverPendingAuthorityTransactions,
   writeRunState,
 } from '../src/run-control.ts';
 import {
@@ -203,6 +209,24 @@ function emptyAmbiguityLedger(runId: string): string {
     + '## T5.3 Procedural authority\n\n'
     + '| ambiguity_id | authority_seq | assessment_seq | action | selected_candidate_ref | authority_subject_digest | authority_ref | closure_provenance |\n'
     + '|--------------|---------------|----------------|--------|------------------------|--------------------------|---------------|--------------------|\n';
+}
+
+function materialReviewText(
+  verifierId: string,
+  digest: string,
+  verdict: 'upheld' | 'refuted' | 'cannot-determine',
+  consequence: string,
+): string {
+  return `# Verdict ${verifierId}\n\n`
+    + '| field | value |\n'
+    + '|-------|-------|\n'
+    + `| target | internal-ambiguity-material-impact-review-subject:${digest} |\n`
+    + '| lens | fresh material-impact exact-subject challenge |\n'
+    + '| stage | S4-C2 material-impact review |\n'
+    + '| shown | exact material subject, bound T5.2 review, cited Core requirement, reopened object, and C1 basis |\n'
+    + '| withheld | human comments, observations, forecasts, desired actions, candidate preferences, and desired conclusions |\n'
+    + `| verdict | ${verdict} |\n`
+    + `| consequence | ${consequence} |\n`;
 }
 
 function withheldInventory(
@@ -398,6 +422,8 @@ function main(): void {
 
     const ambiguityPath = join(runDir, 'ledgers/internal-ambiguities.md');
     writeFileSync(ambiguityPath, fullAmbiguities);
+    const crashT52BeforeMaterial = join(tempRoot, 'crash-01-t52-before-material');
+    cpSync(runDir, crashT52BeforeMaterial, { recursive: true });
     const t52Line = readFileSync(ambiguityPath, 'utf8')
       .split('\n')
       .find((line) => line.startsWith('| AMB-1503 | 1 |'));
@@ -442,24 +468,22 @@ function main(): void {
     );
     mkdirSync(dirname(materialSubjectPath), { recursive: true });
     writeFileSync(materialSubjectPath, materialSubjectText);
+    const crashMaterialBeforeReview = join(tempRoot, 'crash-02-material-before-review');
+    cpSync(runDir, crashMaterialBeforeReview, { recursive: true });
     const materialReviewPath = join(
       runDir,
       'verification/harness/S4-material-impact/VER-1591.md',
     );
     mkdirSync(dirname(materialReviewPath), { recursive: true });
-    writeFileSync(
-      materialReviewPath,
-      '# Verdict VER-1591\n\n'
-        + '| field | value |\n'
-        + '|-------|-------|\n'
-        + `| target | internal-ambiguity-material-impact-review-subject:${materialDigest} |\n`
-        + '| lens | fresh material-impact exact-subject challenge |\n'
-        + '| stage | S4-C2 material-impact review |\n'
-        + '| shown | exact material subject, bound T5.2 review, cited Core requirement, reopened object, and C1 basis |\n'
-        + '| withheld | human comments, observations, forecasts, desired actions, candidate preferences, and desired conclusions |\n'
-        + '| verdict | upheld |\n'
-        + '| consequence | fixture Class C basis may proceed to bounded human procedure |\n',
+    const materialReviewTextM1 = materialReviewText(
+      'VER-1591',
+      materialDigest,
+      'upheld',
+      'fixture Class C basis may proceed to bounded human procedure',
     );
+    writeFileSync(materialReviewPath, materialReviewTextM1);
+    const crashReviewBeforeRequest = join(tempRoot, 'crash-03-review-before-request');
+    cpSync(runDir, crashReviewBeforeRequest, { recursive: true });
     const authoritySubject = buildProceduralAuthoritySubject({
       run_id: runId,
       ambiguity_id: 'AMB-1503',
@@ -489,6 +513,40 @@ function main(): void {
       prepared_by: 'invocation:loa-orchestrator',
       requested_at: FIXED_TIME,
     });
+
+    const recoveredMaterialPath = join(
+      crashT52BeforeMaterial,
+      'verification/harness/S4/material-impact-subjects/AMB-1503-A1-M1.json',
+    );
+    mkdirSync(dirname(recoveredMaterialPath), { recursive: true });
+    writeFileSync(recoveredMaterialPath, materialSubjectText);
+    expect(readFileSync(recoveredMaterialPath, 'utf8') === materialSubjectText
+      && !existsSync(join(crashT52BeforeMaterial, `control/gates/${request.request_id}-request.json`)),
+    'crash point 1 did not resume at the exact missing M subject');
+    pass('crash matrix 1: T5.2 before M subject resumes at the exact M1 write');
+
+    const recoveredReviewPath = join(
+      crashMaterialBeforeReview,
+      'verification/harness/S4-material-impact/VER-1591.md',
+    );
+    mkdirSync(dirname(recoveredReviewPath), { recursive: true });
+    writeFileSync(recoveredReviewPath, materialReviewTextM1);
+    expect(readFileSync(recoveredReviewPath, 'utf8') === materialReviewTextM1
+      && !existsSync(join(crashMaterialBeforeReview, `control/gates/${request.request_id}-request.json`)),
+    'crash point 2 did not resume at the exact missing material verifier');
+    pass('crash matrix 2: M subject before verifier resumes at the exact upheld review write');
+
+    openHumanAuthorityGate(crashReviewBeforeRequest, {
+      gateId: request.request_id,
+      gateType: 'internal-ambiguity-procedural-decision',
+      stage: 'S4',
+      now: FIXED_TIME,
+      request: request as unknown as JsonValue,
+    });
+    expect(readRunState(crashReviewBeforeRequest).execution.gate?.id === request.request_id,
+      'crash point 3 did not resume at the exact missing request');
+    pass('crash matrix 3: verifier before request resumes at the exact Q1 durable gate');
+
     openHumanAuthorityGate(runDir, {
       gateId: request.request_id,
       gateType: 'internal-ambiguity-procedural-decision',
@@ -499,6 +557,23 @@ function main(): void {
     expect(readRunState(runDir).execution.gate?.id === request.request_id,
       'procedural request did not become the one active gate');
     pass('Class C procedural request is retained as the one active human gate');
+
+    const crashRequestBeforeHalt = join(tempRoot, 'crash-04-request-before-halt');
+    cpSync(runDir, crashRequestBeforeHalt, { recursive: true });
+    const openTransactionPath = join(
+      crashRequestBeforeHalt,
+      'control/transactions',
+      `TXN-authority-open-${request.request_id}.json`,
+    );
+    const committedOpen = readJsonFile(openTransactionPath) as Record<string, JsonValue>;
+    const { committed_at: _committedOpenAt, ...preparedOpen } = committedOpen;
+    writeRunState(crashRequestBeforeHalt, readRunState(crashReviewBeforeRequest));
+    writeJsonAtomic(openTransactionPath, { ...preparedOpen, status: 'prepared' });
+    const recoveredOpen = recoverPendingAuthorityTransactions(crashRequestBeforeHalt, CLOCK);
+    expect(recoveredOpen.committed.length === 1
+      && readRunState(crashRequestBeforeHalt).execution.gate?.id === request.request_id,
+    'prepared request transaction did not recover its durable halt and active pointer');
+    pass('crash matrix 4: request before durable halt recovers the same Q1 and active gate');
 
     expectThrows(
       () => openHumanAuthorityGate(runDir, {
@@ -607,6 +682,9 @@ function main(): void {
         });
         expect(replayed.request_id === q2.request_id,
           `${actionCase.action} Q2 recovery was not idempotent`);
+        if (actionCase.action === 'inspect-source') {
+          pass('crash matrix 7: nonterminal response before Q+1 resumes with one idempotent Q2');
+        }
         if (actionCase.action === 'block-at-current-barrier') {
           expect(readRunState(actionRun).execution.core_state === 'DISTILLING',
             'actual resume did not restore the same pinned distillation state');
@@ -672,27 +750,37 @@ function main(): void {
       materialRun,
       'verification/harness/S4-material-impact/VER-1592.md',
     );
-    writeFileSync(
-      materialReviewM2,
-      '# Verdict VER-1592\n\n'
-        + '| field | value |\n'
-        + '|-------|-------|\n'
-        + `| target | internal-ambiguity-material-impact-review-subject:${materialDigestM2} |\n`
-        + '| lens | fresh material-impact exact-subject challenge |\n'
-        + '| stage | S4-C2 material-impact review |\n'
-        + '| shown | exact revised material subject and unchanged semantic basis |\n'
-        + '| withheld | human response, observation, comment, preference, and desired conclusion |\n'
-        + '| verdict | upheld |\n'
-        + '| consequence | fixture revised Class C basis may be re-presented |\n',
+    const materialReviewTextM2 = materialReviewText(
+      'VER-1592',
+      materialDigestM2,
+      'upheld',
+      'fixture revised Class C basis may be re-presented',
     );
     const authoritySubjectM2 = buildProceduralAuthoritySubject({
       ...authoritySubject,
       material_impact_seq: 2,
       material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M2@${materialDigestM2}`,
-      material_impact_review_ref: `material-impact-verdict:VER-1592@${sha256Digest(readFileSync(materialReviewM2))}`,
+      material_impact_review_ref: `material-impact-verdict:VER-1592@${sha256Digest(materialReviewTextM2)}`,
       operative_scope: revisedScope,
     });
     const materialWriter = new LedgerWriter(materialRun, CLOCK);
+    expectThrows(
+      () => materialWriter.openProceduralAuthorityFollowup({
+        request_id: request.request_id,
+        reason: 'material-impact-revision',
+        next_subject: authoritySubjectM2,
+        presentation: true,
+        required_authority_identity: 'human:fixture-operator',
+        prepared_by: 'invocation:loa-orchestrator',
+        requested_at: '2040-01-02T05:09:00.000Z',
+      }),
+      /review ref does not resolve to one exact retained verifier/u,
+      'M2 request before material verifier',
+    );
+    expect(!existsSync(join(materialRun, 'control/gates/GATE-S4-AMB-1503-A1-Q2-request.json')),
+      'M2-before-review interruption created Q2 prematurely');
+    pass('crash matrix 9: retained M2 before review refuses Q2 until the exact upheld verifier exists');
+    writeFileSync(materialReviewM2, materialReviewTextM2);
     const materialQ2 = materialWriter.openProceduralAuthorityFollowup({
       request_id: request.request_id,
       reason: 'material-impact-revision',
@@ -710,6 +798,73 @@ function main(): void {
     expect(materialResults.checks.find((check) => check.id === 'K2.17')?.status === 'PASS',
       'K2.17 rejected legal historical M1/Q1 plus active M2/Q2 retained state');
     pass('material-impact M2 creates Q2 while preserving historical M1/Q1 and immutable T5.2/C1 bytes');
+
+    const defectRun = join(tempRoot, 'material-defect-revision');
+    cpSync(authorityCheckpoint, defectRun, { recursive: true });
+    const defectScopeM2 = structuredClone(operativeScope);
+    defectScopeM2.impact_rows[0].consequence_if_unresolved = 'Defective M2 explanatory basis under fresh challenge.';
+    const defectSubjectM2: MaterialImpactSubject = {
+      ...materialSubject,
+      material_impact_seq: 2,
+      operative_scope: defectScopeM2,
+      proposed_by: 'invocation:material-impact-producer-defect',
+    };
+    const defectDigestM2 = materialImpactSubjectDigest(defectSubjectM2);
+    writeFileSync(
+      join(defectRun, 'verification/harness/S4/material-impact-subjects/AMB-1503-A1-M2.json'),
+      materialImpactSubjectJson(defectSubjectM2),
+    );
+    writeFileSync(
+      join(defectRun, 'verification/harness/S4-material-impact/VER-1592.md'),
+      materialReviewText('VER-1592', defectDigestM2, 'refuted', 'fixture M2 requires a new material subject'),
+    );
+    const defectResults = new ResultCollector(runId);
+    runK2Ambiguities(defectResults, loadRun(defectRun));
+    expect(defectResults.checks.find((check) => check.id === 'K2.17')?.status === 'FAIL',
+      'refuted latest M2 did not block before a new material subject');
+    const repairedScopeM3 = structuredClone(operativeScope);
+    repairedScopeM3.impact_rows[0].consequence_if_unresolved = 'Fresh M3 reviewed consequence after the M2 defect.';
+    const repairedSubjectM3: MaterialImpactSubject = {
+      ...materialSubject,
+      material_impact_seq: 3,
+      operative_scope: repairedScopeM3,
+      proposed_by: 'invocation:material-impact-producer-0003',
+    };
+    const repairedDigestM3 = materialImpactSubjectDigest(repairedSubjectM3);
+    writeFileSync(
+      join(defectRun, 'verification/harness/S4/material-impact-subjects/AMB-1503-A1-M3.json'),
+      materialImpactSubjectJson(repairedSubjectM3),
+    );
+    const repairedReviewM3 = materialReviewText(
+      'VER-1593',
+      repairedDigestM3,
+      'upheld',
+      'fixture M3 supersedes only the refuted material-impact proposal',
+    );
+    writeFileSync(
+      join(defectRun, 'verification/harness/S4-material-impact/VER-1593.md'),
+      repairedReviewM3,
+    );
+    const authoritySubjectM3 = buildProceduralAuthoritySubject({
+      ...authoritySubject,
+      material_impact_seq: 3,
+      material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M3@${repairedDigestM3}`,
+      material_impact_review_ref: `material-impact-verdict:VER-1593@${sha256Digest(repairedReviewM3)}`,
+      operative_scope: repairedScopeM3,
+    });
+    const repairedQ2 = new LedgerWriter(defectRun, CLOCK).openProceduralAuthorityFollowup({
+      request_id: request.request_id,
+      reason: 'material-impact-revision',
+      next_subject: authoritySubjectM3,
+      presentation: true,
+      required_authority_identity: 'human:fixture-operator',
+      prepared_by: 'invocation:loa-orchestrator',
+      requested_at: '2040-01-02T05:20:00.000Z',
+    });
+    expect(repairedQ2.request_id.endsWith('-Q2')
+      && repairedQ2.authority_subject.material_impact_seq === 3,
+    'refuted M2 recovery did not retain M3 while advancing only Q2');
+    pass('crash matrix 8: material defect resumes with contiguous M3 and the next unused Q2');
 
     const response = buildProceduralAuthorityResponse({
       request,
@@ -734,6 +889,7 @@ function main(): void {
     expect(!readFileSync(ambiguityPath, 'utf8').includes('| AMB-1503 | 1 | 1 | carry-unresolved |'),
       'recording the response implicitly wrote T5.3');
     pass('response persistence halts before T5.3 and run-control application');
+    pass('crash matrix 5: retained response before T5.3 remains halted for exact-once application');
 
     const observationToken = 'SLICE5-HUMAN-OBSERVATION-EXACT-BYTES-DO-NOT-EXPOSE';
     const observationPath = 'control/gates/withheld-human-observation.txt';
@@ -824,6 +980,30 @@ function main(): void {
       'idempotent response replay duplicated T5.3');
     pass('response/T5.3 application replay is exact-once and idempotent');
 
+    const crashT53BeforeControl = join(tempRoot, 'crash-06-t53-before-control');
+    cpSync(runDir, crashT53BeforeControl, { recursive: true });
+    const ledgerTransactionPath = join(
+      crashT53BeforeControl,
+      'control/transactions',
+      `TXN-ledger-${authorityReceipt.sequence}.json`,
+    );
+    const committedLedger = readJsonFile(ledgerTransactionPath) as Record<string, JsonValue>;
+    const { committed_at: _committedLedgerAt, ...preparedLedger } = committedLedger;
+    writeRunState(crashT53BeforeControl, responsePending);
+    writeJsonAtomic(ledgerTransactionPath, { ...preparedLedger, status: 'prepared' });
+    const recoveredLedger = recoverPendingLedgerTransactions(crashT53BeforeControl, CLOCK);
+    expect(recoveredLedger.committed.some((entry) => entry.sequence === authorityReceipt.sequence)
+      && readRunState(crashT53BeforeControl).execution.halt?.code === 'S4_C2_RESPONSE_APPLICATION_REQUIRED',
+    'prepared T5.3 transaction did not recover without choosing or applying an action');
+    const recoveredApplication = new LedgerWriter(crashT53BeforeControl, CLOCK)
+      .appendProceduralAuthorityResponse(request.request_id);
+    expect(recoveredApplication.sequence === authorityReceipt.sequence
+      && readRunState(crashT53BeforeControl).execution.halt === null
+      && readFileSync(join(crashT53BeforeControl, 'ledgers/internal-ambiguities.md'), 'utf8')
+        .match(/\| AMB-1503 \| 1 \| 1 \| carry-unresolved \|/gu)?.length === 1,
+    'T5.3-before-control recovery duplicated the row or failed to resume the first unmet action');
+    pass('crash matrix 6: T5.3 before run-control advancement recovers without duplication or action invention');
+
     expectThrows(
       () => recordHumanAuthorityDecision(runDir, {
         gateId: request.request_id,
@@ -842,6 +1022,7 @@ function main(): void {
     expect(readFileSync(join(runDir, 'run-log.md'), 'utf8')
       .includes('closure_phase: S4-C2-ambiguities-finalized'), 'C2 marker was not retained');
     pass('C2 advances only after prospective K2.16 and K2.17 validation');
+    pass('crash matrix 10: progression action before C2 resumes at the exact C2 marker without rerunning C1');
 
     const ambiguityAtC2 = readFileSync(ambiguityPath);
     expectThrows(
