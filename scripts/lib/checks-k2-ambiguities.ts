@@ -254,6 +254,7 @@ interface AmbiguityControlState {
   requests: Map<string, { value: ProceduralAuthorityRequest; bytes: Buffer }>;
   responses: Map<string, { value: ProceduralAuthorityResponse; bytes: Buffer }>;
   active: number;
+  latestRequestIds: Set<string>;
 }
 
 function checkControlState(
@@ -284,10 +285,21 @@ function checkControlState(
       fail(`${name} is invalid: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+  const latestByAssessment = new Map<string, { id: string; sequence: number }>();
+  for (const [id, request] of requests) {
+    const sequence = Number(id.match(/-Q([1-9]\d*)$/u)?.[1] || '0');
+    const key = `${request.value.ambiguity_id}\0${String(request.value.assessment_seq)}`;
+    const prior = latestByAssessment.get(key);
+    if (!prior || sequence > prior.sequence) latestByAssessment.set(key, { id, sequence });
+  }
+  const latestRequestIds = new Set([...latestByAssessment.values()].map((entry) => entry.id));
   let active = 0;
   for (const [id, request] of requests) {
     const response = responses.get(id);
-    if (!response) { active += 1; continue; }
+    if (!response) {
+      if (latestRequestIds.has(id)) active += 1;
+      continue;
+    }
     try {
       const bytes = validateProceduralAuthorityResponse(request.value, request.bytes, response.value);
       const path = join(model.runDir, 'control/gates', `${id}-response.json`);
@@ -300,7 +312,7 @@ function checkControlState(
   }
   for (const id of responses.keys()) if (!requests.has(id)) fail(`${id} has a fabricated or orphan response`);
   if (active > 1) fail(`at most one active internal-ambiguity request is legal; found ${active}`);
-  return { requests, responses, active };
+  return { requests, responses, active, latestRequestIds };
 }
 
 export function runK2Ambiguities(results: ResultCollector, model: RunModel): void {
@@ -648,7 +660,9 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
           !== (current.values.affectedRelationIds === 'none' ? '' : current.values.affectedRelationIds)) {
         fail(`${value.request_id} is stale or disagrees with the current unresolved T5.2 basis`);
       }
-      const material = latestMaterial.get(key);
+      const material = materialHistories.get(key)?.find((entry) => (
+        entry.subject.material_impact_seq === value.authority_subject.material_impact_seq
+      ));
       if (!material || material.subject.materiality_class !== 'C'
         || material.verdict !== 'upheld'
         || value.authority_subject.material_impact_seq !== material.subject.material_impact_seq
@@ -662,7 +676,12 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
         || JSON.stringify(value.authority_subject.reviewed_unaffected_ids)
           !== JSON.stringify(material.subject.reviewed_unaffected_ids)
         || value.authority_subject.unresolved_statement !== material.subject.unresolved_statement) {
-        fail(`${value.request_id} does not exactly project the latest upheld Class C material-impact basis`);
+        fail(`${value.request_id} does not exactly project its upheld Class C material-impact basis`);
+      }
+      const latest = latestMaterial.get(key);
+      if (control.latestRequestIds.has(value.request_id)
+        && (!latest || material?.digest !== latest.digest)) {
+        fail(`${value.request_id} latest request does not bind the latest upheld material-impact basis`);
       }
     }
     for (const [key, sequences] of requestSeqs) {
@@ -772,6 +791,12 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
     }
     if (hasC2 && control.active > 0) {
       fail('C2 finalization is illegal while an authority request remains active');
+    }
+    for (const [requestId, response] of control.responses) {
+      if (!control.latestRequestIds.has(requestId)
+        && !usedResponses.has(response.value.response_id)) {
+        fail(`${response.value.response_id} is a stale response to a replaced request`);
+      }
     }
     if (hasC2) {
       for (const response of control.responses.values()) {

@@ -29,6 +29,7 @@ import {
 } from './fs.ts';
 import {
   acquireDurableProcessLock,
+  openHumanAuthorityGate,
   readRunState,
   updateRunState,
 } from './run-control.ts';
@@ -39,10 +40,13 @@ import {
   nextClosurePhase,
   nextProceduralAuthoritySequence,
   parseInternalAmbiguities,
+  planProceduralAuthorityFollowup,
   proceduralAuthorityLedgerRowMarkdown,
   validateProceduralAuthorityRequest,
   validateProceduralAuthorityResponse,
   type ClosurePhase,
+  type ProceduralAuthoritySubject,
+  type ProceduralFollowupReason,
   type ProceduralAuthorityRequest,
   type ProceduralAuthorityResponse,
 } from '../../../scripts/lib/internal-ambiguity.ts';
@@ -650,6 +654,110 @@ export class LedgerWriter {
       });
     }
     return receipt;
+  }
+
+  openProceduralAuthorityFollowup(options: {
+    request_id: string;
+    reason: ProceduralFollowupReason;
+    next_subject: ProceduralAuthoritySubject;
+    presentation: boolean;
+    required_authority_identity: string;
+    prepared_by: string;
+    requested_at: string;
+  }): ProceduralAuthorityRequest {
+    if (!/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*$/u.test(options.request_id)) {
+      throw new Error('procedural follow-up predecessor request ID is invalid');
+    }
+    const gatesRoot = join(this.runDir, 'control', 'gates');
+    const requestPath = join(gatesRoot, `${options.request_id}-request.json`);
+    if (!existsSync(requestPath)) throw new Error('procedural follow-up predecessor request is absent');
+    const requestBytes = readFileSync(requestPath);
+    let request: ProceduralAuthorityRequest;
+    try {
+      request = JSON.parse(requestBytes.toString('utf8')) as ProceduralAuthorityRequest;
+    } catch {
+      throw new Error('procedural follow-up predecessor request is not valid JSON');
+    }
+    if (!validateProceduralAuthorityRequest(request).equals(requestBytes)) {
+      throw new Error('procedural follow-up predecessor request bytes are not canonical');
+    }
+    const responsePath = join(gatesRoot, `${options.request_id}-response.json`);
+    const responseBytes = existsSync(responsePath) ? readFileSync(responsePath) : null;
+    let response: ProceduralAuthorityResponse | null = null;
+    if (responseBytes) {
+      try {
+        response = JSON.parse(responseBytes.toString('utf8')) as ProceduralAuthorityResponse;
+      } catch {
+        throw new Error('procedural follow-up predecessor response is not valid JSON');
+      }
+      if (!validateProceduralAuthorityResponse(request, requestBytes, response).equals(responseBytes)) {
+        throw new Error('procedural follow-up predecessor response bytes are not canonical');
+      }
+      const responseDigest = sha256Digest(responseBytes);
+      const ambiguity = parseInternalAmbiguities(loadRun(this.runDir));
+      const retained = ambiguity.t5_3Rows.some((row) => (
+        row.values.ambiguityId === request.ambiguity_id
+        && row.values.assessmentSeq === String(request.assessment_seq)
+        && row.values.authorityRef === `authority-response:${response?.response_id}@${responseDigest}`
+      ));
+      if (!retained) {
+        throw new Error('procedural follow-up requires the predecessor response to be applied to T5.3 exactly once');
+      }
+    }
+    const prefix = `GATE-S4-${request.ambiguity_id}-A${String(request.assessment_seq)}-Q`;
+    const existing = readdirSync(gatesRoot)
+      .filter((name) => name.startsWith(prefix) && name.endsWith('-request.json'))
+      .map((name) => name.slice(0, -'-request.json'.length))
+      .sort((left, right) => (
+        Number(left.slice(prefix.length)) - Number(right.slice(prefix.length))
+      ));
+    const currentSequence = Number(options.request_id.slice(prefix.length));
+    const currentHistory = existing.filter((id) => Number(id.slice(prefix.length)) <= currentSequence);
+    const nextRequest = planProceduralAuthorityFollowup({
+      current_request: request,
+      current_request_bytes: requestBytes,
+      current_response: response,
+      current_response_bytes: responseBytes,
+      existing_request_ids: currentHistory,
+      reason: options.reason,
+      next_subject: options.next_subject,
+      presentation: options.presentation,
+      required_authority_identity: options.required_authority_identity,
+      prepared_by: options.prepared_by,
+      requested_at: options.requested_at,
+    });
+    const nextPath = join(gatesRoot, `${nextRequest.request_id}-request.json`);
+    const unexpected = existing.filter((id) => (
+      Number(id.slice(prefix.length)) > currentSequence
+      && id !== nextRequest.request_id
+    ));
+    if (unexpected.length) {
+      throw new Error('procedural follow-up found a forked or skipped retained Q request');
+    }
+    if (existsSync(nextPath)) {
+      const retained = readFileSync(nextPath);
+      if (!validateProceduralAuthorityRequest(nextRequest).equals(retained)) {
+        throw new Error('retained procedural follow-up request disagrees with the Core plan');
+      }
+      const state = readRunState(this.runDir);
+      if (state.execution.gate?.id !== nextRequest.request_id
+        || state.execution.gate.status !== 'awaiting-authority') {
+        throw new Error('retained procedural follow-up request is not the one active request');
+      }
+      return nextRequest;
+    }
+    openHumanAuthorityGate(this.runDir, {
+      gateId: nextRequest.request_id,
+      gateType: 'internal-ambiguity-procedural-decision',
+      stage: 'S4',
+      now: options.requested_at,
+      request: nextRequest as unknown as JsonValue,
+      proceduralFollowup: {
+        priorGateId: options.request_id,
+        reason: options.reason,
+      },
+    });
+    return nextRequest;
   }
 
   replace<T extends JsonValue>(

@@ -106,6 +106,12 @@ export const PROCEDURAL_ACTIONS = [
   'request-successor-corpus-run',
   'record-human-observation',
 ] as const;
+export const PROCEDURAL_FOLLOWUP_REASONS = [
+  'nonterminal-response',
+  'material-impact-revision',
+  'presentation-only-replacement',
+  'actual-resume-after-suspensive-block',
+] as const;
 export const CLOSURE_PHASES = [
   'S4-C1-relations-closed',
   'S4-C2-ambiguities-finalized',
@@ -119,6 +125,7 @@ export type CarryState = typeof CARRY_STATES[number];
 export type OperationKind = typeof OPERATION_KINDS[number];
 export type UnresolvedTreatment = typeof UNRESOLVED_TREATMENTS[number];
 export type ProceduralAction = typeof PROCEDURAL_ACTIONS[number];
+export type ProceduralFollowupReason = typeof PROCEDURAL_FOLLOWUP_REASONS[number];
 export type ClosurePhase = typeof CLOSURE_PHASES[number];
 
 export interface PacketCandidate { kind: 'PKT'; id: string }
@@ -1137,6 +1144,124 @@ export function validateProceduralAuthorityResponse(
     throw new Error('procedural authority response keys are not in exact canonical order');
   }
   return Buffer.from(text, 'utf8');
+}
+
+function proceduralRequestSequence(requestId: string): number {
+  const match = requestId.match(/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q([1-9]\d*)$/u);
+  const sequence = Number(match?.[1] || '0');
+  if (!Number.isSafeInteger(sequence) || sequence < 1) {
+    throw new Error('procedural request sequence is invalid');
+  }
+  return sequence;
+}
+
+function immutableProceduralBasis(subject: ProceduralAuthoritySubject): string {
+  return JSON.stringify({
+    run_id: subject.run_id,
+    ambiguity_id: subject.ambiguity_id,
+    assessment_seq: subject.assessment_seq,
+    t5_2_assessment_ref: subject.t5_2_assessment_ref,
+    t5_2_review_subject_digest: subject.t5_2_review_subject_digest,
+    t5_2_review_ref: subject.t5_2_review_ref,
+    prior_indeterminate_review_refs: subject.prior_indeterminate_review_refs,
+    resolution_state: subject.resolution_state,
+    candidate_state: subject.candidate_state,
+    candidate_refs: subject.candidate_refs,
+    carry_state: subject.carry_state,
+    affected_relation_ids: subject.affected_relation_ids,
+    c1_relation_basis_ref: subject.c1_relation_basis_ref,
+  });
+}
+
+export function planProceduralAuthorityFollowup(options: {
+  current_request: ProceduralAuthorityRequest;
+  current_request_bytes: Buffer;
+  current_response: ProceduralAuthorityResponse | null;
+  current_response_bytes: Buffer | null;
+  existing_request_ids: string[];
+  reason: ProceduralFollowupReason;
+  next_subject: ProceduralAuthoritySubject;
+  presentation: boolean;
+  required_authority_identity: string;
+  prepared_by: string;
+  requested_at: string;
+}): ProceduralAuthorityRequest {
+  const canonicalRequest = validateProceduralAuthorityRequest(options.current_request);
+  if (!canonicalRequest.equals(options.current_request_bytes)) {
+    throw new Error('procedural follow-up requires exact retained current request bytes');
+  }
+  if ((options.current_response === null) !== (options.current_response_bytes === null)) {
+    throw new Error('procedural follow-up response value/bytes are inconsistent');
+  }
+  if (options.current_response && options.current_response_bytes) {
+    const canonicalResponse = validateProceduralAuthorityResponse(
+      options.current_request,
+      options.current_request_bytes,
+      options.current_response,
+    );
+    if (!canonicalResponse.equals(options.current_response_bytes)) {
+      throw new Error('procedural follow-up requires exact retained current response bytes');
+    }
+  }
+  const currentSequence = proceduralRequestSequence(options.current_request.request_id);
+  const expectedIds = Array.from({ length: currentSequence }, (_, index) => proceduralRequestId(
+    options.current_request.ambiguity_id,
+    options.current_request.assessment_seq,
+    index + 1,
+  ));
+  if (JSON.stringify(options.existing_request_ids) !== JSON.stringify(expectedIds)) {
+    throw new Error('procedural follow-up request Q history is forked, reused, or noncontiguous');
+  }
+  if (immutableProceduralBasis(options.next_subject)
+    !== immutableProceduralBasis(options.current_request.authority_subject)) {
+    throw new Error('procedural follow-up attempted to change immutable T5.2/C1 basis');
+  }
+
+  const action = options.current_response?.selected_action || null;
+  const sameSubject = proceduralAuthoritySubjectDigest(options.next_subject)
+    === options.current_request.authority_subject_digest;
+  if (options.reason === 'nonterminal-response') {
+    if (action !== 'inspect-source' && action !== 'record-human-observation') {
+      throw new Error('nonterminal-response follow-up requires an applied nonterminal response');
+    }
+    if (!sameSubject) throw new Error('nonterminal-response follow-up must preserve the authority subject');
+  } else if (options.reason === 'actual-resume-after-suspensive-block') {
+    if (action !== 'block-at-current-barrier') {
+      throw new Error('actual resume follow-up requires a suspensive block response');
+    }
+    if (!sameSubject) throw new Error('suspensive resume follow-up must preserve the authority subject');
+  } else if (options.reason === 'presentation-only-replacement') {
+    if (options.current_response !== null || !sameSubject) {
+      throw new Error('presentation-only replacement requires an unanswered unchanged authority subject');
+    }
+    const projected = options.presentation
+      ? proceduralPresentation(options.next_subject)
+      : null;
+    if (JSON.stringify(projected) === JSON.stringify(options.current_request.presentation)) {
+      throw new Error('presentation-only replacement must change only the non-operative presentation');
+    }
+  } else if (options.reason === 'material-impact-revision') {
+    if (action === 'carry-unresolved' || action === 'restrict-downstream-use'
+      || action === 'request-successor-corpus-run') {
+      throw new Error('material-impact revision is forbidden after a terminal authority consequence');
+    }
+    if (options.next_subject.material_impact_seq
+      !== options.current_request.authority_subject.material_impact_seq + 1) {
+      throw new Error('material-impact revision must advance M by exactly one');
+    }
+    if (sameSubject) throw new Error('material-impact revision must change the authority subject digest');
+  } else {
+    throw new Error('procedural follow-up reason is invalid');
+  }
+
+  return buildProceduralAuthorityRequest({
+    request_seq: currentSequence + 1,
+    subject: options.next_subject,
+    presentation: options.presentation,
+    required_authority_identity: options.required_authority_identity,
+    prepared_by: options.prepared_by,
+    requested_at: options.requested_at,
+  });
 }
 
 export function nextProceduralAuthoritySequence(

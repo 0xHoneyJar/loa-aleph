@@ -20,13 +20,19 @@ import {
   buildProceduralAuthorityRequest,
   buildProceduralAuthorityResponse,
   buildProceduralAuthoritySubject,
+  exactTextBlob,
   materialImpactSubjectDigest,
   materialImpactSubjectJson,
   proceduralAuthorityRequestJson,
   resolvePinnedCoreRequirement,
+  restrictionOverlay,
   type MaterialImpactSubject,
   type PinnedCoreAuthority,
+  type ProceduralAction,
 } from '../../../scripts/lib/internal-ambiguity.ts';
+import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.ts';
+import { ResultCollector } from '../../../scripts/lib/results.ts';
+import { loadRun } from '../../../scripts/lib/run-model.ts';
 import { verifyAndLoadLoaBundle } from '../src/core-loader.ts';
 import {
   sha256Digest,
@@ -508,6 +514,203 @@ function main(): void {
     pass('a parallel procedural request is refused while Q1 is active');
 
     const requestBytes = Buffer.from(proceduralAuthorityRequestJson(request), 'utf8');
+    const authorityCheckpoint = join(tempRoot, 'authority-checkpoint');
+    cpSync(runDir, authorityCheckpoint, { recursive: true });
+    const actionCases: Array<{
+      action: Exclude<ProceduralAction, 'carry-unresolved'>;
+      halt: string | null;
+      followup: 'nonterminal-response' | 'actual-resume-after-suspensive-block' | null;
+    }> = [
+      { action: 'restrict-downstream-use', halt: null, followup: null },
+      { action: 'inspect-source', halt: 'S4_C2_FOLLOWUP_REQUEST_REQUIRED', followup: 'nonterminal-response' },
+      { action: 'block-at-current-barrier', halt: 'BLOCKED_AT_S4_C2', followup: 'actual-resume-after-suspensive-block' },
+      { action: 'request-successor-corpus-run', halt: 'SUCCESSOR_CORPUS_RUN_REQUIRED', followup: null },
+      { action: 'record-human-observation', halt: 'S4_C2_FOLLOWUP_REQUEST_REQUIRED', followup: 'nonterminal-response' },
+    ];
+    for (const [index, actionCase] of actionCases.entries()) {
+      const actionRun = join(tempRoot, `action-${actionCase.action}`);
+      cpSync(authorityCheckpoint, actionRun, { recursive: true });
+      const independentBefore = new Map([
+        ['ledgers/disposition-ledger.md', readFileSync(join(actionRun, 'ledgers/disposition-ledger.md'))],
+        ['ledgers/evidence-roles.md', readFileSync(join(actionRun, 'ledgers/evidence-roles.md'))],
+        ['ledgers/external-referents.md', readFileSync(join(actionRun, 'ledgers/external-referents.md'))],
+        ['ledgers/relations.md', readFileSync(join(actionRun, 'ledgers/relations.md'))],
+      ]);
+      const observationBytes = Buffer.from(' exact human observation bytes \n', 'utf8');
+      const actionResponse = buildProceduralAuthorityResponse({
+        request,
+        request_bytes: requestBytes,
+        authority_identity: 'human:fixture-operator',
+        selected_action: actionCase.action,
+        observation: actionCase.action === 'record-human-observation'
+          ? exactTextBlob(observationBytes)
+          : null,
+        comment: actionCase.action === 'inspect-source'
+          ? exactTextBlob(Buffer.from(' inspect only; no semantic instruction ', 'utf8'))
+          : null,
+        recorded_at: `2040-01-02T03:${String(20 + index).padStart(2, '0')}:00.000Z`,
+      });
+      recordHumanAuthorityDecision(actionRun, {
+        gateId: request.request_id,
+        authorityIdentity: 'human:fixture-operator',
+        decision: 'approve',
+        recordedAt: actionResponse.recorded_at,
+        simulation: { kind: 'fixture-simulated' },
+        response: actionResponse as unknown as JsonValue,
+      });
+      const actionWriter = new LedgerWriter(actionRun, CLOCK);
+      actionWriter.appendProceduralAuthorityResponse(request.request_id);
+      const actionLedger = readFileSync(join(actionRun, 'ledgers/internal-ambiguities.md'), 'utf8');
+      expect(actionLedger.includes(`| AMB-1503 | 1 | 1 | ${actionCase.action} | none |`),
+        `${actionCase.action} did not append the exact positive T5.3 row`);
+      const actionState = readRunState(actionRun);
+      expect(actionState.execution.halt?.code === actionCase.halt
+        || (actionCase.halt === null && actionState.execution.halt === null),
+      `${actionCase.action} produced the wrong retained halt state`);
+      if (actionCase.action === 'record-human-observation') {
+        const responseBytes = readFileSync(join(
+          actionRun,
+          `control/gates/${request.request_id}-response.json`,
+        ));
+        expect(responseBytes.includes(Buffer.from(exactTextBlob(observationBytes).bytes_base64, 'utf8')),
+          'record-human-observation did not retain exact supplied bytes');
+      }
+      if (actionCase.action === 'restrict-downstream-use') {
+        expect(JSON.stringify(restrictionOverlay(authoritySubject.operative_scope))
+          === JSON.stringify([{
+            affected_id: 'CC-0413',
+            operation_kind: 'load-bearing-reasoning',
+            requirement_ref: 'core:docs/architecture/04-pipeline-stages-and-dod.md#S5 — Disposition pass',
+          }]), 'restriction overlay is not the exact surgical Core tuple projection');
+      }
+      if (actionCase.followup) {
+        const q2 = actionWriter.openProceduralAuthorityFollowup({
+          request_id: request.request_id,
+          reason: actionCase.followup,
+          next_subject: authoritySubject,
+          presentation: true,
+          required_authority_identity: 'human:fixture-operator',
+          prepared_by: 'invocation:loa-orchestrator',
+          requested_at: `2040-01-02T04:${String(20 + index).padStart(2, '0')}:00.000Z`,
+        });
+        expect(q2.request_id === 'GATE-S4-AMB-1503-A1-Q2'
+          && readRunState(actionRun).execution.gate?.id === q2.request_id,
+        `${actionCase.action} did not create exactly one active Q2 request`);
+        const replayed = actionWriter.openProceduralAuthorityFollowup({
+          request_id: request.request_id,
+          reason: actionCase.followup,
+          next_subject: authoritySubject,
+          presentation: true,
+          required_authority_identity: 'human:fixture-operator',
+          prepared_by: 'invocation:loa-orchestrator',
+          requested_at: `2040-01-02T04:${String(20 + index).padStart(2, '0')}:00.000Z`,
+        });
+        expect(replayed.request_id === q2.request_id,
+          `${actionCase.action} Q2 recovery was not idempotent`);
+        if (actionCase.action === 'block-at-current-barrier') {
+          expect(readRunState(actionRun).execution.core_state === 'DISTILLING',
+            'actual resume did not restore the same pinned distillation state');
+        }
+      }
+      for (const [path, bytes] of independentBefore) {
+        expect(readFileSync(join(actionRun, path)).equals(bytes),
+          `${actionCase.action} mechanically mutated independent ${path}`);
+      }
+      pass(`${actionCase.action} is applied exactly once without S5/S6/S8 or relation conflation`);
+    }
+
+    const presentationRun = join(tempRoot, 'presentation-replacement');
+    cpSync(authorityCheckpoint, presentationRun, { recursive: true });
+    const presentationWriter = new LedgerWriter(presentationRun, CLOCK);
+    const presentationQ2 = presentationWriter.openProceduralAuthorityFollowup({
+      request_id: request.request_id,
+      reason: 'presentation-only-replacement',
+      next_subject: authoritySubject,
+      presentation: false,
+      required_authority_identity: 'human:fixture-operator',
+      prepared_by: 'invocation:loa-orchestrator',
+      requested_at: '2040-01-02T05:00:00.000Z',
+    });
+    expect(presentationQ2.presentation === null
+      && presentationQ2.authority_subject_digest === request.authority_subject_digest,
+    'presentation replacement changed the operative authority subject');
+    expectThrows(
+      () => recordHumanAuthorityDecision(presentationRun, {
+        gateId: request.request_id,
+        authorityIdentity: 'human:fixture-operator',
+        decision: 'approve',
+        recordedAt: '2040-01-02T05:01:00.000Z',
+        simulation: { kind: 'fixture-simulated' },
+        response: buildProceduralAuthorityResponse({
+          request, request_bytes: requestBytes,
+          authority_identity: 'human:fixture-operator', selected_action: 'carry-unresolved',
+          observation: null, comment: null, recorded_at: '2040-01-02T05:01:00.000Z',
+        }) as unknown as JsonValue,
+      }),
+      /not awaiting the named human authority gate/u,
+      'stale Q1 response after presentation replacement',
+    );
+    pass('presentation-only replacement creates Q2 and makes unanswered Q1 stale');
+
+    const materialRun = join(tempRoot, 'material-revision');
+    cpSync(authorityCheckpoint, materialRun, { recursive: true });
+    const revisedScope = structuredClone(operativeScope);
+    revisedScope.impact_rows[0].consequence_if_unresolved = 'Re-reviewed explanatory consequence with unchanged typed treatment.';
+    const materialSubjectM2: MaterialImpactSubject = {
+      ...materialSubject,
+      material_impact_seq: 2,
+      operative_scope: revisedScope,
+      proposed_by: 'invocation:material-impact-producer-0002',
+    };
+    const materialDigestM2 = materialImpactSubjectDigest(materialSubjectM2);
+    const materialPathM2 = join(
+      materialRun,
+      'verification/harness/S4/material-impact-subjects/AMB-1503-A1-M2.json',
+    );
+    writeFileSync(materialPathM2, materialImpactSubjectJson(materialSubjectM2));
+    const materialReviewM2 = join(
+      materialRun,
+      'verification/harness/S4-material-impact/VER-1592.md',
+    );
+    writeFileSync(
+      materialReviewM2,
+      '# Verdict VER-1592\n\n'
+        + '| field | value |\n'
+        + '|-------|-------|\n'
+        + `| target | internal-ambiguity-material-impact-review-subject:${materialDigestM2} |\n`
+        + '| lens | fresh material-impact exact-subject challenge |\n'
+        + '| stage | S4-C2 material-impact review |\n'
+        + '| shown | exact revised material subject and unchanged semantic basis |\n'
+        + '| withheld | human response, observation, comment, preference, and desired conclusion |\n'
+        + '| verdict | upheld |\n'
+        + '| consequence | fixture revised Class C basis may be re-presented |\n',
+    );
+    const authoritySubjectM2 = buildProceduralAuthoritySubject({
+      ...authoritySubject,
+      material_impact_seq: 2,
+      material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M2@${materialDigestM2}`,
+      material_impact_review_ref: `material-impact-verdict:VER-1592@${sha256Digest(readFileSync(materialReviewM2))}`,
+      operative_scope: revisedScope,
+    });
+    const materialWriter = new LedgerWriter(materialRun, CLOCK);
+    const materialQ2 = materialWriter.openProceduralAuthorityFollowup({
+      request_id: request.request_id,
+      reason: 'material-impact-revision',
+      next_subject: authoritySubjectM2,
+      presentation: true,
+      required_authority_identity: 'human:fixture-operator',
+      prepared_by: 'invocation:loa-orchestrator',
+      requested_at: '2040-01-02T05:10:00.000Z',
+    });
+    expect(materialQ2.request_id.endsWith('-Q2')
+      && materialQ2.authority_subject.material_impact_seq === 2,
+    'M2 material revision did not create exactly Q2');
+    const materialResults = new ResultCollector(runId);
+    runK2Ambiguities(materialResults, loadRun(materialRun));
+    expect(materialResults.checks.find((check) => check.id === 'K2.17')?.status === 'PASS',
+      'K2.17 rejected legal historical M1/Q1 plus active M2/Q2 retained state');
+    pass('material-impact M2 creates Q2 while preserving historical M1/Q1 and immutable T5.2/C1 bytes');
+
     const response = buildProceduralAuthorityResponse({
       request,
       request_bytes: requestBytes,

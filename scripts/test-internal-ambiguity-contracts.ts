@@ -30,6 +30,7 @@ import {
   nextClosurePhase,
   operativeScopeProblems,
   parseCandidateRefs,
+  planProceduralAuthorityFollowup,
   proceduralAuthorityRequestJson,
   proceduralAuthorityResponseJson,
   proceduralAuthorityLedgerRowMarkdown,
@@ -81,7 +82,10 @@ const scope: OperativeScope = {
   }],
 };
 
-function authoritySubject(): ProceduralAuthoritySubject {
+function authoritySubject(
+  materialImpactSeq = 1,
+  operativeScope: OperativeScope = scope,
+): ProceduralAuthoritySubject {
   return buildProceduralAuthoritySubject({
     run_id: 'RUN-internal-ambiguity-contracts',
     ambiguity_id: 'AMB-0007',
@@ -95,10 +99,10 @@ function authoritySubject(): ProceduralAuthoritySubject {
     carry_state: 'none',
     affected_relation_ids: [],
     c1_relation_basis_ref: 'none',
-    material_impact_seq: 1,
-    material_impact_subject_ref: `material-impact-subject:AMB-0007:A2:M1@sha256:${'4'.repeat(64)}`,
-    material_impact_review_ref: `material-impact-verdict:VER-0008@sha256:${'5'.repeat(64)}`,
-    operative_scope: structuredClone(scope),
+    material_impact_seq: materialImpactSeq,
+    material_impact_subject_ref: `material-impact-subject:AMB-0007:A2:M${String(materialImpactSeq)}@sha256:${String(materialImpactSeq + 3).repeat(64)}`,
+    material_impact_review_ref: `material-impact-verdict:VER-${String(materialImpactSeq + 7).padStart(4, '0')}@sha256:${String(materialImpactSeq + 4).repeat(64)}`,
+    operative_scope: structuredClone(operativeScope),
     source_locators: ['SRC-0001:L1-L1'],
     reviewed_unaffected_ids: [],
     unresolved_statement: 'The frozen same-source bytes do not determine the referent.',
@@ -323,6 +327,84 @@ check('request and response bind exact bytes and preserve exact human text', () 
     selected_action: 'carry-unresolved', observation: null, comment: null,
     recorded_at: '2026-09-03T12:01:00Z',
   }), /exact canonical retained bytes/u);
+});
+
+check('M/Q follow-up planning is single-headed and preserves immutable semantic basis', () => {
+  const subjectM1 = authoritySubject();
+  const q1 = buildProceduralAuthorityRequest({
+    request_seq: 1, subject: subjectM1, presentation: true,
+    required_authority_identity: 'operator@example.invalid',
+    prepared_by: 'invocation:orchestrator-1', requested_at: '2026-09-03T12:00:00Z',
+  });
+  const q1Bytes = validateProceduralAuthorityRequest(q1);
+  const inspect = buildProceduralAuthorityResponse({
+    request: q1, request_bytes: q1Bytes, authority_identity: 'operator@example.invalid',
+    selected_action: 'inspect-source', observation: null, comment: null,
+    recorded_at: '2026-09-03T12:01:00Z',
+  });
+  const inspectBytes = validateProceduralAuthorityResponse(q1, q1Bytes, inspect);
+  const q2 = planProceduralAuthorityFollowup({
+    current_request: q1, current_request_bytes: q1Bytes,
+    current_response: inspect, current_response_bytes: inspectBytes,
+    existing_request_ids: [q1.request_id], reason: 'nonterminal-response',
+    next_subject: subjectM1, presentation: true,
+    required_authority_identity: 'operator@example.invalid',
+    prepared_by: 'invocation:orchestrator-1', requested_at: '2026-09-03T12:02:00Z',
+  });
+  expect(q2.request_id.endsWith('-Q2'), 'nonterminal response did not produce Q2');
+
+  const revisedScope = structuredClone(scope);
+  revisedScope.impact_rows[0].consequence_if_unresolved = 'Re-reviewed explanatory consequence only.';
+  const subjectM2 = authoritySubject(2, revisedScope);
+  const q2Bytes = validateProceduralAuthorityRequest(q2);
+  const q3 = planProceduralAuthorityFollowup({
+    current_request: q2, current_request_bytes: q2Bytes,
+    current_response: null, current_response_bytes: null,
+    existing_request_ids: [q1.request_id, q2.request_id], reason: 'material-impact-revision',
+    next_subject: subjectM2, presentation: true,
+    required_authority_identity: 'operator@example.invalid',
+    prepared_by: 'invocation:orchestrator-1', requested_at: '2026-09-03T12:03:00Z',
+  });
+  expect(q3.request_id.endsWith('-Q3') && q3.authority_subject.material_impact_seq === 2,
+    'M2 material revision did not produce Q3');
+
+  const q3Bytes = validateProceduralAuthorityRequest(q3);
+  const q4 = planProceduralAuthorityFollowup({
+    current_request: q3, current_request_bytes: q3Bytes,
+    current_response: null, current_response_bytes: null,
+    existing_request_ids: [q1.request_id, q2.request_id, q3.request_id],
+    reason: 'presentation-only-replacement', next_subject: subjectM2, presentation: false,
+    required_authority_identity: 'operator@example.invalid',
+    prepared_by: 'invocation:orchestrator-1', requested_at: '2026-09-03T12:04:00Z',
+  });
+  expect(q4.request_id.endsWith('-Q4') && q4.presentation === null,
+    'presentation-only replacement did not produce Q4');
+
+  const q4Bytes = validateProceduralAuthorityRequest(q4);
+  const block = buildProceduralAuthorityResponse({
+    request: q4, request_bytes: q4Bytes, authority_identity: 'operator@example.invalid',
+    selected_action: 'block-at-current-barrier', observation: null, comment: null,
+    recorded_at: '2026-09-03T12:05:00Z',
+  });
+  const blockBytes = validateProceduralAuthorityResponse(q4, q4Bytes, block);
+  const q5 = planProceduralAuthorityFollowup({
+    current_request: q4, current_request_bytes: q4Bytes,
+    current_response: block, current_response_bytes: blockBytes,
+    existing_request_ids: [q1.request_id, q2.request_id, q3.request_id, q4.request_id],
+    reason: 'actual-resume-after-suspensive-block', next_subject: subjectM2, presentation: false,
+    required_authority_identity: 'operator@example.invalid',
+    prepared_by: 'invocation:orchestrator-1', requested_at: '2026-09-03T12:06:00Z',
+  });
+  expect(q5.request_id.endsWith('-Q5'), 'suspensive resume did not produce Q5');
+
+  expectThrows(() => planProceduralAuthorityFollowup({
+    current_request: q1, current_request_bytes: q1Bytes,
+    current_response: inspect, current_response_bytes: inspectBytes,
+    existing_request_ids: [q1.request_id, q1.request_id], reason: 'nonterminal-response',
+    next_subject: subjectM1, presentation: true,
+    required_authority_identity: 'operator@example.invalid',
+    prepared_by: 'invocation:orchestrator-1', requested_at: '2026-09-03T12:02:00Z',
+  }), /forked, reused, or noncontiguous/u);
 });
 
 check('closure phases are single-headed and contiguous', () => {

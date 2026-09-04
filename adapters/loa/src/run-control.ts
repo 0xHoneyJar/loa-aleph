@@ -14,6 +14,8 @@ import {
   proceduralAuthorityResponseJson,
   validateProceduralAuthorityRequest,
   validateProceduralAuthorityResponse,
+  PROCEDURAL_FOLLOWUP_REASONS,
+  type ProceduralFollowupReason,
   type ProceduralAuthorityRequest,
   type ProceduralAuthorityResponse,
 } from '../../../scripts/lib/internal-ambiguity.ts';
@@ -736,6 +738,10 @@ export interface OpenHumanAuthorityGateOptions {
   stage: CoreStage;
   now: string;
   request: JsonValue;
+  proceduralFollowup?: {
+    priorGateId: string;
+    reason: ProceduralFollowupReason;
+  };
 }
 
 export interface HumanAuthorityDecision {
@@ -788,6 +794,8 @@ interface AuthorityTransaction {
   status: 'prepared' | 'committed';
   run_id: string;
   gate_id: string;
+  prior_gate_id: string | null;
+  transition_reason: ProceduralFollowupReason | null;
   stage: CoreStage;
   artifact_ref: string;
   artifact_digest: string;
@@ -946,11 +954,13 @@ function parseAuthorityTransaction(path: string): AuthorityTransaction {
       'gate_id',
       'operation',
       'prepared_at',
+      'prior_gate_id',
       'run_id',
       'stage',
       'state_after',
       'state_before_checkpoint',
       'status',
+      'transition_reason',
     ]
     : [
       'artifact',
@@ -960,11 +970,13 @@ function parseAuthorityTransaction(path: string): AuthorityTransaction {
       'gate_id',
       'operation',
       'prepared_at',
+      'prior_gate_id',
       'run_id',
       'stage',
       'state_after',
       'state_before_checkpoint',
       'status',
+      'transition_reason',
     ];
   if (!isRecord(value)
     || Object.keys(value).sort(utf8Compare).join('\0') !== expectedKeys.join('\0')
@@ -974,6 +986,13 @@ function parseAuthorityTransaction(path: string): AuthorityTransaction {
     || typeof value.run_id !== 'string'
     || typeof value.gate_id !== 'string'
     || !validGateId(value.gate_id)
+    || !(value.prior_gate_id === null
+      || (typeof value.prior_gate_id === 'string' && validGateId(value.prior_gate_id)))
+    || !(value.transition_reason === null
+      || (typeof value.transition_reason === 'string'
+        && (PROCEDURAL_FOLLOWUP_REASONS as readonly string[]).includes(value.transition_reason)))
+    || ((value.prior_gate_id === null) !== (value.transition_reason === null))
+    || (value.transition_reason !== null && value.operation !== 'open-gate')
     || typeof value.stage !== 'string'
     || !(CORE_STAGES as readonly string[]).includes(value.stage)
     || typeof value.artifact_ref !== 'string'
@@ -1120,8 +1139,27 @@ export function openHumanAuthorityGate(
       throw new Error(`human authority gate already exists: ${options.gateId}`);
     }
     const current = readRunState(root);
-    if (current.execution.gate?.status === 'awaiting-authority') {
-      throw new Error(`human authority gate ${current.execution.gate.id} is already awaiting a response`);
+    const priorGate = current.execution.gate;
+    const followup = options.proceduralFollowup || null;
+    if (followup) {
+      if (options.gateType !== 'internal-ambiguity-procedural-decision'
+        || !validGateId(followup.priorGateId)
+        || !(PROCEDURAL_FOLLOWUP_REASONS as readonly string[]).includes(followup.reason)
+        || !priorGate
+        || priorGate.id !== followup.priorGateId
+        || priorGate.type !== options.gateType
+        || priorGate.status === 'declined') {
+        throw new Error('procedural follow-up does not match the retained predecessor gate');
+      }
+      const replacesUnanswered = followup.reason === 'material-impact-revision'
+        || followup.reason === 'presentation-only-replacement';
+      if (replacesUnanswered
+        ? !['awaiting-authority', 'approved'].includes(priorGate.status)
+        : priorGate.status !== 'approved') {
+        throw new Error('procedural follow-up predecessor gate is in the wrong state');
+      }
+    } else if (priorGate?.status === 'awaiting-authority') {
+      throw new Error(`human authority gate ${priorGate.id} is already awaiting a response`);
     }
     assertGatePrerequisites(current, options.gateType, options.stage);
     const artifact: JsonValue = options.gateType === 'internal-ambiguity-procedural-decision'
@@ -1147,6 +1185,10 @@ export function openHumanAuthorityGate(
       }
     }
     const after = transitionedState(current, options.now, (draft) => {
+      if (followup?.reason === 'actual-resume-after-suspensive-block'
+        && draft.execution.core_state === 'BLOCKED') {
+        draft.execution.core_state = 'DISTILLING';
+      }
       draft.execution.stage_status = 'awaiting-authority';
       draft.execution.gate = {
         id: options.gateId,
@@ -1168,6 +1210,8 @@ export function openHumanAuthorityGate(
       status: 'prepared',
       run_id: current.run_id,
       gate_id: options.gateId,
+      prior_gate_id: followup?.priorGateId || null,
+      transition_reason: followup?.reason || null,
       stage: options.stage,
       artifact_ref: requestRef,
       artifact_digest: sha256Digest(authorityArtifactBytes({
@@ -1176,6 +1220,8 @@ export function openHumanAuthorityGate(
         status: 'prepared',
         run_id: current.run_id,
         gate_id: options.gateId,
+        prior_gate_id: followup?.priorGateId || null,
+        transition_reason: followup?.reason || null,
         stage: options.stage,
         artifact_ref: requestRef,
         artifact_digest: `sha256:${'0'.repeat(64)}`,
@@ -1349,6 +1395,8 @@ export function recordHumanAuthorityDecision(
       status: 'prepared',
       run_id: current.run_id,
       gate_id: decision.gateId,
+      prior_gate_id: null,
+      transition_reason: null,
       stage: current.execution.stage,
       artifact_ref: responseRef,
       artifact_digest: sha256Digest(authorityArtifactBytes({
@@ -1357,6 +1405,8 @@ export function recordHumanAuthorityDecision(
         status: 'prepared',
         run_id: current.run_id,
         gate_id: decision.gateId,
+        prior_gate_id: null,
+        transition_reason: null,
         stage: current.execution.stage,
         artifact_ref: responseRef,
         artifact_digest: `sha256:${'0'.repeat(64)}`,
