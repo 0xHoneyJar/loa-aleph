@@ -16,6 +16,12 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleBundles } from '../../../scripts/assemble-bundles.ts';
+import {
+  buildProceduralAuthorityRequest,
+  buildProceduralAuthorityResponse,
+  buildProceduralAuthoritySubject,
+  proceduralAuthorityRequestJson,
+} from '../../../scripts/lib/internal-ambiguity.ts';
 import { verifyAndLoadLoaBundle } from '../src/core-loader.ts';
 import {
   sha256Digest,
@@ -23,7 +29,9 @@ import {
 } from '../src/fs.ts';
 import { LedgerWriter } from '../src/ledger-writer.ts';
 import {
+  openHumanAuthorityGate,
   readRunState,
+  recordHumanAuthorityDecision,
   writeRunState,
 } from '../src/run-control.ts';
 import {
@@ -343,17 +351,125 @@ function main(): void {
     pass('silent C1 rerun is refused before bytes change');
 
     const ambiguityPath = join(runDir, 'ledgers/internal-ambiguities.md');
-    const ambiguityBefore = readFileSync(ambiguityPath);
-    writer.append(
-      'ledgers/internal-ambiguities.md',
-      validated,
-      () => '<!-- fixture legal C2 ambiguity write -->',
-    );
-    expect(!readFileSync(ambiguityPath).equals(ambiguityBefore),
-      'legal C2 ambiguity append left bytes unchanged');
-    pass('ambiguity append succeeds only after C1 in the C2 window');
-
     writeFileSync(ambiguityPath, fullAmbiguities);
+    const authoritySubject = buildProceduralAuthoritySubject({
+      run_id: runId,
+      ambiguity_id: 'AMB-1503',
+      assessment_seq: 1,
+      t5_2_assessment_ref: `internal-ambiguity:T5.2:AMB-1503:A1@sha256:${'1'.repeat(64)}`,
+      t5_2_review_subject_digest: 'sha256:971c8b4b48522d87dc994a48823f1f4eabce05cd1c990b1bd08f506e5caf201d',
+      t5_2_review_ref: `ambiguity-review-verdict:VER-1503@sha256:${'2'.repeat(64)}`,
+      prior_indeterminate_review_refs: [],
+      candidate_state: 'null-no-candidate',
+      candidate_refs: [],
+      carry_state: 'none',
+      affected_relation_ids: [],
+      c1_relation_basis_ref: 'relations-basis:closure_phase=S4-C1-relations-closed;artifact=ledgers/relations.md',
+      material_impact_seq: 1,
+      material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M1@sha256:${'3'.repeat(64)}`,
+      material_impact_review_ref: `material-impact-verdict:VER-1591@sha256:${'4'.repeat(64)}`,
+      operative_scope: {
+        affected_ids: ['CC-0413'],
+        impact_rows: [{
+          affected_id: 'CC-0413',
+          operation_kind: 'load-bearing-reasoning',
+          requirement_ref: 'core:docs/architecture/04-pipeline-stages-and-dod.md#S5 — Disposition pass',
+          unresolved_treatment: 'carry-or-restriction',
+          consequence_if_unresolved: 'The downstream use remains explicitly contingent on the unresolved expression.',
+        }],
+      },
+      source_locators: ['SRC-0401:L8-L8'],
+      reviewed_unaffected_ids: [],
+      unresolved_statement: 'The frozen same-source bytes do not identify one local referent.',
+    });
+    const request = buildProceduralAuthorityRequest({
+      request_seq: 1,
+      subject: authoritySubject,
+      presentation: true,
+      required_authority_identity: 'human:fixture-operator',
+      prepared_by: 'invocation:loa-orchestrator',
+      requested_at: FIXED_TIME,
+    });
+    openHumanAuthorityGate(runDir, {
+      gateId: request.request_id,
+      gateType: 'internal-ambiguity-procedural-decision',
+      stage: 'S4',
+      now: FIXED_TIME,
+      request: request as unknown as JsonValue,
+    });
+    expect(readRunState(runDir).execution.gate?.id === request.request_id,
+      'procedural request did not become the one active gate');
+    pass('Class C procedural request is retained as the one active human gate');
+
+    expectThrows(
+      () => openHumanAuthorityGate(runDir, {
+        gateId: 'GATE-S4-AMB-1503-A1-Q2',
+        gateType: 'internal-ambiguity-procedural-decision',
+        stage: 'S4',
+        now: FIXED_TIME,
+        request: request as unknown as JsonValue,
+      }),
+      /already awaiting a response/u,
+      'parallel procedural request',
+    );
+    pass('a parallel procedural request is refused while Q1 is active');
+
+    const requestBytes = Buffer.from(proceduralAuthorityRequestJson(request), 'utf8');
+    const response = buildProceduralAuthorityResponse({
+      request,
+      request_bytes: requestBytes,
+      authority_identity: 'human:fixture-operator',
+      selected_action: 'carry-unresolved',
+      observation: null,
+      comment: null,
+      recorded_at: '2040-01-02T03:11:00.000Z',
+    });
+    recordHumanAuthorityDecision(runDir, {
+      gateId: request.request_id,
+      authorityIdentity: 'human:fixture-operator',
+      decision: 'approve',
+      recordedAt: response.recorded_at,
+      simulation: { kind: 'fixture-simulated' },
+      response: response as unknown as JsonValue,
+    });
+    const responsePending = readRunState(runDir);
+    expect(responsePending.execution.halt?.code === 'S4_C2_RESPONSE_APPLICATION_REQUIRED',
+      'retained response advanced run control before T5.3 application');
+    expect(!readFileSync(ambiguityPath, 'utf8').includes('| AMB-1503 | 1 | 1 | carry-unresolved |'),
+      'recording the response implicitly wrote T5.3');
+    pass('response persistence halts before T5.3 and run-control application');
+
+    const authorityReceipt = writer.appendProceduralAuthorityResponse(request.request_id);
+    const authorityLedger = readFileSync(ambiguityPath, 'utf8');
+    expect(authorityLedger.includes('| AMB-1503 | 1 | 1 | carry-unresolved | none |'),
+      'exact Core-projected T5.3 row is absent');
+    expect(readRunState(runDir).execution.halt === null,
+      'progression-enabling response did not clear the application halt');
+    pass('ambiguity/T5.3 append succeeds only after C1 and before progression');
+
+    const replayedReceipt = writer.appendProceduralAuthorityResponse(request.request_id);
+    expect(replayedReceipt.sequence === authorityReceipt.sequence
+      && replayedReceipt.chain_digest === authorityReceipt.chain_digest
+      && replayedReceipt.return_digest === authorityReceipt.return_digest,
+      'idempotent response replay produced a different ledger receipt');
+    expect(readFileSync(ambiguityPath, 'utf8').match(/\| AMB-1503 \| 1 \| 1 \| carry-unresolved \|/gu)?.length === 1,
+      'idempotent response replay duplicated T5.3');
+    pass('response/T5.3 application replay is exact-once and idempotent');
+
+    expectThrows(
+      () => recordHumanAuthorityDecision(runDir, {
+        gateId: request.request_id,
+        authorityIdentity: 'human:fixture-operator',
+        decision: 'approve',
+        recordedAt: response.recorded_at,
+        simulation: { kind: 'fixture-simulated' },
+        response: response as unknown as JsonValue,
+      }),
+      /not awaiting the named human authority gate/u,
+      'reused procedural response',
+    );
+    pass('one retained response cannot be reused as a second human action');
+
     writer.advanceSlice5ClosurePhase('S4-C2-ambiguities-finalized');
     expect(readFileSync(join(runDir, 'run-log.md'), 'utf8')
       .includes('closure_phase: S4-C2-ambiguities-finalized'), 'C2 marker was not retained');

@@ -34,9 +34,17 @@ import {
 } from './run-control.ts';
 import { ValidatedWorkerReturn } from './worker-return.ts';
 import {
+  buildProceduralAuthorityLedgerRow,
   closurePhasesFromText,
   nextClosurePhase,
+  nextProceduralAuthoritySequence,
+  parseInternalAmbiguities,
+  proceduralAuthorityLedgerRowMarkdown,
+  validateProceduralAuthorityRequest,
+  validateProceduralAuthorityResponse,
   type ClosurePhase,
+  type ProceduralAuthorityRequest,
+  type ProceduralAuthorityResponse,
 } from '../../../scripts/lib/internal-ambiguity.ts';
 import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.ts';
 import { runK2Relations } from '../../../scripts/lib/checks-k2-relations.ts';
@@ -425,6 +433,27 @@ export class LedgerWriter {
     if (!canonicalRunPath(relativePath)) {
       throw new Error(`path is outside the canonical writer surface: ${relativePath}`);
     }
+    return this.commitAppend(
+      relativePath,
+      validated.rawDigest,
+      () => {
+        const verifiedData = validated.assertAuthenticAndIntact();
+        const rendered = render(verifiedData);
+        validated.assertAuthenticAndIntact();
+        return rendered;
+      },
+      validated.simulation !== null,
+      true,
+    );
+  }
+
+  private commitAppend(
+    relativePath: string,
+    returnDigest: string,
+    render: () => string,
+    simulated: boolean,
+    enforceLineageWindow: boolean,
+  ): LedgerReceipt {
     const target = join(this.runDir, relativePath);
     assertPathWithin(this.runDir, target, 'canonical run path');
     assertNoSymlinkComponents(this.runDir, target);
@@ -436,7 +465,7 @@ export class LedgerWriter {
         ...recovery.committed,
       ].filter((receipt) => (
         receipt.path === relativePath
-        && receipt.return_digest === validated.rawDigest
+        && receipt.return_digest === returnDigest
       ));
       if (matches.length > 1) {
         throw new Error('multiple committed ledger receipts claim the same worker return');
@@ -444,7 +473,7 @@ export class LedgerWriter {
       if (matches[0]) return matches[0];
       let state = readRunState(this.runDir);
       assertSlice5WriteWindow(this.runDir, state, relativePath, 'append');
-      if (relativePath === LINEAGE_LEDGER_PATH) {
+      if (enforceLineageWindow && relativePath === LINEAGE_LEDGER_PATH) {
         const stage = state.execution.stage;
         const stageIndex = lineageStageIndex(stage);
         const s2Index = lineageStageIndex('S2');
@@ -483,14 +512,12 @@ export class LedgerWriter {
       if (state.ledger.writer_id !== 'loa-orchestrator') {
         throw new Error('run does not designate the Loa orchestrator as ledger writer');
       }
-      if (validated.simulation !== null && state.full_mode !== 'fixture-simulated') {
+      if (simulated && state.full_mode !== 'fixture-simulated') {
         throw new Error('fixture-simulated worker return cannot enter a full Aleph run ledger');
       }
       const before = existsSync(target) ? readFileSync(target) : Buffer.alloc(0);
       const beforeDigest = sha256Digest(before);
-      const verifiedData = validated.assertAuthenticAndIntact();
-      const rendered = render(verifiedData);
-      validated.assertAuthenticAndIntact();
+      const rendered = render();
       const next = appendedBytes(before, rendered);
       const afterDigest = sha256Digest(next);
       const sequence = nextDecimal(state.ledger.sequence);
@@ -501,7 +528,7 @@ export class LedgerWriter {
         path: relativePath,
         before_digest: beforeDigest,
         after_digest: afterDigest,
-        return_digest: validated.rawDigest,
+        return_digest: returnDigest,
         previous_chain_digest: state.ledger.chain_head,
         writer: 'loa-orchestrator',
         written_at: writtenAt,
@@ -548,6 +575,81 @@ export class LedgerWriter {
     } finally {
       release();
     }
+  }
+
+  appendProceduralAuthorityResponse(requestId: string): LedgerReceipt {
+    if (!/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*$/u.test(requestId)) {
+      throw new Error('procedural authority request ID is invalid');
+    }
+    const requestPath = join(this.runDir, 'control', 'gates', `${requestId}-request.json`);
+    const responsePath = join(this.runDir, 'control', 'gates', `${requestId}-response.json`);
+    if (!existsSync(requestPath) || !existsSync(responsePath)) {
+      throw new Error('procedural authority application requires retained request and response bytes');
+    }
+    const requestBytes = readFileSync(requestPath);
+    const responseBytes = readFileSync(responsePath);
+    let request: ProceduralAuthorityRequest;
+    let response: ProceduralAuthorityResponse;
+    try {
+      request = JSON.parse(requestBytes.toString('utf8')) as ProceduralAuthorityRequest;
+      response = JSON.parse(responseBytes.toString('utf8')) as ProceduralAuthorityResponse;
+    } catch {
+      throw new Error('procedural authority request or response is not valid JSON');
+    }
+    if (!validateProceduralAuthorityRequest(request).equals(requestBytes)
+      || !validateProceduralAuthorityResponse(request, requestBytes, response).equals(responseBytes)) {
+      throw new Error('procedural authority request or response retained bytes are not exact canonical bytes');
+    }
+    const receipt = this.commitAppend(
+      AMBIGUITY_LEDGER_PATH,
+      sha256Digest(responseBytes),
+      () => {
+        const ambiguity = parseInternalAmbiguities(loadRun(this.runDir));
+        const row = buildProceduralAuthorityLedgerRow({
+          request,
+          request_bytes: requestBytes,
+          response,
+          response_bytes: responseBytes,
+          authority_seq: nextProceduralAuthoritySequence(
+            ambiguity.t5_3Rows.map((entry) => entry.values),
+            request.ambiguity_id,
+          ),
+        });
+        return proceduralAuthorityLedgerRowMarkdown(row);
+      },
+      false,
+      false,
+    );
+    const state = readRunState(this.runDir);
+    if (state.execution.gate?.id !== requestId
+      || state.execution.gate.status !== 'approved'
+      || state.execution.gate.response_ref !== `control/gates/${requestId}-response.json`) {
+      throw new Error('procedural authority response is not the retained approved active gate');
+    }
+    if (state.execution.halt?.code === 'S4_C2_RESPONSE_APPLICATION_REQUIRED') {
+      updateRunState(this.runDir, this.clock.now(), (draft) => {
+        draft.execution.stage_status = 'running';
+        if (response.selected_action === 'carry-unresolved'
+          || response.selected_action === 'restrict-downstream-use') {
+          draft.execution.halt = null;
+        } else {
+          const successor = response.selected_action === 'request-successor-corpus-run';
+          const suspensive = response.selected_action === 'block-at-current-barrier';
+          if (successor || suspensive) draft.execution.core_state = 'BLOCKED';
+          draft.execution.halt = {
+            code: successor
+              ? 'SUCCESSOR_CORPUS_RUN_REQUIRED'
+              : suspensive
+                ? 'BLOCKED_AT_S4_C2'
+                : 'S4_C2_FOLLOWUP_REQUEST_REQUIRED',
+            reason: `${response.selected_action} retained; S4-C2 cannot finalize without the next exact durable action`,
+            at: this.clock.now(),
+            blocking: true,
+          };
+        }
+      });
+    }
+    return receipt;
   }
 
   replace<T extends JsonValue>(

@@ -19,6 +19,7 @@ import {
   T5_2_HEADER,
   T5_3_HEADER,
   ambiguityReviewSubjectDigest,
+  buildProceduralAuthorityLedgerRow,
   CLOSURE_PHASES,
   closurePhases,
   nextClosurePhase,
@@ -216,10 +217,19 @@ function controlJsonFiles(runDir: string): string[] {
     : [];
 }
 
-function checkControlState(model: RunModel, fail: (message: string) => void): void {
+interface AmbiguityControlState {
+  requests: Map<string, { value: ProceduralAuthorityRequest; bytes: Buffer }>;
+  responses: Map<string, { value: ProceduralAuthorityResponse; bytes: Buffer }>;
+  active: number;
+}
+
+function checkControlState(
+  model: RunModel,
+  fail: (message: string) => void,
+): AmbiguityControlState {
   const names = controlJsonFiles(model.runDir);
   const requests = new Map<string, { value: ProceduralAuthorityRequest; bytes: Buffer }>();
-  const responses = new Map<string, ProceduralAuthorityResponse>();
+  const responses = new Map<string, { value: ProceduralAuthorityResponse; bytes: Buffer }>();
   for (const name of names) {
     const path = join(model.runDir, 'control/gates', name);
     const bytes = readFileSync(path);
@@ -230,9 +240,12 @@ function checkControlState(model: RunModel, fail: (message: string) => void): vo
         const canonical = validateProceduralAuthorityRequest(request);
         if (!canonical.equals(bytes)) fail(`${name} is not exact canonical request bytes`);
         if (name !== `${request.request_id}-request.json`) fail(`${name} request identity/path mismatch`);
+        if (requests.has(request.request_id)) fail(`${request.request_id} request identity is duplicated`);
         requests.set(request.request_id, { value: request, bytes });
       } else if (name.endsWith('-response.json')) {
-        responses.set((value as ProceduralAuthorityResponse).request_id, value as ProceduralAuthorityResponse);
+        const response = value as ProceduralAuthorityResponse;
+        if (responses.has(response.request_id)) fail(`${response.request_id} response identity is duplicated`);
+        responses.set(response.request_id, { value: response, bytes });
       }
     } catch (error) {
       fail(`${name} is invalid: ${error instanceof Error ? error.message : String(error)}`);
@@ -243,9 +256,9 @@ function checkControlState(model: RunModel, fail: (message: string) => void): vo
     const response = responses.get(id);
     if (!response) { active += 1; continue; }
     try {
-      const bytes = validateProceduralAuthorityResponse(request.value, request.bytes, response);
+      const bytes = validateProceduralAuthorityResponse(request.value, request.bytes, response.value);
       const path = join(model.runDir, 'control/gates', `${id}-response.json`);
-      if (!existsSync(path) || !bytes.equals(readFileSync(path))) {
+      if (!existsSync(path) || !bytes.equals(response.bytes) || !bytes.equals(readFileSync(path))) {
         fail(`${id} response is not exact canonical retained bytes`);
       }
     } catch (error) {
@@ -254,6 +267,7 @@ function checkControlState(model: RunModel, fail: (message: string) => void): vo
   }
   for (const id of responses.keys()) if (!requests.has(id)) fail(`${id} has a fabricated or orphan response`);
   if (active > 1) fail(`at most one active internal-ambiguity request is legal; found ${active}`);
+  return { requests, responses, active };
 }
 
 export function runK2Ambiguities(results: ResultCollector, model: RunModel): void {
@@ -317,8 +331,8 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
         fail('T5 canonical column ordering is invalid');
       }
     }
-    if (!hasC2 && (ambiguity.t5_1Rows.length || ambiguity.t5_2Rows.length || ambiguity.t5_3Rows.length)) {
-      fail('canonical ambiguity rows are forbidden before C2 finalization');
+    if (!hasC1 && (ambiguity.t5_1Rows.length || ambiguity.t5_2Rows.length || ambiguity.t5_3Rows.length)) {
+      fail('canonical ambiguity rows are forbidden before C1 closes the relation basis');
     }
 
     const currentPackets = lineageCurrentPacketIds(model);
@@ -481,7 +495,41 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
       for (const id of definitions.keys()) if (!assessments.has(id)) fail(`${id} has no reviewed T5.2 assessment at C2`);
     }
 
+    const control = checkControlState(model, fail);
+    const requestSeqs = new Map<string, number[]>();
+    for (const request of control.requests.values()) {
+      const value = request.value;
+      const current = assessments.get(value.ambiguity_id)?.at(-1);
+      const requestSeq = Number(value.request_id.match(/-Q([1-9]\d*)$/u)?.[1] || '0');
+      const key = `${value.ambiguity_id}\0${String(value.assessment_seq)}`;
+      const bucket = requestSeqs.get(key) || [];
+      bucket.push(requestSeq);
+      requestSeqs.set(key, bucket);
+      if (!current || value.assessment_seq !== Number(current.values.assessmentSeq)
+        || current.values.resolutionState !== 'unresolved'
+        || value.authority_subject.t5_2_review_subject_digest !== current.values.reviewSubjectDigest
+        || value.authority_subject.candidate_state !== current.values.candidateState
+        || JSON.stringify(value.authority_subject.candidate_refs) !== current.values.candidateRefs
+        || value.authority_subject.carry_state !== current.values.carryState
+        || value.authority_subject.affected_relation_ids.join(',')
+          !== (current.values.affectedRelationIds === 'none' ? '' : current.values.affectedRelationIds)) {
+        fail(`${value.request_id} is stale or disagrees with the current unresolved T5.2 basis`);
+      }
+    }
+    for (const [key, sequences] of requestSeqs) {
+      sequences.sort((left, right) => left - right);
+      if (sequences.some((value, index) => value !== index + 1)) {
+        fail(`${key.replace('\0', ' A')} request Q history is forked or noncontiguous`);
+      }
+    }
+
     const authoritySeqs = new Map<string, number[]>();
+    const usedResponses = new Set<string>();
+    const actionsByAssessment = new Map<string, Array<{
+      sequence: number;
+      action: string;
+      terminality: string;
+    }>>();
     for (const row of ambiguity.t5_3Rows) {
       const values = row.values;
       const current = assessments.get(values.ambiguityId)?.at(-1);
@@ -504,10 +552,84 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
       if (!/^request:GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*@sha256:[a-f0-9]{64};response:RESP-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*@sha256:[a-f0-9]{64}$/u.test(values.closureProvenance)) {
         fail(`${values.ambiguityId} closure_provenance is invalid`);
       }
+      const responseId = values.authorityRef.match(
+        /^authority-response:(RESP-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*)@/u,
+      )?.[1];
+      const requestId = responseId?.replace(/^RESP/u, 'GATE') || '';
+      const request = control.requests.get(requestId);
+      const response = control.responses.get(requestId);
+      if (!request || !response) {
+        fail(`${values.ambiguityId} T5.3 row does not resolve one retained request/response pair`);
+      } else {
+        try {
+          const expected = buildProceduralAuthorityLedgerRow({
+            request: request.value,
+            request_bytes: request.bytes,
+            response: response.value,
+            response_bytes: response.bytes,
+            authority_seq: seq || 0,
+          });
+          if (JSON.stringify(expected) !== JSON.stringify(values)) {
+            fail(`${values.ambiguityId} T5.3 row is not the exact Core response projection`);
+          }
+          if (usedResponses.has(response.value.response_id)) {
+            fail(`${values.ambiguityId} reuses authority response ${response.value.response_id}`);
+          }
+          usedResponses.add(response.value.response_id);
+          const consequence = request.value.authority_subject.action_consequences.find(
+            (entry) => entry.action === response.value.selected_action,
+          );
+          if (!consequence) {
+            fail(`${values.ambiguityId} action has no Core-projected consequence`);
+          } else {
+            const key = `${values.ambiguityId}\0${values.assessmentSeq}`;
+            const history = actionsByAssessment.get(key) || [];
+            history.push({
+              sequence: seq || 0,
+              action: values.action,
+              terminality: consequence.terminality,
+            });
+            actionsByAssessment.set(key, history);
+          }
+        } catch (error) {
+          fail(`${values.ambiguityId} T5.3 retained binding is invalid: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
     }
     for (const [id, sequences] of authoritySeqs) {
       sequences.sort((a, b) => a - b);
       if (sequences.some((value, index) => value !== index + 1)) fail(`${id} authority history is forked or noncontiguous`);
+    }
+    for (const [key, history] of actionsByAssessment) {
+      history.sort((left, right) => left.sequence - right.sequence);
+      const terminalIndexes = history
+        .map((entry, index) => (
+          entry.terminality === 'nonterminal'
+            || entry.terminality === 'nonterminal-suspensive'
+            ? -1
+            : index
+        ))
+        .filter((index) => index >= 0);
+      if (terminalIndexes.length > 1
+        || (terminalIndexes.length === 1 && terminalIndexes[0] < history.length - 1)) {
+        fail(`${key.replace('\0', ' A')} has a conflicting action after a terminal response`);
+      }
+      const latest = history.at(-1);
+      if (hasC2 && latest
+        && latest.action !== 'carry-unresolved'
+        && latest.action !== 'restrict-downstream-use') {
+        fail(`${key.replace('\0', ' A')} has no progression-enabling terminal response at C2`);
+      }
+    }
+    if (hasC2 && control.active > 0) {
+      fail('C2 finalization is illegal while an authority request remains active');
+    }
+    if (hasC2) {
+      for (const response of control.responses.values()) {
+        if (!usedResponses.has(response.value.response_id)) {
+          fail(`${response.value.response_id} was not applied exactly once to T5.3 before C2`);
+        }
+      }
     }
 
     for (const file of model.files.filter((entry) => (
@@ -526,8 +648,6 @@ export function runK2Ambiguities(results: ResultCollector, model: RunModel): voi
         fail(`${file.relativePath} is malformed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-    checkControlState(model, fail);
-
     return `${String(definitions.size)} ambiguity definition(s), ${String(ambiguity.t5_2Rows.length)} assessment(s), and ${String(ambiguity.t5_3Rows.length)} procedural row(s) are structurally valid; STRUCTURAL ONLY`;
   });
 }

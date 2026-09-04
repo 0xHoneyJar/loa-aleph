@@ -244,11 +244,12 @@ checkFailure('authority identity used as detector', (run) => {
   replaceInLine(ambiguity(run), '| AMB-1501 | CC |', 'invocation:ambiguity-producer-01', 'human:authority-primary');
 }, /detector identity is invalid or authority-owned/u);
 
-checkFailure('populated rows before C2', (run) => {
+checkFailure('populated rows before C1', (run) => {
+  replaceOne(runLog(run), 'closure_phase: S4-C1-relations-closed\n', '');
   replaceOne(runLog(run), 'closure_phase: S4-C2-ambiguities-finalized\n', '');
   replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
   replaceOne(runLog(run), '## 2026-08-14 09:06 UTC — S5 — entry', '## 2026-08-14 09:06 UTC — S4 — checkpoint');
-}, /canonical ambiguity rows are forbidden before C2/u);
+}, /canonical ambiguity rows are forbidden before C1/u);
 
 checkFailure('positive T5 under legacy 1.4 format', (run) => {
   replaceOne(manifest(run), 'run_format_version: 1.5.0-provisional', 'run_format_version: 1.4.0-provisional');

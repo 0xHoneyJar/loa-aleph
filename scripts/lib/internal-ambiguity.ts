@@ -743,7 +743,7 @@ export function materialImpactSubjectJson(subject: MaterialImpactSubject): strin
     t5_2_review_ref: subject.t5_2_review_ref,
     c1_relation_basis_ref: subject.c1_relation_basis_ref,
     materiality_class: subject.materiality_class,
-    operative_scope: subject.operative_scope,
+    operative_scope: orderedOperativeScope(subject.operative_scope),
     source_locators: subject.source_locators,
     reviewed_unaffected_ids: subject.reviewed_unaffected_ids,
     unresolved_statement: subject.unresolved_statement,
@@ -755,8 +755,46 @@ export function materialImpactSubjectDigest(subject: MaterialImpactSubject): str
   return sha256Digest(Buffer.from(materialImpactSubjectJson(subject), 'utf8'));
 }
 
-export function proceduralAuthoritySubjectJson(subject: ProceduralAuthoritySubject): string {
-  return JSON.stringify({
+function orderedOperativeScope(scope: OperativeScope): OperativeScope {
+  return {
+    affected_ids: [...scope.affected_ids],
+    impact_rows: scope.impact_rows.map((row) => ({
+      affected_id: row.affected_id,
+      operation_kind: row.operation_kind,
+      requirement_ref: row.requirement_ref,
+      unresolved_treatment: row.unresolved_treatment,
+      consequence_if_unresolved: row.consequence_if_unresolved,
+    })),
+  };
+}
+
+function orderedCandidate(candidate: AmbiguityCandidate): AmbiguityCandidate {
+  return candidate.kind === 'PKT'
+    ? { kind: candidate.kind, id: candidate.id }
+    : {
+      kind: candidate.kind,
+      source_id: candidate.source_id,
+      locator: candidate.locator,
+      span_hash: candidate.span_hash,
+    };
+}
+
+function orderedActionConsequence(consequence: ActionConsequence): ActionConsequence {
+  return {
+    action: consequence.action,
+    terminality: consequence.terminality,
+    c2_effect: consequence.c2_effect,
+    current_run_effect: consequence.current_run_effect,
+    scope_effect: consequence.scope_effect,
+    next_request: consequence.next_request,
+    successor_run: consequence.successor_run,
+  };
+}
+
+function orderedProceduralAuthoritySubject(
+  subject: ProceduralAuthoritySubject,
+): ProceduralAuthoritySubject {
+  return {
     format: subject.format,
     decision_category: subject.decision_category,
     run_id: subject.run_id,
@@ -768,7 +806,7 @@ export function proceduralAuthoritySubjectJson(subject: ProceduralAuthoritySubje
     prior_indeterminate_review_refs: subject.prior_indeterminate_review_refs,
     resolution_state: subject.resolution_state,
     candidate_state: subject.candidate_state,
-    candidate_refs: subject.candidate_refs,
+    candidate_refs: subject.candidate_refs.map(orderedCandidate),
     carry_state: subject.carry_state,
     affected_relation_ids: subject.affected_relation_ids,
     c1_relation_basis_ref: subject.c1_relation_basis_ref,
@@ -777,13 +815,17 @@ export function proceduralAuthoritySubjectJson(subject: ProceduralAuthoritySubje
     material_impact_review_ref: subject.material_impact_review_ref,
     material_impact_review_verdict: subject.material_impact_review_verdict,
     materiality_class: subject.materiality_class,
-    operative_scope: subject.operative_scope,
+    operative_scope: orderedOperativeScope(subject.operative_scope),
     source_locators: subject.source_locators,
     reviewed_unaffected_ids: subject.reviewed_unaffected_ids,
     unresolved_statement: subject.unresolved_statement,
     allowed_actions: subject.allowed_actions,
-    action_consequences: subject.action_consequences,
-  });
+    action_consequences: subject.action_consequences.map(orderedActionConsequence),
+  };
+}
+
+export function proceduralAuthoritySubjectJson(subject: ProceduralAuthoritySubject): string {
+  return JSON.stringify(orderedProceduralAuthoritySubject(subject));
 }
 export function proceduralAuthoritySubjectDigest(subject: ProceduralAuthoritySubject): string {
   return sha256Digest(Buffer.from(proceduralAuthoritySubjectJson(subject), 'utf8'));
@@ -853,11 +895,11 @@ export function proceduralPresentation(subject: ProceduralAuthoritySubject): Pro
     classification: 'NON-OPERATIVE-DETERMINISTIC-PROJECTION',
     authority_subject_digest: proceduralAuthoritySubjectDigest(subject),
     unresolved_statement: subject.unresolved_statement,
-    operative_scope: structuredClone(subject.operative_scope),
+    operative_scope: orderedOperativeScope(subject.operative_scope),
     source_locators: [...subject.source_locators],
     reviewed_unaffected_ids: [...subject.reviewed_unaffected_ids],
     allowed_actions: [...subject.allowed_actions],
-    action_consequences: structuredClone(subject.action_consequences),
+    action_consequences: subject.action_consequences.map(orderedActionConsequence),
   };
 }
 
@@ -907,10 +949,22 @@ export function proceduralAuthorityRequestJson(request: ProceduralAuthorityReque
     barrier: request.barrier,
     ambiguity_id: request.ambiguity_id,
     assessment_seq: request.assessment_seq,
-    authority_subject: request.authority_subject,
+    authority_subject: orderedProceduralAuthoritySubject(request.authority_subject),
     authority_subject_digest: request.authority_subject_digest,
-    presentation: request.presentation,
-    required_authority: request.required_authority,
+    presentation: request.presentation === null ? null : {
+      classification: request.presentation.classification,
+      authority_subject_digest: request.presentation.authority_subject_digest,
+      unresolved_statement: request.presentation.unresolved_statement,
+      operative_scope: orderedOperativeScope(request.presentation.operative_scope),
+      source_locators: [...request.presentation.source_locators],
+      reviewed_unaffected_ids: [...request.presentation.reviewed_unaffected_ids],
+      allowed_actions: [...request.presentation.allowed_actions],
+      action_consequences: request.presentation.action_consequences.map(orderedActionConsequence),
+    },
+    required_authority: {
+      kind: request.required_authority.kind,
+      identity: request.required_authority.identity,
+    },
     prepared_by: request.prepared_by,
     requested_at: request.requested_at,
   });
@@ -984,6 +1038,12 @@ export function buildProceduralAuthorityResponse(options: {
 }
 
 export function proceduralAuthorityResponseJson(response: ProceduralAuthorityResponse): string {
+  const textBlob = (value: TextBlob | null): TextBlob | null => value === null ? null : {
+    encoding: value.encoding,
+    media_type: value.media_type,
+    bytes_base64: value.bytes_base64,
+    sha256: value.sha256,
+  };
   return JSON.stringify({
     format: response.format,
     response_id: response.response_id,
@@ -991,10 +1051,10 @@ export function proceduralAuthorityResponseJson(response: ProceduralAuthorityRes
     request_ref: response.request_ref,
     request_digest: response.request_digest,
     authority_subject_digest: response.authority_subject_digest,
-    authority: response.authority,
+    authority: { kind: response.authority.kind, identity: response.authority.identity },
     selected_action: response.selected_action,
-    observation: response.observation,
-    comment: response.comment,
+    observation: textBlob(response.observation),
+    comment: textBlob(response.comment),
     recorded_at: response.recorded_at,
   });
 }
@@ -1021,6 +1081,60 @@ export function validateProceduralAuthorityResponse(
     throw new Error('procedural authority response keys are not in exact canonical order');
   }
   return Buffer.from(text, 'utf8');
+}
+
+export function nextProceduralAuthoritySequence(
+  rows: readonly T5_3Values[],
+  ambiguityId: string,
+): number {
+  const sequences = rows
+    .filter((row) => row.ambiguityId === ambiguityId)
+    .map((row) => Number(row.authoritySeq))
+    .sort((left, right) => left - right);
+  if (sequences.some((value, index) => !Number.isSafeInteger(value) || value !== index + 1)) {
+    throw new Error(`${ambiguityId} authority history is forked or noncontiguous`);
+  }
+  return sequences.length + 1;
+}
+
+export function buildProceduralAuthorityLedgerRow(options: {
+  request: ProceduralAuthorityRequest;
+  request_bytes: Buffer;
+  response: ProceduralAuthorityResponse;
+  response_bytes: Buffer;
+  authority_seq: number;
+}): T5_3Values {
+  const canonicalRequest = validateProceduralAuthorityRequest(options.request);
+  const canonicalResponse = validateProceduralAuthorityResponse(
+    options.request,
+    options.request_bytes,
+    options.response,
+  );
+  if (!canonicalRequest.equals(options.request_bytes)
+    || !canonicalResponse.equals(options.response_bytes)) {
+    throw new Error('procedural authority ledger row requires exact retained request/response bytes');
+  }
+  if (!Number.isSafeInteger(options.authority_seq) || options.authority_seq < 1) {
+    throw new Error('procedural authority_seq must be a positive integer');
+  }
+  const requestDigest = sha256Digest(options.request_bytes);
+  const responseDigest = sha256Digest(options.response_bytes);
+  return {
+    ambiguityId: options.request.ambiguity_id,
+    authoritySeq: String(options.authority_seq),
+    assessmentSeq: String(options.request.assessment_seq),
+    action: options.response.selected_action,
+    selectedCandidateRef: 'none',
+    authoritySubjectDigest: options.request.authority_subject_digest,
+    authorityRef: `authority-response:${options.response.response_id}@${responseDigest}`,
+    closureProvenance: `request:${options.request.request_id}@${requestDigest};response:${options.response.response_id}@${responseDigest}`,
+  };
+}
+
+export function proceduralAuthorityLedgerRowMarkdown(row: T5_3Values): string {
+  return `| ${row.ambiguityId} | ${row.authoritySeq} | ${row.assessmentSeq} | ${row.action} | `
+    + `${row.selectedCandidateRef} | ${row.authoritySubjectDigest} | ${row.authorityRef} | `
+    + `${row.closureProvenance} |`;
 }
 
 export function exactTextBlob(bytes: Buffer): TextBlob {

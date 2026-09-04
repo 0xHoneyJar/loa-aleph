@@ -19,17 +19,20 @@ import {
   PROCEDURAL_SUBJECT_FORMAT,
   ambiguityReviewSubjectJson,
   buildProceduralAuthorityRequest,
+  buildProceduralAuthorityLedgerRow,
   buildProceduralAuthorityResponse,
   buildProceduralAuthoritySubject,
   closurePhasesFromText,
   exactTextBlob,
   materialImpactSubjectJson,
+  nextProceduralAuthoritySequence,
   legalResolutionCarryState,
   nextClosurePhase,
   operativeScopeProblems,
   parseCandidateRefs,
   proceduralAuthorityRequestJson,
   proceduralAuthorityResponseJson,
+  proceduralAuthorityLedgerRowMarkdown,
   projectProceduralActions,
   resolvePinnedCoreRequirement,
   restrictionOverlay,
@@ -249,6 +252,51 @@ check('material-impact and procedural subjects use exact canonical formats', () 
   const subject = authoritySubject();
   expect(subject.format === PROCEDURAL_SUBJECT_FORMAT, 'procedural subject format drifted');
   expect(JSON.stringify(subject.allowed_actions) === JSON.stringify(PROCEDURAL_ACTIONS), 'subject action set drifted');
+});
+
+check('T5.3 rows are exact projections of retained request/response bytes', () => {
+  const subject = authoritySubject();
+  const request = buildProceduralAuthorityRequest({
+    request_seq: 1,
+    subject,
+    presentation: true,
+    required_authority_identity: 'operator-1',
+    prepared_by: 'invocation:orchestrator-1',
+    requested_at: '2040-01-02T03:10:00.000Z',
+  });
+  const requestBytes = Buffer.from(proceduralAuthorityRequestJson(request), 'utf8');
+  const response = buildProceduralAuthorityResponse({
+    request,
+    request_bytes: requestBytes,
+    authority_identity: 'operator-1',
+    selected_action: 'carry-unresolved',
+    observation: null,
+    comment: null,
+    recorded_at: '2040-01-02T03:11:00.000Z',
+  });
+  const responseBytes = Buffer.from(proceduralAuthorityResponseJson(response), 'utf8');
+  const row = buildProceduralAuthorityLedgerRow({
+    request,
+    request_bytes: requestBytes,
+    response,
+    response_bytes: responseBytes,
+    authority_seq: nextProceduralAuthoritySequence([], request.ambiguity_id),
+  });
+  expect(row.selectedCandidateRef === 'none', 'T5.3 projected a selected candidate');
+  expect(row.action === 'carry-unresolved', 'T5.3 projected the wrong action');
+  expect(row.authorityRef.includes(response.response_id), 'T5.3 omitted the exact response identity');
+  expect(proceduralAuthorityLedgerRowMarkdown(row).startsWith('| AMB-0007 | 1 | 2 |'),
+    'T5.3 Markdown ordering drifted');
+  expectThrows(
+    () => buildProceduralAuthorityLedgerRow({
+      request,
+      request_bytes: requestBytes,
+      response,
+      response_bytes: Buffer.concat([responseBytes, Buffer.from('\n')]),
+      authority_seq: 1,
+    }),
+    /exact retained request\/response bytes/u,
+  );
 });
 
 check('request and response bind exact bytes and preserve exact human text', () => {
