@@ -1,8 +1,13 @@
 import {
+  cpSync,
   existsSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
+  rmSync,
+  writeFileSync,
 } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
   CORE_STAGES,
@@ -28,6 +33,15 @@ import {
   updateRunState,
 } from './run-control.ts';
 import { ValidatedWorkerReturn } from './worker-return.ts';
+import {
+  closurePhasesFromText,
+  nextClosurePhase,
+  type ClosurePhase,
+} from '../../../scripts/lib/internal-ambiguity.ts';
+import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.ts';
+import { runK2Relations } from '../../../scripts/lib/checks-k2-relations.ts';
+import { ResultCollector } from '../../../scripts/lib/results.ts';
+import { loadRun, usesInternalAmbiguityLifecycle } from '../../../scripts/lib/run-model.ts';
 
 const CANONICAL_PREFIXES = [
   'arms/',
@@ -56,7 +70,40 @@ function canonicalRunPath(path: string): boolean {
 }
 
 const LINEAGE_LEDGER_PATH = 'ledgers/lineage.md';
+const RELATION_LEDGER_PATH = 'ledgers/relations.md';
+const AMBIGUITY_LEDGER_PATH = 'ledgers/internal-ambiguities.md';
+const RUN_LOG_PATH = 'run-log.md';
 const LATE_LINEAGE_HALT_CODE = 'LATE_UNIT_LINEAGE_CORRECTION';
+
+function retainedClosurePhases(runDir: string): ClosurePhase[] {
+  const path = join(runDir, RUN_LOG_PATH);
+  return existsSync(path) ? closurePhasesFromText(readFileSync(path, 'utf8')) : [];
+}
+
+function assertSlice5WriteWindow(
+  runDir: string,
+  state: LoaRunState,
+  relativePath: string,
+  operation: 'append' | 'replace' | 'delete' | 'retarget',
+): void {
+  if (!usesInternalAmbiguityLifecycle(state.identity.run_format_version)) return;
+  const phases = retainedClosurePhases(runDir);
+  const hasC1 = phases.includes('S4-C1-relations-closed');
+  const hasC2 = phases.includes('S4-C2-ambiguities-finalized');
+  if (relativePath === RELATION_LEDGER_PATH) {
+    if (state.execution.stage !== 'S4') {
+      throw new Error(`canonical relation ${operation} is legal only during S4`);
+    }
+    if (hasC1) {
+      throw new Error(`post-C1 canonical relation ${operation} refused before bytes change`);
+    }
+  }
+  if (relativePath === AMBIGUITY_LEDGER_PATH) {
+    if (state.execution.stage !== 'S4' || !hasC1 || hasC2) {
+      throw new Error(`canonical ambiguity ${operation} is legal only during the S4-C2 write window`);
+    }
+  }
+}
 
 function lineageStageIndex(stage: LoaRunState['execution']['stage']): number {
   return CORE_STAGES.indexOf(stage);
@@ -369,11 +416,12 @@ export class LedgerWriter {
     validated: ValidatedWorkerReturn<T>,
     render: LedgerRenderer<T>,
   ): LedgerReceipt {
+    assertSafeRelativePath(relativePath, 'canonical run path');
+    assertSlice5WriteWindow(this.runDir, readRunState(this.runDir), relativePath, 'append');
     if (!(validated instanceof ValidatedWorkerReturn)) {
       throw new Error('canonical writes require a validated worker return');
     }
     validated.assertAuthenticAndIntact();
-    assertSafeRelativePath(relativePath, 'canonical run path');
     if (!canonicalRunPath(relativePath)) {
       throw new Error(`path is outside the canonical writer surface: ${relativePath}`);
     }
@@ -395,6 +443,7 @@ export class LedgerWriter {
       }
       if (matches[0]) return matches[0];
       let state = readRunState(this.runDir);
+      assertSlice5WriteWindow(this.runDir, state, relativePath, 'append');
       if (relativePath === LINEAGE_LEDGER_PATH) {
         const stage = state.execution.stage;
         const stageIndex = lineageStageIndex(stage);
@@ -499,5 +548,74 @@ export class LedgerWriter {
     } finally {
       release();
     }
+  }
+
+  replace<T extends JsonValue>(
+    relativePath: string,
+    validated: ValidatedWorkerReturn<T>,
+    _render: LedgerRenderer<T>,
+  ): never {
+    assertSafeRelativePath(relativePath, 'canonical run path');
+    assertSlice5WriteWindow(this.runDir, readRunState(this.runDir), relativePath, 'replace');
+    if (!(validated instanceof ValidatedWorkerReturn)) {
+      throw new Error('canonical writes require a validated worker return');
+    }
+    validated.assertAuthenticAndIntact();
+    throw new Error('canonical ledger replacement is not a supported Loa persistence operation');
+  }
+
+  remove(relativePath: string): never {
+    assertSafeRelativePath(relativePath, 'canonical run path');
+    assertSlice5WriteWindow(this.runDir, readRunState(this.runDir), relativePath, 'delete');
+    throw new Error('canonical ledger deletion is not a supported Loa persistence operation');
+  }
+
+  retarget<T extends JsonValue>(
+    relativePath: string,
+    validated: ValidatedWorkerReturn<T>,
+    _render: LedgerRenderer<T>,
+  ): never {
+    assertSafeRelativePath(relativePath, 'canonical run path');
+    assertSlice5WriteWindow(this.runDir, readRunState(this.runDir), relativePath, 'retarget');
+    if (!(validated instanceof ValidatedWorkerReturn)) {
+      throw new Error('canonical writes require a validated worker return');
+    }
+    validated.assertAuthenticAndIntact();
+    throw new Error('canonical relation retarget is not a supported Loa persistence operation');
+  }
+
+  advanceSlice5ClosurePhase(phase: ClosurePhase): void {
+    const state = readRunState(this.runDir);
+    if (!usesInternalAmbiguityLifecycle(state.identity.run_format_version)
+      || state.execution.stage !== 'S4') {
+      throw new Error('Slice 5 closure phases require a run-format 1.5 S4 run');
+    }
+    const phases = retainedClosurePhases(this.runDir);
+    if (nextClosurePhase(phases) !== phase) {
+      throw new Error(`Slice 5 closure phase ${phase} is not the single next durable phase`);
+    }
+    const runLogPath = join(this.runDir, RUN_LOG_PATH);
+    const before = existsSync(runLogPath) ? readFileSync(runLogPath) : Buffer.alloc(0);
+    const next = appendedBytes(before, `closure_phase: ${phase}`);
+    const scratch = mkdtempSync(join(tmpdir(), 'aleph-s5-phase-'));
+    const prospective = join(scratch, 'run');
+    try {
+      cpSync(this.runDir, prospective, { recursive: true });
+      writeFileSync(join(prospective, RUN_LOG_PATH), next);
+      const model = loadRun(prospective);
+      const results = new ResultCollector(state.run_id);
+      runK2Relations(results, model);
+      if (phase !== 'S4-C1-relations-closed') runK2Ambiguities(results, model);
+      const failed = results.checks.filter((check) => check.status === 'FAIL');
+      if (failed.length > 0) {
+        throw new Error(`Slice 5 closure phase ${phase} failed Core structural checks: ${failed.map((check) => check.message).join('; ')}`);
+      }
+    } finally {
+      rmSync(scratch, { recursive: true, force: true });
+    }
+    writeFileAtomic(runLogPath, next);
+    updateRunState(this.runDir, this.clock.now(), (draft) => {
+      if (phase === 'S4-C3-exit') draft.execution.stage_status = 'closed';
+    });
   }
 }

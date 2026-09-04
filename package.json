@@ -33,7 +33,8 @@
     "test:lineage-mutations": "node scripts/test-lineage-mutations.ts",
     "test:relation-mutations": "node scripts/test-relation-mutations.ts",
     "test:internal-ambiguity-contracts": "node scripts/test-internal-ambiguity-contracts.ts",
-    "test:internal-ambiguity-mutations": "node scripts/test-internal-ambiguity-mutations.ts"
+    "test:internal-ambiguity-mutations": "node scripts/test-internal-ambiguity-mutations.ts",
+    "test:slice5-process": "node adapters/loa/tests/test-slice5-process.ts"
   },
   "devDependencies": {
     "@types/node": "22.20.1",
