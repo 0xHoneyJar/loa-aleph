@@ -33,6 +33,12 @@ import {
   parseTables,
 } from '../../../scripts/lib/markdown.ts';
 import { sourceWalkReviewBasisDigest } from '../../../scripts/lib/checks-k2.ts';
+import {
+  buildProceduralAuthorityRequest,
+  buildProceduralAuthorityResponse,
+  buildProceduralAuthoritySubject,
+  proceduralAuthorityRequestJson,
+} from '../../../scripts/lib/internal-ambiguity.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
 import {
   dispatchLoaCommand,
@@ -1445,6 +1451,237 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         checked.result === 'PASS',
         `valid retained S2 run failed normal checker behavior: ${checked.errors.join('; ')}`,
       );
+    });
+
+    runCase(results, 'public resume clears Slice 5 response-application halt exactly once', () => {
+      const fixture = prepareRetainedDistillingRun(context, 'slice5-public-resume', 'S4');
+      const ledgerPath = join(fixture.runDir, 'ledgers', 'internal-ambiguities.md');
+      const emptyLedger = readFileSync(
+        join(REPO_ROOT, 'docs/fixtures/internal-ambiguity-lifecycle/ledgers/internal-ambiguities.md'),
+        'utf8',
+      ).replace('RUN-internal-ambiguity-lifecycle', RUN_ID)
+        .split('\n')
+        .filter((line) => !line.startsWith('| AMB-'))
+        .join('\n');
+      writeFileSync(ledgerPath, emptyLedger);
+      writeFileSync(
+        join(fixture.runDir, 'run-log.md'),
+        `${readFileSync(join(fixture.runDir, 'run-log.md'), 'utf8')}\nclosure_phase: S4-C1-relations-closed\n`,
+      );
+      const scope = {
+        affected_ids: ['CC-9999'],
+        impact_rows: [{
+          affected_id: 'CC-9999',
+          operation_kind: 'required-barrier-dod' as const,
+          requirement_ref: 'core:docs/architecture/templates/09-internal-ambiguity.md#S4 composite barrier',
+          unresolved_treatment: 'carry-or-restriction' as const,
+          consequence_if_unresolved: 'Fixture public-resume reachability only.',
+        }],
+      };
+      const subject = buildProceduralAuthoritySubject({
+        run_id: RUN_ID,
+        ambiguity_id: 'AMB-9999',
+        assessment_seq: 1,
+        t5_2_assessment_ref: `internal-ambiguity:T5.2:AMB-9999:A1@sha256:${'1'.repeat(64)}`,
+        t5_2_review_subject_digest: `sha256:${'2'.repeat(64)}`,
+        t5_2_review_ref: `ambiguity-review-verdict:VER-9998@sha256:${'3'.repeat(64)}`,
+        prior_indeterminate_review_refs: [],
+        candidate_state: 'null-no-candidate',
+        candidate_refs: [],
+        carry_state: 'none',
+        affected_relation_ids: [],
+        c1_relation_basis_ref: 'none',
+        material_impact_seq: 1,
+        material_impact_subject_ref: `material-impact-subject:AMB-9999:A1:M1@sha256:${'4'.repeat(64)}`,
+        material_impact_review_ref: `material-impact-verdict:VER-9999@sha256:${'5'.repeat(64)}`,
+        operative_scope: scope,
+        source_locators: ['SRC-001:L1-L1'],
+        reviewed_unaffected_ids: [],
+        unresolved_statement: 'Fixture response-application reachability statement.',
+      });
+      const request = buildProceduralAuthorityRequest({
+        request_seq: 1,
+        subject,
+        presentation: true,
+        required_authority_identity: 'fixture-simulated-human-authority',
+        prepared_by: 'invocation:loa-orchestrator',
+        requested_at: '2040-01-02T03:06:31.000Z',
+      });
+      openHumanAuthorityGate(fixture.runDir, {
+        gateId: request.request_id,
+        gateType: 'internal-ambiguity-procedural-decision',
+        stage: 'S4',
+        now: request.requested_at,
+        request: request as unknown as JsonValue,
+      });
+      const requestBytes = Buffer.from(proceduralAuthorityRequestJson(request), 'utf8');
+      const response = buildProceduralAuthorityResponse({
+        request,
+        request_bytes: requestBytes,
+        authority_identity: 'fixture-simulated-human-authority',
+        selected_action: 'carry-unresolved',
+        observation: null,
+        comment: null,
+        recorded_at: '2040-01-02T03:06:32.000Z',
+      });
+      recordHumanAuthorityDecision(fixture.runDir, {
+        gateId: request.request_id,
+        authorityIdentity: 'fixture-simulated-human-authority',
+        decision: 'approve',
+        recordedAt: response.recorded_at,
+        simulation: { kind: 'fixture-simulated' },
+        response: response as unknown as JsonValue,
+      });
+      expect(
+        readRunState(fixture.runDir).execution.halt?.code
+          === 'S4_C2_RESPONSE_APPLICATION_REQUIRED',
+        'fixture did not reach the response-application halt',
+      );
+      const first = dispatchLoaCommand(
+        ['resume', RUN_ID],
+        { ...startOptions(context), loaRoot: fixture.loaRoot },
+      );
+      expect(first.result === 'PASS', `public resume failed: ${first.errors.join('; ')}`);
+      const firstDetails = first.details as Record<string, JsonValue>;
+      const slice5 = firstDetails.slice5 as Record<string, JsonValue>;
+      expect(JSON.stringify(slice5.required_roles) === JSON.stringify([
+        'ambiguity-producer',
+        'ambiguity-reviewer',
+        'material-impact-producer',
+        'material-impact-reviewer',
+      ]), 'public resume did not expose the four pinned Slice 5 roles at the first unmet C2 DoD');
+      expect(readRunState(fixture.runDir).execution.halt === null,
+        'public resume did not clear response-application halt');
+      const afterFirst = readFileSync(ledgerPath, 'utf8');
+      expect((afterFirst.match(/\| AMB-9999 \| 1 \| 1 \| carry-unresolved \|/gu) || []).length === 1,
+        'public resume did not apply exactly one T5.3 row');
+      const pinnedBundle = verifyAndLoadLoaBundle(readRuntime(fixture.runDir).bundle.root);
+      const roles: Array<{
+        role: LoaRoleId;
+        kind: 'producer' | 'refuter';
+        producerContextId?: string;
+      }> = [
+        { role: 'ambiguity-producer', kind: 'producer' },
+        {
+          role: 'ambiguity-reviewer',
+          kind: 'refuter',
+          producerContextId: 'CTX-SLICE5-AMBIGUITY-PRODUCER',
+        },
+        { role: 'material-impact-producer', kind: 'producer' },
+        {
+          role: 'material-impact-reviewer',
+          kind: 'refuter',
+          producerContextId: 'CTX-SLICE5-MATERIAL-PRODUCER',
+        },
+      ];
+      for (const [index, role] of roles.entries()) {
+        const callId = `CALL-SLICE5-LIVE-PATH-${String(index + 1).padStart(4, '0')}`;
+        const assembled = assembleWorkerBundle({
+          bundle: pinnedBundle,
+          runDir: fixture.runDir,
+          callId,
+          runId: RUN_ID,
+          stage: 'S4',
+          role: role.role,
+          kind: role.kind,
+          allowlist: [],
+          withheld: exactWithheldInventory(
+            pinnedBundle,
+            fixture.runDir,
+            role.role,
+            'S4',
+            [],
+          ),
+          taskLine: 'Return only the exact bounded Slice 5 structured result.',
+          modelIdentity: readRunState(fixture.runDir).identity.models[role.role],
+          producerContextId: role.producerContextId,
+        });
+        const raw: JsonValue = role.role === 'ambiguity-producer'
+          ? {
+            definition: {
+              source_entity_kind: 'PKT',
+              source_entity_id: 'PKT-0001',
+              source_id: 'SRC-0001',
+              expression_locator: 'L1-L1',
+              expression_start_byte: '0',
+              expression_end_byte: '1',
+              expression_sha256: `sha256:${'1'.repeat(64)}`,
+              expression_bytes_base64: 'YQ==',
+              basis_packet_ids: ['PKT-0001'],
+              detected_by: 'invocation:fixture-slice5-ambiguity-producer',
+            },
+            assessment: {
+              search_scope_kind: 'local-intervals',
+              search_source_id: 'SRC-0001',
+              search_completion_ref: 'fixture:complete',
+              search_basis_digest: `sha256:${'2'.repeat(64)}`,
+              candidate_state: 'null-no-candidate',
+              candidate_refs: [],
+              affected_relation_ids: [],
+              resolution_state: 'unresolved',
+              carry_state: 'none',
+              proposed_by: 'invocation:fixture-slice5-ambiguity-producer',
+              review_subject_digest: `sha256:${'3'.repeat(64)}`,
+            },
+            flags: ['fixture-simulated'],
+          }
+          : role.role === 'ambiguity-reviewer'
+            ? {
+              target: `internal-ambiguity-review-subject:sha256:${'3'.repeat(64)}`,
+              verdict: 'upheld',
+              shown: 'fixture exact ambiguity subject',
+              withheld: 'fixture producer rationale and human authority',
+              consequence: 'fixture structured return only',
+              flags: ['fixture-simulated'],
+            }
+            : role.role === 'material-impact-producer'
+              ? {
+                materiality_class: 'B',
+                operative_scope: { affected_ids: [], impact_rows: [] },
+                source_locators: [],
+                reviewed_unaffected_ids: [],
+                unresolved_statement: 'Fixture bounded unresolved statement.',
+                proposed_by: 'invocation:fixture-slice5-material-impact-producer',
+                flags: ['fixture-simulated'],
+              }
+              : {
+                target: `internal-ambiguity-material-impact-review-subject:sha256:${'4'.repeat(64)}`,
+                verdict: 'upheld',
+                shown: 'fixture exact material-impact subject',
+                withheld: 'fixture producer rationale and human authority',
+                consequence: 'fixture structured return only',
+                flags: ['fixture-simulated'],
+              };
+        const contextId = `CTX-SLICE5-LIVE-${String(index + 1).padStart(4, '0')}`;
+        const accepted = dispatchLoaWorker({
+          workerBundleRoot: assembled.root,
+          returnRoot: join(fixture.runDir, 'control', 'worker-returns', callId),
+          hostCapabilities: readRuntime(fixture.runDir).host,
+          host: {
+            invokeFreshContext() {
+              return {
+                receipt: fixtureDispatchReceipt(
+                  assembled.request,
+                  contextId,
+                  role.producerContextId || null,
+                ),
+                structured_return: raw,
+              };
+            },
+          },
+        });
+        expect(accepted.report.result === 'PASS' && accepted.validated !== null,
+          `${role.role} did not complete the shipped prepare/dispatch/accept path: ${
+            accepted.report.errors.join('; ')
+          }`);
+      }
+      const second = dispatchLoaCommand(
+        ['resume', RUN_ID],
+        { ...startOptions(context), loaRoot: fixture.loaRoot },
+      );
+      expect(second.result === 'PASS', `idempotent public resume failed: ${second.errors.join('; ')}`);
+      expect(readFileSync(ledgerPath, 'utf8') === afterFirst,
+        'idempotent public resume duplicated T5.3');
     });
 
     runCase(results, 'retained S2 authority rejects coordinated Core signal erasure', () => {

@@ -234,9 +234,10 @@ function withheldInventory(
   runDir: string,
   role: LoaRoleId,
   allowlist: string[],
+  stage: 'S4' | 'S5' = 'S4',
 ) {
   const allowed = new Set(allowlist);
-  const coreRef = coreBlindPolicyReference(bundle, role, 'S4');
+  const coreRef = coreBlindPolicyReference(bundle, role, stage);
   return walkRegularFiles(runDir)
     .map((path) => relative(runDir, path).split(sep).join('/'))
     .filter((path) => !path.startsWith('control/') && !allowed.has(path))
@@ -349,10 +350,24 @@ function main(): void {
 
     const runDir = join(tempRoot, 'run');
     cpSync(FIXTURE_ROOT, runDir, { recursive: true });
+    rmSync(join(runDir, 'control/gates/GATE-S4-AMB-1503-A1-Q1-request.json'));
+    rmSync(join(runDir, 'control/gates/GATE-S4-AMB-1503-A1-Q1-response.json'));
+    rmSync(join(
+      runDir,
+      'verification/harness/S4/material-impact-subjects/AMB-1503-A1-M1.json',
+    ));
+    rmSync(join(runDir, 'verification/harness/S4-material-impact/VER-1591.md'));
     mkdirSync(join(runDir, 'control', 'transactions'), { recursive: true });
     mkdirSync(join(runDir, 'control', 'gates'), { recursive: true });
+    cpSync(bundle.root, join(runDir, 'control', 'runtime', 'bundle'), { recursive: true });
     const runId = 'RUN-internal-ambiguity-lifecycle';
-    const fullAmbiguities = readFileSync(join(runDir, 'ledgers/internal-ambiguities.md'));
+    const fullAmbiguities = Buffer.from(
+      readFileSync(join(runDir, 'ledgers/internal-ambiguities.md'), 'utf8')
+        .split('\n')
+        .filter((line) => !line.startsWith('| AMB-1503 | 1 | 1 | carry-unresolved |'))
+        .join('\n'),
+      'utf8',
+    );
     const finalRunLog = readFileSync(join(runDir, 'run-log.md'), 'utf8');
     writeFileSync(join(runDir, 'run-log.md'), preC1RunLog(finalRunLog));
     writeFileSync(join(runDir, 'ledgers/internal-ambiguities.md'), emptyAmbiguityLedger(runId));
@@ -424,6 +439,13 @@ function main(): void {
     writeFileSync(ambiguityPath, fullAmbiguities);
     const crashT52BeforeMaterial = join(tempRoot, 'crash-01-t52-before-material');
     cpSync(runDir, crashT52BeforeMaterial, { recursive: true });
+    expectThrows(
+      () => new LedgerWriter(crashT52BeforeMaterial, CLOCK)
+        .advanceSlice5ClosurePhase('S4-C2-ambiguities-finalized'),
+      /latest unresolved T5\.2 assessment has no material-impact history at C2/u,
+      'C2 with unresolved ambiguity lacking material review',
+    );
+    pass('real C2 closure path rejects an unresolved ambiguity with no material-impact history');
     const t52Line = readFileSync(ambiguityPath, 'utf8')
       .split('\n')
       .find((line) => line.startsWith('| AMB-1503 | 1 |'));
@@ -484,6 +506,72 @@ function main(): void {
     writeFileSync(materialReviewPath, materialReviewTextM1);
     const crashReviewBeforeRequest = join(tempRoot, 'crash-03-review-before-request');
     cpSync(runDir, crashReviewBeforeRequest, { recursive: true });
+    const cannotDetermineRun = join(tempRoot, 'cannot-determine-material-review');
+    cpSync(runDir, cannotDetermineRun, { recursive: true });
+    writeFileSync(
+      join(cannotDetermineRun, 'verification/harness/S4-material-impact/VER-1591.md'),
+      materialReviewTextM1.replace('| verdict | upheld |', '| verdict | cannot-determine |'),
+    );
+    expectThrows(
+      () => new LedgerWriter(cannotDetermineRun, CLOCK)
+        .advanceSlice5ClosurePhase('S4-C2-ambiguities-finalized'),
+      /latest material-impact verdict must be upheld to continue/u,
+      'cannot-determine material review at C2',
+    );
+    pass('cannot-determine material review blocks C2 until a legal material successor exists');
+
+    const bogusRequirementRun = join(tempRoot, 'bogus-pinned-requirement');
+    cpSync(runDir, bogusRequirementRun, { recursive: true });
+    const bogusSubjectPath = join(
+      bogusRequirementRun,
+      'verification/harness/S4/material-impact-subjects/AMB-1503-A1-M1.json',
+    );
+    const bogusSubject = JSON.parse(readFileSync(bogusSubjectPath, 'utf8')) as MaterialImpactSubject;
+    bogusSubject.operative_scope.impact_rows[0].requirement_ref =
+      'core:docs/architecture/04-pipeline-stages-and-dod.md#DOES-NOT-EXIST';
+    writeFileSync(bogusSubjectPath, materialImpactSubjectJson(bogusSubject));
+    expectThrows(
+      () => new LedgerWriter(bogusRequirementRun, CLOCK)
+        .advanceSlice5ClosurePhase('S4-C2-ambiguities-finalized'),
+      /does not resolve under the run pin/u,
+      'bogus pinned requirement in real C2 path',
+    );
+    pass('real C2 closure rejects a grammatically legal requirement_ref absent from pinned Core');
+
+    const tamperedPinnedCoreRun = join(tempRoot, 'tampered-pinned-core');
+    cpSync(runDir, tamperedPinnedCoreRun, { recursive: true });
+    const retainedCorePath = join(
+      tamperedPinnedCoreRun,
+      'control/runtime/bundle/docs/architecture/04-pipeline-stages-and-dod.md',
+    );
+    chmodSync(retainedCorePath, 0o600);
+    writeFileSync(
+      retainedCorePath,
+      Buffer.concat([readFileSync(retainedCorePath), Buffer.from('\nretained tamper\n', 'utf8')]),
+    );
+    expectThrows(
+      () => new LedgerWriter(tamperedPinnedCoreRun, CLOCK)
+        .advanceSlice5ClosurePhase('S4-C2-ambiguities-finalized'),
+      /retained Core file disagrees with its inventory/u,
+      'tampered retained Core in real C2 path',
+    );
+    pass('real C2 closure rejects retained Core tampering under the unchanged lock');
+
+    const missingPinnedCoreRun = join(tempRoot, 'missing-pinned-core');
+    cpSync(runDir, missingPinnedCoreRun, { recursive: true });
+    const missingRetainedPath = join(
+      missingPinnedCoreRun,
+      'control/runtime/bundle/docs/architecture/04-pipeline-stages-and-dod.md',
+    );
+    chmodSync(missingRetainedPath, 0o600);
+    rmSync(missingRetainedPath);
+    expectThrows(
+      () => new LedgerWriter(missingPinnedCoreRun, CLOCK)
+        .advanceSlice5ClosurePhase('S4-C2-ambiguities-finalized'),
+      /retained Core file is absent/u,
+      'source checkout fallback for missing pinned Core',
+    );
+    pass('current source checkout cannot rescue a missing run-pinned Core file');
     const authoritySubject = buildProceduralAuthoritySubject({
       run_id: runId,
       ambiguity_id: 'AMB-1503',
@@ -591,6 +679,103 @@ function main(): void {
     const requestBytes = Buffer.from(proceduralAuthorityRequestJson(request), 'utf8');
     const authorityCheckpoint = join(tempRoot, 'authority-checkpoint');
     cpSync(runDir, authorityCheckpoint, { recursive: true });
+    const decoyRun = join(tempRoot, 'decoy-upheld-verdict');
+    cpSync(authorityCheckpoint, decoyRun, { recursive: true });
+    const decoyReviewPath = join(
+      decoyRun,
+      'verification/harness/S4-material-impact/VER-1591.md',
+    );
+    const decoyReview = readFileSync(decoyReviewPath, 'utf8')
+      .replace('| verdict | upheld |', '| verdict | refuted |')
+      + '\n| field | value |\n|-------|-------|\n| verdict | upheld |\n';
+    writeFileSync(decoyReviewPath, decoyReview);
+    const decoySubject = structuredClone(authoritySubject);
+    decoySubject.material_impact_review_ref =
+      `material-impact-verdict:VER-1591@${sha256Digest(decoyReview)}`;
+    expectThrows(
+      () => new LedgerWriter(decoyRun, CLOCK).openProceduralAuthorityFollowup({
+        request_id: request.request_id,
+        reason: 'presentation-only-replacement',
+        next_subject: decoySubject,
+        presentation: true,
+        required_authority_identity: 'human:fixture-operator',
+        prepared_by: 'invocation:loa-orchestrator',
+        requested_at: '2040-01-02T03:12:00.000Z',
+      }),
+      /exactly one canonical field\/value table/u,
+      'refuted verifier with decoy upheld table',
+    );
+    pass('Core-owned structured verifier rejects refuted verdict plus decoy upheld table');
+    const reviewFailures: Array<{
+      slug: string;
+      name: string;
+      mutate: (text: string) => string;
+      updateDigest: boolean;
+      pattern: RegExp;
+    }> = [
+      {
+        slug: 'duplicate-verdict',
+        name: 'duplicate verifier verdict fields',
+        mutate: (text) => text.replace(
+          '| verdict | upheld |',
+          '| verdict | upheld |\n| verdict | upheld |',
+        ),
+        updateDigest: true,
+        pattern: /verifier field verdict must occur exactly once/u,
+      },
+      {
+        slug: 'missing-table',
+        name: 'missing canonical verifier table',
+        mutate: (text) => text.replace('| field | value |', '| key | value |'),
+        updateDigest: true,
+        pattern: /exactly one canonical field\/value table/u,
+      },
+      {
+        slug: 'wrong-target',
+        name: 'wrong material verifier target',
+        mutate: (text) => text.replace(
+          `internal-ambiguity-material-impact-review-subject:${materialDigest}`,
+          `internal-ambiguity-material-impact-review-subject:sha256:${'0'.repeat(64)}`,
+        ),
+        updateDigest: true,
+        pattern: /target or verdict does not authorize a request/u,
+      },
+      {
+        slug: 'wrong-digest',
+        name: 'wrong material verifier digest',
+        mutate: (text) => text,
+        updateDigest: false,
+        pattern: /review ref does not resolve to one exact retained verifier/u,
+      },
+    ];
+    for (const [index, failure] of reviewFailures.entries()) {
+      const failureRun = join(tempRoot, `authority-basis-${failure.slug}`);
+      cpSync(authorityCheckpoint, failureRun, { recursive: true });
+      const reviewPath = join(
+        failureRun,
+        'verification/harness/S4-material-impact/VER-1591.md',
+      );
+      const reviewText = failure.mutate(readFileSync(reviewPath, 'utf8'));
+      writeFileSync(reviewPath, reviewText);
+      const nextSubject = structuredClone(authoritySubject);
+      nextSubject.material_impact_review_ref = failure.updateDigest
+        ? `material-impact-verdict:VER-1591@${sha256Digest(reviewText)}`
+        : `material-impact-verdict:VER-1591@sha256:${'0'.repeat(64)}`;
+      expectThrows(
+        () => new LedgerWriter(failureRun, CLOCK).openProceduralAuthorityFollowup({
+          request_id: request.request_id,
+          reason: 'presentation-only-replacement',
+          next_subject: nextSubject,
+          presentation: true,
+          required_authority_identity: 'human:fixture-operator',
+          prepared_by: 'invocation:loa-orchestrator',
+          requested_at: `2040-01-02T03:${String(13 + index).padStart(2, '0')}:00.000Z`,
+        }),
+        failure.pattern,
+        failure.name,
+      );
+      pass(`Core-owned structured verifier rejects ${failure.name}`);
+    }
     const actionCases: Array<{
       action: Exclude<ProceduralAction, 'carry-unresolved'>;
       halt: string | null;
@@ -657,6 +842,66 @@ function main(): void {
             operation_kind: 'load-bearing-reasoning',
             requirement_ref: 'core:docs/architecture/04-pipeline-stages-and-dod.md#S5 — Disposition pass',
           }]), 'restriction overlay is not the exact surgical Core tuple projection');
+        const restrictedOperation = {
+          affected_id: 'CC-0413',
+          operation_kind: 'load-bearing-reasoning' as const,
+          requirement_ref: 'core:docs/architecture/04-pipeline-stages-and-dod.md#S5 — Disposition pass',
+        };
+        expectThrows(
+          () => assembleWorkerBundle({
+            bundle,
+            runDir: actionRun,
+            callId: 'CALL-SLICE5-RESTRICTED-S5',
+            runId,
+            stage: 'S5',
+            role: 'disposition-judge',
+            kind: 'producer',
+            allowlist: ['ledgers/disposition-ledger.md'],
+            withheld: withheldInventory(
+              bundle,
+              actionRun,
+              'disposition-judge',
+              ['ledgers/disposition-ledger.md'],
+              'S5',
+            ),
+            downstreamOperations: [restrictedOperation],
+            taskLine: 'Attempt only the exact typed downstream operation supplied by Core.',
+            modelIdentity: readRunState(actionRun).identity.models['disposition-judge'],
+          }),
+          /prohibited by retained procedural restriction/u,
+          'restricted S5 operation',
+        );
+        const neighboringOperation = {
+          ...restrictedOperation,
+          affected_id: 'CC-0414',
+        };
+        const allowed = assembleWorkerBundle({
+          bundle,
+          runDir: actionRun,
+          callId: 'CALL-SLICE5-ALLOWED-S5',
+          runId,
+          stage: 'S5',
+          role: 'disposition-judge',
+          kind: 'producer',
+          allowlist: ['ledgers/disposition-ledger.md'],
+          withheld: withheldInventory(
+            bundle,
+            actionRun,
+            'disposition-judge',
+            ['ledgers/disposition-ledger.md'],
+            'S5',
+          ),
+          downstreamOperations: [neighboringOperation],
+          taskLine: 'Perform only the exact typed neighboring operation supplied by Core.',
+          modelIdentity: readRunState(actionRun).identity.models['disposition-judge'],
+        });
+        expect(allowed.request.procedural_restrictions.some((restriction) => (
+          JSON.stringify(restriction) === JSON.stringify(restrictedOperation)
+        ))
+          && JSON.stringify(allowed.request.downstream_operations)
+            === JSON.stringify([neighboringOperation]),
+        'downstream worker request did not consume the exact retained restriction separately');
+        pass('real S5 worker-bundle path blocks the exact restricted tuple and permits an unaffected neighbor');
       }
       if (actionCase.followup) {
         const q2 = actionWriter.openProceduralAuthorityFollowup({
@@ -748,10 +993,10 @@ function main(): void {
     writeFileSync(materialPathM2, materialImpactSubjectJson(materialSubjectM2));
     const materialReviewM2 = join(
       materialRun,
-      'verification/harness/S4-material-impact/VER-1592.md',
+      'verification/harness/S4-material-impact/VER-1692.md',
     );
     const materialReviewTextM2 = materialReviewText(
-      'VER-1592',
+      'VER-1692',
       materialDigestM2,
       'upheld',
       'fixture revised Class C basis may be re-presented',
@@ -760,7 +1005,7 @@ function main(): void {
       ...authoritySubject,
       material_impact_seq: 2,
       material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M2@${materialDigestM2}`,
-      material_impact_review_ref: `material-impact-verdict:VER-1592@${sha256Digest(materialReviewTextM2)}`,
+      material_impact_review_ref: `material-impact-verdict:VER-1692@${sha256Digest(materialReviewTextM2)}`,
       operative_scope: revisedScope,
     });
     const materialWriter = new LedgerWriter(materialRun, CLOCK);
@@ -794,9 +1039,12 @@ function main(): void {
       && materialQ2.authority_subject.material_impact_seq === 2,
     'M2 material revision did not create exactly Q2');
     const materialResults = new ResultCollector(runId);
-    runK2Ambiguities(materialResults, loadRun(materialRun));
+    runK2Ambiguities(materialResults, loadRun(materialRun), pinnedCoreAuthority);
     expect(materialResults.checks.find((check) => check.id === 'K2.17')?.status === 'PASS',
-      'K2.17 rejected legal historical M1/Q1 plus active M2/Q2 retained state');
+      `K2.17 rejected legal historical M1/Q1 plus active M2/Q2 retained state: ${
+        materialResults.checks.filter((check) => check.status === 'FAIL')
+          .map((check) => check.message).join('; ')
+      }`);
     pass('material-impact M2 creates Q2 while preserving historical M1/Q1 and immutable T5.2/C1 bytes');
 
     const defectRun = join(tempRoot, 'material-defect-revision');
@@ -815,11 +1063,11 @@ function main(): void {
       materialImpactSubjectJson(defectSubjectM2),
     );
     writeFileSync(
-      join(defectRun, 'verification/harness/S4-material-impact/VER-1592.md'),
-      materialReviewText('VER-1592', defectDigestM2, 'refuted', 'fixture M2 requires a new material subject'),
+      join(defectRun, 'verification/harness/S4-material-impact/VER-1692.md'),
+      materialReviewText('VER-1692', defectDigestM2, 'refuted', 'fixture M2 requires a new material subject'),
     );
     const defectResults = new ResultCollector(runId);
-    runK2Ambiguities(defectResults, loadRun(defectRun));
+    runK2Ambiguities(defectResults, loadRun(defectRun), pinnedCoreAuthority);
     expect(defectResults.checks.find((check) => check.id === 'K2.17')?.status === 'FAIL',
       'refuted latest M2 did not block before a new material subject');
     const repairedScopeM3 = structuredClone(operativeScope);
@@ -836,20 +1084,20 @@ function main(): void {
       materialImpactSubjectJson(repairedSubjectM3),
     );
     const repairedReviewM3 = materialReviewText(
-      'VER-1593',
+      'VER-1693',
       repairedDigestM3,
       'upheld',
       'fixture M3 supersedes only the refuted material-impact proposal',
     );
     writeFileSync(
-      join(defectRun, 'verification/harness/S4-material-impact/VER-1593.md'),
+      join(defectRun, 'verification/harness/S4-material-impact/VER-1693.md'),
       repairedReviewM3,
     );
     const authoritySubjectM3 = buildProceduralAuthoritySubject({
       ...authoritySubject,
       material_impact_seq: 3,
       material_impact_subject_ref: `material-impact-subject:AMB-1503:A1:M3@${repairedDigestM3}`,
-      material_impact_review_ref: `material-impact-verdict:VER-1593@${sha256Digest(repairedReviewM3)}`,
+      material_impact_review_ref: `material-impact-verdict:VER-1693@${sha256Digest(repairedReviewM3)}`,
       operative_scope: repairedScopeM3,
     });
     const repairedQ2 = new LedgerWriter(defectRun, CLOCK).openProceduralAuthorityFollowup({

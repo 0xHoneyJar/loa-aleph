@@ -11,7 +11,8 @@ import { captureRuntimeSnapshot, defaultProfilePath, loadLoaProfile, validateRes
 import { invokePinnedChecker, } from './checker.js';
 import { verifyLoaInstallation } from './installer.js';
 import { runLoaPreflight } from './preflight.js';
-import { recoverPendingLedgerTransactions } from './ledger-writer.js';
+import { LedgerWriter, recoverPendingLedgerTransactions, } from './ledger-writer.js';
+import { closurePhasesFromText, nextClosurePhase, } from '../../../scripts/lib/internal-ambiguity.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_CAPABILITIES_PATH = 'grimoires/loa/aleph/host-capabilities.json';
 function isRecord(value) {
@@ -383,11 +384,79 @@ export function resumeLoaRun(runId, options = {}) {
         recoverPendingS0Transaction(runDir, options.clock);
         recoverPendingAuthorityTransactions(runDir, options.clock);
         recoverPendingLedgerTransactions(runDir, options.clock);
-        const state = verifyRunControl(runDir);
+        let state = verifyRunControl(runDir);
         const runtime = verifyRetainedRuntimeIdentity(runDir, state);
         if (state.full_mode === 'fixture-simulated'
             && ['ACCEPTED', 'PROJECTION-ACCEPTED'].includes(state.execution.core_state)) {
             throw new Error('fixture-simulated execution cannot carry acceptance state');
+        }
+        const slice5 = {};
+        if (state.execution.stage === 'S4') {
+            const writer = new LedgerWriter(runDir, options.clock);
+            let gateId = state.execution.gate?.id;
+            if (state.execution.halt?.code === 'S4_C2_RESPONSE_APPLICATION_REQUIRED') {
+                if (!gateId)
+                    throw new Error('response-application halt has no retained gate');
+                writer.appendProceduralAuthorityResponse(gateId);
+                slice5.applied_response = gateId;
+                state = verifyRunControl(runDir);
+            }
+            if (state.execution.halt?.code === 'S4_C2_FOLLOWUP_REQUEST_REQUIRED'
+                || state.execution.halt?.code === 'BLOCKED_AT_S4_C2') {
+                gateId = state.execution.gate?.id;
+                if (!gateId)
+                    throw new Error('Slice 5 follow-up halt has no retained predecessor gate');
+                const request = readJsonFile(join(runDir, 'control', 'gates', `${gateId}-request.json`));
+                const reason = state.execution.halt.code === 'BLOCKED_AT_S4_C2'
+                    ? 'actual-resume-after-suspensive-block'
+                    : 'nonterminal-response';
+                const followup = writer.openProceduralAuthorityFollowup({
+                    request_id: gateId,
+                    reason,
+                    next_subject: request.authority_subject,
+                    presentation: request.presentation !== null,
+                    required_authority_identity: request.required_authority.identity,
+                    prepared_by: 'invocation:loa-orchestrator',
+                    requested_at: options.clock?.now() || new Date().toISOString(),
+                });
+                slice5.opened_followup = followup.request_id;
+                state = verifyRunControl(runDir);
+            }
+            if (state.execution.halt === null) {
+                const logPath = join(runDir, 'run-log.md');
+                let phases = existsSync(logPath)
+                    ? closurePhasesFromText(readFileSync(logPath, 'utf8'))
+                    : [];
+                let next = nextClosurePhase(phases);
+                if (next === 'S4-C2-ambiguities-finalized') {
+                    try {
+                        writer.advanceSlice5ClosurePhase(next);
+                        slice5.closed_c2 = true;
+                        state = verifyRunControl(runDir);
+                        phases = closurePhasesFromText(readFileSync(logPath, 'utf8'));
+                        next = nextClosurePhase(phases);
+                    }
+                    catch (error) {
+                        slice5.first_unmet_dod = error instanceof Error ? error.message : String(error);
+                    }
+                }
+                if (next === 'S4-C3-exit' && state.execution.halt === null) {
+                    writer.advanceSlice5ClosurePhase(next);
+                    writer.enterS5AfterSlice5Closure();
+                    slice5.closed_c3 = true;
+                    slice5.entered_stage = 'S5';
+                    state = verifyRunControl(runDir);
+                }
+                if (state.execution.stage === 'S4'
+                    && nextClosurePhase(phases) === 'S4-C2-ambiguities-finalized') {
+                    slice5.required_roles = [
+                        'ambiguity-producer',
+                        'ambiguity-reviewer',
+                        'material-impact-producer',
+                        'material-impact-reviewer',
+                    ];
+                }
+            }
         }
         const blocked = Boolean(state.execution.halt || state.execution.gate?.status === 'awaiting-authority');
         return result('resume', blocked ? 'BLOCKED' : 'PASS', {
@@ -399,7 +468,14 @@ export function resumeLoaRun(runId, options = {}) {
             details: {
                 ...runtimeDetails(state),
                 pinned_bundle_root: runtime.bundle.root,
-                next: blocked ? 'present-persisted-human-gate' : 'load-pinned-Core-orchestrator-and-first-unmet-DoD',
+                next: blocked
+                    ? state.execution.halt?.code === 'SUCCESSOR_CORPUS_RUN_REQUIRED'
+                        ? 'current-run-terminal-successor-corpus-run-required'
+                        : 'present-persisted-human-gate'
+                    : state.execution.stage === 'S4' && slice5.first_unmet_dod
+                        ? 'dispatch-pinned-Slice-5-workers-for-first-unmet-DoD'
+                        : 'load-pinned-Core-orchestrator-and-first-unmet-DoD',
+                slice5,
             },
         });
     }
