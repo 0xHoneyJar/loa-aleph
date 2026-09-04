@@ -1,0 +1,1196 @@
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  canonicalJsonBytes,
+  type BundleFileRecord,
+  type BundleLock,
+} from './bundle-format.ts';
+import {
+  findTables,
+  normalizeHeader,
+  parseBulletFields,
+} from './markdown.ts';
+import type {
+  MarkdownTable,
+  MarkdownTableRow,
+} from './markdown.ts';
+import type { RunDocument, RunModel } from './run-model.ts';
+
+export const INTERNAL_AMBIGUITY_FORMAT = 'aleph-internal-ambiguity/v1';
+export const INTERNAL_AMBIGUITY_SEARCH_BASIS_FORMAT =
+  'aleph-internal-ambiguity-search-basis/v1';
+export const INTERNAL_AMBIGUITY_REVIEW_SUBJECT_FORMAT =
+  'aleph-internal-ambiguity-review-subject/v1';
+export const MATERIAL_IMPACT_SUBJECT_FORMAT =
+  'aleph-internal-ambiguity-material-impact-review-subject/v1';
+export const PROCEDURAL_SUBJECT_FORMAT =
+  'aleph-internal-ambiguity-procedural-subject/v1';
+export const AUTHORITY_REQUEST_FORMAT =
+  'aleph-internal-ambiguity-authority-request/v1';
+export const AUTHORITY_RESPONSE_FORMAT =
+  'aleph-internal-ambiguity-authority-response/v1';
+
+export const T5_1_HEADER = [
+  'ambiguity_id',
+  'source_entity_kind',
+  'source_entity_id',
+  'source_id',
+  'expression_locator',
+  'expression_start_byte',
+  'expression_end_byte',
+  'expression_sha256',
+  'expression_bytes_base64',
+  'basis_packet_ids',
+  'detected_by',
+] as const;
+
+export const T5_2_HEADER = [
+  'ambiguity_id',
+  'assessment_seq',
+  'predecessor_assessment_seq',
+  'search_scope_kind',
+  'search_source_id',
+  'search_completion_ref',
+  'search_basis_digest',
+  'candidate_state',
+  'candidate_refs',
+  'affected_relation_ids',
+  'resolution_state',
+  'carry_state',
+  'proposed_by',
+  'review_subject_digest',
+  'reviewed_by',
+] as const;
+
+export const T5_3_HEADER = [
+  'ambiguity_id',
+  'authority_seq',
+  'assessment_seq',
+  'action',
+  'selected_candidate_ref',
+  'authority_subject_digest',
+  'authority_ref',
+  'closure_provenance',
+] as const;
+
+export const SEARCH_SCOPE_KINDS = ['local-intervals', 'full-same-source'] as const;
+export const CANDIDATE_STATES = [
+  'single',
+  'multiple',
+  'null-no-candidate',
+  'null-cannot-determine',
+] as const;
+export const RESOLUTION_STATES = ['unresolved', 'resolved-local'] as const;
+export const CARRY_STATES = ['none', 'explicit'] as const;
+export const MATERIALITY_CLASSES = ['B', 'C'] as const;
+export const OPERATION_KINDS = [
+  'load-bearing-reasoning',
+  'unique-relation-or-referent',
+  'disposition-validity',
+  'contradiction-or-reconciliation-strength',
+  'interpretation-dependent-synthesis',
+  'required-barrier-dod',
+] as const;
+export const UNRESOLVED_TREATMENTS = [
+  'carry-only',
+  'restriction-only',
+  'carry-or-restriction',
+  'resolution-required',
+] as const;
+export const PROCEDURAL_ACTIONS = [
+  'carry-unresolved',
+  'restrict-downstream-use',
+  'inspect-source',
+  'block-at-current-barrier',
+  'request-successor-corpus-run',
+  'record-human-observation',
+] as const;
+export const CLOSURE_PHASES = [
+  'S4-C1-relations-closed',
+  'S4-C2-ambiguities-finalized',
+  'S4-C3-exit',
+] as const;
+
+export type SearchScopeKind = typeof SEARCH_SCOPE_KINDS[number];
+export type CandidateState = typeof CANDIDATE_STATES[number];
+export type ResolutionState = typeof RESOLUTION_STATES[number];
+export type CarryState = typeof CARRY_STATES[number];
+export type OperationKind = typeof OPERATION_KINDS[number];
+export type UnresolvedTreatment = typeof UNRESOLVED_TREATMENTS[number];
+export type ProceduralAction = typeof PROCEDURAL_ACTIONS[number];
+export type ClosurePhase = typeof CLOSURE_PHASES[number];
+
+export interface PacketCandidate { kind: 'PKT'; id: string }
+export interface SourceLocusCandidate {
+  kind: 'source-locus';
+  source_id: string;
+  locator: string;
+  span_hash: string;
+}
+export type AmbiguityCandidate = PacketCandidate | SourceLocusCandidate;
+
+export interface T5_1Values {
+  ambiguityId: string;
+  sourceEntityKind: string;
+  sourceEntityId: string;
+  sourceId: string;
+  expressionLocator: string;
+  expressionStartByte: string;
+  expressionEndByte: string;
+  expressionSha256: string;
+  expressionBytesBase64: string;
+  basisPacketIds: string;
+  detectedBy: string;
+}
+export interface T5_2Values {
+  ambiguityId: string;
+  assessmentSeq: string;
+  predecessorAssessmentSeq: string;
+  searchScopeKind: string;
+  searchSourceId: string;
+  searchCompletionRef: string;
+  searchBasisDigest: string;
+  candidateState: string;
+  candidateRefs: string;
+  affectedRelationIds: string;
+  resolutionState: string;
+  carryState: string;
+  proposedBy: string;
+  reviewSubjectDigest: string;
+  reviewedBy: string;
+}
+export interface T5_3Values {
+  ambiguityId: string;
+  authoritySeq: string;
+  assessmentSeq: string;
+  action: string;
+  selectedCandidateRef: string;
+  authoritySubjectDigest: string;
+  authorityRef: string;
+  closureProvenance: string;
+}
+export interface T5_1Row extends MarkdownTableRow { values: T5_1Values }
+export interface T5_2Row extends MarkdownTableRow { values: T5_2Values }
+export interface T5_3Row extends MarkdownTableRow { values: T5_3Values }
+
+export interface InternalAmbiguityModel {
+  document: RunDocument | null;
+  format: string;
+  t5_1Tables: MarkdownTable[];
+  t5_2Tables: MarkdownTable[];
+  t5_3Tables: MarkdownTable[];
+  t5_1Rows: T5_1Row[];
+  t5_2Rows: T5_2Row[];
+  t5_3Rows: T5_3Row[];
+}
+
+export interface SearchBasis {
+  source_id: string;
+  source_hash: string;
+  source_length_bytes: number;
+  scope_kind: SearchScopeKind;
+  scope_refs: string[];
+  completion_ref: string;
+  expression_start_byte: number;
+  expression_end_byte: number;
+  expression_sha256: string;
+  basis_packet_ids: string[];
+  candidate_state: CandidateState;
+  candidate_refs: AmbiguityCandidate[];
+}
+
+export interface AmbiguityReviewSubject {
+  source_entity_kind: 'PKT' | 'CC';
+  source_entity_id: string;
+  source_id: string;
+  expression_locator: string;
+  expression_start_byte: number;
+  expression_end_byte: number;
+  expression_sha256: string;
+  expression_bytes_base64: string;
+  basis_packet_ids: string[];
+  search_scope_kind: SearchScopeKind;
+  search_completion_ref: string;
+  search_basis_digest: string;
+  candidate_state: CandidateState;
+  candidate_refs: AmbiguityCandidate[];
+  affected_relation_ids: string[];
+  resolution_state: ResolutionState;
+  carry_state: CarryState;
+  proposed_by: string;
+}
+
+export interface ImpactRow {
+  affected_id: string;
+  operation_kind: OperationKind;
+  requirement_ref: string;
+  unresolved_treatment: UnresolvedTreatment;
+  consequence_if_unresolved: string;
+}
+export interface OperativeScope {
+  affected_ids: string[];
+  impact_rows: ImpactRow[];
+}
+export interface ActionConsequence {
+  action: ProceduralAction;
+  terminality:
+    | 'progression-enabling-terminal'
+    | 'nonterminal'
+    | 'nonterminal-suspensive'
+    | 'current-request-terminal-current-run-non-progressing';
+  c2_effect: 'eligible-if-all-other-dod-pass' | 'not-eligible';
+  current_run_effect:
+    | 'continue-where-otherwise-legal'
+    | 'blocked-at-s4-c2'
+    | 'halted-successor-required';
+  scope_effect:
+    | 'carry-reviewed-unresolved-dependencies'
+    | 'prohibit-canonical-scope-operations'
+    | 'retain-observation-bytes-only'
+    | 'none';
+  next_request: 'none' | 'Q+1-after-basis-verification' | 'Q+1-after-actual-resume';
+  successor_run: 'not-required' | 'required';
+}
+export interface TextBlob {
+  encoding: 'base64';
+  media_type: 'text/plain; charset=utf-8';
+  bytes_base64: string;
+  sha256: string;
+}
+
+export interface MaterialImpactSubject {
+  format: typeof MATERIAL_IMPACT_SUBJECT_FORMAT;
+  run_id: string;
+  ambiguity_id: string;
+  assessment_seq: number;
+  material_impact_seq: number;
+  t5_2_assessment_ref: string;
+  t5_2_review_subject_digest: string;
+  t5_2_review_ref: string;
+  c1_relation_basis_ref: string;
+  materiality_class: 'B' | 'C';
+  operative_scope: OperativeScope;
+  source_locators: string[];
+  reviewed_unaffected_ids: string[];
+  unresolved_statement: string;
+  review_proposition:
+    'class-B-or-C-and-canonical-operative-scope-complete-and-accurate-under-cited-Core-requirements';
+  proposed_by: string;
+}
+
+export interface ProceduralAuthoritySubject {
+  format: typeof PROCEDURAL_SUBJECT_FORMAT;
+  decision_category: 'internal-ambiguity-procedural-decision';
+  run_id: string;
+  ambiguity_id: string;
+  assessment_seq: number;
+  t5_2_assessment_ref: string;
+  t5_2_review_subject_digest: string;
+  t5_2_review_ref: string;
+  prior_indeterminate_review_refs: string[];
+  resolution_state: 'unresolved';
+  candidate_state: CandidateState;
+  candidate_refs: AmbiguityCandidate[];
+  carry_state: CarryState;
+  affected_relation_ids: string[];
+  c1_relation_basis_ref: string;
+  material_impact_seq: number;
+  material_impact_subject_ref: string;
+  material_impact_review_ref: string;
+  material_impact_review_verdict: 'upheld';
+  materiality_class: 'C';
+  operative_scope: OperativeScope;
+  source_locators: string[];
+  reviewed_unaffected_ids: string[];
+  unresolved_statement: string;
+  allowed_actions: ProceduralAction[];
+  action_consequences: ActionConsequence[];
+}
+
+export interface ProceduralPresentation {
+  classification: 'NON-OPERATIVE-DETERMINISTIC-PROJECTION';
+  authority_subject_digest: string;
+  unresolved_statement: string;
+  operative_scope: OperativeScope;
+  source_locators: string[];
+  reviewed_unaffected_ids: string[];
+  allowed_actions: ProceduralAction[];
+  action_consequences: ActionConsequence[];
+}
+
+export interface ProceduralAuthorityRequest {
+  format: typeof AUTHORITY_REQUEST_FORMAT;
+  request_id: string;
+  decision_category: 'internal-ambiguity-procedural-decision';
+  run_id: string;
+  stage: 'S4';
+  barrier: 'S4-C2';
+  ambiguity_id: string;
+  assessment_seq: number;
+  authority_subject: ProceduralAuthoritySubject;
+  authority_subject_digest: string;
+  presentation: ProceduralPresentation | null;
+  required_authority: { kind: 'human'; identity: string };
+  prepared_by: string;
+  requested_at: string;
+}
+
+export interface ProceduralAuthorityResponse {
+  format: typeof AUTHORITY_RESPONSE_FORMAT;
+  response_id: string;
+  request_id: string;
+  request_ref: string;
+  request_digest: string;
+  authority_subject_digest: string;
+  authority: { kind: 'human'; identity: string };
+  selected_action: ProceduralAction;
+  observation: TextBlob | null;
+  comment: TextBlob | null;
+  recorded_at: string;
+}
+
+export interface PinnedCoreAuthority {
+  source_kind: 'retained-immutable-bundle';
+  root: string;
+  lock: BundleLock;
+  expected_bundle_digest: string;
+  expected_core_digest: string;
+  files?: ReadonlyMap<string, BundleFileRecord>;
+  file_bytes?: ReadonlyMap<string, Buffer>;
+}
+export interface ResolvedCoreRequirement {
+  requirement_ref: string;
+  path: string;
+  selector: string;
+  selector_kind: 'heading' | 'token';
+  bytes: Buffer;
+  digest: string;
+}
+
+function rowValues<K extends string>(
+  table: MarkdownTable | undefined,
+  keys: readonly K[],
+): Array<MarkdownTableRow & { values: Record<K, string> }> {
+  return (table?.rows || []).map((row) => {
+    const values = {} as Record<K, string>;
+    keys.forEach((key, index) => { values[key] = row.cells[index] || ''; });
+    return { ...row, values };
+  });
+}
+
+export function parseInternalAmbiguities(model: RunModel): InternalAmbiguityModel {
+  const document = model.documents.get('ledgers/internal-ambiguities.md') || null;
+  if (!document) {
+    return {
+      document: null,
+      format: '',
+      t5_1Tables: [],
+      t5_2Tables: [],
+      t5_3Tables: [],
+      t5_1Rows: [],
+      t5_2Rows: [],
+      t5_3Rows: [],
+    };
+  }
+  const t5_1Tables = findTables(document.tables, T5_1_HEADER);
+  const t5_2Tables = findTables(document.tables, T5_2_HEADER);
+  const t5_3Tables = findTables(document.tables, T5_3_HEADER);
+  return {
+    document,
+    format: parseBulletFields(document.text).fields.get('internal ambiguity format') || '',
+    t5_1Tables,
+    t5_2Tables,
+    t5_3Tables,
+    t5_1Rows: rowValues(t5_1Tables[0], [
+      'ambiguityId', 'sourceEntityKind', 'sourceEntityId', 'sourceId',
+      'expressionLocator', 'expressionStartByte', 'expressionEndByte',
+      'expressionSha256', 'expressionBytesBase64', 'basisPacketIds', 'detectedBy',
+    ]) as T5_1Row[],
+    t5_2Rows: rowValues(t5_2Tables[0], [
+      'ambiguityId', 'assessmentSeq', 'predecessorAssessmentSeq', 'searchScopeKind',
+      'searchSourceId', 'searchCompletionRef', 'searchBasisDigest', 'candidateState',
+      'candidateRefs', 'affectedRelationIds', 'resolutionState', 'carryState',
+      'proposedBy', 'reviewSubjectDigest', 'reviewedBy',
+    ]) as T5_2Row[],
+    t5_3Rows: rowValues(t5_3Tables[0], [
+      'ambiguityId', 'authoritySeq', 'assessmentSeq', 'action',
+      'selectedCandidateRef', 'authoritySubjectDigest', 'authorityRef',
+      'closureProvenance',
+    ]) as T5_3Row[],
+  };
+}
+
+export function sha256Digest(bytes: string | Buffer): string {
+  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+}
+
+export function parseOrderedIds(
+  value: string,
+  family: 'PKT' | 'REL',
+  allowNone = false,
+): { ids: string[]; clean: boolean } {
+  if (allowNone && value === 'none') return { ids: [], clean: true };
+  const parts = value.split(',');
+  const ids = parts.map((part) => part.trim()).filter(Boolean);
+  const number = (id: string): number => Number(id.slice(id.indexOf('-') + 1));
+  return {
+    ids,
+    clean: ids.length > 0
+      && ids.length === parts.length
+      && ids.every((id) => new RegExp(`^${family}-\\d{4,}$`, 'u').test(id))
+      && new Set(ids).size === ids.length
+      && ids.every((id, index) => index === 0 || number(ids[index - 1]) < number(id)),
+  };
+}
+
+function exactObjectKeys(value: object, keys: readonly string[]): boolean {
+  return Object.keys(value).join('\0') === keys.join('\0');
+}
+
+function numericSuffix(id: string): bigint {
+  return BigInt(id.slice(id.indexOf('-') + 1));
+}
+
+function compareCandidates(left: AmbiguityCandidate, right: AmbiguityCandidate): number {
+  if (left.kind !== right.kind) return left.kind === 'PKT' ? -1 : 1;
+  if (left.kind === 'PKT' && right.kind === 'PKT') {
+    const leftNumber = numericSuffix(left.id);
+    const rightNumber = numericSuffix(right.id);
+    return leftNumber < rightNumber ? -1 : leftNumber > rightNumber ? 1 : 0;
+  }
+  if (left.kind === 'source-locus' && right.kind === 'source-locus') {
+    const leftNumber = numericSuffix(left.source_id);
+    const rightNumber = numericSuffix(right.source_id);
+    if (leftNumber !== rightNumber) return leftNumber < rightNumber ? -1 : 1;
+    return Buffer.compare(Buffer.from(left.locator, 'utf8'), Buffer.from(right.locator, 'utf8'));
+  }
+  return 0;
+}
+
+export function parseCandidateRefs(
+  raw: string,
+): { candidates: AmbiguityCandidate[]; clean: boolean; error?: string } {
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw) as unknown; } catch {
+    return { candidates: [], clean: false, error: 'candidate_refs is not valid JSON' };
+  }
+  if (!Array.isArray(parsed) || JSON.stringify(parsed) !== raw) {
+    return { candidates: [], clean: false, error: 'candidate_refs must be compact canonical JSON' };
+  }
+  const candidates: AmbiguityCandidate[] = [];
+  for (const value of parsed) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return { candidates: [], clean: false, error: 'candidate_refs contains a non-object' };
+    }
+    const candidate = value as Record<string, unknown>;
+    if (candidate.kind === 'PKT') {
+      if (!exactObjectKeys(candidate, ['kind', 'id'])
+        || typeof candidate.id !== 'string'
+        || !/^PKT-\d{4,}$/u.test(candidate.id)) {
+        return { candidates: [], clean: false, error: 'PKT candidate grammar is invalid' };
+      }
+      candidates.push({ kind: 'PKT', id: candidate.id });
+    } else if (candidate.kind === 'source-locus') {
+      if (!exactObjectKeys(candidate, ['kind', 'source_id', 'locator', 'span_hash'])
+        || typeof candidate.source_id !== 'string'
+        || !/^SRC-\d{4,}$/u.test(candidate.source_id)
+        || typeof candidate.locator !== 'string' || candidate.locator.length === 0
+        || typeof candidate.span_hash !== 'string'
+        || !/^sha256:[a-f0-9]{64}$/u.test(candidate.span_hash)) {
+        return { candidates: [], clean: false, error: 'source-locus candidate grammar is invalid' };
+      }
+      candidates.push({
+        kind: 'source-locus',
+        source_id: candidate.source_id,
+        locator: candidate.locator,
+        span_hash: candidate.span_hash,
+      });
+    } else {
+      return { candidates: [], clean: false, error: 'candidate kind is not permitted' };
+    }
+  }
+  const serialized = candidates.map((candidate) => JSON.stringify(candidate));
+  if (new Set(serialized).size !== serialized.length) {
+    return { candidates: [], clean: false, error: 'candidate_refs contains duplicates' };
+  }
+  for (let index = 1; index < candidates.length; index += 1) {
+    if (compareCandidates(candidates[index - 1], candidates[index]) >= 0) {
+      return { candidates: [], clean: false, error: 'candidate_refs is not in canonical order' };
+    }
+  }
+  return { candidates, clean: true };
+}
+
+export function searchBasisJson(basis: SearchBasis): string {
+  return JSON.stringify({
+    format: INTERNAL_AMBIGUITY_SEARCH_BASIS_FORMAT,
+    source_id: basis.source_id,
+    source_hash: basis.source_hash,
+    source_length_bytes: basis.source_length_bytes,
+    scope_kind: basis.scope_kind,
+    scope_refs: basis.scope_refs,
+    completion_ref: basis.completion_ref,
+    expression_start_byte: basis.expression_start_byte,
+    expression_end_byte: basis.expression_end_byte,
+    expression_sha256: basis.expression_sha256,
+    basis_packet_ids: basis.basis_packet_ids,
+    candidate_state: basis.candidate_state,
+    candidate_refs: basis.candidate_refs,
+  });
+}
+export function searchBasisDigest(basis: SearchBasis): string {
+  return sha256Digest(Buffer.from(searchBasisJson(basis), 'utf8'));
+}
+
+export function ambiguityReviewSubjectJson(subject: AmbiguityReviewSubject): string {
+  return JSON.stringify({
+    format: INTERNAL_AMBIGUITY_REVIEW_SUBJECT_FORMAT,
+    source_entity_kind: subject.source_entity_kind,
+    source_entity_id: subject.source_entity_id,
+    source_id: subject.source_id,
+    expression_locator: subject.expression_locator,
+    expression_start_byte: subject.expression_start_byte,
+    expression_end_byte: subject.expression_end_byte,
+    expression_sha256: subject.expression_sha256,
+    expression_bytes_base64: subject.expression_bytes_base64,
+    basis_packet_ids: subject.basis_packet_ids,
+    search_scope_kind: subject.search_scope_kind,
+    search_completion_ref: subject.search_completion_ref,
+    search_basis_digest: subject.search_basis_digest,
+    candidate_state: subject.candidate_state,
+    candidate_refs: subject.candidate_refs,
+    affected_relation_ids: subject.affected_relation_ids,
+    resolution_state: subject.resolution_state,
+    carry_state: subject.carry_state,
+    proposed_by: subject.proposed_by,
+  });
+}
+export function ambiguityReviewSubjectDigest(subject: AmbiguityReviewSubject): string {
+  return sha256Digest(Buffer.from(ambiguityReviewSubjectJson(subject), 'utf8'));
+}
+
+const ACTION_CONSEQUENCES: Record<ProceduralAction, ActionConsequence> = {
+  'carry-unresolved': {
+    action: 'carry-unresolved', terminality: 'progression-enabling-terminal',
+    c2_effect: 'eligible-if-all-other-dod-pass', current_run_effect: 'continue-where-otherwise-legal',
+    scope_effect: 'carry-reviewed-unresolved-dependencies', next_request: 'none',
+    successor_run: 'not-required',
+  },
+  'restrict-downstream-use': {
+    action: 'restrict-downstream-use', terminality: 'progression-enabling-terminal',
+    c2_effect: 'eligible-if-all-other-dod-pass', current_run_effect: 'continue-where-otherwise-legal',
+    scope_effect: 'prohibit-canonical-scope-operations', next_request: 'none',
+    successor_run: 'not-required',
+  },
+  'inspect-source': {
+    action: 'inspect-source', terminality: 'nonterminal', c2_effect: 'not-eligible',
+    current_run_effect: 'blocked-at-s4-c2', scope_effect: 'none',
+    next_request: 'Q+1-after-basis-verification', successor_run: 'not-required',
+  },
+  'block-at-current-barrier': {
+    action: 'block-at-current-barrier', terminality: 'nonterminal-suspensive',
+    c2_effect: 'not-eligible', current_run_effect: 'blocked-at-s4-c2', scope_effect: 'none',
+    next_request: 'Q+1-after-actual-resume', successor_run: 'not-required',
+  },
+  'request-successor-corpus-run': {
+    action: 'request-successor-corpus-run',
+    terminality: 'current-request-terminal-current-run-non-progressing', c2_effect: 'not-eligible',
+    current_run_effect: 'halted-successor-required', scope_effect: 'none', next_request: 'none',
+    successor_run: 'required',
+  },
+  'record-human-observation': {
+    action: 'record-human-observation', terminality: 'nonterminal', c2_effect: 'not-eligible',
+    current_run_effect: 'blocked-at-s4-c2', scope_effect: 'retain-observation-bytes-only',
+    next_request: 'Q+1-after-basis-verification', successor_run: 'not-required',
+  },
+};
+
+export function projectProceduralActions(scope: OperativeScope): {
+  allowed_actions: ProceduralAction[];
+  action_consequences: ActionConsequence[];
+} {
+  const allowed = PROCEDURAL_ACTIONS.filter((action) => {
+    if (action === 'carry-unresolved') {
+      return scope.impact_rows.every((row) => (
+        row.unresolved_treatment === 'carry-only'
+        || row.unresolved_treatment === 'carry-or-restriction'
+      ));
+    }
+    if (action === 'restrict-downstream-use') {
+      return scope.impact_rows.every((row) => (
+        row.unresolved_treatment === 'restriction-only'
+        || row.unresolved_treatment === 'carry-or-restriction'
+      ));
+    }
+    return true;
+  });
+  return {
+    allowed_actions: allowed,
+    action_consequences: allowed.map((action) => structuredClone(ACTION_CONSEQUENCES[action])),
+  };
+}
+
+function affectedIdOrder(id: string): [number, bigint] {
+  const match = id.match(/^(PKT|CC|REL)-(\d{4,})$/u);
+  return match ? [['PKT', 'CC', 'REL'].indexOf(match[1]), BigInt(match[2])]
+    : [99, BigInt('999999999999999999999999999999999999')];
+}
+
+function compareAffectedIds(left: string, right: string): number {
+  const leftOrder = affectedIdOrder(left);
+  const rightOrder = affectedIdOrder(right);
+  if (leftOrder[0] !== rightOrder[0]) return leftOrder[0] - rightOrder[0];
+  return leftOrder[1] < rightOrder[1] ? -1 : leftOrder[1] > rightOrder[1] ? 1 : 0;
+}
+
+function compareImpactRows(left: ImpactRow, right: ImpactRow): number {
+  const idOrder = compareAffectedIds(left.affected_id, right.affected_id);
+  if (idOrder !== 0) return idOrder;
+  const operationOrder = OPERATION_KINDS.indexOf(left.operation_kind)
+    - OPERATION_KINDS.indexOf(right.operation_kind);
+  if (operationOrder !== 0) return operationOrder;
+  return Buffer.compare(
+    Buffer.from(left.requirement_ref, 'utf8'),
+    Buffer.from(right.requirement_ref, 'utf8'),
+  );
+}
+
+export function operativeScopeProblems(scope: OperativeScope): string[] {
+  const problems: string[] = [];
+  if (!exactObjectKeys(scope, ['affected_ids', 'impact_rows'])
+    || !Array.isArray(scope.affected_ids) || !Array.isArray(scope.impact_rows)) {
+    return ['operative_scope must contain exactly affected_ids and impact_rows arrays'];
+  }
+  if (scope.affected_ids.some((id) => !/^(?:PKT|CC|REL)-\d{4,}$/u.test(id))) {
+    problems.push('operative_scope affected_ids contains an illegal ID kind');
+  }
+  if (new Set(scope.affected_ids).size !== scope.affected_ids.length) {
+    problems.push('operative_scope affected_ids contains duplicates');
+  }
+  for (let index = 1; index < scope.affected_ids.length; index += 1) {
+    if (compareAffectedIds(scope.affected_ids[index - 1], scope.affected_ids[index]) >= 0) {
+      problems.push('operative_scope affected_ids is not in canonical order');
+      break;
+    }
+  }
+  const tuples = new Map<string, ImpactRow>();
+  const projected = new Set<string>();
+  let previousRow: ImpactRow | null = null;
+  for (const row of scope.impact_rows) {
+    if (!row || typeof row !== 'object' || !exactObjectKeys(row, [
+      'affected_id', 'operation_kind', 'requirement_ref',
+      'unresolved_treatment', 'consequence_if_unresolved',
+    ])) {
+      problems.push('impact row fields are malformed');
+      continue;
+    }
+    projected.add(row.affected_id);
+    if (!(OPERATION_KINDS as readonly string[]).includes(row.operation_kind)) {
+      problems.push(`${row.affected_id || 'impact row'} has illegal operation_kind`);
+    }
+    if (!(UNRESOLVED_TREATMENTS as readonly string[]).includes(row.unresolved_treatment)) {
+      problems.push(`${row.affected_id || 'impact row'} has illegal unresolved_treatment`);
+    }
+    if (!row.consequence_if_unresolved
+      || row.consequence_if_unresolved !== row.consequence_if_unresolved.trim()) {
+      problems.push(`${row.affected_id || 'impact row'} has malformed consequence prose`);
+    }
+    const tuple = `${row.affected_id}\0${row.operation_kind}\0${row.requirement_ref}`;
+    const prior = tuples.get(tuple);
+    if (prior) {
+      problems.push(
+        prior.unresolved_treatment === row.unresolved_treatment
+          && prior.consequence_if_unresolved === row.consequence_if_unresolved
+          ? 'impact rows contain a duplicate tuple'
+          : 'impact rows contain contradictory duplicate tuples',
+      );
+    } else tuples.set(tuple, row);
+    if (previousRow && compareImpactRows(previousRow, row) >= 0) {
+      problems.push('impact rows are not in canonical order');
+    }
+    previousRow = row;
+  }
+  if (projected.size !== scope.affected_ids.length
+    || scope.affected_ids.some((id) => !projected.has(id))) {
+    problems.push('operative_scope affected_ids must equal the impact-row ID projection');
+  }
+  return problems;
+}
+
+export function materialImpactSubjectJson(subject: MaterialImpactSubject): string {
+  return JSON.stringify({
+    format: subject.format,
+    run_id: subject.run_id,
+    ambiguity_id: subject.ambiguity_id,
+    assessment_seq: subject.assessment_seq,
+    material_impact_seq: subject.material_impact_seq,
+    t5_2_assessment_ref: subject.t5_2_assessment_ref,
+    t5_2_review_subject_digest: subject.t5_2_review_subject_digest,
+    t5_2_review_ref: subject.t5_2_review_ref,
+    c1_relation_basis_ref: subject.c1_relation_basis_ref,
+    materiality_class: subject.materiality_class,
+    operative_scope: subject.operative_scope,
+    source_locators: subject.source_locators,
+    reviewed_unaffected_ids: subject.reviewed_unaffected_ids,
+    unresolved_statement: subject.unresolved_statement,
+    review_proposition: subject.review_proposition,
+    proposed_by: subject.proposed_by,
+  });
+}
+export function materialImpactSubjectDigest(subject: MaterialImpactSubject): string {
+  return sha256Digest(Buffer.from(materialImpactSubjectJson(subject), 'utf8'));
+}
+
+export function proceduralAuthoritySubjectJson(subject: ProceduralAuthoritySubject): string {
+  return JSON.stringify({
+    format: subject.format,
+    decision_category: subject.decision_category,
+    run_id: subject.run_id,
+    ambiguity_id: subject.ambiguity_id,
+    assessment_seq: subject.assessment_seq,
+    t5_2_assessment_ref: subject.t5_2_assessment_ref,
+    t5_2_review_subject_digest: subject.t5_2_review_subject_digest,
+    t5_2_review_ref: subject.t5_2_review_ref,
+    prior_indeterminate_review_refs: subject.prior_indeterminate_review_refs,
+    resolution_state: subject.resolution_state,
+    candidate_state: subject.candidate_state,
+    candidate_refs: subject.candidate_refs,
+    carry_state: subject.carry_state,
+    affected_relation_ids: subject.affected_relation_ids,
+    c1_relation_basis_ref: subject.c1_relation_basis_ref,
+    material_impact_seq: subject.material_impact_seq,
+    material_impact_subject_ref: subject.material_impact_subject_ref,
+    material_impact_review_ref: subject.material_impact_review_ref,
+    material_impact_review_verdict: subject.material_impact_review_verdict,
+    materiality_class: subject.materiality_class,
+    operative_scope: subject.operative_scope,
+    source_locators: subject.source_locators,
+    reviewed_unaffected_ids: subject.reviewed_unaffected_ids,
+    unresolved_statement: subject.unresolved_statement,
+    allowed_actions: subject.allowed_actions,
+    action_consequences: subject.action_consequences,
+  });
+}
+export function proceduralAuthoritySubjectDigest(subject: ProceduralAuthoritySubject): string {
+  return sha256Digest(Buffer.from(proceduralAuthoritySubjectJson(subject), 'utf8'));
+}
+
+export function buildProceduralAuthoritySubject(input: Omit<
+  ProceduralAuthoritySubject,
+  'format' | 'decision_category' | 'resolution_state' | 'material_impact_review_verdict'
+  | 'materiality_class' | 'allowed_actions' | 'action_consequences'
+>): ProceduralAuthoritySubject {
+  const problems = operativeScopeProblems(input.operative_scope);
+  if (problems.length || input.operative_scope.impact_rows.length === 0) {
+    throw new Error(`Class C operative scope is invalid: ${problems.join('; ') || 'empty impact rows'}`);
+  }
+  const projection = projectProceduralActions(input.operative_scope);
+  return {
+    format: PROCEDURAL_SUBJECT_FORMAT,
+    decision_category: 'internal-ambiguity-procedural-decision',
+    run_id: input.run_id,
+    ambiguity_id: input.ambiguity_id,
+    assessment_seq: input.assessment_seq,
+    t5_2_assessment_ref: input.t5_2_assessment_ref,
+    t5_2_review_subject_digest: input.t5_2_review_subject_digest,
+    t5_2_review_ref: input.t5_2_review_ref,
+    prior_indeterminate_review_refs: input.prior_indeterminate_review_refs,
+    resolution_state: 'unresolved',
+    candidate_state: input.candidate_state,
+    candidate_refs: input.candidate_refs,
+    carry_state: input.carry_state,
+    affected_relation_ids: input.affected_relation_ids,
+    c1_relation_basis_ref: input.c1_relation_basis_ref,
+    material_impact_seq: input.material_impact_seq,
+    material_impact_subject_ref: input.material_impact_subject_ref,
+    material_impact_review_ref: input.material_impact_review_ref,
+    material_impact_review_verdict: 'upheld',
+    materiality_class: 'C',
+    operative_scope: input.operative_scope,
+    source_locators: input.source_locators,
+    reviewed_unaffected_ids: input.reviewed_unaffected_ids,
+    unresolved_statement: input.unresolved_statement,
+    allowed_actions: projection.allowed_actions,
+    action_consequences: projection.action_consequences,
+  };
+}
+
+export function proceduralRequestId(
+  ambiguityId: string,
+  assessmentSeq: number,
+  requestSeq: number,
+): string {
+  if (!/^AMB-\d{4,}$/u.test(ambiguityId)
+    || !Number.isSafeInteger(assessmentSeq) || assessmentSeq < 1
+    || !Number.isSafeInteger(requestSeq) || requestSeq < 1) {
+    throw new Error('procedural request identity components are invalid');
+  }
+  return `GATE-S4-${ambiguityId}-A${String(assessmentSeq)}-Q${String(requestSeq)}`;
+}
+export function proceduralResponseId(requestId: string): string {
+  if (!/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*$/u.test(requestId)) {
+    throw new Error('procedural request identity is invalid');
+  }
+  return requestId.replace(/^GATE/u, 'RESP');
+}
+
+export function proceduralPresentation(subject: ProceduralAuthoritySubject): ProceduralPresentation {
+  return {
+    classification: 'NON-OPERATIVE-DETERMINISTIC-PROJECTION',
+    authority_subject_digest: proceduralAuthoritySubjectDigest(subject),
+    unresolved_statement: subject.unresolved_statement,
+    operative_scope: structuredClone(subject.operative_scope),
+    source_locators: [...subject.source_locators],
+    reviewed_unaffected_ids: [...subject.reviewed_unaffected_ids],
+    allowed_actions: [...subject.allowed_actions],
+    action_consequences: structuredClone(subject.action_consequences),
+  };
+}
+
+export function buildProceduralAuthorityRequest(options: {
+  request_seq: number;
+  subject: ProceduralAuthoritySubject;
+  presentation: boolean;
+  required_authority_identity: string;
+  prepared_by: string;
+  requested_at: string;
+}): ProceduralAuthorityRequest {
+  if (!options.required_authority_identity
+    || options.required_authority_identity !== options.required_authority_identity.trim()
+    || !/^(?:human|invocation):\S+$/u.test(options.prepared_by)
+    || !options.requested_at || options.requested_at !== options.requested_at.trim()) {
+    throw new Error('procedural request authority, producer, or timestamp is invalid');
+  }
+  return {
+    format: AUTHORITY_REQUEST_FORMAT,
+    request_id: proceduralRequestId(
+      options.subject.ambiguity_id,
+      options.subject.assessment_seq,
+      options.request_seq,
+    ),
+    decision_category: 'internal-ambiguity-procedural-decision',
+    run_id: options.subject.run_id,
+    stage: 'S4',
+    barrier: 'S4-C2',
+    ambiguity_id: options.subject.ambiguity_id,
+    assessment_seq: options.subject.assessment_seq,
+    authority_subject: options.subject,
+    authority_subject_digest: proceduralAuthoritySubjectDigest(options.subject),
+    presentation: options.presentation ? proceduralPresentation(options.subject) : null,
+    required_authority: { kind: 'human', identity: options.required_authority_identity },
+    prepared_by: options.prepared_by,
+    requested_at: options.requested_at,
+  };
+}
+
+export function proceduralAuthorityRequestJson(request: ProceduralAuthorityRequest): string {
+  return JSON.stringify({
+    format: request.format,
+    request_id: request.request_id,
+    decision_category: request.decision_category,
+    run_id: request.run_id,
+    stage: request.stage,
+    barrier: request.barrier,
+    ambiguity_id: request.ambiguity_id,
+    assessment_seq: request.assessment_seq,
+    authority_subject: request.authority_subject,
+    authority_subject_digest: request.authority_subject_digest,
+    presentation: request.presentation,
+    required_authority: request.required_authority,
+    prepared_by: request.prepared_by,
+    requested_at: request.requested_at,
+  });
+}
+
+export function validateProceduralAuthorityRequest(request: ProceduralAuthorityRequest): Buffer {
+  const requestSeq = Number(request.request_id.match(/-Q([1-9]\d*)$/u)?.[1] || '0');
+  const projection = projectProceduralActions(request.authority_subject.operative_scope);
+  const expectedPresentation = proceduralPresentation(request.authority_subject);
+  if (request.format !== AUTHORITY_REQUEST_FORMAT
+    || request.decision_category !== 'internal-ambiguity-procedural-decision'
+    || request.stage !== 'S4' || request.barrier !== 'S4-C2'
+    || request.request_id !== proceduralRequestId(request.ambiguity_id, request.assessment_seq, requestSeq)
+    || request.run_id !== request.authority_subject.run_id
+    || request.ambiguity_id !== request.authority_subject.ambiguity_id
+    || request.assessment_seq !== request.authority_subject.assessment_seq
+    || request.authority_subject_digest !== proceduralAuthoritySubjectDigest(request.authority_subject)
+    || JSON.stringify(request.authority_subject.allowed_actions) !== JSON.stringify(projection.allowed_actions)
+    || JSON.stringify(request.authority_subject.action_consequences) !== JSON.stringify(projection.action_consequences)
+    || (request.presentation !== null
+      && JSON.stringify(request.presentation) !== JSON.stringify(expectedPresentation))
+    || request.required_authority.kind !== 'human' || !request.required_authority.identity
+    || !/^(?:human|invocation):\S+$/u.test(request.prepared_by) || !request.requested_at) {
+    throw new Error('procedural authority request is inconsistent');
+  }
+  const text = proceduralAuthorityRequestJson(request);
+  if (text !== JSON.stringify(request)
+    || proceduralAuthoritySubjectJson(request.authority_subject)
+      !== JSON.stringify(request.authority_subject)) {
+    throw new Error('procedural authority request keys are not in exact canonical order');
+  }
+  return Buffer.from(text, 'utf8');
+}
+
+export function buildProceduralAuthorityResponse(options: {
+  request: ProceduralAuthorityRequest;
+  request_bytes: Buffer;
+  authority_identity: string;
+  selected_action: ProceduralAction;
+  observation: TextBlob | null;
+  comment: TextBlob | null;
+  recorded_at: string;
+}): ProceduralAuthorityResponse {
+  const canonical = Buffer.from(proceduralAuthorityRequestJson(options.request), 'utf8');
+  if (!canonical.equals(options.request_bytes)) {
+    throw new Error('procedural response request bytes are not exact canonical retained bytes');
+  }
+  if (options.authority_identity !== options.request.required_authority.identity
+    || !options.request.authority_subject.allowed_actions.includes(options.selected_action)
+    || !options.recorded_at || options.recorded_at !== options.recorded_at.trim()) {
+    throw new Error('procedural response authority, action, or timestamp is invalid');
+  }
+  if (options.observation !== null) validateTextBlob(options.observation);
+  if (options.comment !== null) validateTextBlob(options.comment);
+  if ((options.selected_action === 'record-human-observation') !== (options.observation !== null)) {
+    throw new Error('record-human-observation is exactly the action that requires observation bytes');
+  }
+  return {
+    format: AUTHORITY_RESPONSE_FORMAT,
+    response_id: proceduralResponseId(options.request.request_id),
+    request_id: options.request.request_id,
+    request_ref: `control/gates/${options.request.request_id}-request.json`,
+    request_digest: sha256Digest(options.request_bytes),
+    authority_subject_digest: options.request.authority_subject_digest,
+    authority: { kind: 'human', identity: options.authority_identity },
+    selected_action: options.selected_action,
+    observation: options.observation,
+    comment: options.comment,
+    recorded_at: options.recorded_at,
+  };
+}
+
+export function proceduralAuthorityResponseJson(response: ProceduralAuthorityResponse): string {
+  return JSON.stringify({
+    format: response.format,
+    response_id: response.response_id,
+    request_id: response.request_id,
+    request_ref: response.request_ref,
+    request_digest: response.request_digest,
+    authority_subject_digest: response.authority_subject_digest,
+    authority: response.authority,
+    selected_action: response.selected_action,
+    observation: response.observation,
+    comment: response.comment,
+    recorded_at: response.recorded_at,
+  });
+}
+
+export function validateProceduralAuthorityResponse(
+  request: ProceduralAuthorityRequest,
+  requestBytes: Buffer,
+  response: ProceduralAuthorityResponse,
+): Buffer {
+  const rebuilt = buildProceduralAuthorityResponse({
+    request,
+    request_bytes: requestBytes,
+    authority_identity: response.authority.identity,
+    selected_action: response.selected_action,
+    observation: response.observation,
+    comment: response.comment,
+    recorded_at: response.recorded_at,
+  });
+  if (JSON.stringify(rebuilt) !== JSON.stringify(response)) {
+    throw new Error('procedural authority response does not equal the exact Core projection');
+  }
+  const text = proceduralAuthorityResponseJson(response);
+  if (text !== JSON.stringify(response)) {
+    throw new Error('procedural authority response keys are not in exact canonical order');
+  }
+  return Buffer.from(text, 'utf8');
+}
+
+export function exactTextBlob(bytes: Buffer): TextBlob {
+  return {
+    encoding: 'base64',
+    media_type: 'text/plain; charset=utf-8',
+    bytes_base64: bytes.toString('base64'),
+    sha256: sha256Digest(bytes),
+  };
+}
+export function validateTextBlob(value: unknown): Buffer {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || !exactObjectKeys(value, ['encoding', 'media_type', 'bytes_base64', 'sha256'])) {
+    throw new Error('human text blob fields are malformed');
+  }
+  const blob = value as Record<string, unknown>;
+  if (blob.encoding !== 'base64' || blob.media_type !== 'text/plain; charset=utf-8'
+    || typeof blob.bytes_base64 !== 'string' || typeof blob.sha256 !== 'string'
+    || !/^sha256:[a-f0-9]{64}$/u.test(blob.sha256)) {
+    throw new Error('human text blob contract is invalid');
+  }
+  const bytes = Buffer.from(blob.bytes_base64, 'base64');
+  const text = bytes.toString('utf8');
+  if (bytes.toString('base64') !== blob.bytes_base64
+    || sha256Digest(bytes) !== blob.sha256
+    || text.includes('\uFFFD')
+    || !Buffer.from(text, 'utf8').equals(bytes)) {
+    throw new Error('human text blob bytes are not exact canonical UTF-8');
+  }
+  return bytes;
+}
+
+export function closurePhasesFromText(text: string): ClosurePhase[] {
+  const phases: ClosurePhase[] = [];
+  for (const line of text.split(/\r?\n/u)) {
+    const match = line.match(/^\s*closure_phase:\s*(\S+)\s*$/u);
+    if (match && (CLOSURE_PHASES as readonly string[]).includes(match[1])) {
+      phases.push(match[1] as ClosurePhase);
+    }
+  }
+  return phases;
+}
+export function closurePhases(document: RunDocument | null): ClosurePhase[] {
+  return document ? closurePhasesFromText(document.text) : [];
+}
+export function highestClosurePhase(document: RunDocument | null): ClosurePhase | null {
+  return closurePhases(document).at(-1) || null;
+}
+export function nextClosurePhase(phases: readonly ClosurePhase[]): ClosurePhase {
+  if (phases.some((phase, index) => phase !== CLOSURE_PHASES[index])) {
+    throw new Error('retained closure phases are duplicated, skipped, or out of order');
+  }
+  const next = CLOSURE_PHASES[phases.length];
+  if (!next) throw new Error('S4 composite barrier is already complete');
+  return next;
+}
+
+function parseRequirementRef(requirementRef: string): { path: string; selector: string } {
+  if (!requirementRef.startsWith('core:') || requirementRef !== requirementRef.trim()
+    || requirementRef.includes('\\') || requirementRef.includes('%')
+    || requirementRef.includes('://') || requirementRef.includes('\0')) {
+    throw new Error('requirement_ref must use exact core:<path>#<selector> grammar');
+  }
+  const parts = requirementRef.slice('core:'.length).split('#');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw new Error('requirement_ref must contain exactly one nonempty selector');
+  }
+  const [path, selector] = parts;
+  if (path.startsWith('/') || path.startsWith('./') || path.includes('//')
+    || path.split('/').some((part) => !part || part === '.' || part === '..')
+    || selector !== selector.trim() || /^(?:L|line:|lines:)\d/iu.test(selector)) {
+    throw new Error('requirement_ref path or selector is noncanonical');
+  }
+  return { path, selector };
+}
+
+function headingMatches(bytes: Buffer, selector: string): Buffer[] {
+  const lines = bytes.toString('utf8').split(/(?<=\n)/u);
+  const matches: Buffer[] = [];
+  let offset = 0;
+  let fence: { marker: string; length: number } | null = null;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const noEnding = line.replace(/\r?\n$/u, '');
+    const fenceMatch = noEnding.match(/^\s*(`{3,}|~{3,})/u);
+    if (fenceMatch) {
+      const marker = fenceMatch[1][0];
+      if (!fence) fence = { marker, length: fenceMatch[1].length };
+      else if (fence.marker === marker && fenceMatch[1].length >= fence.length) fence = null;
+      offset += Buffer.byteLength(line, 'utf8');
+      continue;
+    }
+    const heading = fence ? null : noEnding.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/u);
+    if (heading && heading[2] === selector) {
+      const level = heading[1].length;
+      let end = bytes.byteLength;
+      let innerOffset = offset + Buffer.byteLength(line, 'utf8');
+      let innerFence: { marker: string; length: number } | null = null;
+      for (let next = index + 1; next < lines.length; next += 1) {
+        const candidate = lines[next].replace(/\r?\n$/u, '');
+        const candidateFence = candidate.match(/^\s*(`{3,}|~{3,})/u);
+        if (candidateFence) {
+          const marker = candidateFence[1][0];
+          if (!innerFence) innerFence = { marker, length: candidateFence[1].length };
+          else if (innerFence.marker === marker && candidateFence[1].length >= innerFence.length) innerFence = null;
+        } else if (!innerFence) {
+          const nextHeading = candidate.match(/^(#{1,6})\s+/u);
+          if (nextHeading && nextHeading[1].length <= level) { end = innerOffset; break; }
+        }
+        innerOffset += Buffer.byteLength(lines[next], 'utf8');
+      }
+      matches.push(bytes.subarray(offset, end));
+    }
+    offset += Buffer.byteLength(line, 'utf8');
+  }
+  return matches;
+}
+
+function tokenMatches(bytes: Buffer, selector: string): Buffer[] {
+  if (!/^[A-Za-z][A-Za-z0-9]*(?:[-_.][A-Za-z0-9]+)+$/u.test(selector)) return [];
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  const pattern = new RegExp(`(?<![A-Za-z0-9_.-])${escaped}(?![A-Za-z0-9_.-])`, 'gu');
+  return [...bytes.toString('utf8').matchAll(pattern)].map((match) => Buffer.from(match[0], 'utf8'));
+}
+
+export function resolvePinnedCoreRequirement(
+  authority: PinnedCoreAuthority,
+  requirementRef: string,
+): ResolvedCoreRequirement {
+  if (authority.source_kind !== 'retained-immutable-bundle') {
+    throw new Error('requirement_ref authority is not a retained immutable bundle');
+  }
+  if (authority.lock.bundle.digest !== authority.expected_bundle_digest
+    || authority.lock.core.tree_digest !== authority.expected_core_digest) {
+    throw new Error('run-pinned bundle/Core identity does not match retained lock authority');
+  }
+  if (authority.lock.source.manifest_projection_digest
+    !== sha256Digest(canonicalJsonBytes(authority.lock.source.manifest_projection))) {
+    throw new Error('retained Core manifest projection digest is invalid');
+  }
+  const { path, selector } = parseRequirementRef(requirementRef);
+  const corePaths = authority.lock.source.manifest_projection.files.core;
+  if (!corePaths.includes(path)) throw new Error('requirement_ref path is not Core-classified');
+  const records = authority.files
+    ? [...authority.files.values()].filter((record) => record.path === path)
+    : authority.lock.files.filter((record) => record.path === path);
+  if (records.length !== 1 || records[0].classification !== 'core') {
+    throw new Error('requirement_ref path does not resolve uniquely in the pinned Core inventory');
+  }
+  const bytes = authority.file_bytes?.get(path)
+    || (existsSync(join(authority.root, path)) ? readFileSync(join(authority.root, path)) : null);
+  if (!bytes || sha256Digest(bytes) !== records[0].digest) {
+    throw new Error('retained Core bytes are absent or disagree with the pinned inventory');
+  }
+  const headings = headingMatches(bytes, selector);
+  const tokens = tokenMatches(bytes, selector);
+  if (headings.length + tokens.length !== 1) {
+    throw new Error('requirement_ref selector does not resolve to one exact heading or durable token');
+  }
+  const selectorKind = headings.length === 1 ? 'heading' : 'token';
+  const selected = headings[0] || tokens[0];
+  return {
+    requirement_ref: requirementRef,
+    path,
+    selector,
+    selector_kind: selectorKind,
+    bytes: selected,
+    digest: sha256Digest(selected),
+  };
+}
+
+export function restrictionOverlay(scope: OperativeScope): Array<{
+  affected_id: string;
+  operation_kind: OperationKind;
+  requirement_ref: string;
+}> {
+  return scope.impact_rows.map((row) => ({
+    affected_id: row.affected_id,
+    operation_kind: row.operation_kind,
+    requirement_ref: row.requirement_ref,
+  }));
+}
+
+export function tableLooksLike(table: MarkdownTable, first: string): boolean {
+  return normalizeHeader(table.header[0]) === normalizeHeader(first);
+}
