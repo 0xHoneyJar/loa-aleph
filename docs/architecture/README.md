@@ -48,6 +48,7 @@ the
 | 12 | [`12-risks-open-questions-do-not-build.md`](12-risks-open-questions-do-not-build.md) | Risk register, open decisions, and the consolidated do-not-build list |
 | 13 | [`13-build-handoff.md`](13-build-handoff.md) | **The builder's entry point**: mission, read order, work packages WP1–WP8 with per-package Definitions of Done |
 | 14 | [`14-slice-4-implementation-reconciliation.md`](14-slice-4-implementation-reconciliation.md) | Slice 4 DoD-01..21 implementation mapping, structural evidence, and preserved/open findings |
+| 15 | [`15-slice-5-implementation-reconciliation.md`](15-slice-5-implementation-reconciliation.md) | Slice 5/OQ-01 implementation mapping, structural/process evidence, status boundaries, and independent-audit handoff |
 
 ## Build kits (the with-what)
 
