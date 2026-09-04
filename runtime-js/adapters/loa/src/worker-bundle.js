@@ -4,6 +4,8 @@ import { CORE_STAGES, LOA_WORKER_REQUEST_FORMAT, } from './types.js';
 import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, digestTreeRecords, inventoryTree, makeTreeReadOnly, readJsonFile, readStableRegularFile, sha256Digest, stableJsonBytes, utf8Compare, walkRegularFiles, writeFileAtomic, writeJsonAtomic, } from './fs.js';
 import { readRunState } from './run-control.js';
 import { loadCorePart, loadOutputContract, } from './core-loader.js';
+import { assertDownstreamOperationsAllowed, retainedRestrictionOverlays, } from '../../../scripts/lib/internal-ambiguity.js';
+import { loadRun } from '../../../scripts/lib/run-model.js';
 const ROLE_SPECS = {
     'intake-clerk': {
         path: 'docs/architecture/prompts/workers-intake-extraction.md',
@@ -23,6 +25,26 @@ const ROLE_SPECS = {
     'merge-judge': {
         path: 'docs/architecture/prompts/workers-intake-extraction.md',
         heading: 'Role: Merge Judge (S4, global barrier)',
+        stages: ['S4'],
+    },
+    'ambiguity-producer': {
+        path: 'docs/architecture/prompts/workers-internal-ambiguity.md',
+        heading: 'Role: Internal Ambiguity Producer (S4-C2)',
+        stages: ['S4'],
+    },
+    'ambiguity-reviewer': {
+        path: 'docs/architecture/prompts/workers-internal-ambiguity.md',
+        heading: 'Role: Fresh Internal Ambiguity Reviewer (S4-C2)',
+        stages: ['S4'],
+    },
+    'material-impact-producer': {
+        path: 'docs/architecture/prompts/workers-internal-ambiguity.md',
+        heading: 'Role: Material-Impact Producer (S4-C2)',
+        stages: ['S4'],
+    },
+    'material-impact-reviewer': {
+        path: 'docs/architecture/prompts/workers-internal-ambiguity.md',
+        heading: 'Role: Fresh Material-Impact Reviewer (S4-C2)',
         stages: ['S4'],
     },
     'disposition-judge': {
@@ -267,7 +289,9 @@ export function assembleWorkerBundle(options) {
         throw new Error(`invalid worker call ID: ${options.callId}`);
     }
     if (options.kind === 'refuter' && !options.role.startsWith('verifier-l')
-        && options.role !== 'adversarial-panel') {
+        && options.role !== 'adversarial-panel'
+        && options.role !== 'ambiguity-reviewer'
+        && options.role !== 'material-impact-reviewer') {
         throw new Error(`refuter dispatch requires a verifier or adversarial role: ${options.role}`);
     }
     if (options.kind === 'producer' && options.role.startsWith('verifier-l')) {
@@ -277,6 +301,17 @@ export function assembleWorkerBundle(options) {
         throw new Error('refuter dispatch requires a nonempty producer context ID');
     }
     const runDir = resolve(options.runDir);
+    const stageIndex = CORE_STAGES.indexOf(options.stage);
+    const downstream = stageIndex >= CORE_STAGES.indexOf('S5');
+    const restrictions = downstream ? retainedRestrictionOverlays(loadRun(runDir)) : [];
+    const downstreamOperations = options.downstreamOperations || [];
+    if (!downstream && downstreamOperations.length > 0) {
+        throw new Error('typed downstream operations are legal only at S5 or later');
+    }
+    if (downstream && restrictions.length > 0 && options.downstreamOperations === undefined) {
+        throw new Error('retained procedural restrictions require typed downstream operation tuples');
+    }
+    assertDownstreamOperationsAllowed(restrictions, downstreamOperations);
     assertPinnedRunAndModel(runDir, options.runId, options.role, options.modelIdentity, options.bundle);
     const root = resolve(options.outputDir || join(runDir, 'control', 'worker-bundles', options.callId));
     assertPathWithin(runDir, root, 'worker bundle');
@@ -362,6 +397,8 @@ export function assembleWorkerBundle(options) {
             blind_policy: blindPolicy,
             allowlist: attachments,
             withheld: options.withheld,
+            procedural_restrictions: restrictions,
+            downstream_operations: downstreamOperations,
             task_line: validateTaskLine(options.taskLine),
             output_contract: {
                 core_path: contract.path,
@@ -401,6 +438,19 @@ export function verifyWorkerBundle(root) {
     if (workerBundleDigest(bundleRoot, request) !== request.bundle_digest) {
         throw new Error('worker bundle digest mismatch');
     }
+    const runDir = resolve(bundleRoot, '../../..');
+    const downstream = CORE_STAGES.indexOf(request.stage) >= CORE_STAGES.indexOf('S5');
+    const restrictions = downstream ? retainedRestrictionOverlays(loadRun(runDir)) : [];
+    if (JSON.stringify(request.procedural_restrictions) !== JSON.stringify(restrictions)) {
+        throw new Error('worker procedural restrictions disagree with retained Core authority');
+    }
+    if (!downstream && request.downstream_operations.length > 0) {
+        throw new Error('worker carries downstream operations before S5');
+    }
+    if (downstream && restrictions.length > 0 && request.downstream_operations.length === 0) {
+        throw new Error('restricted downstream worker omits typed operation tuples');
+    }
+    assertDownstreamOperationsAllowed(restrictions, request.downstream_operations);
     for (const part of request.core_parts) {
         if (sha256Digest(readFileSync(join(bundleRoot, part.materialized_path))) !== part.digest) {
             throw new Error(`worker Core part changed: ${part.materialized_path}`);

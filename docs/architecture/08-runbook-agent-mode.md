@@ -154,6 +154,15 @@ Stage-specific amplifications (read with doc 04):
   evidence identity unchanged.
 - **S4:** when in doubt, don't merge — two similar-but-distinct claims cost a
   little compactness; one lazy merge costs a contradiction its visibility.
+  In run format 1.5, close and validate relations at C1, then make their bytes
+  immediately read-only. During C2, use the four dedicated ambiguity and
+  material-impact roles from the pinned prompt pack; keep their bundles sealed
+  from human responses, observations, desired conclusions, and external
+  knowledge. Resolve every `requirement_ref` only through the retained bundle
+  lock and exact Core bytes. Core computes legal procedural actions and the
+  full presentation. For Class C, persist the real human request and halt;
+  never invent, infer, normalize, or complete a response. Resume at the first
+  unmet durable action under the same pins. C3 is the only exit to S5.
 - **S5:** the seven dispositions are the only vocabulary. "Sort of carried"
   is `unresolved`. Every exclusion writes its reason at decision time, not
   retroactively.

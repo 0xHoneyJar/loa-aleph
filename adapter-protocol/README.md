@@ -2,7 +2,7 @@
 
 > **Protocol version:** `1.0.0-provisional`
 >
-> **Run-format version:** `1.4.0-provisional`
+> **Run-format version:** `1.5.0-provisional`
 > **Status:** accepted foundation; the Loa host adapter is implemented but not
 > validated or sanctioned, while the other registered host remains planned
 
@@ -135,3 +135,13 @@ review-subject digest/verdict binding, and S4-only canonical write window.
 Adapters may expose only host mechanics for that Core contract; this format
 does not validate the Loa writer path, resolve F-03/F-04/F-05, or sanction
 agent mode.
+
+Run format `1.5.0-provisional` cumulatively retains every 1.0–1.4 capability
+and adds the Core-owned `internal-ambiguity-lifecycle`. It introduces the
+three-table `ledgers/internal-ambiguities.md`, the ordered S4-C1/C2/C3
+composite barrier, phase-aware K2.16 checking, structural K2.17 checking,
+pinned immutable-Core requirement resolution, and procedural authority that
+cannot determine source meaning or select a candidate. Retained 1.0–1.4 runs
+remain governed by their original pinned format, bundle, and runtime without
+migration, reinterpretation, or silent upgrade. Manual mode remains the only
+sanctioned execution path.

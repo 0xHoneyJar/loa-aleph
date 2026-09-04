@@ -92,6 +92,7 @@ audit. The Fable mapping in doc 05 §5 is reference material only.
 |------|-------|
 | [`orchestrator.md`](orchestrator.md) | the run orchestrator |
 | [`workers-intake-extraction.md`](workers-intake-extraction.md) | intake clerk · extractor · normalizer · merge judge |
+| [`workers-internal-ambiguity.md`](workers-internal-ambiguity.md) | ambiguity producer · fresh ambiguity reviewer · material-impact producer · fresh material-impact reviewer |
 | [`workers-judgment.md`](workers-judgment.md) | disposition judge · evidence-role judge · cartographer · router |
 | [`workers-arms-synthesis.md`](workers-arms-synthesis.md) | adversarial panel operation · convergent reconciler · synthesist · assembler |
 | [`verifier-lenses.md`](verifier-lenses.md) | all verification lens charters + verdict contract |

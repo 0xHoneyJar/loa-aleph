@@ -144,6 +144,23 @@ merge-map row exists.
 
 ## Discovered fixtures and run kernels
 
+Run format `1.5.0-provisional` adds K2.17 retained-state validation for the
+internal-ambiguity lifecycle. It checks activation, the exact T5.1/T5.2/T5.3
+tables, frozen-expression reopening, search basis, candidate grammar and
+currentness, explicit C1 relation eligibility, the legal state matrix,
+single-headed history, exact verifier binding, material-impact subjects,
+pinned Core requirement refs, Core action projection, authority
+request/response binding, `selected_candidate_ref = none`, M/Q sequencing,
+terminal/nonterminal C2 state, observation withholding references, and C1
+retained-state consistency.
+
+K2.17 is structural only. It does not detect ambiguity, select a candidate,
+judge search or material-impact adequacy, infer affected relations or
+propagation, validate truth, prove semantic reviewer independence, grant human
+authority, or confer acceptance or sanction. The temporal write/refusal and
+crash-recovery propositions are tested separately through the Loa process
+suite; final retained-state validation cannot prove them by itself.
+
 Every non-legacy directory directly under `docs/fixtures/` declares one
 `aleph-fixture` block. K1 validates the declaration/ranges and dispatches by
 kind. The current suite contains:

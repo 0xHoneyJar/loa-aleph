@@ -62,6 +62,25 @@ prompt, templates, and output contract directly from that bundle. Do not make
 host-local copies or summaries. Ask the runtime to build each blind worker
 bundle, then prepare the native handoff:
 
+For run-format 1.5 S4, obey the `slice5` next-work object returned by
+`resume`. When it names the four bounded roles, dispatch the pinned
+`ambiguity-producer`, fresh `ambiguity-reviewer`,
+`material-impact-producer`, and fresh `material-impact-reviewer` through the
+same prepare/dispatch/accept path below, in the order required by the first
+unmet DoD. Give accepted structured returns only to the orchestrator's
+canonical writer. Repeated `resume` applies a persisted human response to
+T5.3 exactly once, creates a legal Q+1 when required, and otherwise advances
+C2/C3 under the same retained bundle. A successor-run halt is terminal for
+the current run, not resumable current-run work.
+
+For S5 or later work with retained procedural restrictions, provide the
+worker-bundle assembler the exact typed downstream operation tuples. The
+assembler derives the restriction set from exact retained Core
+request/response/T5.3 bindings, refuses a prohibited tuple before dispatch,
+and seals permitted neighboring operations plus the read-only restriction
+set into the worker request. Never infer these tuples from task prose, and
+never translate a restriction into an S5 disposition or S6 evidence role.
+
 Write every stage output only to the exact Core path named by its stage
 contract and template. In particular, S1 finalizes `corpus/manifest.md` and
 writes `ledgers/extraction-criteria.md`; do not create a substitute
