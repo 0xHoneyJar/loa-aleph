@@ -121,6 +121,12 @@
       "kind": "tool",
       "state": "implemented",
       "path": "adapters/loa/src/host-attestation.ts"
+    },
+    {
+      "id": "loa-aleph-worker-handoff",
+      "kind": "tool",
+      "state": "implemented",
+      "path": "adapters/loa/src/worker-dispatch.ts"
     }
   ],
   "installation": {
