@@ -234,6 +234,35 @@ function exactNonemptyContextId(value: unknown): value is string {
     && !/[\u0000-\u001f\u007f]/u.test(value);
 }
 
+const FRESH_REVIEWER_ROLES = new Set<LoaRoleId>([
+  'ambiguity-reviewer',
+  'material-impact-reviewer',
+]);
+
+export function assertWorkerRoleIsolation(
+  role: LoaRoleId,
+  kind: WorkerRequest['kind'],
+  producerContextId: unknown,
+): void {
+  const verifier = role.startsWith('verifier-l');
+  const reviewer = FRESH_REVIEWER_ROLES.has(role);
+  if (kind !== 'producer' && kind !== 'refuter') {
+    throw new Error(`worker kind is invalid for role ${role}`);
+  }
+  if ((verifier || reviewer) && kind !== 'refuter') {
+    throw new Error(`reviewer role cannot be dispatched as a producer: ${role}`);
+  }
+  if (kind === 'refuter'
+    && !verifier
+    && role !== 'adversarial-panel'
+    && !reviewer) {
+    throw new Error(`refuter dispatch requires a verifier or adversarial role: ${role}`);
+  }
+  if (kind === 'refuter' && !exactNonemptyContextId(producerContextId)) {
+    throw new Error('refuter dispatch requires a nonempty producer context ID');
+  }
+}
+
 function assertDispatchableRoleStage(role: LoaRoleId, stage: CoreStage): void {
   const verifier = VERIFIER_SPECS[role];
   if (verifier) {
@@ -429,18 +458,7 @@ export function assembleWorkerBundle(
   if (!/^CALL-[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/u.test(options.callId)) {
     throw new Error(`invalid worker call ID: ${options.callId}`);
   }
-  if (options.kind === 'refuter' && !options.role.startsWith('verifier-l')
-    && options.role !== 'adversarial-panel'
-    && options.role !== 'ambiguity-reviewer'
-    && options.role !== 'material-impact-reviewer') {
-    throw new Error(`refuter dispatch requires a verifier or adversarial role: ${options.role}`);
-  }
-  if (options.kind === 'producer' && options.role.startsWith('verifier-l')) {
-    throw new Error(`verifier role cannot be dispatched as a producer: ${options.role}`);
-  }
-  if (options.kind === 'refuter' && !exactNonemptyContextId(options.producerContextId)) {
-    throw new Error('refuter dispatch requires a nonempty producer context ID');
-  }
+  assertWorkerRoleIsolation(options.role, options.kind, options.producerContextId);
   const runDir = resolve(options.runDir);
   const stageIndex = CORE_STAGES.indexOf(options.stage);
   const downstream = stageIndex >= CORE_STAGES.indexOf('S5');
@@ -583,10 +601,11 @@ export function verifyWorkerBundle(root: string): WorkerRequest {
     throw new Error('worker request format is invalid');
   }
   assertDispatchableRoleStage(request.role, request.stage);
-  if (request.kind === 'refuter'
-    && !exactNonemptyContextId(request.isolation?.producer_context_id)) {
-    throw new Error('refuter worker bundle omits its producer context ID');
-  }
+  assertWorkerRoleIsolation(
+    request.role,
+    request.kind,
+    request.isolation?.producer_context_id,
+  );
   if (workerBundleDigest(bundleRoot, request) !== request.bundle_digest) {
     throw new Error('worker bundle digest mismatch');
   }

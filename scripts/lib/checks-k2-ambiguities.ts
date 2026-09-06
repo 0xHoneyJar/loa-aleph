@@ -345,6 +345,21 @@ function controlJsonFiles(runDir: string): string[] {
     : [];
 }
 
+type ProceduralGateFileKind = 'request' | 'response';
+
+function proceduralGateFileKind(name: string): ProceduralGateFileKind | null {
+  if (/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*-request\.json$/u.test(name)) {
+    return 'request';
+  }
+  if (/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*-response\.json$/u.test(name)) {
+    return 'response';
+  }
+  if (/^(?:GATE|RESP)-S4-AMB-/u.test(name)) {
+    throw new Error('procedural gate filename does not match the exact Slice 5 identity/path grammar');
+  }
+  return null;
+}
+
 interface AmbiguityControlState {
   requests: Map<string, { value: ProceduralAuthorityRequest; bytes: Buffer }>;
   responses: Map<string, { value: ProceduralAuthorityResponse; bytes: Buffer }>;
@@ -360,18 +375,20 @@ function checkControlState(
   const requests = new Map<string, { value: ProceduralAuthorityRequest; bytes: Buffer }>();
   const responses = new Map<string, { value: ProceduralAuthorityResponse; bytes: Buffer }>();
   for (const name of names) {
-    const path = join(model.runDir, 'control/gates', name);
-    const bytes = readFileSync(path);
     try {
+      const kind = proceduralGateFileKind(name);
+      if (kind === null) continue;
+      const path = join(model.runDir, 'control/gates', name);
+      const bytes = readFileSync(path);
       const value = JSON.parse(bytes.toString('utf8')) as unknown;
-      if (name.endsWith('-request.json')) {
+      if (kind === 'request') {
         const request = value as ProceduralAuthorityRequest;
         const canonical = validateProceduralAuthorityRequest(request);
         if (!canonical.equals(bytes)) fail(`${name} is not exact canonical request bytes`);
         if (name !== `${request.request_id}-request.json`) fail(`${name} request identity/path mismatch`);
         if (requests.has(request.request_id)) fail(`${request.request_id} request identity is duplicated`);
         requests.set(request.request_id, { value: request, bytes });
-      } else if (name.endsWith('-response.json')) {
+      } else {
         const response = value as ProceduralAuthorityResponse;
         if (responses.has(response.request_id)) fail(`${response.request_id} response identity is duplicated`);
         responses.set(response.request_id, { value: response, bytes });

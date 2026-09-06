@@ -33,7 +33,7 @@ evidence roles; routing; synthesis; projection; answer keys; external facts.
 
 **Output contract:**
 ```json
-{"definition":{"source_entity_kind":"PKT|CC","source_entity_id":"PKT-…|CC-…","source_id":"SRC-…","expression_locator":"","expression_start_byte":"0","expression_end_byte":"1","expression_sha256":"sha256:…","expression_bytes_base64":"","basis_packet_ids":["PKT-…"],"detected_by":"invocation:…"},"assessment":{"search_scope_kind":"local-intervals|full-same-source","search_source_id":"SRC-…","search_completion_ref":"","search_basis_digest":"sha256:…","candidate_state":"single|multiple|null-no-candidate|null-cannot-determine","candidate_refs":[],"affected_relation_ids":[],"resolution_state":"unresolved|resolved-local","carry_state":"none|explicit","proposed_by":"invocation:…","review_subject_digest":"sha256:…"},"flags":[]}
+{"definition":{"source_entity_kind":"PKT|CC","source_entity_id":"PKT-…|CC-…","source_id":"SRC-…","expression_locator":"","expression_start_byte":0,"expression_end_byte":1,"expression_sha256":"sha256:…","expression_bytes_base64":"","basis_packet_ids":["PKT-…"],"detected_by":"invocation:…"},"assessment":{"search_scope_kind":"local-intervals|full-same-source","search_source_id":"SRC-…","search_completion_ref":"","search_basis_digest":"sha256:…","candidate_state":"single|multiple|null-no-candidate|null-cannot-determine","candidate_refs":[],"affected_relation_ids":[],"resolution_state":"unresolved|resolved-local","carry_state":"none|explicit","proposed_by":"invocation:…","review_subject_digest":"sha256:…"},"flags":[]}
 ```
 
 ## Role: Fresh Internal Ambiguity Reviewer (S4-C2)
@@ -94,7 +94,7 @@ downstream disposition/evidence-role/routing/synthesis/projection decisions.
 
 **Output contract:**
 ```json
-{"materiality_class":"B|C","operative_scope":{"affected_ids":[],"impact_rows":[{"affected_id":"PKT-…|CC-…|REL-…","operation_kind":"load-bearing-reasoning|unique-relation-or-referent|disposition-validity|contradiction-or-reconciliation-strength|interpretation-dependent-synthesis|required-barrier-dod","requirement_ref":"core:path#selector","unresolved_treatment":"carry-only|restriction-only|carry-or-restriction|resolution-required","consequence_if_unresolved":""}]},"source_locators":[],"reviewed_unaffected_ids":[],"unresolved_statement":"","proposed_by":"invocation:…","flags":[]}
+{"materiality_class":"B|C","operative_scope":{"affected_ids":[],"impact_rows":[{"affected_id":"PKT-…|CC-…|REL-…","operation_kind":"load-bearing-reasoning|unique-relation-or-referent|disposition-validity|contradiction-or-reconciliation-strength|interpretation-dependent-synthesis|required-barrier-dod","requirement_ref":"core:…#…","unresolved_treatment":"carry-only|restriction-only|carry-or-restriction|resolution-required","consequence_if_unresolved":""}]},"source_locators":[],"reviewed_unaffected_ids":[],"unresolved_statement":"","proposed_by":"invocation:…","flags":[]}
 ```
 
 ## Role: Fresh Material-Impact Reviewer (S4-C2)
