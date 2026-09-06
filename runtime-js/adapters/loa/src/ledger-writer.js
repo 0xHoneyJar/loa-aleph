@@ -5,7 +5,7 @@ import { CORE_STAGES, LOA_LEDGER_RECEIPT_FORMAT, } from './types.js';
 import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, nextDecimal, sha256Digest, stableJson, stableJsonBytes, writeFileAtomic, } from './fs.js';
 import { acquireDurableProcessLock, openHumanAuthorityGate, readRunState, updateRunState, } from './run-control.js';
 import { ValidatedWorkerReturn } from './worker-return.js';
-import { buildProceduralAuthorityLedgerRow, closurePhasesFromText, loadPinnedCoreAuthority, nextClosurePhase, nextProceduralAuthoritySequence, parseInternalAmbiguities, planProceduralAuthorityFollowup, proceduralAuthorityLedgerRowMarkdown, validateMaterialImpactAuthorityBasis, validateProceduralAuthorityRequest, validateProceduralAuthorityResponse, } from '../../../scripts/lib/internal-ambiguity.js';
+import { buildProceduralAuthorityLedgerRow, CLOSURE_PHASES, closurePhasesFromText, loadPinnedCoreAuthority, nextClosurePhase, nextProceduralAuthoritySequence, parseInternalAmbiguities, planProceduralAuthorityFollowup, proceduralAuthorityLedgerRowMarkdown, validateMaterialImpactAuthorityBasis, validateProceduralAuthorityRequest, validateProceduralAuthorityResponse, } from '../../../scripts/lib/internal-ambiguity.js';
 import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.js';
 import { runK2Relations } from '../../../scripts/lib/checks-k2-relations.js';
 import { ResultCollector } from '../../../scripts/lib/results.js';
@@ -733,9 +733,24 @@ export class LedgerWriter {
         const phases = retainedClosurePhases(this.runDir);
         if (state.execution.stage !== 'S4'
             || state.execution.stage_status !== 'closed'
-            || phases.at(-1) !== 'S4-C3-exit'
+            || phases.length !== CLOSURE_PHASES.length
+            || phases.some((phase, index) => phase !== CLOSURE_PHASES[index])
             || state.execution.halt !== null) {
             throw new Error('S5 entry requires a complete unblocked S4-C3 closure');
+        }
+        const model = loadRun(this.runDir);
+        const results = new ResultCollector(state.run_id);
+        runK2Relations(results, model);
+        const bundleRoot = join(this.runDir, 'control', 'runtime', 'bundle');
+        const authority = loadPinnedCoreAuthority({
+            bundle_lock_path: join(bundleRoot, 'bundle.lock.json'),
+            expected_bundle_digest: state.identity.bundle.digest,
+            expected_core_digest: state.identity.core.tree_digest,
+        });
+        runK2Ambiguities(results, model, authority);
+        const failed = results.checks.filter((check) => check.status === 'FAIL');
+        if (failed.length > 0) {
+            throw new Error(`S5 entry failed retained Core structural checks: ${failed.map((check) => check.message).join('; ')}`);
         }
         const runLogPath = join(this.runDir, RUN_LOG_PATH);
         const before = existsSync(runLogPath) ? readFileSync(runLogPath) : Buffer.alloc(0);

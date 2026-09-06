@@ -977,10 +977,20 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         'installed bundle omits the compiled host attestation entrypoint',
       );
       expect(
-        skill.includes('host-attestation.js attest')
+        existsSync(join(
+          runtimeRoot,
+          'runtime-js',
+          'adapters',
+          'loa',
+          'src',
+          'worker-dispatch.js',
+        ))
+          && skill.includes('host-attestation.js attest')
+          && skill.includes('worker-dispatch.js assemble')
+          && skill.includes('worker-dispatch.js prepare')
           && skill.includes('worker-dispatch.js dispatch')
           && skill.includes('worker-dispatch.js accept'),
-        'skill does not require the attested prepare-dispatch-accept path',
+        'installed bundle omits the manifest-declared assemble-prepare-dispatch-accept path',
       );
       expect(
         skill.includes('S1 finalizes `corpus/manifest.md`')
@@ -1599,29 +1609,29 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         const raw: JsonValue = role.role === 'ambiguity-producer'
           ? {
             definition: {
-              source_entity_kind: 'PKT',
-              source_entity_id: 'PKT-0001',
-              source_id: 'SRC-0001',
-              expression_locator: 'L1-L1',
-              expression_start_byte: '0',
-              expression_end_byte: '1',
-              expression_sha256: `sha256:${'1'.repeat(64)}`,
-              expression_bytes_base64: 'YQ==',
-              basis_packet_ids: ['PKT-0001'],
-              detected_by: 'invocation:fixture-slice5-ambiguity-producer',
+              source_entity_kind: 'CC',
+              source_entity_id: 'CC-0413',
+              source_id: 'SRC-0401',
+              expression_locator: 'L8-L8',
+              expression_start_byte: 277,
+              expression_end_byte: 286,
+              expression_sha256: 'sha256:dda18a0e21ae47c53b4309434cbc02ae8bf764fa83a6defbb719431242722aa7',
+              expression_bytes_base64: 'Y2FuZGlkYXRl',
+              basis_packet_ids: ['PKT-0405'],
+              detected_by: 'invocation:ambiguity-producer-03',
             },
             assessment: {
-              search_scope_kind: 'local-intervals',
-              search_source_id: 'SRC-0001',
-              search_completion_ref: 'fixture:complete',
-              search_basis_digest: `sha256:${'2'.repeat(64)}`,
+              search_scope_kind: 'full-same-source',
+              search_source_id: 'SRC-0401',
+              search_completion_ref: 'SRC-0401@CUR-0406@sha256:15c980b0d84d5cb034d9fb449ae3f05b7672b2a413ad31c6e849e5acd0c3c984',
+              search_basis_digest: 'sha256:580ad9aee5a5b3b060c0f734542e08956c097060b34d56dc672c54fc5c2f3a80',
               candidate_state: 'null-no-candidate',
               candidate_refs: [],
               affected_relation_ids: [],
               resolution_state: 'unresolved',
               carry_state: 'none',
-              proposed_by: 'invocation:fixture-slice5-ambiguity-producer',
-              review_subject_digest: `sha256:${'3'.repeat(64)}`,
+              proposed_by: 'invocation:ambiguity-producer-03',
+              review_subject_digest: 'sha256:971c8b4b48522d87dc994a48823f1f4eabce05cd1c990b1bd08f506e5caf201d',
             },
             flags: ['fixture-simulated'],
           }
@@ -1636,12 +1646,21 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
             }
             : role.role === 'material-impact-producer'
               ? {
-                materiality_class: 'B',
-                operative_scope: { affected_ids: [], impact_rows: [] },
-                source_locators: [],
+                materiality_class: 'C',
+                operative_scope: {
+                  affected_ids: ['CC-0413'],
+                  impact_rows: [{
+                    affected_id: 'CC-0413',
+                    operation_kind: 'required-barrier-dod',
+                    requirement_ref: 'core:docs/architecture/templates/09-internal-ambiguity.md#S4 composite barrier',
+                    unresolved_treatment: 'carry-or-restriction',
+                    consequence_if_unresolved: 'C2 retains the unresolved ambiguity without changing later semantic judgments.',
+                  }],
+                },
+                source_locators: ['SRC-0401:L8-L8'],
                 reviewed_unaffected_ids: [],
-                unresolved_statement: 'Fixture bounded unresolved statement.',
-                proposed_by: 'invocation:fixture-slice5-material-impact-producer',
+                unresolved_statement: 'The frozen same-source bytes do not identify one local referent.',
+                proposed_by: 'invocation:material-impact-producer-fixture',
                 flags: ['fixture-simulated'],
               }
               : {
@@ -2533,6 +2552,101 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         /not exactly bound to the sealed invocation/iu,
         'tampered native dispatch binding',
       );
+    });
+
+    runCase(results, 'Slice 5 reviewer roles always require fresh refuter dispatch', () => {
+      const { runDir, state } = requireRun(context);
+      const bundle = verifyAndLoadLoaBundle(readRuntime(runDir).bundle.root);
+      const reviewers: Array<{
+        role: 'ambiguity-reviewer' | 'material-impact-reviewer';
+        producerContext: string;
+      }> = [
+        {
+          role: 'ambiguity-reviewer',
+          producerContext: 'CTX-SLICE5-AMBIGUITY-PRODUCER',
+        },
+        {
+          role: 'material-impact-reviewer',
+          producerContext: 'CTX-SLICE5-MATERIAL-PRODUCER',
+        },
+      ];
+      for (const [index, reviewer] of reviewers.entries()) {
+        const withheld = exactWithheldInventory(
+          bundle,
+          runDir,
+          reviewer.role,
+          'S4',
+          [],
+        );
+        expectThrows(
+          () => assembleWorkerBundle({
+            bundle,
+            runDir,
+            callId: `CALL-SLICE5-REVIEWER-AS-PRODUCER-${String(index + 1)}`,
+            runId: RUN_ID,
+            stage: 'S4',
+            role: reviewer.role,
+            kind: 'producer',
+            allowlist: [],
+            withheld,
+            taskLine: 'Attempt to dispatch a Slice 5 reviewer as a producer.',
+            modelIdentity: state.identity.models[reviewer.role],
+          }),
+          /reviewer role cannot be dispatched as a producer/iu,
+          `${reviewer.role} producer dispatch`,
+        );
+        expectThrows(
+          () => assembleWorkerBundle({
+            bundle,
+            runDir,
+            callId: `CALL-SLICE5-REVIEWER-NO-CONTEXT-${String(index + 1)}`,
+            runId: RUN_ID,
+            stage: 'S4',
+            role: reviewer.role,
+            kind: 'refuter',
+            allowlist: [],
+            withheld,
+            taskLine: 'Attempt to dispatch a Slice 5 reviewer without producer context.',
+            modelIdentity: state.identity.models[reviewer.role],
+          }),
+          /requires a nonempty producer context ID/iu,
+          `${reviewer.role} missing producer context`,
+        );
+        const assembled = assembleWorkerBundle({
+          bundle,
+          runDir,
+          callId: `CALL-SLICE5-REVIEWER-FRESH-${String(index + 1)}`,
+          runId: RUN_ID,
+          stage: 'S4',
+          role: reviewer.role,
+          kind: 'refuter',
+          allowlist: [],
+          withheld,
+          taskLine: 'Review the exact sealed Slice 5 subject in fresh context.',
+          modelIdentity: state.identity.models[reviewer.role],
+          producerContextId: reviewer.producerContext,
+        });
+        expectThrows(
+          () => validateWorkerDispatch(
+            assembled.request,
+            fixtureDispatchReceipt(
+              assembled.request,
+              reviewer.producerContext,
+              reviewer.producerContext,
+            ),
+          ),
+          /reused the producer context/iu,
+          `${reviewer.role} reused producer context`,
+        );
+        validateWorkerDispatch(
+          assembled.request,
+          fixtureDispatchReceipt(
+            assembled.request,
+            `CTX-SLICE5-REVIEWER-${String(index + 1)}`,
+            reviewer.producerContext,
+          ),
+        );
+      }
     });
 
     runCase(results, 'malformed or unbound worker returns cannot reach canonical ledgers', () => {

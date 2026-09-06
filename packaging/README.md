@@ -117,6 +117,11 @@ target. The selected manifest projection likewise contains the complete Core
 inventory plus only that bundle's adapter inventory and target. An archive
 wrapper, timestamp, or mutable branch name is not bundle identity.
 
+Two source repositories can therefore have byte-identical selected files,
+Core, checker, adapter, payload, file inventory, and commit tree while naming
+different selected commit objects. Their content identities remain equal, but
+their provenance, lock, and final bundle identities must differ.
+
 The checker digest covers every Core checker, checker library, checker
 specification, and deterministic mutation surface classified by the source
 manifest. It does not permit an adapter-local checker replacement.

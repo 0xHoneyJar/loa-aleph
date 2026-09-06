@@ -43,6 +43,7 @@
       "docs/architecture/14-slice-4-implementation-reconciliation.md",
       "docs/architecture/15-slice-5-implementation-reconciliation.md",
       "docs/architecture/16-slice-5-implementation-repair-reconciliation.md",
+      "docs/architecture/17-slice-5-successor-repair-reconciliation.md",
       "docs/architecture/README.md",
       "docs/architecture/checker-spec/K1-K2-fixtures-and-runs.md",
       "docs/architecture/checker-spec/K3-evidence-roles.md",

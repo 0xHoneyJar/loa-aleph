@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { spawnSync } from 'node:child_process';
 import {
   chmodSync,
   cpSync,
@@ -33,13 +34,23 @@ import {
 import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.ts';
 import { ResultCollector } from '../../../scripts/lib/results.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
-import { verifyAndLoadLoaBundle } from '../src/core-loader.ts';
 import {
+  readVerifiedBundleLock,
+  verifyAndLoadLoaBundle,
+} from '../src/core-loader.ts';
+import {
+  recordS0AuthorityResponse,
+  startLoaRun,
+} from '../src/cli.ts';
+import {
+  digestTreeRecords,
   readJsonFile,
   sha256Digest,
+  stableJsonBytes,
   walkRegularFiles,
   writeJsonAtomic,
 } from '../src/fs.ts';
+import { verifyCorpusSnapshot } from '../src/intake.ts';
 import {
   LedgerWriter,
   recoverPendingLedgerTransactions,
@@ -52,19 +63,31 @@ import {
   writeRunState,
 } from '../src/run-control.ts';
 import {
+  captureRuntimeSnapshot,
+  defaultProfilePath,
+  loadLoaProfile,
+  validateResolvedHost,
+  type LoadedLoaProfile,
+} from '../src/runtime-snapshot.ts';
+import {
   LOA_ROLE_IDS,
   LOA_RUN_STATE_FORMAT,
   type Clock,
-  type ExactModelIdentity,
+  type IdSource,
   type JsonValue,
+  type LoaHostCapabilities,
   type LoaRoleId,
   type LoaRunState,
+  type RuntimeSnapshot,
+  type S0AuthorityResponse,
   type WorkerDispatchReceipt,
 } from '../src/types.ts';
 import {
   assembleWorkerBundle,
   coreBlindPolicyReference,
+  verifyWorkerBundle,
 } from '../src/worker-bundle.ts';
+import { acceptLoaWorkerHandoff } from '../src/worker-dispatch.ts';
 import {
   validateWorkerReturn,
   type ValidatedWorkerReturn,
@@ -72,8 +95,14 @@ import {
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const FIXTURE_ROOT = join(REPO_ROOT, 'docs/fixtures/internal-ambiguity-lifecycle');
+const HOST_CAPABILITIES_FIXTURE = join(
+  REPO_ROOT,
+  'adapters/loa/tests/fixtures/host-capabilities.json',
+);
 const FIXED_TIME = '2040-01-02T03:10:00.000Z';
 const CLOCK: Clock = { now: () => FIXED_TIME };
+const S0_START_CLOCK: Clock = { now: () => '2026-08-14T08:00:00.000Z' };
+const S0_RESPONSE_CLOCK: Clock = { now: () => '2026-08-14T08:05:00.000Z' };
 const CASES: string[] = [];
 
 function expect(condition: unknown, message: string): asserts condition {
@@ -97,6 +126,197 @@ function pass(name: string): void {
   console.log(`PASS ${name}`);
 }
 
+function runJsonProcess(script: string, args: string[]): Record<string, JsonValue> {
+  const result = spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' });
+  if (result.error || result.status !== 0) {
+    let diagnostic = result.stderr || result.stdout;
+    try {
+      const parsed = JSON.parse(result.stdout) as {
+        details?: { kernel_report?: string };
+      };
+      const reportPath = parsed.details?.kernel_report;
+      if (reportPath && existsSync(reportPath)) {
+        diagnostic += `\n${readFileSync(reportPath, 'utf8')}`;
+      }
+    } catch {
+      // Preserve the process diagnostic when stdout is not JSON.
+    }
+    throw new Error(
+      `process failed: ${result.error ? String(result.error) : diagnostic}`,
+    );
+  }
+  return JSON.parse(result.stdout) as Record<string, JsonValue>;
+}
+
+function runFailingJsonProcess(script: string, args: string[]): Record<string, JsonValue> {
+  const result = spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' });
+  if (result.error || result.status === 0) {
+    throw new Error(
+      `process unexpectedly passed: ${
+        result.error ? String(result.error) : result.stderr || result.stdout
+      }`,
+    );
+  }
+  return JSON.parse(result.stdout) as Record<string, JsonValue>;
+}
+
+function runFixtureDispatchProcess(
+  runtimeScript: string,
+  workerBundleRoot: string,
+  returnRoot: string,
+  rawPath: string,
+  contextId: string,
+): void {
+  const source = `
+    import { readFileSync } from 'node:fs';
+    import { pathToFileURL } from 'node:url';
+    const [runtimeScript, workerBundleRoot, returnRoot, rawPath, contextId] = process.argv.slice(1);
+    process.argv[1] = 'fixture-dispatch-harness';
+    const runtime = await import(pathToFileURL(runtimeScript).href);
+    const request = JSON.parse(readFileSync(workerBundleRoot + '/request.json', 'utf8'));
+    const structuredReturn = JSON.parse(readFileSync(rawPath, 'utf8'));
+    runtime.dispatchPreparedLoaWorker({
+      workerBundleRoot,
+      returnRoot,
+      host: {
+        invokeFreshContext() {
+          return {
+            receipt: {
+              format: 'aleph-loa-worker-dispatch/v1',
+              call_id: request.call_id,
+              context_id: contextId,
+              producer_context_id: request.isolation.producer_context_id,
+              fresh_context: true,
+              inherited_context: false,
+              filesystem: 'bundle-read-only',
+              model_identity: request.model_identity,
+              simulation: { kind: 'fixture-simulated' }
+            },
+            structured_return: structuredReturn
+          };
+        }
+      }
+    });
+  `;
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '--eval',
+      source,
+      runtimeScript,
+      workerBundleRoot,
+      returnRoot,
+      rawPath,
+      contextId,
+    ],
+    { encoding: 'utf8' },
+  );
+  if (result.error || result.status !== 0) {
+    throw new Error(
+      `fixture dispatch process failed: ${
+        result.error ? String(result.error) : result.stderr || result.stdout
+      }`,
+    );
+  }
+}
+
+function fixtureS0Response(
+  corpus: ReturnType<typeof verifyCorpusSnapshot>,
+): S0AuthorityResponse {
+  return {
+    format: 'aleph-loa-authority-response/v1',
+    gate_id: 'S0',
+    run_id: corpus.run_id,
+    authority: {
+      kind: 'human',
+      identity: 'fixture-simulated-human-authority',
+    },
+    decision: 'approve-freeze',
+    declared_scope: 'Fixture-simulated exact S0 source intake for Slice 5 coexistence.',
+    exclusions: [],
+    sensitivity_rulings: corpus.files.map((file) => ({
+      source_id: file.source_id,
+      labels: ['none'],
+      decision: 'admit-exact-bytes',
+    })),
+    freeze: true,
+    recorded_at: S0_RESPONSE_CLOCK.now(),
+    simulation: { kind: 'fixture-simulated' },
+  };
+}
+
+function slice5WorkerReturn(role: LoaRoleId): JsonValue {
+  if (role === 'ambiguity-producer') {
+    return {
+      definition: {
+        source_entity_kind: 'CC',
+        source_entity_id: 'CC-0413',
+        source_id: 'SRC-0401',
+        expression_locator: 'L8-L8',
+        expression_start_byte: 277,
+        expression_end_byte: 286,
+        expression_sha256: 'sha256:dda18a0e21ae47c53b4309434cbc02ae8bf764fa83a6defbb719431242722aa7',
+        expression_bytes_base64: 'Y2FuZGlkYXRl',
+        basis_packet_ids: ['PKT-0405'],
+        detected_by: 'invocation:ambiguity-producer-03',
+      },
+      assessment: {
+        search_scope_kind: 'full-same-source',
+        search_source_id: 'SRC-0401',
+        search_completion_ref: 'SRC-0401@CUR-0406@sha256:15c980b0d84d5cb034d9fb449ae3f05b7672b2a413ad31c6e849e5acd0c3c984',
+        search_basis_digest: 'sha256:580ad9aee5a5b3b060c0f734542e08956c097060b34d56dc672c54fc5c2f3a80',
+        candidate_state: 'null-no-candidate',
+        candidate_refs: [],
+        affected_relation_ids: [],
+        resolution_state: 'unresolved',
+        carry_state: 'none',
+        proposed_by: 'invocation:ambiguity-producer-03',
+        review_subject_digest: 'sha256:971c8b4b48522d87dc994a48823f1f4eabce05cd1c990b1bd08f506e5caf201d',
+      },
+      flags: ['fixture-simulated'],
+    };
+  }
+  if (role === 'ambiguity-reviewer') {
+    return {
+      target: 'internal-ambiguity-review-subject:sha256:971c8b4b48522d87dc994a48823f1f4eabce05cd1c990b1bd08f506e5caf201d',
+      verdict: 'upheld',
+      shown: 'exact fixture ambiguity subject and frozen basis',
+      withheld: 'producer rationale and human procedural authority',
+      consequence: 'fixture-simulated structural review only',
+      flags: ['fixture-simulated'],
+    };
+  }
+  if (role === 'material-impact-producer') {
+    return {
+      materiality_class: 'C',
+      operative_scope: {
+        affected_ids: ['CC-0413'],
+        impact_rows: [{
+          affected_id: 'CC-0413',
+          operation_kind: 'required-barrier-dod',
+          requirement_ref: 'core:docs/architecture/templates/09-internal-ambiguity.md#S4 composite barrier',
+          unresolved_treatment: 'carry-or-restriction',
+          consequence_if_unresolved: 'C2 retains the unresolved ambiguity without changing later semantic judgments.',
+        }],
+      },
+      source_locators: ['SRC-0401:L8-L8'],
+      reviewed_unaffected_ids: [],
+      unresolved_statement: 'The frozen same-source bytes do not identify one local referent.',
+      proposed_by: 'invocation:material-impact-producer-fixture',
+      flags: ['fixture-simulated'],
+    };
+  }
+  return {
+    target: `internal-ambiguity-material-impact-review-subject:sha256:${'4'.repeat(64)}`,
+    verdict: 'upheld',
+    shown: 'exact fixture material-impact subject and retained Core basis',
+    withheld: 'producer rationale and human procedural authority',
+    consequence: 'fixture-simulated structural review only',
+    flags: ['fixture-simulated'],
+  };
+}
+
 function makeWritable(path: string): void {
   if (!existsSync(path)) return;
   const stat = lstatSync(path);
@@ -108,29 +328,18 @@ function makeWritable(path: string): void {
   }
 }
 
-function fixtureModel(): ExactModelIdentity {
-  return {
-    provider: 'fixture',
-    model_id: 'fixture-model',
-    resolved_version: 'fixture-model@2040-01-02',
-    identity_kind: 'fixture-simulated',
-    immutable: true,
-    context: 'fixture-context',
-    effort: 'fixture-effort',
-    budget: 'fixture-budget',
-    cache: 'fixture-cache',
-    batch: 'fixture-batch',
-    fallback: false,
-  };
-}
-
 function initialState(
   runId: string,
   bundle: ReturnType<typeof verifyAndLoadLoaBundle>,
+  profile: LoadedLoaProfile,
+  host: LoaHostCapabilities,
+  runtime: RuntimeSnapshot,
 ): LoaRunState {
-  const model = fixtureModel();
   const models = Object.fromEntries(
-    LOA_ROLE_IDS.map((role) => [role, structuredClone(model)]),
+    LOA_ROLE_IDS.map((role) => [
+      role,
+      structuredClone(host.models[profile.value.role_mappings[role].model_slot]),
+    ]),
   ) as LoaRunState['identity']['models'];
   return {
     format: LOA_RUN_STATE_FORMAT,
@@ -143,25 +352,23 @@ function initialState(
       bundle: {
         ...bundle.lock.bundle,
         lock_digest: bundle.lock.lock_digest,
-        lock_ref: 'control/bundle.lock.json',
+        lock_ref: 'control/original-bundle.lock.json',
         installation_ref: 'fixture-simulated',
       },
       checker_digest: bundle.lock.checker_digest,
       adapter_protocol_version: bundle.lock.adapter_protocol_version,
       run_format_version: bundle.lock.run_format_version,
       host: {
-        id: 'loa',
-        version: 'fixture-simulated',
-        build_id: 'fixture-simulated',
+        ...host.host,
       },
       profile: {
-        id: 'slice5-process-fixture',
-        digest: `sha256:${'7'.repeat(64)}`,
+        id: profile.value.id,
+        digest: profile.digest,
       },
       models,
       runtime: {
         snapshot_ref: 'control/runtime/snapshot.json',
-        digest: `sha256:${'8'.repeat(64)}`,
+        digest: runtime.tree_digest,
       },
     },
     corpus: {
@@ -348,8 +555,57 @@ function main(): void {
     );
     pass('requirement_ref resolution fails closed on retained Core byte drift');
 
-    const runDir = join(tempRoot, 'run');
+    const runId = 'RUN-internal-ambiguity-lifecycle';
+    const loaRoot = join(tempRoot, 'loa-root');
+    const capabilitiesPath = join(
+      loaRoot,
+      'grimoires',
+      'loa',
+      'aleph',
+      'host-capabilities.json',
+    );
+    mkdirSync(dirname(capabilitiesPath), { recursive: true });
+    cpSync(HOST_CAPABILITIES_FIXTURE, capabilitiesPath);
+    const s0RunId = 'RUN-s0-slice5-coexistence';
+    const s0Ids: IdSource = { nextRunId: () => s0RunId, nextCallId: () => 'CALL-S0' };
+    const s0InputPath = join(loaRoot, 'fixture-input', 'SRC-0401-source-walk.txt');
+    mkdirSync(dirname(s0InputPath), { recursive: true });
+    cpSync(
+      join(FIXTURE_ROOT, 'corpus/sources/SRC-0401-source-walk.txt'),
+      s0InputPath,
+    );
+    const started = startLoaRun(
+      [s0InputPath],
+      {
+        loaRoot,
+        bundleRoot: bundle.root,
+        capabilitiesPath,
+        allowSimulation: true,
+        clock: S0_START_CLOCK,
+        idSource: s0Ids,
+      },
+    );
+    expect(started.result === 'BLOCKED', `shipped S0 start failed: ${started.errors.join('; ')}`);
+    const s0RunDir = join(loaRoot, 'grimoires', 'loa', 'aleph', 'runs', s0RunId);
+    const s0Corpus = verifyCorpusSnapshot(s0RunDir);
+    const frozen = recordS0AuthorityResponse(s0RunId, fixtureS0Response(s0Corpus), {
+      loaRoot,
+      allowSimulation: true,
+      clock: S0_RESPONSE_CLOCK,
+    });
+    expect(frozen.result === 'PASS', `shipped S0 response failed: ${frozen.errors.join('; ')}`);
+    const s0FrozenCorpus = verifyCorpusSnapshot(s0RunDir);
+    const s0Request = readFileSync(join(s0RunDir, 'control/gates/GATE-S0-request.json'));
+    const s0Response = readFileSync(join(s0RunDir, 'control/gates/GATE-S0-response.json'));
+    const s0State = readRunState(s0RunDir);
+    const s0Manifest = readFileSync(join(s0RunDir, 'run-manifest.md'), 'utf8');
+    pass('shipped S0 flow retains genuine request and response records');
+
+    const runDir = join(loaRoot, 'grimoires', 'loa', 'aleph', 'runs', runId);
+    mkdirSync(dirname(runDir), { recursive: true });
     cpSync(FIXTURE_ROOT, runDir, { recursive: true });
+    writeFileSync(join(runDir, 'control/gates/GATE-S0-request.json'), s0Request);
+    writeFileSync(join(runDir, 'control/gates/GATE-S0-response.json'), s0Response);
     rmSync(join(runDir, 'control/gates/GATE-S4-AMB-1503-A1-Q1-request.json'));
     rmSync(join(runDir, 'control/gates/GATE-S4-AMB-1503-A1-Q1-response.json'));
     rmSync(join(
@@ -359,8 +615,44 @@ function main(): void {
     rmSync(join(runDir, 'verification/harness/S4-material-impact/VER-1591.md'));
     mkdirSync(join(runDir, 'control', 'transactions'), { recursive: true });
     mkdirSync(join(runDir, 'control', 'gates'), { recursive: true });
-    cpSync(bundle.root, join(runDir, 'control', 'runtime', 'bundle'), { recursive: true });
-    const runId = 'RUN-internal-ambiguity-lifecycle';
+    writeFileSync(
+      join(runDir, 'control', 'original-bundle.lock.json'),
+      readVerifiedBundleLock(bundle),
+    );
+    const profile = loadLoaProfile(defaultProfilePath(bundle.root));
+    const host = validateResolvedHost(
+      readJsonFile(HOST_CAPABILITIES_FIXTURE),
+      profile.value,
+      { allowSimulation: true },
+    );
+    mkdirSync(join(runDir, 'control', 'runtime'), { recursive: true });
+    const runtime = captureRuntimeSnapshot({
+      runId,
+      bundle,
+      profile,
+      host,
+      capturedAt: FIXED_TIME,
+      outputPath: join(runDir, 'control', 'runtime', 'snapshot.json'),
+    });
+    const targetCorpus = structuredClone(s0FrozenCorpus);
+    targetCorpus.run_id = runId;
+    targetCorpus.files[0].source_id = 'SRC-0401';
+    targetCorpus.files[0].relative_path = 'SRC-0401-source-walk.txt';
+    targetCorpus.files[0].frozen_path = 'corpus/sources/SRC-0401-source-walk.txt';
+    targetCorpus.tree_digest = digestTreeRecords(targetCorpus.files.map((file) => ({
+      path: file.frozen_path,
+      digest: file.digest,
+    })));
+    writeJsonAtomic(join(runDir, 'control', 'corpus.snapshot.json'), targetCorpus);
+    const targetManifest = s0Manifest
+      .replaceAll(s0RunId, runId)
+      .replace(s0State.identity.runtime.digest, runtime.tree_digest)
+      .replace(s0FrozenCorpus.tree_digest, targetCorpus.tree_digest)
+      .replace(
+        '\n\n## Authority sign-offs',
+        '\n| 3 | DISTILLING | 2026-08-14 08:20 UTC | fixture-simulated Loa orchestrator | Slice 5 process proof entered S4. |\n\n## Authority sign-offs',
+      );
+    writeFileSync(join(runDir, 'run-manifest.md'), targetManifest);
     const fullAmbiguities = Buffer.from(
       readFileSync(join(runDir, 'ledgers/internal-ambiguities.md'), 'utf8')
         .split('\n')
@@ -371,7 +663,12 @@ function main(): void {
     const finalRunLog = readFileSync(join(runDir, 'run-log.md'), 'utf8');
     writeFileSync(join(runDir, 'run-log.md'), preC1RunLog(finalRunLog));
     writeFileSync(join(runDir, 'ledgers/internal-ambiguities.md'), emptyAmbiguityLedger(runId));
-    const state = initialState(runId, bundle);
+    const state = initialState(runId, bundle, profile, host, runtime);
+    state.corpus = {
+      state: 'frozen',
+      inventory_ref: 'control/corpus.snapshot.json',
+      tree_digest: targetCorpus.tree_digest,
+    };
     writeRunState(runDir, state);
     const validated = validatedFixtureReturn(bundle, runDir, state);
     const writer = new LedgerWriter(runDir, CLOCK);
@@ -437,6 +734,163 @@ function main(): void {
 
     const ambiguityPath = join(runDir, 'ledgers/internal-ambiguities.md');
     writeFileSync(ambiguityPath, fullAmbiguities);
+    const runtimeCli = join(
+      runtime.bundle.root,
+      'runtime-js',
+      'adapters',
+      'loa',
+      'src',
+      'cli.js',
+    );
+    const workerHandoffCli = join(
+      runtime.bundle.root,
+      'runtime-js',
+      'adapters',
+      'loa',
+      'src',
+      'worker-dispatch.js',
+    );
+    const resumed = runJsonProcess(runtimeCli, [
+      '--json',
+      '--root',
+      loaRoot,
+      'resume',
+      runId,
+    ]);
+    const resumeDetails = resumed.details as Record<string, JsonValue>;
+    const resumeSlice5 = resumeDetails.slice5 as Record<string, JsonValue>;
+    expect(
+      resumed.result === 'PASS'
+        && JSON.stringify(resumeSlice5.required_roles) === JSON.stringify([
+          'ambiguity-producer',
+          'ambiguity-reviewer',
+          'material-impact-producer',
+          'material-impact-reviewer',
+        ]),
+      `public resume did not expose exact Slice 5 next work: ${JSON.stringify(resumed)}`,
+    );
+    pass('public resume exposes the exact four-role Slice 5 first-unmet work');
+
+    const runtimeBundle = verifyAndLoadLoaBundle(runtime.bundle.root);
+    const assemblyInputRoot = join(runDir, 'control', 'worker-assembly-inputs');
+    const fixtureReturnRoot = join(runDir, 'control', 'fixture-worker-returns');
+    mkdirSync(assemblyInputRoot, { recursive: true });
+    mkdirSync(fixtureReturnRoot, { recursive: true });
+    const operatorRoleCases: Array<{
+      role: 'ambiguity-producer'
+        | 'ambiguity-reviewer'
+        | 'material-impact-producer'
+        | 'material-impact-reviewer';
+      kind: 'producer' | 'refuter';
+      producerContextId: string | null;
+    }> = [
+      {
+        role: 'ambiguity-producer',
+        kind: 'producer',
+        producerContextId: null,
+      },
+      {
+        role: 'ambiguity-reviewer',
+        kind: 'refuter',
+        producerContextId: 'CTX-SLICE5-AMBIGUITY-PRODUCER',
+      },
+      {
+        role: 'material-impact-producer',
+        kind: 'producer',
+        producerContextId: null,
+      },
+      {
+        role: 'material-impact-reviewer',
+        kind: 'refuter',
+        producerContextId: 'CTX-SLICE5-MATERIAL-PRODUCER',
+      },
+    ];
+    for (const [index, roleCase] of operatorRoleCases.entries()) {
+      const callId = `CALL-SLICE5-OPERATOR-${String(index + 1).padStart(4, '0')}`;
+      const inputPath = join(assemblyInputRoot, `${callId}.json`);
+      writeJsonAtomic(inputPath, {
+        format: 'aleph-loa-worker-assembly-input/v1',
+        call_id: callId,
+        run_id: runId,
+        stage: 'S4',
+        role: roleCase.role,
+        kind: roleCase.kind,
+        allowlist: [],
+        withheld: withheldInventory(runtimeBundle, runDir, roleCase.role, []),
+        task_line: 'Return only the exact bounded Slice 5 structured result.',
+        producer_context_id: roleCase.producerContextId,
+        downstream_operations: [],
+      });
+      const assembledResult = runJsonProcess(workerHandoffCli, [
+        'assemble',
+        '--bundle',
+        runtime.bundle.root,
+        '--run',
+        runDir,
+        '--input',
+        inputPath,
+        '--json',
+      ]);
+      const workerBundleRoot = String(assembledResult.worker_bundle_root);
+      const request = verifyWorkerBundle(workerBundleRoot);
+      expect(
+        assembledResult.result === 'PASS'
+          && request.role === roleCase.role
+          && request.kind === roleCase.kind
+          && request.isolation.producer_context_id === roleCase.producerContextId,
+        `${roleCase.role} operator assembly did not retain exact typed inputs`,
+      );
+      const returnRoot = join(runDir, 'control', 'worker-returns', callId);
+      const prepared = runJsonProcess(workerHandoffCli, [
+        'prepare',
+        '--worker-bundle',
+        workerBundleRoot,
+        '--return-root',
+        returnRoot,
+        '--capabilities',
+        runtime.host_receipt.path,
+        '--json',
+      ]);
+      expect(prepared.result === 'PASS', `${roleCase.role} prepare did not pass`);
+      const rawPath = join(fixtureReturnRoot, `${callId}.json`);
+      writeFileSync(rawPath, stableJsonBytes(slice5WorkerReturn(roleCase.role)));
+      runFixtureDispatchProcess(
+        workerHandoffCli,
+        workerBundleRoot,
+        returnRoot,
+        rawPath,
+        `CTX-SLICE5-OPERATOR-${String(index + 1).padStart(4, '0')}`,
+      );
+      const acceptedProcess = runJsonProcess(workerHandoffCli, [
+        'accept',
+        '--worker-bundle',
+        workerBundleRoot,
+        '--return-root',
+        returnRoot,
+        '--json',
+      ]);
+      expect(
+        acceptedProcess.result === 'PASS',
+        `${roleCase.role} shipped accept path rejected its canonical fixture return`,
+      );
+      const accepted = acceptLoaWorkerHandoff({
+        workerBundleRoot,
+        returnRoot,
+      });
+      expect(
+        accepted.validated !== null
+          && accepted.validated.simulation?.kind === 'fixture-simulated',
+        `${roleCase.role} accepted result lost validation or simulation identity`,
+      );
+      writer.append(
+        `verification/operator-process/${roleCase.role}.md`,
+        accepted.validated,
+        (data) => `# Fixture-simulated ${roleCase.role} operator result\n\n`
+          + `\`\`\`json\n${JSON.stringify(data)}\n\`\`\`\n`,
+      );
+    }
+    pass('public resume through shipped assemble, prepare, dispatch, accept, and writer works for all four Slice 5 roles');
+
     const crashT52BeforeMaterial = join(tempRoot, 'crash-01-t52-before-material');
     cpSync(runDir, crashT52BeforeMaterial, { recursive: true });
     expectThrows(
@@ -1289,6 +1743,114 @@ function main(): void {
     expect(readFileSync(join(runDir, 'run-log.md'), 'utf8')
       .includes('closure_phase: S4-C3-exit'), 'C3 marker was not retained');
     pass('C3 closes S4 only after the complete C2 durable state');
+
+    const preRecoveryStatus = runJsonProcess(runtimeCli, [
+      '--json',
+      '--root',
+      loaRoot,
+      'status',
+      runId,
+    ]);
+    const preRecoveryValidation = runJsonProcess(runtimeCli, [
+      '--json',
+      '--root',
+      loaRoot,
+      'validate',
+      runId,
+    ]);
+    expect(
+      preRecoveryStatus.result === 'PASS'
+        && preRecoveryValidation.result === 'PASS',
+      'C3-before-S5 durable state was incoherent before recovery',
+    );
+    pass('C3-marker-before-S5-entry status and validation remain coherent');
+
+    const c3MaterialSubjectPath = join(
+      runDir,
+      'verification/harness/S4/material-impact-subjects/AMB-1503-A1-M1.json',
+    );
+    const materialSubjectBytes = readFileSync(c3MaterialSubjectPath);
+    rmSync(c3MaterialSubjectPath);
+    const invalidResume = runFailingJsonProcess(runtimeCli, [
+      '--json',
+      '--root',
+      loaRoot,
+      'resume',
+      runId,
+    ]);
+    expect(
+      invalidResume.result === 'FAIL'
+        && (invalidResume.errors as JsonValue[]).some((error) => (
+          typeof error === 'string' && /retained Core structural checks/iu.test(error)
+        )),
+      'C3 with invalid retained prerequisites did not fail closed',
+    );
+    writeFileSync(c3MaterialSubjectPath, materialSubjectBytes);
+    pass('C3 marker with invalid retained prerequisites still fails closed');
+
+    const runLogBeforeRecovery = readFileSync(join(runDir, 'run-log.md'), 'utf8');
+    const relationsBeforeRecovery = readFileSync(relationPath);
+    const recovered = runJsonProcess(runtimeCli, [
+      '--json',
+      '--root',
+      loaRoot,
+      'resume',
+      runId,
+    ]);
+    const recoveredState = readRunState(runDir);
+    const recoveredLog = readFileSync(join(runDir, 'run-log.md'), 'utf8');
+    expect(
+      recovered.result === 'PASS'
+        && recoveredState.execution.stage === 'S5'
+        && (recoveredLog.match(/^stage_entry: S5$/gmu) || []).length === 1
+        && (recoveredLog.match(/^closure_phase: S4-C1-relations-closed$/gmu) || []).length === 1
+        && (recoveredLog.match(/^closure_phase: S4-C2-ambiguities-finalized$/gmu) || []).length === 1
+        && (recoveredLog.match(/^closure_phase: S4-C3-exit$/gmu) || []).length === 1
+        && readFileSync(relationPath).equals(relationsBeforeRecovery),
+      'resume did not perform only the missing S5-entry transition',
+    );
+    expect(
+      runLogBeforeRecovery !== recoveredLog
+        && recoveredLog.startsWith(runLogBeforeRecovery),
+      'S5 recovery rewrote retained run-log history',
+    );
+    pass('crash matrix 11: durable C3 before S5 entry resumes with only one S5 transition');
+
+    const postRecoveryStatus = runJsonProcess(runtimeCli, [
+      '--json',
+      '--root',
+      loaRoot,
+      'status',
+      runId,
+    ]);
+    const postRecoveryValidation = runJsonProcess(runtimeCli, [
+      '--json',
+      '--root',
+      loaRoot,
+      'validate',
+      runId,
+    ]);
+    expect(
+      postRecoveryStatus.result === 'PASS'
+        && postRecoveryValidation.result === 'PASS',
+      'status and validation disagreed after S5 recovery',
+    );
+    const secondResume = runJsonProcess(runtimeCli, [
+      '--json',
+      '--root',
+      loaRoot,
+      'resume',
+      runId,
+    ]);
+    const secondLog = readFileSync(join(runDir, 'run-log.md'), 'utf8');
+    expect(
+      secondResume.result === 'PASS'
+        && secondLog === recoveredLog
+        && readFileSync(relationPath).equals(relationsBeforeRecovery),
+      'repeat resume duplicated S5 entry, closure markers, or relation state',
+    );
+    pass('crash matrix 12: repeated resume after recovered S5 entry is idempotent');
+    pass('complete C3 with existing S5 entry never requests a nonexistent next closure phase');
 
     console.log(`RESULT: PASS (${CASES.length}/${CASES.length} process cases)`);
   } finally {

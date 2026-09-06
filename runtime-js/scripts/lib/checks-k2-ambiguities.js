@@ -271,16 +271,31 @@ function controlJsonFiles(runDir) {
         ? readdirSync(directory).filter((name) => name.endsWith('.json')).sort()
         : [];
 }
+function proceduralGateFileKind(name) {
+    if (/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*-request\.json$/u.test(name)) {
+        return 'request';
+    }
+    if (/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*-response\.json$/u.test(name)) {
+        return 'response';
+    }
+    if (/^(?:GATE|RESP)-S4-AMB-/u.test(name)) {
+        throw new Error('procedural gate filename does not match the exact Slice 5 identity/path grammar');
+    }
+    return null;
+}
 function checkControlState(model, fail) {
     const names = controlJsonFiles(model.runDir);
     const requests = new Map();
     const responses = new Map();
     for (const name of names) {
-        const path = join(model.runDir, 'control/gates', name);
-        const bytes = readFileSync(path);
         try {
+            const kind = proceduralGateFileKind(name);
+            if (kind === null)
+                continue;
+            const path = join(model.runDir, 'control/gates', name);
+            const bytes = readFileSync(path);
             const value = JSON.parse(bytes.toString('utf8'));
-            if (name.endsWith('-request.json')) {
+            if (kind === 'request') {
                 const request = value;
                 const canonical = validateProceduralAuthorityRequest(request);
                 if (!canonical.equals(bytes))
@@ -291,7 +306,7 @@ function checkControlState(model, fail) {
                     fail(`${request.request_id} request identity is duplicated`);
                 requests.set(request.request_id, { value: request, bytes });
             }
-            else if (name.endsWith('-response.json')) {
+            else {
                 const response = value;
                 if (responses.has(response.request_id))
                     fail(`${response.request_id} response identity is duplicated`);

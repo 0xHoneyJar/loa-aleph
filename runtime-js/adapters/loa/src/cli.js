@@ -12,7 +12,7 @@ import { invokePinnedChecker, } from './checker.js';
 import { verifyLoaInstallation } from './installer.js';
 import { runLoaPreflight } from './preflight.js';
 import { LedgerWriter, recoverPendingLedgerTransactions, } from './ledger-writer.js';
-import { closurePhasesFromText, nextClosurePhase, } from '../../../scripts/lib/internal-ambiguity.js';
+import { CLOSURE_PHASES, closurePhasesFromText, nextClosurePhase, } from '../../../scripts/lib/internal-ambiguity.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_CAPABILITIES_PATH = 'grimoires/loa/aleph/host-capabilities.json';
 function isRecord(value) {
@@ -427,14 +427,18 @@ export function resumeLoaRun(runId, options = {}) {
                 let phases = existsSync(logPath)
                     ? closurePhasesFromText(readFileSync(logPath, 'utf8'))
                     : [];
-                let next = nextClosurePhase(phases);
+                let next = phases.length < CLOSURE_PHASES.length
+                    ? nextClosurePhase(phases)
+                    : null;
                 if (next === 'S4-C2-ambiguities-finalized') {
                     try {
                         writer.advanceSlice5ClosurePhase(next);
                         slice5.closed_c2 = true;
                         state = verifyRunControl(runDir);
                         phases = closurePhasesFromText(readFileSync(logPath, 'utf8'));
-                        next = nextClosurePhase(phases);
+                        next = phases.length < CLOSURE_PHASES.length
+                            ? nextClosurePhase(phases)
+                            : null;
                     }
                     catch (error) {
                         slice5.first_unmet_dod = error instanceof Error ? error.message : String(error);
@@ -442,13 +446,19 @@ export function resumeLoaRun(runId, options = {}) {
                 }
                 if (next === 'S4-C3-exit' && state.execution.halt === null) {
                     writer.advanceSlice5ClosurePhase(next);
-                    writer.enterS5AfterSlice5Closure();
                     slice5.closed_c3 = true;
+                    state = verifyRunControl(runDir);
+                    phases = closurePhasesFromText(readFileSync(logPath, 'utf8'));
+                    next = null;
+                }
+                if (state.execution.stage === 'S4'
+                    && phases.length === CLOSURE_PHASES.length) {
+                    writer.enterS5AfterSlice5Closure();
                     slice5.entered_stage = 'S5';
                     state = verifyRunControl(runDir);
                 }
                 if (state.execution.stage === 'S4'
-                    && nextClosurePhase(phases) === 'S4-C2-ambiguities-finalized') {
+                    && next === 'S4-C2-ambiguities-finalized') {
                     slice5.required_roles = [
                         'ambiguity-producer',
                         'ambiguity-reviewer',

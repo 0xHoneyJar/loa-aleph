@@ -90,6 +90,30 @@ function checkFailure(
   }
 }
 
+function checkSuccess(
+  name: string,
+  mutate: (run: string) => void,
+): void {
+  const temp = mkdtempSync(join(tmpdir(), 'aleph-s5-success-'));
+  const run = join(temp, 'run');
+  try {
+    cpSync(BASE, run, { recursive: true });
+    mutate(run);
+    const report = validateRun({ root: ROOT, run, kind: 'run' });
+    if (report.result !== 'PASS') {
+      const messages = report.checks
+        .filter((check) => check.status === 'FAIL')
+        .map((check) => `${check.id} ${check.message}`)
+        .join('\n');
+      throw new Error(`expected PASS, got ${messages}`);
+    }
+    passed += 1;
+    console.log(`PASS ${name}`);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
 function checkAuthorityFailure(
   base: string,
   name: string,
@@ -266,6 +290,25 @@ console.log('PASS mixed valid Class B/Class C C2 inventory with terminal Class C
 passed += 1;
 console.log('PASS unresolved Class B with upheld material review and empty scope needs no authority request');
 passed += 1;
+
+checkSuccess('S0 authority records coexist with exact Slice 5 procedural gates', (run) => {
+  writeFileSync(join(run, 'control/gates/GATE-S0-request.json'), '{"format":"fixture-s0-request"}');
+  writeFileSync(join(run, 'control/gates/GATE-S0-response.json'), '{"format":"fixture-s0-response"}');
+});
+
+checkFailure('malformed Slice 5 procedural filename fails closed', (run) => {
+  cpSync(
+    authorityRequestPath(run),
+    join(run, 'control/gates/GATE-S4-AMB-1503-A0-Q1-request.json'),
+  );
+}, /procedural gate filename does not match the exact Slice 5 identity\/path grammar/u);
+
+checkFailure('exact-family procedural filename with malformed request bytes fails closed', (run) => {
+  writeFileSync(
+    join(run, 'control/gates/GATE-S4-AMB-9999-A1-Q1-request.json'),
+    '{"format":"fixture-s0-request"}',
+  );
+}, /GATE-S4-AMB-9999-A1-Q1-request\.json is invalid/u);
 
 checkFailure('C2 unresolved ambiguity without material-impact subject', (run) => {
   unlinkSync(join(
