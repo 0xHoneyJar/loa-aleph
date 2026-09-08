@@ -147,6 +147,8 @@ const runLog = (run: string) => join(run, 'run-log.md');
 const relations = (run: string) => join(run, 'ledgers/relations.md');
 const sourceWalk = (run: string) => join(run, 'ledgers/source-walk.md');
 const verifier = (run: string, id: string) => join(run, `verification/harness/S4-ambiguities/${id}.md`);
+const S5_ENTRY_EM_DASH = '## 2026-08-14 09:06 UTC — S5 — entry';
+const S5_ENTRY_ASCII_HYPHEN = '## 2026-08-14 09:06 UTC - S5 - entry';
 const materialSubjectPath = (run: string, sequence = 1) => join(
   run,
   `verification/harness/S4/material-impact-subjects/AMB-1503-A1-M${String(sequence)}.json`,
@@ -505,6 +507,78 @@ checkFailure('unknown closure phase', (run) => {
 checkFailure('duplicate closure phase', (run) => {
   replaceOne(runLog(run), 'closure_phase: S4-C2-ambiguities-finalized', 'closure_phase: S4-C1-relations-closed');
 }, /duplicated, skipped, or out of order/u);
+
+for (const heading of [
+  { name: 'em-dash', value: S5_ENTRY_EM_DASH },
+  { name: 'ASCII-hyphen', value: S5_ENTRY_ASCII_HYPHEN },
+] as const) {
+  for (const closure of [
+    {
+      name: 'C1',
+      marker: 'closure_phase: S4-C1-relations-closed\n',
+      diagnostic: /C2, C3, and S5 require retained C1/u,
+    },
+    {
+      name: 'C2',
+      marker: 'closure_phase: S4-C2-ambiguities-finalized\n',
+      diagnostic: /C3 and S5 require retained C2/u,
+    },
+    {
+      name: 'C3',
+      marker: 'closure_phase: S4-C3-exit\n',
+      diagnostic: /S5 requires retained C3/u,
+    },
+  ] as const) {
+    checkFailure(`${heading.name} S5 entry with missing ${closure.name}`, (run) => {
+      if (heading.value !== S5_ENTRY_EM_DASH) {
+        replaceOne(runLog(run), S5_ENTRY_EM_DASH, heading.value);
+      }
+      replaceOne(runLog(run), closure.marker, '');
+    }, closure.diagnostic);
+  }
+}
+
+checkSuccess('no S5 entry does not require retained C3', (run) => {
+  replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
+  replaceOne(
+    runLog(run),
+    S5_ENTRY_EM_DASH,
+    '## 2026-08-14 09:06 UTC — S4 — checkpoint',
+  );
+});
+
+checkSuccess('prose containing an S5 entry phrase is not a structured event', (run) => {
+  replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
+  replaceOne(
+    runLog(run),
+    S5_ENTRY_EM_DASH,
+    'The operator noted the plan — S5 — entry follows later.',
+  );
+});
+
+checkSuccess('adapter-private stage_entry token is not a Core S5 event', (run) => {
+  replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
+  replaceOne(runLog(run), S5_ENTRY_EM_DASH, 'stage_entry: S5');
+});
+
+checkSuccess('structured non-entry S5 event does not require retained C3', (run) => {
+  replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
+  replaceOne(
+    runLog(run),
+    S5_ENTRY_EM_DASH,
+    '## 2026-08-14 09:06 UTC — S5 — gate',
+  );
+});
+
+checkFailure('later exact S5 entry is found after an earlier non-entry event', (run) => {
+  replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
+  replaceOne(
+    runLog(run),
+    S5_ENTRY_EM_DASH,
+    '## 2026-08-14 09:06 UTC — S5 — gate\n\n'
+      + '## 2026-08-14 09:07 UTC — S5 — entry',
+  );
+}, /S5 requires retained C3/u);
 
 const authorityTemp = mkdtempSync(join(tmpdir(), 'aleph-s5-authority-baseline-'));
 const authorityBase = join(authorityTemp, 'run');

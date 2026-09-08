@@ -66,6 +66,10 @@ export interface RunLogEntry {
   line: number;
 }
 
+interface ParsedRunLogEvent extends RunLogEntry {
+  stage: string;
+}
+
 export function location(row: SourceLocation | RouteCard): string {
   const located = row as Partial<SourceLocation>;
   return `${located.file}:${located.line}`;
@@ -331,20 +335,45 @@ export function allStatusRows(model: RunModel): StatusRow[] {
   return rows;
 }
 
-export function firstRunLogEntry(
-  document: RunDocument | null,
-  stage: string,
-): RunLogEntry | null {
-  if (!document) return null;
+function runLogEvents(document: RunDocument | null): ParsedRunLogEvent[] {
+  const events: ParsedRunLogEvent[] = [];
+  if (!document) return events;
   for (let i = 0; i < document.lines.length; i++) {
     const match = document.lines[i].match(
       /^##\s+(\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?)?(?:Z| UTC|[+-]\d{2}:\d{2})?)\s+[—-]\s+(S\d+[ab]?)\s+[—-]\s+(.+)$/,
     );
-    if (match && match[2].toUpperCase() === stage.toUpperCase()) {
-      return { timestamp: match[1], event: match[3], line: i + 1 };
-    }
+    if (!match) continue;
+    events.push({
+      timestamp: match[1],
+      stage: match[2],
+      event: match[3],
+      line: i + 1,
+    });
   }
-  return null;
+  return events;
+}
+
+export function firstRunLogEntry(
+  document: RunDocument | null,
+  stage: string,
+): RunLogEntry | null {
+  const found = runLogEvents(document)
+    .find((entry) => entry.stage.toUpperCase() === stage.toUpperCase());
+  if (!found) return null;
+  return { timestamp: found.timestamp, event: found.event, line: found.line };
+}
+
+export function hasRunLogEvent(
+  document: RunDocument | null,
+  stage: string,
+  event: string,
+): boolean {
+  const normalizedStage = stage.toUpperCase();
+  const normalizedEvent = event.trim();
+  return runLogEvents(document).some((entry) => (
+    entry.stage.toUpperCase() === normalizedStage
+    && entry.event.trim() === normalizedEvent
+  ));
 }
 
 export function reachedState(model: RunModel, state: string): boolean {

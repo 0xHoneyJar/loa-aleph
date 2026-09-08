@@ -53,7 +53,7 @@ import {
   type ProceduralAuthorityRequest,
   type ProceduralAuthorityResponse,
 } from '../../../scripts/lib/internal-ambiguity.ts';
-import { firstRunLogEntry } from '../../../scripts/lib/check-helpers.ts';
+import { hasRunLogEvent } from '../../../scripts/lib/check-helpers.ts';
 import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.ts';
 import { runK2Relations } from '../../../scripts/lib/checks-k2-relations.ts';
 import { ResultCollector } from '../../../scripts/lib/results.ts';
@@ -922,9 +922,9 @@ export class LedgerWriter {
     }
     const runLogPath = join(this.runDir, RUN_LOG_PATH);
     const before = existsSync(runLogPath) ? readFileSync(runLogPath) : Buffer.alloc(0);
-    const existingS5Entry = firstRunLogEntry(model.runLog, 'S5');
+    const existingS5Entry = hasRunLogEvent(model.runLog, 'S5', 'entry');
     const enteredAt = this.clock.now();
-    if (existingS5Entry?.event.trim() !== 'entry') {
+    if (!existingS5Entry) {
       writeFileAtomic(runLogPath, appendedBytes(before, `## ${enteredAt} — S5 — entry`));
     }
     updateRunState(this.runDir, enteredAt, (draft) => {

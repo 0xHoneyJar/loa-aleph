@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { TextDecoder } from 'node:util';
 import {
+  hasRunLogEvent,
   mdLineSpan,
   normalizeSha256,
   reachedState,
@@ -457,7 +458,7 @@ export function runK2Ambiguities(
     const hasC1 = phases.includes('S4-C1-relations-closed');
     const hasC2 = phases.includes('S4-C2-ambiguities-finalized');
     const hasC3 = phases.includes('S4-C3-exit');
-    const hasS5 = Boolean(model.runLog?.lines.some((line) => /—\s*S5\s*—\s*entry/u.test(line)));
+    const hasS5 = hasRunLogEvent(model.runLog, 'S5', 'entry');
     if ((hasC2 || hasC3 || hasS5) && !hasC1) fail('C2, C3, and S5 require retained C1');
     if ((hasC3 || hasS5) && !hasC2) fail('C3 and S5 require retained C2');
     if (hasS5 && !hasC3) fail('S5 requires retained C3');

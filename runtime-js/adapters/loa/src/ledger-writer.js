@@ -6,7 +6,7 @@ import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, ne
 import { acquireDurableProcessLock, openHumanAuthorityGate, readRunState, updateRunState, } from './run-control.js';
 import { ValidatedWorkerReturn } from './worker-return.js';
 import { buildProceduralAuthorityLedgerRow, CLOSURE_PHASES, closurePhasesFromText, loadPinnedCoreAuthority, nextClosurePhase, nextProceduralAuthoritySequence, parseInternalAmbiguities, planProceduralAuthorityFollowup, proceduralAuthorityLedgerRowMarkdown, validateMaterialImpactAuthorityBasis, validateProceduralAuthorityRequest, validateProceduralAuthorityResponse, } from '../../../scripts/lib/internal-ambiguity.js';
-import { firstRunLogEntry } from '../../../scripts/lib/check-helpers.js';
+import { hasRunLogEvent } from '../../../scripts/lib/check-helpers.js';
 import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.js';
 import { runK2Relations } from '../../../scripts/lib/checks-k2-relations.js';
 import { ResultCollector } from '../../../scripts/lib/results.js';
@@ -755,9 +755,9 @@ export class LedgerWriter {
         }
         const runLogPath = join(this.runDir, RUN_LOG_PATH);
         const before = existsSync(runLogPath) ? readFileSync(runLogPath) : Buffer.alloc(0);
-        const existingS5Entry = firstRunLogEntry(model.runLog, 'S5');
+        const existingS5Entry = hasRunLogEvent(model.runLog, 'S5', 'entry');
         const enteredAt = this.clock.now();
-        if (existingS5Entry?.event.trim() !== 'entry') {
+        if (!existingS5Entry) {
             writeFileAtomic(runLogPath, appendedBytes(before, `## ${enteredAt} — S5 — entry`));
         }
         updateRunState(this.runDir, enteredAt, (draft) => {
