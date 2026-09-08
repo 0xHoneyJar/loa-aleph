@@ -31,6 +31,7 @@ import {
   type PinnedCoreAuthority,
   type ProceduralAction,
 } from '../../../scripts/lib/internal-ambiguity.ts';
+import { firstRunLogEntry } from '../../../scripts/lib/check-helpers.ts';
 import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.ts';
 import { ResultCollector } from '../../../scripts/lib/results.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
@@ -1799,10 +1800,16 @@ function main(): void {
     ]);
     const recoveredState = readRunState(runDir);
     const recoveredLog = readFileSync(join(runDir, 'run-log.md'), 'utf8');
+    const retainedS5Entry = firstRunLogEntry(loadRun(runDir).runLog, 'S5');
+    const canonicalS5Entry = retainedS5Entry
+      ? `## ${retainedS5Entry.timestamp} — S5 — ${retainedS5Entry.event}`
+      : '';
     expect(
       recovered.result === 'PASS'
         && recoveredState.execution.stage === 'S5'
-        && (recoveredLog.match(/^stage_entry: S5$/gmu) || []).length === 1
+        && retainedS5Entry?.event === 'entry'
+        && recoveredLog.split(/\r?\n/u).filter((line) => line === canonicalS5Entry).length === 1
+        && !recoveredLog.split(/\r?\n/u).includes('stage_entry: S5')
         && (recoveredLog.match(/^closure_phase: S4-C1-relations-closed$/gmu) || []).length === 1
         && (recoveredLog.match(/^closure_phase: S4-C2-ambiguities-finalized$/gmu) || []).length === 1
         && (recoveredLog.match(/^closure_phase: S4-C3-exit$/gmu) || []).length === 1
@@ -1851,6 +1858,83 @@ function main(): void {
     );
     pass('crash matrix 12: repeated resume after recovered S5 entry is idempotent');
     pass('complete C3 with existing S5 entry never requests a nonexistent next closure phase');
+
+    const recognizedResults = new ResultCollector(runId);
+    runK2Ambiguities(recognizedResults, loadRun(runDir), pinnedCoreAuthority);
+    expect(
+      recognizedResults.checks.find((check) => check.id === 'K2.17')?.status === 'PASS',
+      'K2.17 rejected the legal adapter-written canonical S5 entry',
+    );
+    pass('K2.17 recognizes the adapter-written canonical S5 entry');
+
+    const closureMutationCases = [
+      {
+        name: 'C1',
+        marker: 'closure_phase: S4-C1-relations-closed\n',
+        diagnostic: 'C2, C3, and S5 require retained C1',
+      },
+      {
+        name: 'C2',
+        marker: 'closure_phase: S4-C2-ambiguities-finalized\n',
+        diagnostic: 'C3 and S5 require retained C2',
+      },
+      {
+        name: 'C3',
+        marker: 'closure_phase: S4-C3-exit\n',
+        diagnostic: 'S5 requires retained C3',
+      },
+    ] as const;
+    for (const mutation of closureMutationCases) {
+      const mutatedRun = join(tempRoot, `s5-missing-${mutation.name.toLowerCase()}`);
+      cpSync(runDir, mutatedRun, { recursive: true });
+      const mutatedLogPath = join(mutatedRun, 'run-log.md');
+      const beforeMutation = readFileSync(mutatedLogPath, 'utf8');
+      expect(
+        beforeMutation.split(mutation.marker).length === 2,
+        `${mutation.name} mutation did not find exactly one retained marker`,
+      );
+      writeFileSync(mutatedLogPath, beforeMutation.replace(mutation.marker, ''));
+      const checked = spawnSync(process.execPath, [
+        join(bundle.root, 'runtime-js/scripts/validate-run.js'),
+        '--root',
+        bundle.root,
+        '--run',
+        mutatedRun,
+        '--json',
+      ], {
+        encoding: 'utf8',
+        maxBuffer: 64 * 1024 * 1024,
+      });
+      expect(
+        !checked.error
+          && checked.status !== 0
+          && checked.stdout.includes(mutation.diagnostic),
+        `pinned checker did not report ${mutation.diagnostic}: ${checked.stderr || checked.stdout}`,
+      );
+      pass(`canonical S5 entry with missing ${mutation.name} fails K2.17`);
+    }
+
+    const legacyRun = join(tempRoot, 's5-legacy-private-token');
+    cpSync(runDir, legacyRun, { recursive: true });
+    const legacyLogPath = join(legacyRun, 'run-log.md');
+    const legacyBefore = readFileSync(legacyLogPath, 'utf8');
+    expect(
+      legacyBefore.split(`${canonicalS5Entry}\n`).length === 2,
+      'legacy-token mutation did not find exactly one canonical S5 entry',
+    );
+    writeFileSync(
+      legacyLogPath,
+      legacyBefore
+        .replace(`${canonicalS5Entry}\n`, 'stage_entry: S5\n')
+        .replace('closure_phase: S4-C3-exit\n', ''),
+    );
+    const legacyResults = new ResultCollector(runId);
+    runK2Ambiguities(legacyResults, loadRun(legacyRun), pinnedCoreAuthority);
+    expect(
+      legacyResults.checks.find((check) => check.id === 'K2.17')?.status === 'PASS',
+      'adapter-private stage_entry token was treated as a Core S5 entry',
+    );
+    pass('adapter-private stage_entry: S5 does not satisfy Core S5-entry recognition');
 
     console.log(`RESULT: PASS (${CASES.length}/${CASES.length} process cases)`);
   } finally {

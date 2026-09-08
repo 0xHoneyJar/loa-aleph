@@ -166,7 +166,7 @@ byte-sliced from canonical Core files in the retained bundle. Returns stay in
 quarantine until their canonical output contract validates. Only the
 orchestrator-owned writer can append to canonical ledgers. Refuter calls
 require a newly attested context that cannot inherit the producer context.
-The installed skill runs the sealed `prepare`, `dispatch`, and `accept`
+The installed skill runs the sealed `assemble`, `prepare`, `dispatch`, and `accept`
 operations in order. `dispatch` starts the attested Claude Code binary as a
 fresh, nonpersistent process inside the attested bubblewrap policy. The sealed
 worker bundle is mounted read-only at `/worker`; only sandbox-local `/tmp` and
