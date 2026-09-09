@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { deepStrictEqual, ok, strictEqual } from 'node:assert';
 import {
   cpSync,
   mkdirSync,
@@ -11,6 +12,9 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { firstRunLogEntry, hasRunLogEvent } from './lib/check-helpers.ts';
+import { loadRun } from './lib/run-model.ts';
 import {
   buildProceduralAuthorityLedgerRow,
   buildProceduralAuthorityRequest,
@@ -32,8 +36,38 @@ import { validateRun } from './validate-run.ts';
 
 const ROOT = resolve('.');
 const BASE = join(ROOT, 'docs/fixtures/internal-ambiguity-lifecycle');
+const runtimeChecker = await import(
+  pathToFileURL(join(ROOT, 'runtime-js/scripts/validate-run.js')).href
+) as typeof import('./validate-run.ts');
+const runtimeHelpers = await import(
+  pathToFileURL(join(ROOT, 'runtime-js/scripts/lib/check-helpers.js')).href
+) as typeof import('./lib/check-helpers.ts');
 let passed = 0;
 let mutationCount = 0;
+
+function validateRunWithRuntimeParity(run: string): ReturnType<typeof validateRun> {
+  const path = join(run, 'run-log.md');
+  const bytes = readFileSync(path);
+  const document = loadRun(run).runLog;
+  ok(document);
+  const lines = [...document.lines];
+  const report = validateRun({ root: ROOT, run, kind: 'run' });
+  deepStrictEqual(runtimeChecker.validateRun({ root: ROOT, run, kind: 'run' }), report);
+  for (const stage of ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S11']) {
+    deepStrictEqual(
+      runtimeHelpers.firstRunLogEntry(document, stage),
+      firstRunLogEntry(document, stage),
+    );
+    strictEqual(
+      runtimeHelpers.hasRunLogEvent(document, stage, 'entry'),
+      hasRunLogEvent(document, stage, 'entry'),
+    );
+  }
+  strictEqual(document.text, bytes.toString('utf8'));
+  deepStrictEqual(document.lines, lines);
+  deepStrictEqual(readFileSync(path), bytes);
+  return report;
+}
 
 function replaceOne(path: string, before: string, after: string): void {
   const text = readFileSync(path, 'utf8');
@@ -74,7 +108,7 @@ function checkFailure(
   try {
     cpSync(BASE, run, { recursive: true });
     mutate(run);
-    const report = validateRun({ root: ROOT, run, kind: 'run' });
+    const report = validateRunWithRuntimeParity(run);
     const messages = report.checks
       .filter((check) => check.status === 'FAIL')
       .map((check) => `${check.id} ${check.message}`)
@@ -99,7 +133,7 @@ function checkSuccess(
   try {
     cpSync(BASE, run, { recursive: true });
     mutate(run);
-    const report = validateRun({ root: ROOT, run, kind: 'run' });
+    const report = validateRunWithRuntimeParity(run);
     if (report.result !== 'PASS') {
       const messages = report.checks
         .filter((check) => check.status === 'FAIL')
@@ -511,6 +545,8 @@ checkFailure('duplicate closure phase', (run) => {
 for (const heading of [
   { name: 'em-dash', value: S5_ENTRY_EM_DASH },
   { name: 'ASCII-hyphen', value: S5_ENTRY_ASCII_HYPHEN },
+  { name: 'mixed CRLF em-dash', value: `${S5_ENTRY_EM_DASH}\r` },
+  { name: 'mixed CRLF ASCII-hyphen', value: `${S5_ENTRY_ASCII_HYPHEN}\r` },
 ] as const) {
   for (const closure of [
     {
@@ -578,6 +614,67 @@ checkFailure('later exact S5 entry is found after an earlier non-entry event', (
     '## 2026-08-14 09:06 UTC — S5 — gate\n\n'
       + '## 2026-08-14 09:07 UTC — S5 — entry',
   );
+}, /S5 requires retained C3/u);
+
+for (const heading of [
+  { name: 'em-dash', value: S5_ENTRY_EM_DASH },
+  { name: 'ASCII-hyphen', value: S5_ENTRY_ASCII_HYPHEN },
+] as const) {
+  checkSuccess(`full CRLF ${heading.name} run-log preserves LF events and checks`, (run) => {
+    replaceOne(runLog(run), S5_ENTRY_EM_DASH, heading.value);
+    const lfDocument = loadRun(run).runLog;
+    ok(lfDocument);
+    const lfReport = validateRun({ root: ROOT, run, kind: 'run' });
+    writeFileSync(runLog(run), lfDocument.text.replace(/\n/g, '\r\n'));
+    const crlfDocument = loadRun(run).runLog;
+    ok(crlfDocument);
+    ok(crlfDocument.text.includes('\r\n'));
+    strictEqual(crlfDocument.text.replace(/\r\n/g, ''), lfDocument.text.replace(/\n/g, ''));
+    deepStrictEqual(validateRunWithRuntimeParity(run), lfReport);
+    for (const stage of ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S11']) {
+      deepStrictEqual(firstRunLogEntry(crlfDocument, stage), firstRunLogEntry(lfDocument, stage));
+    }
+    for (const [stage, event] of [
+      ['S0', 'entry'], ['S0', 'exit'], ['S1', 'exit'],
+      ['S2', 'entry'], ['S2', 'checkpoint'], ['S2', 'resume'],
+      ['S2', 'gap-review'], ['S2', 'exit'], ['S3', 'entry'],
+      ['S4', 'C1'], ['S4', 'C2'], ['S4', 'C3'],
+      ['S5', 'entry'], ['S11', 'exit'],
+    ]) {
+      ok(hasRunLogEvent(crlfDocument, stage, event), `${stage} ${event} lost under CRLF`);
+    }
+  });
+}
+
+for (const candidate of [
+  { name: 'prose', value: 'The operator noted the plan — S5 — entry follows later.' },
+  { name: 'missing timestamp', value: '## — S5 — entry' },
+  { name: 'invalid timestamp', value: '## not-a-timestamp — S5 — entry' },
+  { name: 'gate event', value: '## 2026-08-14 09:06 UTC — S5 — gate' },
+  { name: 'entry later event', value: `${S5_ENTRY_EM_DASH} later` },
+  { name: 'legacy token', value: 'stage_entry: S5' },
+] as const) {
+  checkSuccess(`CRLF ${candidate.name} is not an S5 entry`, (run) => {
+    replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
+    replaceOne(runLog(run), S5_ENTRY_EM_DASH, `${candidate.value}\r`);
+    strictEqual(hasRunLogEvent(loadRun(run).runLog, 'S5', 'entry'), false);
+  });
+}
+
+checkFailure('CRLF later exact S5 entry is found after an earlier gate', (run) => {
+  replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
+  replaceOne(
+    runLog(run),
+    S5_ENTRY_EM_DASH,
+    '## 2026-08-14 09:06 UTC — S5 — gate\r\n'
+      + '## 2026-08-14 09:07 UTC — S5 — entry\r',
+  );
+  ok(hasRunLogEvent(loadRun(run).runLog, 'S5', 'entry'));
+}, /S5 requires retained C3/u);
+
+checkFailure('CRLF exact S5 entry retains intended whitespace trim', (run) => {
+  replaceOne(runLog(run), 'closure_phase: S4-C3-exit\n', '');
+  replaceOne(runLog(run), S5_ENTRY_EM_DASH, `${S5_ENTRY_EM_DASH} \t\r`);
 }, /S5 requires retained C3/u);
 
 const authorityTemp = mkdtempSync(join(tmpdir(), 'aleph-s5-authority-baseline-'));

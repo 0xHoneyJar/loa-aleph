@@ -164,6 +164,24 @@ function runFailingJsonProcess(script: string, args: string[]): Record<string, J
   return JSON.parse(result.stdout) as Record<string, JsonValue>;
 }
 
+function enterS5InShippedRuntime(bundleRoot: string, run: string): void {
+  const result = spawnSync(process.execPath, [
+    '--input-type=module',
+    '-e',
+    `
+      import { pathToFileURL } from 'node:url';
+      const [script, run, time] = process.argv.slice(1);
+      const { LedgerWriter } = await import(pathToFileURL(script).href);
+      new LedgerWriter(run, { now: () => time }).enterS5AfterSlice5Closure();
+    `,
+    join(bundleRoot, 'runtime-js/adapters/loa/src/ledger-writer.js'),
+    run,
+    FIXED_TIME,
+  ], { encoding: 'utf8' });
+  expect(!result.error && result.status === 0,
+    `shipped S5 transition failed: ${result.error || result.stderr}`);
+}
+
 function runFixtureDispatchProcess(
   runtimeScript: string,
   workerBundleRoot: string,
@@ -1824,7 +1842,13 @@ function main(): void {
         && recoveredLog.startsWith(runLogBeforeRecovery),
       'S5 recovery rewrote retained run-log history',
     );
+    expect(
+      recoveredLog.includes(`${canonicalS5Entry}\n`)
+        && !recoveredLog.slice(runLogBeforeRecovery.length).includes('\r'),
+      'new S5 output must retain canonical em-dash and LF bytes',
+    );
     pass('crash matrix 11: durable C3 before S5 entry resumes with only one S5 transition');
+    pass('new S5 entry uses canonical em-dash and LF bytes');
 
     const postRecoveryStatus = runJsonProcess(runtimeCli, [
       '--json',
@@ -1871,6 +1895,14 @@ function main(): void {
         name: 'ASCII-hyphen',
         value: `## ${retainedS5Entry?.timestamp || ''} - S5 - entry`,
       },
+      {
+        name: 'CRLF-em-dash',
+        value: `${canonicalS5Entry}\r`,
+      },
+      {
+        name: 'CRLF-ASCII-hyphen',
+        value: `## ${retainedS5Entry?.timestamp || ''} - S5 - entry\r`,
+      },
     ] as const) {
       const idempotentRun = join(tempRoot, `s5-${heading.name.toLowerCase()}-idempotency`);
       cpSync(runDir, idempotentRun, { recursive: true });
@@ -1882,14 +1914,44 @@ function main(): void {
       idempotentState.execution.stage = 'S4';
       idempotentState.execution.stage_status = 'closed';
       writeRunState(idempotentRun, idempotentState);
-      new LedgerWriter(idempotentRun, CLOCK).enterS5AfterSlice5Closure();
+      enterS5InShippedRuntime(bundle.root, idempotentRun);
       expect(
         readFileSync(idempotentLogPath, 'utf8') === idempotentLog
-          && hasRunLogEvent(loadRun(idempotentRun).runLog, 'S5', 'entry'),
+          && hasRunLogEvent(loadRun(idempotentRun).runLog, 'S5', 'entry')
+          && readRunState(idempotentRun).execution.stage === 'S5',
         `${heading.name} retained S5 entry was duplicated or not recognized`,
       );
-      pass(`${heading.name} retained S5 entry is adapter-idempotent`);
+      const withoutC3 = idempotentLog.replace('closure_phase: S4-C3-exit\n', '');
+      expect(withoutC3 !== idempotentLog, 'idempotency case did not retain C3');
+      writeFileSync(idempotentLogPath, withoutC3);
+      const results = new ResultCollector(runId);
+      runK2Ambiguities(results, loadRun(idempotentRun), pinnedCoreAuthority);
+      expect(
+        results.checks.some((check) => check.id === 'K2.17'
+          && check.status === 'FAIL' && check.message.includes('S5 requires retained C3')),
+        'K2.17 and shipped adapter disagree about the retained S5 entry',
+      );
+      pass(`${heading.name} retained S5 entry is shipped-adapter-idempotent and agrees with K2.17`);
     }
+
+    const crlfHistoryRun = join(tempRoot, 's5-new-entry-after-crlf-history');
+    cpSync(runDir, crlfHistoryRun, { recursive: true });
+    const crlfHistoryPath = join(crlfHistoryRun, 'run-log.md');
+    const crlfHistory = runLogBeforeRecovery.replace(/\n/g, '\r\n');
+    writeFileSync(crlfHistoryPath, crlfHistory);
+    const crlfHistoryState = readRunState(crlfHistoryRun);
+    crlfHistoryState.execution.stage = 'S4';
+    crlfHistoryState.execution.stage_status = 'closed';
+    writeRunState(crlfHistoryRun, crlfHistoryState);
+    enterS5InShippedRuntime(bundle.root, crlfHistoryRun);
+    const crlfHistoryAfter = readFileSync(crlfHistoryPath, 'utf8');
+    expect(
+      crlfHistoryAfter.startsWith(crlfHistory)
+        && crlfHistoryAfter.slice(crlfHistory.length).includes(`## ${FIXED_TIME} — S5 — entry\n`)
+        && !crlfHistoryAfter.slice(crlfHistory.length).includes('\r'),
+      'new S5 entry normalized retained CRLF history or mirrored its line endings',
+    );
+    pass('shipped S5 writer preserves CRLF history and appends canonical em-dash LF output');
 
     const recognizedResults = new ResultCollector(runId);
     runK2Ambiguities(recognizedResults, loadRun(runDir), pinnedCoreAuthority);
@@ -1924,6 +1986,14 @@ function main(): void {
       {
         name: 'ASCII-hyphen',
         value: `## ${retainedS5Entry?.timestamp || ''} - S5 - entry`,
+      },
+      {
+        name: 'CRLF-em-dash',
+        value: `${canonicalS5Entry}\r`,
+      },
+      {
+        name: 'CRLF-ASCII-hyphen',
+        value: `## ${retainedS5Entry?.timestamp || ''} - S5 - entry\r`,
       },
     ] as const) {
       for (const mutation of closureMutationCases) {

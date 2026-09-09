@@ -339,7 +339,10 @@ function runLogEvents(document: RunDocument | null): ParsedRunLogEvent[] {
   const events: ParsedRunLogEvent[] = [];
   if (!document) return events;
   for (let i = 0; i < document.lines.length; i++) {
-    const match = document.lines[i].match(
+    const rawLine = document.lines[i];
+    // LF splitting leaves the CR of a CRLF ending in the retained line.
+    const logicalLine = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+    const match = logicalLine.match(
       /^##\s+(\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?)?(?:Z| UTC|[+-]\d{2}:\d{2})?)\s+[—-]\s+(S\d+[ab]?)\s+[—-]\s+(.+)$/,
     );
     if (!match) continue;
