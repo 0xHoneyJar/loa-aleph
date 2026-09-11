@@ -3,7 +3,7 @@ import { firstRunLogEntry, location, mdLineSpan, normalizeSha256, reachedState, 
 import { lineageCurrentClaimIds, lineageCurrentPacketIds, } from './lineage.js';
 import { findTables, normalizeHeader } from './markdown.js';
 import { RELATION_EXPLICIT_ABSENCE_REASON, RELATION_FAMILIES, RELATION_FAMILY_TYPES, RELATION_FORMAT, RELATION_INDETERMINATE_REASONS, RELATION_RECORD_STATES, RELATION_TABLE_HEADER, RELATION_TYPES, RELATION_UNRESOLVED_REASONS, parsePacketBasis, parseRelations, relationReviewSubjectDigest, } from './relations.js';
-import { SUPPORTED_RUN_FORMAT_VERSIONS, usesTypedRelations, } from './run-model.js';
+import { SUPPORTED_RUN_FORMAT_VERSIONS, usesInternalAmbiguityLifecycle, usesTypedRelations, } from './run-model.js';
 const SOURCE_KINDS = ['CC', 'PKT'];
 const TARGET_KINDS = ['CC', 'PKT', 'source-locus', 'null'];
 const CONCRETE_TARGET_KINDS = ['CC', 'PKT', 'source-locus'];
@@ -28,6 +28,10 @@ function isOneOf(value, values) {
     return values.includes(value);
 }
 function relationClosureRecorded(model) {
+    const version = model.manifest?.runFormatVersion || '';
+    if (usesInternalAmbiguityLifecycle(version)) {
+        return Boolean(model.runLog?.lines.some((line) => (/^\s*closure_phase:\s*S4-C1-relations-closed\s*$/u.test(line))));
+    }
     if (POST_S4_STATES.some((state) => reachedState(model, state)))
         return true;
     if (firstRunLogEntry(model.runLog, 'S5'))
@@ -434,7 +438,9 @@ export function runK2Relations(results, model) {
                 fail('typed relation structure must use canonical path ledgers/relations.md');
             }
             if (closureRecorded) {
-                fail(`run format ${version} requires ledgers/relations.md once S4 is closed or S5 begins`);
+                fail(usesInternalAmbiguityLifecycle(version)
+                    ? `run format ${version} requires ledgers/relations.md at S4-C1`
+                    : `run format ${version} requires ledgers/relations.md once S4 is closed or S5 begins`);
             }
             return `typed relation artifact is not required before retained S4 closure in run format ${version}`;
         }

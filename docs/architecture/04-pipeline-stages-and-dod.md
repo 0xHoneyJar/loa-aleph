@@ -224,10 +224,14 @@ recall.
   duplicate also appends one lineage event and materializes a new canonical
   successor claim while every predecessor row remains immutable history. In
   run format 1.4, S4 also emits the one canonical
-  `ledgers/relations.md` table at closure.
+  `ledgers/relations.md` table at closure. Run format 1.5 replaces the single
+  exit instant with the cumulative C1/C2/C3 composite barrier and emits
+  `ledgers/internal-ambiguities.md` during C2.
 - **Actor:** Normalizer-Judge, relation producers, fresh relation reviewers,
+  ambiguity producers, fresh ambiguity reviewers, material-impact producers,
+  fresh material-impact reviewers, human procedural authority where required,
   and the orchestrator as sole canonical writer (global pass — this stage is a
-  barrier).
+  barrier). Human procedure never determines source meaning.
 - **Work:** near-duplicates merge with all provenance retained; genuinely
   contradictory claims are *never* merged (they stay separate, flagged for
   S5/S9); the corroboration note distinguishes independent support from
@@ -239,8 +243,12 @@ recall.
   write the ledger; the orchestrator recomputes each exact review-subject
   digest, requires the exact `upheld` VER target, resolves structural
   conflicts, and serializes canonical REL rows only at the closure barrier.
-  S4 does not acquire disposition, evidence-role, routing, ambiguity,
-  duplicate/overlap relation, or human-authority responsibility.
+  In 1.5, C1 serializes and validates the complete relation ledger and makes it
+  immediately read-only. C2 detects/reviews internal ambiguity, binds any
+  material impact, and obtains human procedural authority only when the
+  reviewed Class C scope requires it. C3 exits only after C2 is durable. S4
+  does not acquire disposition, evidence-role, routing, duplicate/overlap
+  relation, candidate-selection, or source-meaning authority.
 - **DoD:**
   - [ ] ⚙ C8 provenance superset holds for every merge row; in 1.3 every
         merge/duplicate map row matches one typed lineage event whose new
@@ -260,15 +268,34 @@ recall.
         outside-corpus invention, explicit absence from incomplete context,
         and unjustified permitted cycles
   - [ ] ⚙ canonical relation bytes are absent/empty before closure, written
-        only at S4 closure, and refused unchanged after closure; retained K2
-        state does not claim historical intra-S4 timing
+        only at C1, and refused unchanged after C1; retained K2 state does not
+        claim historical intra-S4 timing
+  - [ ] ⚙ 1.5 closure phases are exactly C1 → C2 → C3; C1-only state requires
+        a complete K2.16-valid relation artifact and permits only C2 work
+  - [ ] ⚙ every T5.1/T5.2 row satisfies exact expression reopening, search
+        basis, candidate grammar/currentness, relation eligibility, legal state
+        matrix, single-headed history, and exact upheld review binding
+  - [ ] ⚖ fresh ambiguity review judges detection, candidate adequacy, and
+        affected-relation completeness without human response/observation or
+        desired-conclusion context
+  - [ ] ⚙ every material-impact subject binds the exact T5.2/C1 basis and
+        pinned Core requirement refs; Class B has empty scope and no request,
+        while Class C has complete nonempty operative scope
+  - [ ] ⚙ Core recomputes the legal action set and complete non-operative human
+        presentation; a retained human response is applied once, never inferred
+        or fabricated, and every T5.3 row selects no candidate
+  - [ ] ⚙ C2 is terminal only for legal reviewed state; nonterminal actions,
+        material revisions, replacement presentations, and actual resumes use
+        contiguous single-headed M/Q sequences
+  - [ ] ⚙ C3 exists only after C2 DoD and is the sole 1.5 permission to enter S5
 
 ## S5 — Disposition pass
 
 - **Purpose:** resolve every candidate claim into exactly one of the seven
   dispositions, with reasons where the doctrine demands them.
-- **Inputs:** claim inventory + merge map + read-only relation ledger + scope statement + negative-boundary
-  drafts. **Not** the routing/cluster layers (which do not exist yet — the
+- **Inputs:** claim inventory + merge map + read-only relation ledger +
+  read-only reviewed ambiguity/restriction state + scope statement +
+  negative-boundary drafts. **Not** the routing/cluster layers (which do not exist yet — the
   four-layer model keeps disposition upstream of stance).
 - **Outputs:** completed inventory; `ledgers/disposition-ledger.md`;
   `ledgers/negative-boundaries.md`; first entries of
@@ -278,6 +305,9 @@ recall.
   the criteria — not other judges' calls on unrelated batches.
 - **Relation boundary:** relations may supply challenge context but never
   mechanically select or change a disposition. S5 never rewrites REL rows.
+- **Ambiguity boundary:** reviewed ambiguity and a restriction overlay may
+  constrain legal downstream operations, but never mechanically select a
+  disposition. Human observation/comment bytes are withheld from S5 judgment.
 - **DoD:**
   - [ ] ⚙ every current research claim exactly one disposition; in 1.3 this
         population is the lineage-current claim set, while historical

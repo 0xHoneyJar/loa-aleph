@@ -22,6 +22,7 @@ import {
 } from './lib/relations.ts';
 import {
   EXACT_EVIDENCE_RUN_FORMAT_VERSION,
+  INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION,
   LEGACY_RUN_FORMAT_VERSION,
   LINEAGE_RUN_FORMAT_VERSION,
   RUN_CAPABILITIES,
@@ -158,6 +159,18 @@ const cumulative = [
       'source-walk',
       'lineage',
       'typed-relations',
+    ],
+  ],
+  [
+    INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION,
+    [
+      'legacy',
+      'forward-execution-identity',
+      'exact-evidence',
+      'source-walk',
+      'lineage',
+      'typed-relations',
+      'internal-ambiguity-lifecycle',
     ],
   ],
 ] as const;

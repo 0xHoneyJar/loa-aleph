@@ -44,6 +44,7 @@
 | [`06-arms-synthesis.md`](06-arms-synthesis.md) | stress-test matrix · reconciliation table · cluster synthesis · Précis assembly map | `arms/…`, `synthesis/…` |
 | [`07-verification.md`](07-verification.md) | verifier verdict · sampling record | `verification/harness/…` |
 | [`08-projection.md`](08-projection.md) | projection commission · selection ledger · projection trace | `projections/…` |
+| [`09-internal-ambiguity.md`](09-internal-ambiguity.md) | T5.1/T5.2/T5.3 · material-impact subjects · procedural request/response · S4 closure phases | `ledgers/internal-ambiguities.md`, `verification/harness/S4/…`, `control/gates/…` |
 
 ## Rendering into the Précis (critical)
 

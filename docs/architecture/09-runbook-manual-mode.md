@@ -114,12 +114,27 @@ cannot authorize it; retaining an indeterminate result requires a separate
 complete indeterminate proposal and upheld review.
 
 `ledgers/relations.md` may be absent or marker plus empty table before the S4
-closure barrier. Reconcile conflicts and write all canonical REL rows only at
-that barrier, after endpoint currentness is known. Refuse any earlier or later
-append before changing bytes. After S5 entry the ledger is read-only. Record
-the procedure in the run log, but do not claim that a later K2.16 PASS proves
-the historical append instant. A relation is context/structure only: never
-count it as support, corroboration, contradiction, disposition, or authority.
+closure barrier. For run format 1.5, write all canonical REL rows at C1 after
+endpoint currentness is known, run K2.16, and record
+`S4-C1-relations-closed` only after success. Refuse append, deletion, edit,
+retarget, replacement, supersession, normalization, or silent C1 rerun before
+bytes change. Record the procedure in the run log, but do not claim that a
+later K2.16 PASS proves the historical append instant. A relation is
+context/structure only: never count it as support, corroboration,
+contradiction, disposition, or authority.
+
+For 1.5 C2, use
+[`templates/09-internal-ambiguity.md`](templates/09-internal-ambiguity.md).
+Preserve exact expression bytes, perform only same-source search, retain the
+review subject and fresh verdict, and name affected C1 REL IDs explicitly.
+Review material impact against pinned Core requirements. Class B continues
+without a request. For Class C, present the complete Core-projected legal
+actions and consequences to the required human, halt, retain the response
+bytes exactly, and apply the selected procedural action once. Never infer a
+missing response or let procedure select a candidate, relation, disposition,
+or source meaning. Human observation/comment bytes are never semantic worker
+input. Record `S4-C2-ambiguities-finalized` only after all durable C2 state is
+legal; then record `S4-C3-exit` before S5.
 
 **S5 (dispositions).** One claim, one disposition, one line of reason for
 anything not obviously carried. Do dispositions in a different sitting from

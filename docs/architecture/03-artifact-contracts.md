@@ -329,6 +329,43 @@ Artifacts 1–14 belong to the distillation engine, 15–17 to verification,
   supplies independent evidence, changes evidence-role accounting, or decides
   disposition. S6 remains the separate `CC x SRC` evidence-role contract.
 
+## 5c. Internal-ambiguity ledger (`ledgers/internal-ambiguities.md`)
+
+- **Activation:** run format `1.5.0-provisional` adds capability
+  `internal-ambiguity-lifecycle` cumulatively over 1.0–1.4. Earlier runs do not
+  migrate and must reject this 1.5-only artifact.
+- **Exact artifact:** one
+  `internal_ambiguity_format: aleph-internal-ambiguity/v1` marker followed by
+  exactly T5.1 definitions, T5.2 reviewed assessments, and T5.3 procedural
+  authority in the column order in
+  [`templates/09-internal-ambiguity.md`](templates/09-internal-ambiguity.md).
+- **T5.1:** durable immutable `AMB-NNNN` identity; exact same-source frozen
+  expression bytes and UTF-8 half-open interval; current PKT/CC source entity;
+  ordered current packet basis; exact hash/base64; no authority detector.
+- **T5.2:** single-headed assessment history; exact local-interval or complete
+  same-source search basis; only PKT/source-locus candidates; explicit eligible
+  C1 REL IDs; exact resolution/carry matrix; exact upheld review subject.
+  Structural completeness is not semantic adequacy.
+- **Material impact:** retained M subjects bind the reviewed T5.2 row and C1
+  relation basis. Class B has empty operative scope and no authority request.
+  Class C has nonempty typed scope whose requirement refs resolve only through
+  the run-pinned immutable Core bundle.
+- **T5.3:** one exact human procedural response projects one row with
+  `selected_candidate_ref = none`. It can carry, restrict, inspect, block,
+  request a successor run, or retain an observation. It cannot determine
+  source meaning, candidate selection, relation semantics, S5 disposition,
+  S6 evidence role, or S8 referent creation.
+- **Restriction boundary:** `restrict-downstream-use` derives a read-only
+  tuple overlay from the retained authority basis. It is not exclusion,
+  evidence removal, disposition, source invalidation, support weight, relation
+  mutation, or evidence-role assignment.
+- **Human text boundary:** exact observation/comment bytes are control and
+  audit material only. They are withheld from semantic worker/verifier,
+  relation, S5, S6, synthesis, and projection contexts.
+- **Phase boundary:** 1.5 S4 closes through C1 relations, C2 ambiguities, then
+  C3 exit. C1 makes relations immediately immutable. A relation defect found
+  during C2 blocks and cannot repair or rerun C1.
+
 ## 6. Disposition-ledger summary (`ledgers/disposition-ledger.md`)
 
 Précis §5 records per-disposition counts and claim-id lists. In predecessor

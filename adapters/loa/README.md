@@ -166,7 +166,7 @@ byte-sliced from canonical Core files in the retained bundle. Returns stay in
 quarantine until their canonical output contract validates. Only the
 orchestrator-owned writer can append to canonical ledgers. Refuter calls
 require a newly attested context that cannot inherit the producer context.
-The installed skill runs the sealed `prepare`, `dispatch`, and `accept`
+The installed skill runs the sealed `assemble`, `prepare`, `dispatch`, and `accept`
 operations in order. `dispatch` starts the attested Claude Code binary as a
 fresh, nonpersistent process inside the attested bubblewrap policy. The sealed
 worker bundle is mounted read-only at `/worker`; only sandbox-local `/tmp` and
@@ -175,6 +175,15 @@ strict stream parser requires the requested model, `StructuredOutput`, a
 successful `tool_use` stop, complete usage and cost evidence, no permission
 denials, and no fallback or refusal event. It retains the raw stream,
 structured return, and dispatch receipt as immutable quarantine evidence.
+
+For run format 1.5 at S4-C2, `resume` exposes the first-unmet-DoD Slice 5
+roles, applies an exact retained procedural response to T5.3 once, opens legal
+Q successors, and advances C2/C3 only through the run-local pinned Core. All
+four Slice 5 roles use the same sealed prepare/dispatch/accept path. At S5 and
+later, worker assembly derives retained restriction tuples through Core and
+refuses an exact prohibited operation before dispatch while leaving unlisted
+operations and independent S5/S6 judgment intact. This is
+implementation/process evidence only; agent mode remains unsanctioned.
 
 Missing installation, isolation, exact model identity, runtime snapshot, or
 profile capability is a hard preflight failure. There is no fallback model and

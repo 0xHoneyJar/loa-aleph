@@ -33,6 +33,12 @@ import {
   parseTables,
 } from '../../../scripts/lib/markdown.ts';
 import { sourceWalkReviewBasisDigest } from '../../../scripts/lib/checks-k2.ts';
+import {
+  buildProceduralAuthorityRequest,
+  buildProceduralAuthorityResponse,
+  buildProceduralAuthoritySubject,
+  proceduralAuthorityRequestJson,
+} from '../../../scripts/lib/internal-ambiguity.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
 import {
   dispatchLoaCommand,
@@ -971,10 +977,20 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         'installed bundle omits the compiled host attestation entrypoint',
       );
       expect(
-        skill.includes('host-attestation.js attest')
+        existsSync(join(
+          runtimeRoot,
+          'runtime-js',
+          'adapters',
+          'loa',
+          'src',
+          'worker-dispatch.js',
+        ))
+          && skill.includes('host-attestation.js attest')
+          && skill.includes('worker-dispatch.js assemble')
+          && skill.includes('worker-dispatch.js prepare')
           && skill.includes('worker-dispatch.js dispatch')
           && skill.includes('worker-dispatch.js accept'),
-        'skill does not require the attested prepare-dispatch-accept path',
+        'installed bundle omits the manifest-declared assemble-prepare-dispatch-accept path',
       );
       expect(
         skill.includes('S1 finalizes `corpus/manifest.md`')
@@ -1136,7 +1152,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       assertFixtureBoundary(readRunState(context.runDir), context.runDir);
     });
 
-    runCase(results, 'retained 1.4 run cannot downgrade its manifest to 1.3', () => {
+    runCase(results, 'retained 1.5 run cannot downgrade its manifest to 1.4', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
@@ -1145,12 +1161,12 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         writeFileSync(
           manifestPath,
           originalManifest.replace(
+            '- run_format_version: 1.5.0-provisional',
             '- run_format_version: 1.4.0-provisional',
-            '- run_format_version: 1.3.0-provisional',
           ),
         );
         const downgraded = dispatchLoaCommand(['resume', RUN_ID], startOptions(context));
-        expect(downgraded.result === 'FAIL', 'retained 1.4 run accepted a 1.3 manifest downgrade');
+        expect(downgraded.result === 'FAIL', 'retained 1.5 run accepted a 1.4 manifest downgrade');
         expect(
           downgraded.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
           `downgrade failure omitted retained identity diagnostic: ${downgraded.errors.join('; ')}`,
@@ -1161,7 +1177,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       }
     });
 
-    runCase(results, 'retained 1.4 run cannot remove its manifest version', () => {
+    runCase(results, 'retained 1.5 run cannot remove its manifest version', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
@@ -1169,7 +1185,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       try {
         writeFileSync(
           manifestPath,
-          originalManifest.replace('- run_format_version: 1.4.0-provisional\n', ''),
+          originalManifest.replace('- run_format_version: 1.5.0-provisional\n', ''),
         );
         let checkerInvoked = false;
         const removed = dispatchLoaCommand(['validate', RUN_ID], {
@@ -1179,7 +1195,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
             throw new Error('checker must not run after manifest identity removal');
           },
         });
-        expect(removed.result === 'FAIL', 'retained 1.4 run accepted a missing manifest version');
+        expect(removed.result === 'FAIL', 'retained 1.5 run accepted a missing manifest version');
         expect(!checkerInvoked, 'version removal reached the pinned checker');
         expect(
           removed.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
@@ -1445,6 +1461,246 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         checked.result === 'PASS',
         `valid retained S2 run failed normal checker behavior: ${checked.errors.join('; ')}`,
       );
+    });
+
+    runCase(results, 'public resume clears Slice 5 response-application halt exactly once', () => {
+      const fixture = prepareRetainedDistillingRun(context, 'slice5-public-resume', 'S4');
+      const ledgerPath = join(fixture.runDir, 'ledgers', 'internal-ambiguities.md');
+      const emptyLedger = readFileSync(
+        join(REPO_ROOT, 'docs/fixtures/internal-ambiguity-lifecycle/ledgers/internal-ambiguities.md'),
+        'utf8',
+      ).replace('RUN-internal-ambiguity-lifecycle', RUN_ID)
+        .split('\n')
+        .filter((line) => !line.startsWith('| AMB-'))
+        .join('\n');
+      writeFileSync(ledgerPath, emptyLedger);
+      writeFileSync(
+        join(fixture.runDir, 'run-log.md'),
+        `${readFileSync(join(fixture.runDir, 'run-log.md'), 'utf8')}\nclosure_phase: S4-C1-relations-closed\n`,
+      );
+      const scope = {
+        affected_ids: ['CC-9999'],
+        impact_rows: [{
+          affected_id: 'CC-9999',
+          operation_kind: 'required-barrier-dod' as const,
+          requirement_ref: 'core:docs/architecture/templates/09-internal-ambiguity.md#S4 composite barrier',
+          unresolved_treatment: 'carry-or-restriction' as const,
+          consequence_if_unresolved: 'Fixture public-resume reachability only.',
+        }],
+      };
+      const subject = buildProceduralAuthoritySubject({
+        run_id: RUN_ID,
+        ambiguity_id: 'AMB-9999',
+        assessment_seq: 1,
+        t5_2_assessment_ref: `internal-ambiguity:T5.2:AMB-9999:A1@sha256:${'1'.repeat(64)}`,
+        t5_2_review_subject_digest: `sha256:${'2'.repeat(64)}`,
+        t5_2_review_ref: `ambiguity-review-verdict:VER-9998@sha256:${'3'.repeat(64)}`,
+        prior_indeterminate_review_refs: [],
+        candidate_state: 'null-no-candidate',
+        candidate_refs: [],
+        carry_state: 'none',
+        affected_relation_ids: [],
+        c1_relation_basis_ref: 'none',
+        material_impact_seq: 1,
+        material_impact_subject_ref: `material-impact-subject:AMB-9999:A1:M1@sha256:${'4'.repeat(64)}`,
+        material_impact_review_ref: `material-impact-verdict:VER-9999@sha256:${'5'.repeat(64)}`,
+        operative_scope: scope,
+        source_locators: ['SRC-001:L1-L1'],
+        reviewed_unaffected_ids: [],
+        unresolved_statement: 'Fixture response-application reachability statement.',
+      });
+      const request = buildProceduralAuthorityRequest({
+        request_seq: 1,
+        subject,
+        presentation: true,
+        required_authority_identity: 'fixture-simulated-human-authority',
+        prepared_by: 'invocation:loa-orchestrator',
+        requested_at: '2040-01-02T03:06:31.000Z',
+      });
+      openHumanAuthorityGate(fixture.runDir, {
+        gateId: request.request_id,
+        gateType: 'internal-ambiguity-procedural-decision',
+        stage: 'S4',
+        now: request.requested_at,
+        request: request as unknown as JsonValue,
+      });
+      const requestBytes = Buffer.from(proceduralAuthorityRequestJson(request), 'utf8');
+      const response = buildProceduralAuthorityResponse({
+        request,
+        request_bytes: requestBytes,
+        authority_identity: 'fixture-simulated-human-authority',
+        selected_action: 'carry-unresolved',
+        observation: null,
+        comment: null,
+        recorded_at: '2040-01-02T03:06:32.000Z',
+      });
+      recordHumanAuthorityDecision(fixture.runDir, {
+        gateId: request.request_id,
+        authorityIdentity: 'fixture-simulated-human-authority',
+        decision: 'approve',
+        recordedAt: response.recorded_at,
+        simulation: { kind: 'fixture-simulated' },
+        response: response as unknown as JsonValue,
+      });
+      expect(
+        readRunState(fixture.runDir).execution.halt?.code
+          === 'S4_C2_RESPONSE_APPLICATION_REQUIRED',
+        'fixture did not reach the response-application halt',
+      );
+      const first = dispatchLoaCommand(
+        ['resume', RUN_ID],
+        { ...startOptions(context), loaRoot: fixture.loaRoot },
+      );
+      expect(first.result === 'PASS', `public resume failed: ${first.errors.join('; ')}`);
+      const firstDetails = first.details as Record<string, JsonValue>;
+      const slice5 = firstDetails.slice5 as Record<string, JsonValue>;
+      expect(JSON.stringify(slice5.required_roles) === JSON.stringify([
+        'ambiguity-producer',
+        'ambiguity-reviewer',
+        'material-impact-producer',
+        'material-impact-reviewer',
+      ]), 'public resume did not expose the four pinned Slice 5 roles at the first unmet C2 DoD');
+      expect(readRunState(fixture.runDir).execution.halt === null,
+        'public resume did not clear response-application halt');
+      const afterFirst = readFileSync(ledgerPath, 'utf8');
+      expect((afterFirst.match(/\| AMB-9999 \| 1 \| 1 \| carry-unresolved \|/gu) || []).length === 1,
+        'public resume did not apply exactly one T5.3 row');
+      const pinnedBundle = verifyAndLoadLoaBundle(readRuntime(fixture.runDir).bundle.root);
+      const roles: Array<{
+        role: LoaRoleId;
+        kind: 'producer' | 'refuter';
+        producerContextId?: string;
+      }> = [
+        { role: 'ambiguity-producer', kind: 'producer' },
+        {
+          role: 'ambiguity-reviewer',
+          kind: 'refuter',
+          producerContextId: 'CTX-SLICE5-AMBIGUITY-PRODUCER',
+        },
+        { role: 'material-impact-producer', kind: 'producer' },
+        {
+          role: 'material-impact-reviewer',
+          kind: 'refuter',
+          producerContextId: 'CTX-SLICE5-MATERIAL-PRODUCER',
+        },
+      ];
+      for (const [index, role] of roles.entries()) {
+        const callId = `CALL-SLICE5-LIVE-PATH-${String(index + 1).padStart(4, '0')}`;
+        const assembled = assembleWorkerBundle({
+          bundle: pinnedBundle,
+          runDir: fixture.runDir,
+          callId,
+          runId: RUN_ID,
+          stage: 'S4',
+          role: role.role,
+          kind: role.kind,
+          allowlist: [],
+          withheld: exactWithheldInventory(
+            pinnedBundle,
+            fixture.runDir,
+            role.role,
+            'S4',
+            [],
+          ),
+          taskLine: 'Return only the exact bounded Slice 5 structured result.',
+          modelIdentity: readRunState(fixture.runDir).identity.models[role.role],
+          producerContextId: role.producerContextId,
+        });
+        const raw: JsonValue = role.role === 'ambiguity-producer'
+          ? {
+            definition: {
+              source_entity_kind: 'CC',
+              source_entity_id: 'CC-0413',
+              source_id: 'SRC-0401',
+              expression_locator: 'L8-L8',
+              expression_start_byte: 277,
+              expression_end_byte: 286,
+              expression_sha256: 'sha256:dda18a0e21ae47c53b4309434cbc02ae8bf764fa83a6defbb719431242722aa7',
+              expression_bytes_base64: 'Y2FuZGlkYXRl',
+              basis_packet_ids: ['PKT-0405'],
+              detected_by: 'invocation:ambiguity-producer-03',
+            },
+            assessment: {
+              search_scope_kind: 'full-same-source',
+              search_source_id: 'SRC-0401',
+              search_completion_ref: 'SRC-0401@CUR-0406@sha256:15c980b0d84d5cb034d9fb449ae3f05b7672b2a413ad31c6e849e5acd0c3c984',
+              search_basis_digest: 'sha256:580ad9aee5a5b3b060c0f734542e08956c097060b34d56dc672c54fc5c2f3a80',
+              candidate_state: 'null-no-candidate',
+              candidate_refs: [],
+              affected_relation_ids: [],
+              resolution_state: 'unresolved',
+              carry_state: 'none',
+              proposed_by: 'invocation:ambiguity-producer-03',
+              review_subject_digest: 'sha256:971c8b4b48522d87dc994a48823f1f4eabce05cd1c990b1bd08f506e5caf201d',
+            },
+            flags: ['fixture-simulated'],
+          }
+          : role.role === 'ambiguity-reviewer'
+            ? {
+              target: `internal-ambiguity-review-subject:sha256:${'3'.repeat(64)}`,
+              verdict: 'upheld',
+              shown: 'fixture exact ambiguity subject',
+              withheld: 'fixture producer rationale and human authority',
+              consequence: 'fixture structured return only',
+              flags: ['fixture-simulated'],
+            }
+            : role.role === 'material-impact-producer'
+              ? {
+                materiality_class: 'C',
+                operative_scope: {
+                  affected_ids: ['CC-0413'],
+                  impact_rows: [{
+                    affected_id: 'CC-0413',
+                    operation_kind: 'required-barrier-dod',
+                    requirement_ref: 'core:docs/architecture/templates/09-internal-ambiguity.md#S4 composite barrier',
+                    unresolved_treatment: 'carry-or-restriction',
+                    consequence_if_unresolved: 'C2 retains the unresolved ambiguity without changing later semantic judgments.',
+                  }],
+                },
+                source_locators: ['SRC-0401:L8-L8'],
+                reviewed_unaffected_ids: [],
+                unresolved_statement: 'The frozen same-source bytes do not identify one local referent.',
+                proposed_by: 'invocation:material-impact-producer-fixture',
+                flags: ['fixture-simulated'],
+              }
+              : {
+                target: `internal-ambiguity-material-impact-review-subject:sha256:${'4'.repeat(64)}`,
+                verdict: 'upheld',
+                shown: 'fixture exact material-impact subject',
+                withheld: 'fixture producer rationale and human authority',
+                consequence: 'fixture structured return only',
+                flags: ['fixture-simulated'],
+              };
+        const contextId = `CTX-SLICE5-LIVE-${String(index + 1).padStart(4, '0')}`;
+        const accepted = dispatchLoaWorker({
+          workerBundleRoot: assembled.root,
+          returnRoot: join(fixture.runDir, 'control', 'worker-returns', callId),
+          hostCapabilities: readRuntime(fixture.runDir).host,
+          host: {
+            invokeFreshContext() {
+              return {
+                receipt: fixtureDispatchReceipt(
+                  assembled.request,
+                  contextId,
+                  role.producerContextId || null,
+                ),
+                structured_return: raw,
+              };
+            },
+          },
+        });
+        expect(accepted.report.result === 'PASS' && accepted.validated !== null,
+          `${role.role} did not complete the shipped prepare/dispatch/accept path: ${
+            accepted.report.errors.join('; ')
+          }`);
+      }
+      const second = dispatchLoaCommand(
+        ['resume', RUN_ID],
+        { ...startOptions(context), loaRoot: fixture.loaRoot },
+      );
+      expect(second.result === 'PASS', `idempotent public resume failed: ${second.errors.join('; ')}`);
+      expect(readFileSync(ledgerPath, 'utf8') === afterFirst,
+        'idempotent public resume duplicated T5.3');
     });
 
     runCase(results, 'retained S2 authority rejects coordinated Core signal erasure', () => {
@@ -2296,6 +2552,101 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         /not exactly bound to the sealed invocation/iu,
         'tampered native dispatch binding',
       );
+    });
+
+    runCase(results, 'Slice 5 reviewer roles always require fresh refuter dispatch', () => {
+      const { runDir, state } = requireRun(context);
+      const bundle = verifyAndLoadLoaBundle(readRuntime(runDir).bundle.root);
+      const reviewers: Array<{
+        role: 'ambiguity-reviewer' | 'material-impact-reviewer';
+        producerContext: string;
+      }> = [
+        {
+          role: 'ambiguity-reviewer',
+          producerContext: 'CTX-SLICE5-AMBIGUITY-PRODUCER',
+        },
+        {
+          role: 'material-impact-reviewer',
+          producerContext: 'CTX-SLICE5-MATERIAL-PRODUCER',
+        },
+      ];
+      for (const [index, reviewer] of reviewers.entries()) {
+        const withheld = exactWithheldInventory(
+          bundle,
+          runDir,
+          reviewer.role,
+          'S4',
+          [],
+        );
+        expectThrows(
+          () => assembleWorkerBundle({
+            bundle,
+            runDir,
+            callId: `CALL-SLICE5-REVIEWER-AS-PRODUCER-${String(index + 1)}`,
+            runId: RUN_ID,
+            stage: 'S4',
+            role: reviewer.role,
+            kind: 'producer',
+            allowlist: [],
+            withheld,
+            taskLine: 'Attempt to dispatch a Slice 5 reviewer as a producer.',
+            modelIdentity: state.identity.models[reviewer.role],
+          }),
+          /reviewer role cannot be dispatched as a producer/iu,
+          `${reviewer.role} producer dispatch`,
+        );
+        expectThrows(
+          () => assembleWorkerBundle({
+            bundle,
+            runDir,
+            callId: `CALL-SLICE5-REVIEWER-NO-CONTEXT-${String(index + 1)}`,
+            runId: RUN_ID,
+            stage: 'S4',
+            role: reviewer.role,
+            kind: 'refuter',
+            allowlist: [],
+            withheld,
+            taskLine: 'Attempt to dispatch a Slice 5 reviewer without producer context.',
+            modelIdentity: state.identity.models[reviewer.role],
+          }),
+          /requires a nonempty producer context ID/iu,
+          `${reviewer.role} missing producer context`,
+        );
+        const assembled = assembleWorkerBundle({
+          bundle,
+          runDir,
+          callId: `CALL-SLICE5-REVIEWER-FRESH-${String(index + 1)}`,
+          runId: RUN_ID,
+          stage: 'S4',
+          role: reviewer.role,
+          kind: 'refuter',
+          allowlist: [],
+          withheld,
+          taskLine: 'Review the exact sealed Slice 5 subject in fresh context.',
+          modelIdentity: state.identity.models[reviewer.role],
+          producerContextId: reviewer.producerContext,
+        });
+        expectThrows(
+          () => validateWorkerDispatch(
+            assembled.request,
+            fixtureDispatchReceipt(
+              assembled.request,
+              reviewer.producerContext,
+              reviewer.producerContext,
+            ),
+          ),
+          /reused the producer context/iu,
+          `${reviewer.role} reused producer context`,
+        );
+        validateWorkerDispatch(
+          assembled.request,
+          fixtureDispatchReceipt(
+            assembled.request,
+            `CTX-SLICE5-REVIEWER-${String(index + 1)}`,
+            reviewer.producerContext,
+          ),
+        );
+      }
     });
 
     runCase(results, 'malformed or unbound worker returns cannot reach canonical ledgers', () => {

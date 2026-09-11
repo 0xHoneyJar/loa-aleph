@@ -357,10 +357,14 @@ removal, and rejects an extractor cursor return with no Core `reason`.
   lineage, then activates `relation_format: aleph-relations/v1`. Earlier
   formats containing the relation marker/table fail incompatible activation.
   Before retained S4 closure the canonical artifact may be absent or contain
-  exactly the marker and empty adopted table; once S4 closure or S5 is
-  mechanically recorded, the artifact, marker, and exact one-table schema are
-  required. This is retained-state checking, not proof of the historical
-  intra-S4 append instant.
+  exactly the marker and empty adopted table. In 1.5, a retained
+  `S4-C1-relations-closed` marker is a legal C1-only state only when the
+  complete relation artifact passes every K2.16 rule; it means `RELATIONS
+  CLOSED FOR S4-C2 CONSUMPTION`, not post-S4 completion. Once C1, historical
+  S4 closure, or S5 is mechanically recorded, the artifact, marker, and exact
+  one-table schema are required. Missing or invalid relations at C1 fail.
+  This is retained-state checking, not proof of the historical intra-S4 append
+  or refusal instant.
 
   The canonical table has exactly 17 columns:
   `relation_id`, `owner_stage`, `family`, `type`, `source_kind`, `source_id`,
@@ -405,7 +409,65 @@ removal, and rejects an extractor cursor return with no Core `reason`.
   positive controls, three temporal write-window cases, and the retained
   semantic-review challenge set outside K2.
 
+- K2.17 (`internal-ambiguity retained-state structure`): run format
+  `1.5.0-provisional` cumulatively retains 1.0–1.4 and activates
+  `internal_ambiguity_format: aleph-internal-ambiguity/v1`. Earlier formats
+  containing the marker, T5 tables, material-impact subjects, procedural
+  authority files, or 1.5 closure phases fail incompatible activation.
+
+  K2.17 requires exactly the three adopted T5 tables and exact columns. It
+  validates durable/immutable AMB identity; exact frozen same-source expression
+  interval, hash, and canonical base64; current PKT/CC definitions; ordered
+  packet basis; search-basis digest and complete local/full-source accounting;
+  PKT/source-locus candidate grammar and currentness; explicit eligible C1 REL
+  consumption; every legal resolution/carry/affected-set combination;
+  contiguous single-headed assessment history; exact ambiguity subject digest;
+  one exact fresh verifier target and upheld verdict; and duplicate subject
+  digest rejection.
+
+  For material impact and procedural authority, it validates exact retained
+  subject path/format/key order; T5.2/C1 binding; contiguous single-headed M
+  history; Class B empty and Class C nonempty operative scope; legal current
+  affected IDs; unique noncontradictory impact tuples; exact pinned-Core
+  `requirement_ref` resolution against the run-bound retained lock, manifest
+  projection, inventory, identities, and bytes; canonical ordered,
+  current, disjoint `reviewed_unaffected_ids`; exact same-source reopening,
+  uniqueness, and order for `source_locators`; exact structured material
+  verifier target/verdict; Core
+  action projection; complete machine/presentation correspondence; exact
+  request/response bytes and digests; required human identity; one active
+  request; contiguous single-headed Q history; stale/reused response refusal;
+  exact T5.3 projection with `selected_candidate_ref = none`; and legal
+  terminal/nonterminal C2 state.
+
+  C2 is keyed from every latest canonical unresolved T5.2 assessment, not
+  merely from material or action histories that happen to exist. Every such
+  assessment requires a contiguous material-impact history and latest usable
+  upheld head. Every latest upheld Class C head requires a retained
+  progression-enabling `carry-unresolved` or `restrict-downstream-use` action.
+  Empty maps and absent T5.3 histories never satisfy those obligations.
+
+  It also checks the C1/C2/C3 marker sequence, retained relation/C1
+  consistency, and the absence of references that would introduce human
+  observation bytes into semantic worker contexts. Temporal refusal,
+  transaction application, durable halt, and crash recovery are separate
+  process tests because final retained state cannot prove the write history.
+
+  K2.17 must not detect ambiguity from prose, select a candidate, judge
+  semantic correctness or cognitive adequacy, infer affected relations or
+  propagation, prove semantic reviewer independence, validate truth, grant
+  authority, grant acceptance, or claim sanction. A K2.17 PASS is
+  `STRUCTURAL ONLY`.
+
+  The focused fixture is `docs/fixtures/internal-ambiguity-lifecycle/`. The
+  focused Core suite covers twelve canonical contract cases, the deterministic
+  battery contains 89 named mutations plus four positive baselines, and the
+  Loa process suite contains 48 temporal and live-path cases including all ten
+  crash positions, real C2 pinned-Core failures, cannot-determine blocking,
+  and downstream restriction consumption. These exact counts describe this
+  implementation head and must be updated if the suites change.
+
 The run-format capability registry is cumulative by construction: each
 registered format adds capabilities to the prefix established by every
-earlier format. Moving the current format to 1.4 therefore cannot deactivate
-exact evidence, source walk, or lineage.
+earlier format. Moving the current format to 1.5 therefore cannot deactivate
+exact evidence, source walk, lineage, or typed relations.

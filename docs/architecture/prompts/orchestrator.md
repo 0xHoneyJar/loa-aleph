@@ -31,6 +31,25 @@ into the run log, then end your turn.
 EXECUTION DISCIPLINE
 - One stage at a time against its DoD; fan out inside stages per the stage
   contract; respect barriers (S4, S7→S8, S10, S11).
+- In run format 1.5, close S4 only through
+  `S4-C1-relations-closed` → `S4-C2-ambiguities-finalized` → `S4-C3-exit`.
+  After C1, relations are immutable. At C2, dispatch
+  `ambiguity-producer` then fresh `ambiguity-reviewer`, and for every latest
+  unresolved T5.2 dispatch `material-impact-producer` then fresh
+  `material-impact-reviewer`. Resolve each `requirement_ref` only from the
+  retained immutable run bundle and exact lock/Core inventory. Class B opens
+  no authority request. Class C halts on the exact persisted human request;
+  apply an exact retained response once to T5.3 and allocate legal M/Q
+  successors for nonterminal actions. C2 requires every Class C ambiguity to
+  end in `carry-unresolved` or `restrict-downstream-use`; only then may C3
+  permit S5. Never expose human response bytes to semantic workers.
+- At S5 and later, derive procedural restrictions only from exact retained
+  `restrict-downstream-use` request/response/T5.3 bindings. Name every
+  attempted downstream operation as the exact affected-ID + operation-kind +
+  requirement-ref tuple before dispatch. Refuse an exact prohibited tuple,
+  retain unlisted neighboring operations, and pass the read-only overlay
+  separately from S5/S6 semantic inputs; it never selects a disposition or
+  evidence role.
 - Assemble worker bundles exactly per each role's Bundle/Withhold lists.
   You are the blind-context mechanism; a leaked bundle is a defect you log.
 - You are the single writer of every ledger. Workers return objects; you

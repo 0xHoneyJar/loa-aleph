@@ -49,7 +49,7 @@ and does not change the manual-only sanction boundary.
 - selected adapter ID, version, lifecycle, and tree digest;
 - checker digest;
 - adapter-protocol version (`1.0.0-provisional`);
-- run-format version (`1.4.0-provisional`);
+- run-format version (`1.5.0-provisional`);
 - the selected source-manifest projection and its digest;
 - the assembly-tool path and file digest;
 - resolved, target-dependency-closure-scoped Git provenance; and
@@ -116,6 +116,11 @@ or unrelated repository commit or worktree change does not perturb the other
 target. The selected manifest projection likewise contains the complete Core
 inventory plus only that bundle's adapter inventory and target. An archive
 wrapper, timestamp, or mutable branch name is not bundle identity.
+
+Two source repositories can therefore have byte-identical selected files,
+Core, checker, adapter, payload, file inventory, and commit tree while naming
+different selected commit objects. Their content identities remain equal, but
+their provenance, lock, and final bundle identities must differ.
 
 The checker digest covers every Core checker, checker library, checker
 specification, and deterministic mutation surface classified by the source

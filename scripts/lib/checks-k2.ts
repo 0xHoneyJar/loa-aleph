@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { TextDecoder } from 'node:util';
 import {
   activeClaims,
@@ -57,6 +57,11 @@ import type {
 import type { ResultCollector } from './results.ts';
 import { runK2Lineage } from './checks-k2-lineage.ts';
 import { runK2Relations } from './checks-k2-relations.ts';
+import { runK2Ambiguities } from './checks-k2-ambiguities.ts';
+import {
+  loadPinnedCoreAuthority,
+  type PinnedCoreAuthority,
+} from './internal-ambiguity.ts';
 import type {
   Disposition,
   ExactEvidenceFragmentRow,
@@ -3152,4 +3157,30 @@ export function runK2(results: ResultCollector, model: RunModel, root: string): 
   checkSourceWalk(results, model);
   runK2Lineage(results, model);
   runK2Relations(results, model);
+  let pinnedCoreAuthority: PinnedCoreAuthority | undefined;
+  const identity = model.manifest?.forwardIdentity;
+  if (identity) {
+    const bundleLock = join(resolve(root), 'bundle.lock.json');
+    const runLockRef = identity.bundleLockRef;
+    const retainedRunLock = runLockRef && !runLockRef.startsWith('sha256:')
+      ? resolve(model.runDir, runLockRef)
+      : '';
+    const lockPath = existsSync(bundleLock)
+      ? bundleLock
+      : retainedRunLock && pathIsWithin(model.runDir, retainedRunLock) && existsSync(retainedRunLock)
+        ? retainedRunLock
+        : '';
+    if (lockPath) {
+      try {
+        pinnedCoreAuthority = loadPinnedCoreAuthority({
+          bundle_lock_path: lockPath,
+          expected_bundle_digest: identity.bundleDigest,
+          expected_core_digest: identity.coreDigest,
+        });
+      } catch {
+        pinnedCoreAuthority = undefined;
+      }
+    }
+  }
+  runK2Ambiguities(results, model, pinnedCoreAuthority);
 }
