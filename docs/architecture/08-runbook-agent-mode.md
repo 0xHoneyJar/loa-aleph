@@ -244,3 +244,7 @@ place of a ledger entry.
   pre-validation) as proven — in the run, in the Précis, or in your reports.
 - Do not push to `main`, accept your own work, or skip the audit.
 - Do not keep working past a gate because the answer "seems obvious."
+
+## Bounded 1.6 material execution
+
+Use `/loa-aleph start <inputs...>` with ordinary sources or explicit `.aleph-representation.json` descriptors. No converter, OCR, renderer or network fetch runs. Reserved descriptors are parsed by Core; malformed, ambiguous, symlinked and traversing input closure fails. Reserve subject IDs before L2F and commit the identical subject and receipt through Core material write plans. Resume verifies retained pins, exact inventory/assets, imported correspondence, uses/reviews and C1 seals before progress. Agent mode remains unsanctioned; fixture-simulated transport proves no production reachability.

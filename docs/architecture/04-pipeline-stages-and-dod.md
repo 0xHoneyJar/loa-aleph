@@ -519,3 +519,7 @@ S13. A projection is never "done" by the renderer's say-so.
 | S12 | kernel + harness reports | yes | per target | — |
 | S13 | accepted PR | yes | — | acceptance |
 | P1–P3 | projections + traces | per type | per type | commission + acceptance |
+
+## Material prerequisites in run format 1.6
+
+S0 presents prepared representation facts and limitations to authority, applies exclusions, then freezes the inventory and exact assets with the source corpus. S2 requires supported UTF-8 extraction, exact packet bindings and PKT receipts; opaque captures remain blocked. S3 requires CC receipts and fresh L2F review for non-text or AST use. S4-C1 requires REL receipts and seals the complete use ledger in the same C1 event. C1/C2/C3 order is unchanged. At ASSEMBLED and later, Précis section 17 contains the mechanically derived limitation union. CANNOT_DETERMINE never waives an existing stage DoD.

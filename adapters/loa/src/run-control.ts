@@ -22,7 +22,10 @@ import {
 import {
   forwardExecutionIdentityProblems,
   loadRunManifest,
+  loadRun,
+  usesFormalLayoutBindings,
 } from '../../../scripts/lib/run-model.ts';
+import { validateRepresentationRun } from '../../../scripts/lib/source-representation.ts';
 import {
   CORE_RUN_STATES,
   CORE_STAGES,
@@ -488,6 +491,8 @@ export function initializeRunControl(options: InitializeRunControlOptions): LoaR
       'freeze',
     ],
     corpus_snapshot_ref: 'control/corpus.snapshot.json',
+    ...(usesFormalLayoutBindings(options.lock.run_format_version)
+      ? { representation_preparation_ref: 'control/representation-prepared.md' } : {}),
   });
   const state: LoaRunState = {
     format: LOA_RUN_STATE_FORMAT,
@@ -696,6 +701,9 @@ export function verifyRunControl(runDir: string): LoaRunState {
   const state = readRunState(runDir);
   const lock = verifyOriginalBundleLock(runDir, state);
   verifyRunManifestAuthority(runDir, state, lock);
+  if (usesFormalLayoutBindings(state.identity.run_format_version) && state.corpus.state === 'frozen') {
+    validateRepresentationRun(loadRun(runDir));
+  }
   const corpus = verifyCorpusSnapshot(runDir);
   if (corpus.run_id !== state.run_id
     || corpus.tree_digest !== state.corpus.tree_digest
@@ -716,7 +724,7 @@ export function verifyRetainedRuntimeIdentity(
   const runtime = verifyRuntimeSnapshot(runtimeSnapshotPath(runDir), {
     allowSimulation: current.full_mode === 'fixture-simulated',
   });
-  const profile = loadLoaProfile(runtime.profile.path);
+  const profile = loadLoaProfile(runtime.profile.path, current.identity.run_format_version);
   const runtimeModels = mapModels(profile.value, runtime.host);
   if (runtime.run_id !== current.run_id
     || runtime.tree_digest !== current.identity.runtime.digest

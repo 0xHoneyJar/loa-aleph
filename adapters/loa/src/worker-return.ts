@@ -28,6 +28,7 @@ import {
   contractExemplarToJsonSchema,
   validateWorkerReturnContract,
 } from '../../../scripts/lib/worker-return-contract.ts';
+import { validateMaterialProducerReturn } from '../../../scripts/lib/source-representation.ts';
 
 export { contractExemplarToJsonSchema };
 
@@ -88,6 +89,8 @@ export class ValidatedWorkerReturn<T extends JsonValue = JsonValue> {
   readonly contractDigest: string;
   readonly validationDigest: string;
   readonly simulation: WorkerDispatchReceipt['simulation'];
+  readonly contextId: string | null;
+  readonly producerContextId: string | null;
   readonly #canonicalBytes: Buffer;
   readonly #token: symbol;
 
@@ -99,6 +102,8 @@ export class ValidatedWorkerReturn<T extends JsonValue = JsonValue> {
     contractDigest: string,
     validationDigest: string,
     simulation: WorkerDispatchReceipt['simulation'],
+    contextId: string | null = null,
+    producerContextId: string | null = null,
   ) {
     if (token !== VALIDATED_TOKEN) throw new Error('validated returns are created only by validation');
     const canonicalBytes = stableJsonBytes(data);
@@ -111,6 +116,8 @@ export class ValidatedWorkerReturn<T extends JsonValue = JsonValue> {
     this.rawDigest = rawDigest;
     this.contractDigest = contractDigest;
     this.validationDigest = validationDigest;
+    this.contextId = contextId;
+    this.producerContextId = producerContextId;
     this.simulation = simulation === null
       ? null
       : Object.freeze({ kind: simulation.kind });
@@ -265,6 +272,17 @@ export function validateWorkerReturn(
     const validation = validateWorkerReturnContract(parsed.bytes, example);
     errors.push(...validation.errors);
     canonicalValue = validation.canonicalValue as JsonValue | null;
+    if (canonicalValue !== null && errors.length === 0) {
+      try { validateMaterialProducerReturn(canonicalValue); } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
+      }
+      if (request.role === 'verifier-l2f') {
+        const returned = canonicalValue as Record<string, JsonValue>;
+        if (!Array.isArray(returned.candidate_evidence) || returned.candidate_evidence.length !== 0) {
+          errors.push('L2F requires empty candidate_evidence');
+        }
+      }
+    }
   }
   const report: WorkerValidationReport = {
     format: LOA_WORKER_VALIDATION_FORMAT,
@@ -286,6 +304,8 @@ export function validateWorkerReturn(
     contractDigest,
     validationDigest,
     options.dispatchReceipt.simulation,
+    options.dispatchReceipt.context_id,
+    options.dispatchReceipt.producer_context_id,
   );
   writeFileAtomic(join(returnRoot, 'validated.json'), validated.canonicalBytes());
   return {

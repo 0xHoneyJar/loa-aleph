@@ -125,3 +125,7 @@ conclusion; answer keys; downstream S5/S6/S8/synthesis/projection context.
 ```json
 {"target":"internal-ambiguity-material-impact-review-subject:sha256:…","verdict":"upheld|refuted|cannot-determine","shown":"","withheld":"","consequence":"","flags":[]}
 ```
+
+## Representation material — run format 1.6
+
+Use the common material constraint block for 1.6; representation context must belong to the existing legal same-source basis. T5/OQ fields, candidate restrictions, and human observation withholding remain unchanged.

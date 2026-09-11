@@ -3,10 +3,11 @@ import { basename, join, resolve } from 'node:path';
 import { TextDecoder } from 'node:util';
 import { activeClaims, allStatusRows, compareTimestamp, duplicateDefinitions, firstRunLogEntry, location, makeIndexes, mdLineSpan, normalizeSha256, parseTimestamp, pathIsWithin, reachedState, sha256, sourceFilePath, } from './check-helpers.js';
 import { envelopeSection, findTable, findTables, findTableByFirstHeader, headingSection, idsIn, normalizeHeader, numberedEnvelopeHeadings, parseBulletFields, parseTables, tableCells, isSeparatorRow, } from './markdown.js';
-import { CURRENT_RUN_FORMAT_VERSION, CLAIM_DEFINITION_HEADER, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, PACKET_DEFINITION_HEADER, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, } from './run-model.js';
+import { CURRENT_RUN_FORMAT_VERSION, CLAIM_DEFINITION_HEADER, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, PACKET_DEFINITION_HEADER, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, usesFormalLayoutBindings, } from './run-model.js';
 import { runK2Lineage } from './checks-k2-lineage.js';
 import { runK2Relations } from './checks-k2-relations.js';
 import { runK2Ambiguities } from './checks-k2-ambiguities.js';
+import { runK2Representations } from './checks-k2-representations.js';
 import { loadPinnedCoreAuthority, } from './internal-ambiguity.js';
 const CLAIM_TYPES = [
     'factual',
@@ -942,7 +943,8 @@ export function sourceWalkReviewBasisDigest(model, sourceId, cursorId) {
     const sourceBytes = readFileSync(sourcePath);
     const criteriaBytes = readFileSync(model.criteria.path);
     const payload = {
-        format: SOURCE_WALK_REVIEW_BASIS_FORMAT,
+        format: usesFormalLayoutBindings(model.manifest?.runFormatVersion || '')
+            ? 'aleph-source-walk-review-basis/v2' : SOURCE_WALK_REVIEW_BASIS_FORMAT,
         source_id: sourceId,
         source_hash: `sha256:${sha256(sourceBytes)}`,
         extraction_criteria_digest: `sha256:${sha256(criteriaBytes)}`,
@@ -987,7 +989,10 @@ export function sourceWalkReviewBasisDigest(model, sourceId, cursorId) {
             reason: cursor.values.reason,
         },
     };
-    return `sha256:${sha256(Buffer.from(JSON.stringify(payload), 'utf8'))}`;
+    const subject = usesFormalLayoutBindings(model.manifest?.runFormatVersion || '')
+        ? { ...payload, representation_inventory_hash: model.manifest?.bullets.fields.get('representation inventory hash') || '' }
+        : payload;
+    return `sha256:${sha256(Buffer.from(JSON.stringify(subject), 'utf8'))}`;
 }
 function checkSourceWalk(results, model) {
     results.run('K2.14', 'source walk, gap review, and resume accounting', (fail) => {
@@ -2575,6 +2580,7 @@ function checkKernelReport(results, model) {
     });
 }
 export function runK2(results, model, root) {
+    runK2Representations(results, model);
     checkLayout(results, model);
     checkManifest(results, model);
     checkForbidden(results, model, root);

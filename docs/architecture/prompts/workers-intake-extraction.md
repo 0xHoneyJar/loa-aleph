@@ -112,34 +112,98 @@ this source.
 discussion; anything with `CC-`/disposition vocabulary.
 **Output contract:**
 ```json
-{ "source_id": "", "producer_invocation_id": "",
-  "walk_intervals": [{
-    "start_byte": 0, "end_byte": 0,
-    "outcome": "admitted|no-candidate-observed|excluded|deferred|unsupported",
-    "packet_candidate_indexes": [0],
-    "criterion_ref": "admission:<n>|exclusion:<class>|none",
-    "closure_state": "closed|open|resolved",
-    "reason": null, "closure_note": null
-  }],
-  "packets": [{
-  "evidence_state": "exact|degraded-non-exact",
-  "join_policy": "single-fragment|adjacent-fragments|separate-fragments|not-applicable",
-  "fragments": [{ "fragment_order": 1, "locator": "",
-  "exact_bytes_base64": "" }], "rendered_text": "",
-  "degraded_source_locator": null, "degradation_reason": null,
-  "criterion": 0, "flags": [] }],
-  "extraction_events": [{
-    "start_byte": 0, "end_byte": 0,
-    "shared_position_key": "", "event_ordinal": 1,
-    "packet_candidate_index": 0, "origin": "primary"
-  }],
+{
+  "source_id": "",
+  "producer_invocation_id": "",
+  "walk_intervals": [
+    {
+      "start_byte": 0,
+      "end_byte": 0,
+      "outcome": "admitted|no-candidate-observed|excluded|deferred|unsupported",
+      "packet_candidate_indexes": [
+        0
+      ],
+      "criterion_ref": "admission:<n>|exclusion:<class>|none",
+      "closure_state": "closed|open|resolved",
+      "reason": null,
+      "closure_note": null
+    }
+  ],
+  "packets": [
+    {
+      "evidence_state": "exact|degraded-non-exact",
+      "join_policy": "single-fragment|adjacent-fragments|separate-fragments|not-applicable",
+      "fragments": [
+        {
+          "fragment_order": 1,
+          "locator": "",
+          "exact_bytes_base64": ""
+        }
+      ],
+      "rendered_text": "",
+      "degraded_source_locator": null,
+      "degradation_reason": null,
+      "criterion": 0,
+      "flags": [],
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": [
+              "BND-…"
+            ]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ],
+  "extraction_events": [
+    {
+      "start_byte": 0,
+      "end_byte": 0,
+      "shared_position_key": "",
+      "event_ordinal": 1,
+      "packet_candidate_index": 0,
+      "origin": "primary"
+    }
+  ],
   "next_cursor": {
-    "byte_offset": 0, "shared_position_key": null,
-    "next_event_ordinal": null, "predecessor_walk_index": null,
-    "predecessor_event_index": null, "source_hash": "",
+    "byte_offset": 0,
+    "shared_position_key": null,
+    "next_event_ordinal": null,
+    "predecessor_walk_index": null,
+    "predecessor_event_index": null,
+    "source_hash": "",
     "reason": "initial|progress|bounded-pause|resumed-shared-position|source-complete"
   },
-  "walk_exhausted": false, "notes": [] }
+  "walk_exhausted": false,
+  "notes": [],
+  "material_findings": [
+    {
+      "object_id": "OBJ-…",
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": [
+              "BND-…"
+            ]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ]
+}
 ```
 (Packet/evidence/fragment keys and all hashes are assigned by the orchestrator
 only after reopening and byte-comparing each returned fragment. Walk/event
@@ -186,12 +250,76 @@ packets point into (for local context only); normalization conventions.
 **Withhold:** other batches' outputs; the developing inventory; dispositions.
 **Output contract:**
 ```json
-{ "claims": [{ "normalized_claim": "", "packets": ["PKT-…"],
-  "claim_type": "", "widen_requests": [{"packet": "", "new_locator": ""}],
-  "rationale": "", "flags": [] }],
-  "no_claim_packets": [{ "packet": "PKT-…", "basis": "" }],
-  "lineage_proposals": [{ "type": "split|replace|supersede|reject|exclude",
-  "predecessors": ["PKT-…|CC-…"], "successor_specs": [], "basis": "" }] }
+{
+  "claims": [
+    {
+      "normalized_claim": "",
+      "packets": [
+        "PKT-…"
+      ],
+      "claim_type": "",
+      "widen_requests": [
+        {
+          "packet": "",
+          "new_locator": ""
+        }
+      ],
+      "rationale": "",
+      "flags": [],
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": [
+              "BND-…"
+            ]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ],
+  "no_claim_packets": [
+    {
+      "packet": "PKT-…",
+      "basis": ""
+    }
+  ],
+  "lineage_proposals": [
+    {
+      "type": "split|replace|supersede|reject|exclude",
+      "predecessors": [
+        "PKT-…|CC-…"
+      ],
+      "successor_specs": [],
+      "basis": ""
+    }
+  ],
+  "material_findings": [
+    {
+      "object_id": "OBJ-…",
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": [
+              "BND-…"
+            ]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ]
+}
 ```
 
 ---
@@ -227,12 +355,69 @@ claim_type; no dispositions yet); packet quotes on demand.
 **Withhold:** dispositions (none exist); evidence roles; anything cluster.
 **Output contract:**
 ```json
-{ "canonicalizations": [{ "lineage_type": "merge|duplicate",
-  "predecessors": ["CC-…"],
-  "successor": { "normalized_claim": "", "packets": ["PKT-…"],
-  "claim_type": "" }, "basis": "",
-  "corroboration": "independent|restatement", "rationale": "", "flags": [] }],
-  "contradiction_pairs": [{ "a": "CC-…", "b": "CC-…", "why": "" }] }
+{
+  "canonicalizations": [
+    {
+      "lineage_type": "merge|duplicate",
+      "predecessors": [
+        "CC-…"
+      ],
+      "successor": {
+        "normalized_claim": "",
+        "packets": [
+          "PKT-…"
+        ],
+        "claim_type": "",
+        "material_use": {
+          "requirements": [
+            {
+              "object_id": "OBJ-…",
+              "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+              "binding_ids": [
+                "BND-…"
+              ]
+            }
+          ],
+          "use_state": "usable|CANNOT_DETERMINE",
+          "fidelity_claim": "none|exact-representation|gold",
+          "limitation_refs": [],
+          "reason": ""
+        }
+      },
+      "basis": "",
+      "corroboration": "independent|restatement",
+      "rationale": "",
+      "flags": []
+    }
+  ],
+  "contradiction_pairs": [
+    {
+      "a": "CC-…",
+      "b": "CC-…",
+      "why": ""
+    }
+  ],
+  "material_findings": [
+    {
+      "object_id": "OBJ-…",
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": [
+              "BND-…"
+            ]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ]
+}
 ```
 
 ---
@@ -276,25 +461,67 @@ answer keys, relation-density targets, and downstream artifacts.
 
 **Output contract:**
 ```json
-{ "relation_proposals": [{
-  "owner_stage": "S2|S3",
-  "family": "claim-dependency|source-context|formal-reference|discourse|none",
-  "type": "semantic-prerequisite|antecedent-context|qualifier-context|configuration-context|structural-anchor|notation-definition|continuation-context|parallel-contrast-context|none",
-  "source_kind": "PKT|CC",
-  "source_id": "PKT-…|CC-…",
-  "target_kind": "PKT|CC|source-locus|null",
-  "target_id": "PKT-…|CC-…|none",
-  "target_source_id": "SRC-…|none",
-  "target_locator": "",
-  "target_span_hash": "sha256:…|none",
-  "record_state": "asserted|unresolved-target|explicitly-absent|indeterminate",
-  "null_reason": "none|unresolved-in-frozen-corpus|outside-frozen-corpus|target-not-materialized|bounded-review-found-none|insufficient-frozen-context|conflicting-durable-representations|unsupported-source-structure",
-  "basis_packet_ids": ["PKT-…"],
-  "proposed_by": "human:…|invocation:…",
-  "review_subject_digest": "sha256:…",
-  "rationale": "",
-  "flags": []
-}], "not_applicable": [] }
+{
+  "relation_proposals": [
+    {
+      "owner_stage": "S2|S3",
+      "family": "claim-dependency|source-context|formal-reference|discourse|none",
+      "type": "semantic-prerequisite|antecedent-context|qualifier-context|configuration-context|structural-anchor|notation-definition|continuation-context|parallel-contrast-context|none",
+      "source_kind": "PKT|CC",
+      "source_id": "PKT-…|CC-…",
+      "target_kind": "PKT|CC|source-locus|null",
+      "target_id": "PKT-…|CC-…|none",
+      "target_source_id": "SRC-…|none",
+      "target_locator": "",
+      "target_span_hash": "sha256:…|none",
+      "record_state": "asserted|unresolved-target|explicitly-absent|indeterminate",
+      "null_reason": "none|unresolved-in-frozen-corpus|outside-frozen-corpus|target-not-materialized|bounded-review-found-none|insufficient-frozen-context|conflicting-durable-representations|unsupported-source-structure",
+      "basis_packet_ids": [
+        "PKT-…"
+      ],
+      "proposed_by": "human:…|invocation:…",
+      "review_subject_digest": "sha256:…",
+      "rationale": "",
+      "flags": [],
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": [
+              "BND-…"
+            ]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ],
+  "not_applicable": [],
+  "material_findings": [
+    {
+      "object_id": "OBJ-…",
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": [
+              "BND-…"
+            ]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ]
+}
 ```
 
 ---
@@ -332,3 +559,21 @@ external facts, final density targets, and downstream decisions.
 
 **Output contract:** the same `relation_proposals` contract as the local
 producer, with `owner_stage = S4`.
+
+## Material producer obligations — run format 1.6
+
+The material constraint block in the assembly rules applies verbatim. Intake
+reports captured facts and missing metadata without authoring objects or render
+receipts. Extractor candidates declare same-source features and retain failed
+material candidates. Normalizers request packet widening for necessary header
+or caption bytes; AST context is never packet evidence. Merge successors name
+their own requirements and preserve predecessor limitations and packet union.
+Relation producers preserve the existing taxonomy and return material uses
+without authoring support or source meaning.
+
+`material_findings` is explicitly empty when there are no failed candidates.
+Every populated finding has `CANNOT_DETERMINE` and nonempty limitation refs.
+Findings-only output does not establish no-claim or a successful source walk.
+Workers allocate no USE IDs, canonical subject IDs, review IDs, or digests for
+material uses. Core reserves and verifies the exact subjects. Gold is a
+recognized forbidden assertion and always rejected.

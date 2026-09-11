@@ -5,7 +5,8 @@ import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, di
 import { readRunState } from './run-control.js';
 import { loadCorePart, loadOutputContract, } from './core-loader.js';
 import { assertDownstreamOperationsAllowed, retainedRestrictionOverlays, } from '../../../scripts/lib/internal-ambiguity.js';
-import { loadRun } from '../../../scripts/lib/run-model.js';
+import { loadRun, usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
+import { materialHash, REPRESENTATION_PATH, validateRepresentationRun } from '../../../scripts/lib/source-representation.js';
 const ROLE_SPECS = {
     'intake-clerk': {
         path: 'docs/architecture/prompts/workers-intake-extraction.md',
@@ -114,6 +115,7 @@ const STAGE_HEADINGS = {
 const VERIFIER_SPECS = {
     'verifier-l1': { heading: 'L1 — coverage (S2 DoD)', stages: ['S2'] },
     'verifier-l2': { heading: 'L2 — entailment (S3 DoD)', stages: ['S3'] },
+    'verifier-l2f': { heading: 'L2F — formal/table/layout use challenge (S3/S4)', stages: ['S3', 'S4'] },
     'verifier-l3': { heading: 'L3 — merge-refuter (S4 DoD)', stages: ['S4'] },
     'verifier-l4': { heading: 'L4 — disposition-refuter (S5 DoD)', stages: ['S5'] },
     'verifier-l5': { heading: 'L5 — contradiction-sweep (S4/S5)', stages: ['S4', 'S5'] },
@@ -240,13 +242,14 @@ function assertWorkerAttachmentPath(path) {
 function roleParts(bundle, role, stage) {
     assertDispatchableRoleStage(role, stage);
     const common = loadCorePart(bundle, 'docs/architecture/prompts/README.md', 'fence:Common preamble (include verbatim in every call)');
+    const material = usesFormalLayoutBindings(bundle.lock.run_format_version) ? [loadCorePart(bundle, 'docs/architecture/prompts/README.md', 'fence:Material constraints (run format 1.6)')] : [];
     const stagePart = loadCorePart(bundle, 'docs/architecture/04-pipeline-stages-and-dod.md', `heading:${STAGE_HEADINGS[stage]}`);
     const verifierSpec = VERIFIER_SPECS[role];
     if (verifierSpec) {
         const frame = loadCorePart(bundle, 'docs/architecture/prompts/verifier-lenses.md', 'fence:Common verifier frame (verbatim, after the common preamble)');
         const lens = loadCorePart(bundle, 'docs/architecture/prompts/verifier-lenses.md', `heading:${verifierSpec.heading}`);
         return {
-            parts: [common, frame, lens, stagePart],
+            parts: [common, frame, lens, stagePart, ...material],
             policyPartIndex: 2,
             contract: loadOutputContract(bundle, 'docs/architecture/prompts/verifier-lenses.md', 'file'),
         };
@@ -254,7 +257,7 @@ function roleParts(bundle, role, stage) {
     const spec = ROLE_SPECS[role];
     const rolePart = loadCorePart(bundle, spec.path, `heading:${spec.heading}`);
     return {
-        parts: [common, rolePart, stagePart],
+        parts: [common, rolePart, stagePart, ...material],
         policyPartIndex: 1,
         contract: loadOutputContract(bundle, spec.path, spec.heading),
     };
@@ -332,6 +335,22 @@ export function assembleWorkerBundle(options) {
     const allowlist = [...new Set(options.allowlist)].sort(utf8Compare);
     if (allowlist.length !== options.allowlist.length) {
         throw new Error('worker allowlist contains duplicate paths');
+    }
+    if (options.role === 'verifier-l2f') {
+        validateRepresentationRun(loadRun(runDir));
+        const match = allowlist.length === 1
+            && /^verification\/harness\/material-use-subjects\/([0-9a-f]{64})\.json$/u.exec(allowlist[0]);
+        if (!match)
+            throw new Error('L2F requires only the exact reserved Core material review view');
+        const reservation = readJsonFile(join(runDir, 'control', 'transactions', `RES-material-${match[1]}.json`));
+        if (reservation.review_path !== allowlist[0]
+            || reservation.inventory_hash !== materialHash(readFileSync(join(runDir, REPRESENTATION_PATH)))
+            || reservation.view_hash !== materialHash(readStableRegularFile(join(runDir, allowlist[0])).bytes))
+            throw new Error('L2F reserved view or capture changed');
+        if (!reservation.producer_context_id || options.producerContextId !== reservation.producer_context_id)
+            throw new Error('L2F must withhold the actual reserved producer context');
+        if (options.taskLine !== 'Challenge the exact retained representation-use subject.')
+            throw new Error('L2F task line must not add producer context');
     }
     const loadedRole = roleParts(options.bundle, options.role, options.stage);
     const policyPart = loadedRole.parts[loadedRole.policyPartIndex];

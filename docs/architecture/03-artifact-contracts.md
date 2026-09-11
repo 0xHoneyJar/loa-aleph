@@ -613,3 +613,7 @@ claim is a newly materialized successor CC; no predecessor claim is mutated in
 place. The merge map therefore names that successor as `canonical` and its
 predecessors as `absorbs`. Absorption is not itself an S5 `merged`
 disposition. Historical predecessor formats retain their pinned behavior.
+
+## Source representation artifacts (1.6)
+
+`corpus/representations.md` contains T2.3 REP/AST/RPR/BND/OBJ/ASC tables; `corpus/representation-assets/AST-NNNN.<ext>` retains exact supplied bytes. `ledgers/representation-uses.md` contains T3.6 USE receipts. See templates 02 and 03 for the canonical grammar. The S0 inventory seal and C1 use seal are immutable. No JSON twin or adapter record replaces the canonical tables.

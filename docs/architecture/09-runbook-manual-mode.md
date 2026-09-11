@@ -246,3 +246,7 @@ The sparse rules trim representation, never guarantees. Even at full sparsity:
 - external facts come only from supplied referents;
 - the known-incompleteness section tells the truth about what sampling and
   sparsity left unchecked.
+
+## Manual representation records (1.6)
+
+Apply T2.3 and T3.6 without adapter control files. Preserve SRC bytes separately from AST outputs, freeze the exact inventory at S0, and record a receipt for each canonical PKT/CC/REL plus failed OBJ candidates. Required unavailable structure yields CANNOT_DETERMINE; never reconstruct equations or infer chart values. Obtain the specified fresh material-use review and seal uses at C1. Derive the section 17 limitation summary from retained material. Manual mode remains the only sanctioned execution path.

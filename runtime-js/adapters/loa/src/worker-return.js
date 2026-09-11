@@ -4,6 +4,7 @@ import { LOA_WORKER_VALIDATION_FORMAT, } from './types.js';
 import { assertNoSymlinkComponents, sha256Digest, stableJson, stableJsonBytes, writeFileAtomic, writeJsonAtomic, } from './fs.js';
 import { assertWorkerRoleIsolation, verifyWorkerBundle, } from './worker-bundle.js';
 import { contractExemplarToJsonSchema, validateWorkerReturnContract, } from '../../../scripts/lib/worker-return-contract.js';
+import { validateMaterialProducerReturn } from '../../../scripts/lib/source-representation.js';
 export { contractExemplarToJsonSchema };
 const VALIDATED_TOKEN = Symbol('validated-worker-return');
 /**
@@ -55,9 +56,11 @@ export class ValidatedWorkerReturn {
     contractDigest;
     validationDigest;
     simulation;
+    contextId;
+    producerContextId;
     #canonicalBytes;
     #token;
-    constructor(token, callId, data, rawDigest, contractDigest, validationDigest, simulation) {
+    constructor(token, callId, data, rawDigest, contractDigest, validationDigest, simulation, contextId = null, producerContextId = null) {
         if (token !== VALIDATED_TOKEN)
             throw new Error('validated returns are created only by validation');
         const canonicalBytes = stableJsonBytes(data);
@@ -70,6 +73,8 @@ export class ValidatedWorkerReturn {
         this.rawDigest = rawDigest;
         this.contractDigest = contractDigest;
         this.validationDigest = validationDigest;
+        this.contextId = contextId;
+        this.producerContextId = producerContextId;
         this.simulation = simulation === null
             ? null
             : Object.freeze({ kind: simulation.kind });
@@ -193,6 +198,20 @@ export function validateWorkerReturn(options) {
         const validation = validateWorkerReturnContract(parsed.bytes, example);
         errors.push(...validation.errors);
         canonicalValue = validation.canonicalValue;
+        if (canonicalValue !== null && errors.length === 0) {
+            try {
+                validateMaterialProducerReturn(canonicalValue);
+            }
+            catch (error) {
+                errors.push(error instanceof Error ? error.message : String(error));
+            }
+            if (request.role === 'verifier-l2f') {
+                const returned = canonicalValue;
+                if (!Array.isArray(returned.candidate_evidence) || returned.candidate_evidence.length !== 0) {
+                    errors.push('L2F requires empty candidate_evidence');
+                }
+            }
+        }
     }
     const report = {
         format: LOA_WORKER_VALIDATION_FORMAT,
@@ -207,7 +226,7 @@ export function validateWorkerReturn(options) {
     if (errors.length > 0)
         return { report, validated: null };
     const validationDigest = sha256Digest(stableJsonBytes(report));
-    const validated = new ValidatedWorkerReturn(VALIDATED_TOKEN, request.call_id, canonicalValue, rawDigest, contractDigest, validationDigest, options.dispatchReceipt.simulation);
+    const validated = new ValidatedWorkerReturn(VALIDATED_TOKEN, request.call_id, canonicalValue, rawDigest, contractDigest, validationDigest, options.dispatchReceipt.simulation, options.dispatchReceipt.context_id, options.dispatchReceipt.producer_context_id);
     writeFileAtomic(join(returnRoot, 'validated.json'), validated.canonicalBytes());
     return {
         report,

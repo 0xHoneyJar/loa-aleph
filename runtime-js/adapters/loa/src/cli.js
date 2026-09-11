@@ -4,15 +4,18 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LOA_COMMAND_RESULT_FORMAT, LOA_INSTALL_LOCK_PATH, LOA_INSTALLED_BUNDLE_ROOT, LOA_RUN_ROOT, } from './types.js';
 import { extractFirstFence, extractMarkdownHeading, readLockedFile, readVerifiedBundleLock, verifyAndLoadLoaBundle, } from './core-loader.js';
-import { readJsonFile, makeTreeOwnerWritable, nextDecimal, sha256Digest, stableJson, stableJsonBytes, writeFileAtomic, writeJsonAtomic, } from './fs.js';
-import { applyCorpusFreeze, planCorpusFreeze, snapshotCorpus, verifyCorpusSnapshot, } from './intake.js';
-import { acquireDurableProcessLock, createRunDirectory, initializeRunControl, listRunIds, openHumanAuthorityGate, readRunState, recordHumanAuthorityDecision, recoverPendingAuthorityTransactions, runDirectory, runtimeSnapshotPath, stateCheckpointDigest, verifyRetainedRuntimeIdentity, verifyRunControl, writeRunState, } from './run-control.js';
+import { assertSafeRelativePath, assertNoSymlinkComponents, readStableRegularFile, readJsonFile, makeTreeOwnerWritable, nextDecimal, sha256Digest, stableJson, stableJsonBytes, writeFileAtomic, writeJsonAtomic, } from './fs.js';
+import { applyCorpusFreeze, planCorpusFreeze, snapshotCorpus, preparedRepresentationFiles, verifyCorpusSnapshot, } from './intake.js';
+import { acquireDurableProcessLock, createRunDirectory, initializeRunControl, listRunIds, openHumanAuthorityGate, readRunState, recordHumanAuthorityDecision, recoverPendingAuthorityTransactions, runDirectory, runtimeSnapshotPath, stateCheckpointDigest, verifyRetainedRuntimeIdentity, verifyRunControl, writeRunState, updateRunState, } from './run-control.js';
 import { captureRuntimeSnapshot, defaultProfilePath, loadLoaProfile, validateResolvedHost, } from './runtime-snapshot.js';
 import { invokePinnedChecker, } from './checker.js';
 import { verifyLoaInstallation } from './installer.js';
 import { runLoaPreflight } from './preflight.js';
-import { LedgerWriter, recoverPendingLedgerTransactions, } from './ledger-writer.js';
+import { LedgerWriter, recoverPendingLedgerTransactions, recoverPendingMaterialTransactions, } from './ledger-writer.js';
 import { CLOSURE_PHASES, closurePhasesFromText, nextClosurePhase, } from '../../../scripts/lib/internal-ambiguity.js';
+import { usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
+import { representationUsesMarkdown, REPRESENTATION_USE_PATH, assertRepresentationExtractionSupported, readRepresentationContext, RepresentationError } from '../../../scripts/lib/source-representation.js';
+import { loadRun } from '../../../scripts/lib/run-model.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_CAPABILITIES_PATH = 'grimoires/loa/aleph/host-capabilities.json';
 function isRecord(value) {
@@ -293,6 +296,7 @@ export function startLoaRun(inputs, options = {}) {
             runId,
             inputs,
             capturedAt: now,
+            formalLayout: usesFormalLayoutBindings(bundle.lock.run_format_version),
         });
         const runtime = captureRuntimeSnapshot({
             runId,
@@ -383,9 +387,13 @@ export function resumeLoaRun(runId, options = {}) {
         const runDir = runDirectory(loaRoot, runId);
         recoverPendingS0Transaction(runDir, options.clock);
         recoverPendingAuthorityTransactions(runDir, options.clock);
+        recoverPendingMaterialTransactions(runDir);
         recoverPendingLedgerTransactions(runDir, options.clock);
         let state = verifyRunControl(runDir);
         const runtime = verifyRetainedRuntimeIdentity(runDir, state);
+        if (usesFormalLayoutBindings(state.identity.run_format_version) && state.corpus.state === 'frozen') {
+            assertRepresentationExtractionSupported(readRepresentationContext(loadRun(runDir)));
+        }
         if (state.full_mode === 'fixture-simulated'
             && ['ACCEPTED', 'PROJECTION-ACCEPTED'].includes(state.execution.core_state)) {
             throw new Error('fixture-simulated execution cannot carry acceptance state');
@@ -490,6 +498,16 @@ export function resumeLoaRun(runId, options = {}) {
         });
     }
     catch (error) {
+        if (error instanceof RepresentationError) {
+            const runDir = runDirectory(loaRoot, runId);
+            const retained = readRunState(runDir);
+            if (!retained.execution.halt)
+                updateRunState(runDir, options.clock?.now() || new Date().toISOString(), (draft) => {
+                    draft.execution.core_state = 'BLOCKED';
+                    draft.execution.halt = { code: 'SOURCE_REPRESENTATION_BLOCKED', reason: error.message,
+                        at: options.clock?.now() || new Date().toISOString(), blocking: true };
+                });
+        }
         return result('resume', 'FAIL', {
             run_id: runId,
             errors: [error instanceof Error ? error.message : String(error)],
@@ -585,7 +603,8 @@ function parseS0Transaction(path) {
         || !/^sha256:[0-9a-f]{64}$/u.test(value.payload_digest)
         || !isRecord(value.plan)
         || !isRecord(value.state_after)
-        || !exactKeys(value.files_after, ['run_manifest', 'run_log', 'corpus_manifest'])
+        || !exactKeys(value.files_after, ['run_manifest', 'run_log', 'corpus_manifest',
+            ...(isRecord(value.files_after) && 'representation_files' in value.files_after ? ['representation_files'] : [])])
         || typeof value.files_after.run_manifest !== 'string'
         || typeof value.files_after.run_log !== 'string'
         || typeof value.files_after.corpus_manifest !== 'string'
@@ -649,6 +668,15 @@ function applyS0Transaction(runDir, transactionPath, transaction, committedAt) {
     writeFileAtomic(paths.run_manifest, transaction.files_after.run_manifest);
     writeFileAtomic(paths.run_log, transaction.files_after.run_log);
     writeFileAtomic(paths.corpus_manifest, transaction.files_after.corpus_manifest);
+    for (const [path, encoded] of Object.entries(transaction.files_after.representation_files || {})) {
+        assertSafeRelativePath(path, 'representation capture path');
+        assertNoSymlinkComponents(runDir, join(runDir, path));
+        const bytes = Buffer.from(encoded, 'base64');
+        if (existsSync(join(runDir, path)) && !readStableRegularFile(join(runDir, path)).bytes.equals(bytes)) {
+            throw new Error(`representation capture preimage changed: ${path}`);
+        }
+        writeFileAtomic(join(runDir, path), bytes, path === REPRESENTATION_USE_PATH ? 0o600 : 0o400);
+    }
     if (before)
         writeRunState(runDir, structuredClone(transaction.state_after));
     writeJsonAtomic(transactionPath, {
@@ -713,6 +741,13 @@ export function recordS0AuthorityResponse(runId, response, options = {}) {
             run_log: updated.runLog,
             corpus_manifest: renderFrozenCorpusManifest(pinnedBundle, state, plan.staged, plan.frozen, response),
         };
+        if (usesFormalLayoutBindings(prior.identity.run_format_version)) {
+            const files = preparedRepresentationFiles(runDir, plan.frozen.files.map((file) => file.source_id));
+            filesAfter.representation_files = files;
+            files[REPRESENTATION_USE_PATH] = Buffer.from(representationUsesMarkdown([])).toString('base64');
+            const inventoryHash = sha256Digest(Buffer.from(files['corpus/representations.md'], 'base64'));
+            filesAfter.run_manifest = filesAfter.run_manifest.replace('## Corpus binding', `## Corpus binding\n\n- representation_inventory_hash: ${inventoryHash}`);
+        }
         const payload = {
             format: S0_TRANSACTION_FORMAT,
             run_id: runId,

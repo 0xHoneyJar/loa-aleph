@@ -354,3 +354,7 @@ Four boundaries the architecture treats as hard:
    (the concern of a future adjacent consumer); product surfaces stay out
    (Freeside's). The method may *record* that a cluster needs a competitor
    referent; supplying competitive analysis is not its job.
+
+## Slice 6 representation boundary
+
+Run format `1.6.0-provisional` adds cumulative `formal-layout-bindings`. Core owns the representation inventory, exact byte identities, availability predicate, use subjects, serialization, write eligibility and K2.18. The Loa adapter supplies stable reads, explicit input closure, journaled writes and fresh worker transport. Capture identity, declared availability and semantic adequacy remain separate. F-03 and F-05 production reachability remain unproven; F-04 portability remains open.

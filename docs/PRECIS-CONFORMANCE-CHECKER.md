@@ -422,3 +422,7 @@ approved slice and a stable, false-positive-free pattern before adoption:
 - **Prose ↔ inventory wording match** — verifying the normalized claim text in §4
   matches its prose restatement. Deferred as overfitting to exact wording.
 - CI wiring (intentionally omitted: no CI in this slice).
+
+## Representation conformance (1.6)
+
+K2.18 is implemented in `scripts/lib/checks-k2-representations.ts` using the single Core model in `source-representation.ts`. The focused representation mutation and process suites cover exact bytes, declared structural availability, semantic-overreach guards, retained imports, use closure and durable writes. Run `npm run test:representations` and `npm run test:representation-process`. K2.14 uses the 1.6 review-basis extension with representation_inventory_hash; earlier digest algorithms remain unchanged. Neither check establishes semantic correctness, replay acceptance, agent sanction or v1.

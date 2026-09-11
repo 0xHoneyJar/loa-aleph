@@ -131,3 +131,7 @@ file's exact bytes with SHA-256, joining records as
 `<repo-relative-path>\0<lowercase-file-digest>\n`, and hashing the joined bytes
 with SHA-256. A source commit is provenance; it never replaces the content
 digest.
+
+## Representation seals (1.6)
+
+For frozen 1.6 runs retain exactly one `- representation_inventory_hash: sha256:<64-lowercase-hex>` in the run manifest, hashing exact `corpus/representations.md` bytes. In the structured S4 run-log event containing `closure_phase: S4-C1-relations-closed`, retain exactly one `representation_use_closure_hash: sha256:<64-lowercase-hex>` over exact `ledgers/representation-uses.md` bytes. The use seal is forbidden before C1 and mandatory thereafter. A changed representation requires a successor run; no in-place upgrade is permitted.

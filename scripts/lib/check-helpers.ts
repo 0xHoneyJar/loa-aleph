@@ -335,7 +335,7 @@ export function allStatusRows(model: RunModel): StatusRow[] {
   return rows;
 }
 
-function runLogEvents(document: RunDocument | null): ParsedRunLogEvent[] {
+export function runLogEvents(document: RunDocument | null): ParsedRunLogEvent[] {
   const events: ParsedRunLogEvent[] = [];
   if (!document) return events;
   for (let i = 0; i < document.lines.length; i++) {

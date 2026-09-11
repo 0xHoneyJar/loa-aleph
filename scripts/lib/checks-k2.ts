@@ -49,6 +49,7 @@ import {
   usesForwardExecutionIdentity,
   usesLineage,
   usesSourceWalk,
+  usesFormalLayoutBindings,
 } from './run-model.ts';
 import type {
   IdentifierFamily,
@@ -58,6 +59,7 @@ import type { ResultCollector } from './results.ts';
 import { runK2Lineage } from './checks-k2-lineage.ts';
 import { runK2Relations } from './checks-k2-relations.ts';
 import { runK2Ambiguities } from './checks-k2-ambiguities.ts';
+import { runK2Representations } from './checks-k2-representations.ts';
 import {
   loadPinnedCoreAuthority,
   type PinnedCoreAuthority,
@@ -1219,7 +1221,8 @@ export function sourceWalkReviewBasisDigest(
   const sourceBytes = readFileSync(sourcePath);
   const criteriaBytes = readFileSync(model.criteria.path);
   const payload = {
-    format: SOURCE_WALK_REVIEW_BASIS_FORMAT,
+    format: usesFormalLayoutBindings(model.manifest?.runFormatVersion || '')
+      ? 'aleph-source-walk-review-basis/v2' : SOURCE_WALK_REVIEW_BASIS_FORMAT,
     source_id: sourceId,
     source_hash: `sha256:${sha256(sourceBytes)}`,
     extraction_criteria_digest: `sha256:${sha256(criteriaBytes)}`,
@@ -1264,7 +1267,10 @@ export function sourceWalkReviewBasisDigest(
       reason: cursor.values.reason,
     },
   };
-  return `sha256:${sha256(Buffer.from(JSON.stringify(payload), 'utf8'))}`;
+  const subject = usesFormalLayoutBindings(model.manifest?.runFormatVersion || '')
+    ? { ...payload, representation_inventory_hash: model.manifest?.bullets.fields.get('representation inventory hash') || '' }
+    : payload;
+  return `sha256:${sha256(Buffer.from(JSON.stringify(subject), 'utf8'))}`;
 }
 
 function checkSourceWalk(results: ResultCollector, model: RunModel): void {
@@ -3141,6 +3147,7 @@ function checkKernelReport(results: ResultCollector, model: RunModel): void {
 }
 
 export function runK2(results: ResultCollector, model: RunModel, root: string): void {
+  runK2Representations(results, model);
   checkLayout(results, model);
   checkManifest(results, model);
   checkForbidden(results, model, root);

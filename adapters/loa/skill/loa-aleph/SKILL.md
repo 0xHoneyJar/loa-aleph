@@ -180,3 +180,23 @@ execution.
 `validate` invokes the checker from the run's retained original bundle. Report
 its exact exit status and artifact paths without upgrading a deterministic pass
 into semantic judgment or authority acceptance.
+
+## Supplied representations in run format 1.6
+
+Keep `/loa-aleph start <inputs...>` unchanged. A reserved
+`.aleph-representation.json` input selects the Core supplied-representation
+grammar; ordinary JSON remains source text. Supply only explicit local source
+and asset paths. Do not convert, render, OCR, fetch, or infer missing structure.
+
+Present `control/representation-prepared.md` with the S0 request before freeze.
+After freeze, retain the immutable inventory and assets. Reserve a canonical
+material-use subject through the Core planner before fresh `verifier-l2f`
+review. Its bundle contains only the reserved Core review view and withholds
+the actual producer context. Commit the identical subject and receipt through
+the single writer. Retain failed material findings as OBJ USE receipts.
+
+Unavailable required features produce CANNOT_DETERMINE. Opaque source capture
+may freeze honestly, but resume cannot enter supported extraction. Respect
+the C1 use seal and retained runtime pins; a better representation requires a
+successor run. Structural PASS and simulated transport do not sanction agent
+mode or prove production reachability.

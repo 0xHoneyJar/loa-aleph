@@ -16,6 +16,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { predecessorSource } from '../../../scripts/compatibility-fixture-source.ts';
 import { assembleBundles } from '../../../scripts/assemble-bundles.ts';
 import {
   buildProceduralAuthorityRequest,
@@ -537,7 +538,7 @@ function main(): void {
   const tempRoot = mkdtempSync(join(tmpdir(), 'aleph-slice5-process-'));
   const bundleOutput = join(REPO_ROOT, '.aleph-bundles', `slice5-process-${process.pid}`);
   try {
-    const assembly = assembleBundles(REPO_ROOT, bundleOutput);
+    const assembly = assembleBundles(predecessorSource(REPO_ROOT, tempRoot), bundleOutput);
     expect(assembly.result === 'PASS', `temporary bundle assembly failed: ${assembly.errors.join('; ')}`);
     const bundle = verifyAndLoadLoaBundle(join(bundleOutput, 'aleph-for-loa'));
     expect(bundle.lock.run_format_version === '1.5.0-provisional',

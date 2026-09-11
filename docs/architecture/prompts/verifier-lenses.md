@@ -64,7 +64,9 @@ no-gap result is semantic reviewer judgment, not deterministic recall proof.
 ### L2 — entailment (S3 DoD)
 Attempt to show the normalized claim is NOT entailed by its packets: added
 facts, dropped hedges, changed actors, smuggled context. **Shown:** the
-claim text + its packet quotes/locators only. **Withheld:** the rest of the
+claim text + exact packet bytes/locators, separately labeled transformations,
+and required representation closure for a 1.6 run (packet quotes/locators
+only for predecessor contracts). **Withheld:** the rest of the
 inventory, dispositions, who wrote it.
 
 ### L3 — merge-refuter (S4 DoD)
@@ -145,3 +147,42 @@ invention; boundary violations. **Shown:** the rendered document, its trace
 | stratified samples (any lens) | 1 verifier | refuted ⇒ consequence; cannot-determine ⇒ second verifier |
 | exhaustive classes (all exclusions, contradictions, big merges, load-bearing edges) | 3 verifiers | majority; any cannot-determine ⇒ round 2; unresolved split ⇒ forced-unresolved + flag |
 | synthesis, assembled Précis | 2 verifiers (L9) | any refuted ⇒ fix + re-verify |
+
+### L2F — formal/table/layout use challenge (S3/S4)
+
+
+Register only `verifier-l2f`, legal at S3 and S4, mapped to this exact charter.
+Use the existing refuter kind and fresh-context enforcement. Its pinned profile
+uses the same model slot/context class as verifier-l2 and satisfies the existing
+effort floor relative to the producer. No provider abstraction or new vision
+capability is implied. It must return cannot-determine for a supplied modality
+that its actual worker transport cannot consume.
+
+L2F attacks one complete proposed use subject and its actual packet/claim/
+relation text. It asks whether required material is missing, whether the
+requirements hide a dependence on unavailable structure, and whether the
+proposed wording promotes a rendering or flattened form beyond its evidence.
+Specifically attack shifted cells, header/caption associations, glyph/spacing
+loss, equation reconstruction, chart-value inference, and undeclared layout.
+
+**Shown:** exact subject/digest, exact packet bytes/hashes, selected source-local
+objects and their structural dependencies, origin/rendering provenance,
+separately labeled outputs, and recorded limitations. **Withheld:** producer
+rationale/hidden context, other batches, dispositions, authority responses and
+observations, downstream narratives, calibration answers, and expected IDs.
+Structural dependencies mean parent chain, table axes/cells/headers/captions
+actually referenced, and their provenance/assets; no unrelated-source bundle.
+
+Use the existing common verifier return, with candidate_evidence empty.
+Upheld permits only the identical reviewed usable subject. Refuted requires a
+revised candidate and fresh subject, rejection, or visible limitation.
+Cannot-determine blocks that affirmative use and names missing material.
+No verifier writes the inventory, chooses a missing header, repairs an
+equation, or grants acceptance. Real freshness is a host/process obligation;
+static VER existence is only structural evidence.
+
+
+For 1.6 L1, include the same-source inventory and limitations with source,
+walk, and packet evidence; challenge omitted declared tables, captions, and
+fragments. For 1.6 L3R, include the exact relation use subject and required
+layout closure. A legal header/locus does not establish relation meaning.

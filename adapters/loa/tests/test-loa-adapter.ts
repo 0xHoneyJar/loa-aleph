@@ -40,6 +40,7 @@ import {
   proceduralAuthorityRequestJson,
 } from '../../../scripts/lib/internal-ambiguity.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
+import { readRepresentationContext, representationUseDigest, representationUsesMarkdown, type MaterialRow } from '../../../scripts/lib/source-representation.ts';
 import {
   dispatchLoaCommand,
   recordS0AuthorityResponse,
@@ -582,6 +583,18 @@ function prepareTxtExactEvidenceIntegrationRun(
       + '| disposition | count | claim_ids |\n'
       + '|-------------|-------|-----------|\n',
   );
+  const materialModel = loadRun(destination);
+  const material = readRepresentationContext(materialModel);
+  const rep = material.inventory.representations.find((r) => r.source_id === source.source_id)!;
+  const object = material.inventory.objects.find((o) => o.representation_id === rep.representation_id && o.kind === 'text')!;
+  const use: MaterialRow = {
+    use_id: 'USE-9001', owner_stage: 'S2', subject_kind: 'PKT', subject_id: 'PKT-9001', basis_packet_ids: '["PKT-9001"]',
+    requirements: JSON.stringify([{ object_id: object.object_id, feature: 'text-bytes', binding_ids: JSON.parse(object.binding_ids) }]),
+    use_state: 'usable', fidelity_claim: 'none', limitation_refs: '[]', reason: 'none', established_by: 'invocation:fixture-extractor',
+    review_subject_digest: '', reviewed_by: 'none',
+  };
+  use.review_subject_digest = representationUseDigest(materialModel, material, use);
+  writeFileSync(join(ledgers, 'representation-uses.md'), representationUsesMarkdown([use]));
   return destination;
 }
 
@@ -607,6 +620,7 @@ function eraseCoreS2Signals(runDir: string): void {
   rmSync(join(runDir, 'ledgers', 'source-walk.md'));
   rmSync(join(runDir, 'ledgers', 'lineage.md'));
   rmSync(join(runDir, 'ledgers', 'packet-index.md'));
+  writeFileSync(join(runDir, 'ledgers', 'representation-uses.md'), representationUsesMarkdown([]));
 }
 
 function exactWithheldInventory(
@@ -670,6 +684,7 @@ function fixtureExtractorReturn(sourceId: string) {
     },
     walk_exhausted: false,
     notes: [] as string[],
+    material_findings: [],
   };
 }
 
@@ -1152,7 +1167,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       assertFixtureBoundary(readRunState(context.runDir), context.runDir);
     });
 
-    runCase(results, 'retained 1.5 run cannot downgrade its manifest to 1.4', () => {
+    runCase(results, 'retained 1.6 run cannot downgrade its manifest to 1.4', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
@@ -1161,12 +1176,12 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         writeFileSync(
           manifestPath,
           originalManifest.replace(
-            '- run_format_version: 1.5.0-provisional',
+            '- run_format_version: 1.6.0-provisional',
             '- run_format_version: 1.4.0-provisional',
           ),
         );
         const downgraded = dispatchLoaCommand(['resume', RUN_ID], startOptions(context));
-        expect(downgraded.result === 'FAIL', 'retained 1.5 run accepted a 1.4 manifest downgrade');
+        expect(downgraded.result === 'FAIL', 'retained 1.6 run accepted a 1.4 manifest downgrade');
         expect(
           downgraded.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
           `downgrade failure omitted retained identity diagnostic: ${downgraded.errors.join('; ')}`,
@@ -1177,7 +1192,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       }
     });
 
-    runCase(results, 'retained 1.5 run cannot remove its manifest version', () => {
+    runCase(results, 'retained 1.6 run cannot remove its manifest version', () => {
       const { runDir } = requireRun(context);
       const manifestPath = join(runDir, 'run-manifest.md');
       const originalManifest = readFileSync(manifestPath, 'utf8');
@@ -1185,7 +1200,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       try {
         writeFileSync(
           manifestPath,
-          originalManifest.replace('- run_format_version: 1.5.0-provisional\n', ''),
+          originalManifest.replace('- run_format_version: 1.6.0-provisional\n', ''),
         );
         let checkerInvoked = false;
         const removed = dispatchLoaCommand(['validate', RUN_ID], {
@@ -1195,7 +1210,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
             throw new Error('checker must not run after manifest identity removal');
           },
         });
-        expect(removed.result === 'FAIL', 'retained 1.5 run accepted a missing manifest version');
+        expect(removed.result === 'FAIL', 'retained 1.6 run accepted a missing manifest version');
         expect(!checkerInvoked, 'version removal reached the pinned checker');
         expect(
           removed.errors.some((error) => /run_format_version.*retained run authority/iu.test(error)),
@@ -1476,7 +1491,9 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       writeFileSync(ledgerPath, emptyLedger);
       writeFileSync(
         join(fixture.runDir, 'run-log.md'),
-        `${readFileSync(join(fixture.runDir, 'run-log.md'), 'utf8')}\nclosure_phase: S4-C1-relations-closed\n`,
+        `${readFileSync(join(fixture.runDir, 'run-log.md'), 'utf8')}\n`
+          + '## 2040-01-02T03:06:30.000Z — S4 — C1\n\nclosure_phase: S4-C1-relations-closed\n'
+          + `representation_use_closure_hash: ${sha256Digest(readFileSync(join(fixture.runDir, 'ledgers/representation-uses.md')))}\n`,
       );
       const scope = {
         affected_ids: ['CC-9999'],
