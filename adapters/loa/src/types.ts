@@ -76,6 +76,7 @@ export const LOA_ROLE_IDS = [
   'scribe',
   'verifier-l1',
   'verifier-l2',
+  'verifier-l2f',
   'verifier-l3',
   'verifier-l4',
   'verifier-l5',
@@ -336,7 +337,7 @@ export interface FrozenSourceRecord {
   mode: string;
   // New captures use Core md-lines. text-lines remains readable only for
   // historical snapshots governed by their original pinned runtime.
-  scheme: 'md-lines' | 'text-lines';
+  scheme: 'md-lines' | 'text-lines' | 'opaque-bytes';
 }
 
 export interface CorpusSnapshot {

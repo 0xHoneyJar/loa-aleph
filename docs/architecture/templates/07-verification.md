@@ -63,3 +63,7 @@ into Précis §17.
 
 <!-- example -->
 | S5 | disposition adversarial review | all exclusions + contradictions; 5/class sample | 14 claims | 9 | yes | VER-0032 (CC-104 note) |
+
+## L2F exact material use review (1.6)
+
+Use the existing VER field table with lens `L2F`, stage `S3` or `S4`, and target `representation-use-subject:sha256:<64-lowercase-hex>`. Verdicts remain `upheld`, `refuted`, or `cannot-determine`; candidate_evidence is empty. Only upheld permits the identical reserved usable CC/REL subject. The canonical use receipt names that VER. Show the exact subject, packet bytes/hashes, selected structural dependencies and provenance/limitations; withhold producer rationale, other batches, dispositions, authority responses, narratives and calibration answers. A retained VER is structural evidence, not proof of live freshness.

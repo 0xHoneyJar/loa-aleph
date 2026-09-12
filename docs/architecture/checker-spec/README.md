@@ -67,3 +67,7 @@ locally.
 | [`K3-evidence-roles.md`](K3-evidence-roles.md) | K3 | evidence-role fixture | 10 |
 | [`K4-K5-route-cards-and-gate.md`](K4-K5-route-cards-and-gate.md) | K4 cards; K5 taint gate | routed-corpus fixture | 11 |
 | [`K6-projection-trace.md`](K6-projection-trace.md) | K6 | first projection fixture | 16 |
+
+## K2.18 — source representation bindings
+
+K2.18 applies only through the cumulative `formal-layout-bindings` capability. It verifies T2.3/T3.6 canonical grammar, identifiers, byte hashes, input closure, provenance, coordinates, association existence, declared availability, exact use subjects/review targets, seals and section 17 limitations. Its stable reason tokens are FORMAT, IDENTITY, INVENTORY, CAPTURE_HASH, BINDING, COORDINATE, ASSOCIATION, PROVENANCE, STATE, UNDECLARED_FEATURE, FIDELITY, USE_CLOSURE, UNSUPPORTED_EXTRACTION_SURFACE and FROZEN_WRITE. The read-only Core module calls no model, network, renderer or semantic subprocess. Coherent shifted-cell meaning can remain structural PASS.

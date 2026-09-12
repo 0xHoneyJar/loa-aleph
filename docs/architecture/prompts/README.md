@@ -96,3 +96,29 @@ audit. The Fable mapping in doc 05 §5 is reference material only.
 | [`workers-judgment.md`](workers-judgment.md) | disposition judge · evidence-role judge · cartographer · router |
 | [`workers-arms-synthesis.md`](workers-arms-synthesis.md) | adversarial panel operation · convergent reconciler · synthesist · assembler |
 | [`verifier-lenses.md`](verifier-lenses.md) | all verification lens charters + verdict contract |
+
+## Material constraints (run format 1.6)
+
+For a pinned 1.6 run, include this block verbatim in every role consuming
+representation material. Older retained bundles keep their own contracts.
+
+```text
+Interpret only the source bytes and source/layout/formal objects declared in
+this bundle. Exact frozen-capture bytes, supplied rendering, and semantic
+interpretation are different evidence roles. Never turn one into another.
+Do not invent a page, region, table, header, caption, cell association, equation
+structure, chart value, or reading order that ingestion did not supply.
+Declare the material features your proposed use requires. Preserve every
+relevant degraded, unsupported, or indeterminate limitation.
+If a required feature is unavailable or this worker cannot consume its
+modality, return CANNOT_DETERMINE and identify what is missing. Do not infer
+chart values from images, reconstruct flattened equations, or use undeclared
+alignment as evidence. A readable rendering is not an exact source claim.
+```
+
+Verifier `cannot-determine` maps to canonical `CANNOT_DETERMINE`. Unchanged
+downstream return shapes use the exact flag
+`CANNOT_DETERMINE:source-representation:<existing-material-id>:<feature>`
+with a missing-material reason in the existing rationale/note. Core treats
+that flag as refusal of the affected interpretation; affirmative text cannot
+accompany it. Material IDs are REP/OBJ/ASC/USE and features are the T3.6 enum.

@@ -214,3 +214,7 @@ The checked-in capability receipt and every worker/authority response in the
 synthetic test are explicitly fixture-simulated. They establish implementation
 structure only; they are not a real replay, semantic acceptance, validation
 evidence, or sanction evidence.
+
+## Slice 6 supplied representation route
+
+The public grammar remains `/loa-aleph start <inputs...>`. Only the reserved `.aleph-representation.json` suffix selects Core supplied-representation import; ordinary JSON stays ordinary source material. Explicit relative source/assets are copied once with symlink/traversal and duplicate-selection refusal. Capture preparation is retained before S0; canonical representation files publish with freeze. Material-use writes and the C1 use seal use retained transactions and exact preimages. `verifier-l2f` uses the existing fresh/refuter transport and verifier-l2 model slot. Unsupported opaque SRC can freeze honestly but cannot enter extraction. No provider abstraction, renderer or vision infrastructure is added.

@@ -29,6 +29,9 @@ import {
   type VerifiedLoaBundle,
 } from './core-loader.ts';
 import {
+  assertSafeRelativePath,
+  assertNoSymlinkComponents,
+  readStableRegularFile,
   readJsonFile,
   makeTreeOwnerWritable,
   nextDecimal,
@@ -42,6 +45,7 @@ import {
   applyCorpusFreeze,
   planCorpusFreeze,
   snapshotCorpus,
+  preparedRepresentationFiles,
   verifyCorpusSnapshot,
   type CorpusFreezePlan,
 } from './intake.ts';
@@ -60,6 +64,7 @@ import {
   verifyRetainedRuntimeIdentity,
   verifyRunControl,
   writeRunState,
+  updateRunState,
   type HumanAuthorityDecision,
   type OpenHumanAuthorityGateOptions,
 } from './run-control.ts';
@@ -78,6 +83,7 @@ import { runLoaPreflight } from './preflight.ts';
 import {
   LedgerWriter,
   recoverPendingLedgerTransactions,
+  recoverPendingMaterialTransactions,
 } from './ledger-writer.ts';
 import {
   CLOSURE_PHASES,
@@ -85,6 +91,9 @@ import {
   nextClosurePhase,
   type ProceduralAuthorityRequest,
 } from '../../../scripts/lib/internal-ambiguity.ts';
+import { usesFormalLayoutBindings } from '../../../scripts/lib/run-model.ts';
+import { representationUsesMarkdown, REPRESENTATION_USE_PATH, assertRepresentationExtractionSupported, readRepresentationContext, RepresentationError } from '../../../scripts/lib/source-representation.ts';
+import { loadRun } from '../../../scripts/lib/run-model.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_CAPABILITIES_PATH = 'grimoires/loa/aleph/host-capabilities.json';
@@ -478,6 +487,7 @@ export function startLoaRun(
       runId,
       inputs,
       capturedAt: now,
+      formalLayout: usesFormalLayoutBindings(bundle.lock.run_format_version),
     });
     const runtime = captureRuntimeSnapshot({
       runId,
@@ -577,9 +587,13 @@ export function resumeLoaRun(
     const runDir = runDirectory(loaRoot, runId);
     recoverPendingS0Transaction(runDir, options.clock);
     recoverPendingAuthorityTransactions(runDir, options.clock);
+    recoverPendingMaterialTransactions(runDir);
     recoverPendingLedgerTransactions(runDir, options.clock);
     let state = verifyRunControl(runDir);
     const runtime = verifyRetainedRuntimeIdentity(runDir, state);
+    if (usesFormalLayoutBindings(state.identity.run_format_version) && state.corpus.state === 'frozen') {
+      assertRepresentationExtractionSupported(readRepresentationContext(loadRun(runDir)));
+    }
     if (state.full_mode === 'fixture-simulated'
       && ['ACCEPTED', 'PROJECTION-ACCEPTED'].includes(state.execution.core_state)) {
       throw new Error('fixture-simulated execution cannot carry acceptance state');
@@ -682,6 +696,15 @@ export function resumeLoaRun(
       },
     });
   } catch (error) {
+    if (error instanceof RepresentationError) {
+      const runDir = runDirectory(loaRoot, runId);
+      const retained = readRunState(runDir);
+      if (!retained.execution.halt) updateRunState(runDir, options.clock?.now() || new Date().toISOString(), (draft) => {
+        draft.execution.core_state = 'BLOCKED';
+        draft.execution.halt = { code: 'SOURCE_REPRESENTATION_BLOCKED', reason: error.message,
+          at: options.clock?.now() || new Date().toISOString(), blocking: true };
+      });
+    }
     return result('resume', 'FAIL', {
       run_id: runId,
       errors: [error instanceof Error ? error.message : String(error)],
@@ -774,6 +797,7 @@ interface S0TransactionFiles {
   run_manifest: string;
   run_log: string;
   corpus_manifest: string;
+  representation_files?: Record<string, string>;
 }
 
 interface S0FreezeTransaction {
@@ -830,7 +854,8 @@ function parseS0Transaction(path: string): S0FreezeTransaction {
     || !/^sha256:[0-9a-f]{64}$/u.test(value.payload_digest)
     || !isRecord(value.plan)
     || !isRecord(value.state_after)
-    || !exactKeys(value.files_after, ['run_manifest', 'run_log', 'corpus_manifest'])
+    || !exactKeys(value.files_after, ['run_manifest', 'run_log', 'corpus_manifest',
+      ...(isRecord(value.files_after) && 'representation_files' in value.files_after ? ['representation_files'] : [])])
     || typeof value.files_after.run_manifest !== 'string'
     || typeof value.files_after.run_log !== 'string'
     || typeof value.files_after.corpus_manifest !== 'string'
@@ -900,6 +925,15 @@ function applyS0Transaction(
   writeFileAtomic(paths.run_manifest, transaction.files_after.run_manifest);
   writeFileAtomic(paths.run_log, transaction.files_after.run_log);
   writeFileAtomic(paths.corpus_manifest, transaction.files_after.corpus_manifest);
+  for (const [path, encoded] of Object.entries(transaction.files_after.representation_files || {})) {
+    assertSafeRelativePath(path, 'representation capture path');
+    assertNoSymlinkComponents(runDir, join(runDir, path));
+    const bytes = Buffer.from(encoded, 'base64');
+    if (existsSync(join(runDir, path)) && !readStableRegularFile(join(runDir, path)).bytes.equals(bytes)) {
+      throw new Error(`representation capture preimage changed: ${path}`);
+    }
+    writeFileAtomic(join(runDir, path), bytes, path === REPRESENTATION_USE_PATH ? 0o600 : 0o400);
+  }
   if (before) writeRunState(runDir, structuredClone(transaction.state_after));
   writeJsonAtomic(transactionPath, {
     ...transaction,
@@ -982,6 +1016,13 @@ export function recordS0AuthorityResponse(
         response,
       ),
     };
+    if (usesFormalLayoutBindings(prior.identity.run_format_version)) {
+      const files = preparedRepresentationFiles(runDir, plan.frozen.files.map((file) => file.source_id));
+      filesAfter.representation_files = files;
+      files[REPRESENTATION_USE_PATH] = Buffer.from(representationUsesMarkdown([])).toString('base64');
+      const inventoryHash = sha256Digest(Buffer.from(files['corpus/representations.md'], 'base64'));
+      filesAfter.run_manifest = filesAfter.run_manifest.replace('## Corpus binding', `## Corpus binding\n\n- representation_inventory_hash: ${inventoryHash}`);
+    }
     const payload: Omit<
       S0FreezeTransaction,
       'payload_digest' | 'committed_at' | 'status'

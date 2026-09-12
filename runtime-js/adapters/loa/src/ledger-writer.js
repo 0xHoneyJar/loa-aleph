@@ -3,14 +3,16 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { CORE_STAGES, LOA_LEDGER_RECEIPT_FORMAT, } from './types.js';
 import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, nextDecimal, sha256Digest, stableJson, stableJsonBytes, writeFileAtomic, } from './fs.js';
-import { acquireDurableProcessLock, openHumanAuthorityGate, readRunState, updateRunState, } from './run-control.js';
+import { acquireDurableProcessLock, openHumanAuthorityGate, readRunState, stateCheckpointDigest, writeRunState, updateRunState, } from './run-control.js';
 import { ValidatedWorkerReturn } from './worker-return.js';
+import { verifyWorkerBundle } from './worker-bundle.js';
 import { buildProceduralAuthorityLedgerRow, CLOSURE_PHASES, closurePhasesFromText, loadPinnedCoreAuthority, nextClosurePhase, nextProceduralAuthoritySequence, parseInternalAmbiguities, planProceduralAuthorityFollowup, proceduralAuthorityLedgerRowMarkdown, validateMaterialImpactAuthorityBasis, validateProceduralAuthorityRequest, validateProceduralAuthorityResponse, } from '../../../scripts/lib/internal-ambiguity.js';
 import { hasRunLogEvent } from '../../../scripts/lib/check-helpers.js';
 import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.js';
 import { runK2Relations } from '../../../scripts/lib/checks-k2-relations.js';
 import { ResultCollector } from '../../../scripts/lib/results.js';
-import { loadRun, usesInternalAmbiguityLifecycle } from '../../../scripts/lib/run-model.js';
+import { loadRun, usesFormalLayoutBindings, usesInternalAmbiguityLifecycle } from '../../../scripts/lib/run-model.js';
+import { materialHash, assertMaterialReturnWritable, assertMaterialUseProduced, assertMaterialReviewUpheld, materialFindingRows, materialSubjectWritePaths, validateMaterialPlanIdentity, assertMaterialWriteWindow, requiresMaterialUsePlan, planRepresentationUseWrite, representationReviewView, representationUseDigest, representationUseClosureHash, representationUseNeedsReview, validateMaterialUseInput, REPRESENTATION_PATH, REPRESENTATION_USE_PATH, validateRepresentationRun, } from '../../../scripts/lib/source-representation.js';
 const CANONICAL_PREFIXES = [
     'arms/',
     'clusters/',
@@ -104,6 +106,79 @@ function appendedBytes(before, addition) {
 }
 function isRecord(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+function applyMaterialTransaction(runDir, path) {
+    const raw = JSON.parse(readFileSync(path, 'utf8'));
+    if (!isRecord(raw) || raw.format !== 'aleph-loa-material-transaction/v1')
+        throw new Error('invalid material transaction');
+    const transaction = raw;
+    const { digest, status, ...payload } = transaction;
+    if (!['prepared', 'committed'].includes(status) || digest !== materialHash(stableJsonBytes(payload)))
+        throw new Error('material transaction identity changed');
+    if (status === 'committed')
+        return;
+    validateMaterialPlanIdentity(transaction.plan, transaction.row, transaction.stage);
+    const state = readRunState(runDir);
+    if (state.execution.stage !== transaction.stage
+        || ![transaction.state_checkpoint, transaction.state_after.execution.resume.checkpoint_digest].includes(state.execution.resume.checkpoint_digest)
+        || !stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_after.identity)))
+        throw new Error('material transaction state preimage changed');
+    if (materialHash(readFileSync(join(runDir, REPRESENTATION_PATH))) !== transaction.plan.inventory_hash)
+        throw new Error('material transaction capture basis changed');
+    const scratch = mkdtempSync(join(tmpdir(), 'aleph-material-recovery-'));
+    try {
+        cpSync(runDir, join(scratch, 'run'), { recursive: true });
+        for (const write of transaction.plan.writes) {
+            assertSafeRelativePath(write.path, 'material transaction path');
+            assertNoSymlinkComponents(runDir, join(runDir, write.path));
+            const before = existsSync(join(runDir, write.path)) ? readFileSync(join(runDir, write.path)) : Buffer.alloc(0);
+            const bytes = Buffer.from(write.after_base64, 'base64');
+            if (![write.before_hash, write.after_hash].includes(materialHash(before))
+                || bytes.toString('base64') !== write.after_base64 || materialHash(bytes) !== write.after_hash)
+                throw new Error(`material preimage/after-image differs: ${write.path}`);
+            writeFileAtomic(join(scratch, 'run', write.path), bytes);
+        }
+        const proposed = loadRun(join(scratch, 'run'));
+        const context = validateRepresentationRun(proposed);
+        if (transaction.row) {
+            if (representationUseClosureHash(proposed) !== null)
+                throw new Error('FROZEN_WRITE: pending material use cannot reopen C1');
+            const receipt = context.uses.find((row) => row.use_id === transaction.row.use_id);
+            if (stableJson(receipt) !== stableJson(transaction.row))
+                throw new Error('reserved material subject/receipt changed');
+        }
+        else if (transaction.plan.key !== `representation-use-closure:${representationUseClosureHash(proposed)}`) {
+            throw new Error('material C1 closure differs from prepared seal');
+        }
+        const chainPath = join(runDir, 'control', 'ledger-chain.jsonl');
+        const chain = existsSync(chainPath) ? readFileSync(chainPath) : Buffer.alloc(0);
+        if (![transaction.chain_before_hash, materialHash(transaction.chain_after)].includes(materialHash(chain)))
+            throw new Error('material ledger chain preimage changed');
+        for (const write of transaction.plan.writes)
+            writeFileAtomic(join(runDir, write.path), Buffer.from(write.after_base64, 'base64'));
+        writeFileAtomic(chainPath, transaction.chain_after);
+        writeRunState(runDir, structuredClone(transaction.state_after));
+        writeFileAtomic(path, stableJsonBytes({ ...transaction, status: 'committed' }));
+    }
+    finally {
+        rmSync(scratch, { recursive: true, force: true });
+    }
+}
+function recoverMaterialTransactionsUnlocked(runDir) {
+    const root = join(runDir, 'control', 'transactions');
+    if (!existsSync(root))
+        return;
+    for (const name of readdirSync(root).filter((name) => /^TXN-material-[0-9a-f]{64}\.json$/u.test(name)).sort())
+        applyMaterialTransaction(runDir, join(root, name));
+}
+export function recoverPendingMaterialTransactions(runDir) {
+    const release = acquireLedgerLock(runDir, new Date().toISOString(), true);
+    try {
+        recoverMaterialTransactionsUnlocked(runDir);
+    }
+    finally {
+        release();
+    }
 }
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 const LEDGER_RECEIPT_KEYS = [
@@ -368,13 +443,36 @@ export class LedgerWriter {
         this.runDir = resolve(runDir);
         this.clock = clock;
     }
+    assertMaterialWindow(ownerStage) {
+        const state = readRunState(this.runDir);
+        try {
+            assertMaterialWriteWindow(loadRun(this.runDir), state.execution.stage, ownerStage);
+        }
+        catch (error) {
+            if (usesFormalLayoutBindings(state.identity.run_format_version) && !state.execution.halt)
+                updateRunState(this.runDir, this.clock.now(), (draft) => {
+                    draft.execution.core_state = 'BLOCKED';
+                    draft.execution.halt = {
+                        code: 'SOURCE_REPRESENTATION_FROZEN_WRITE', blocking: true, at: this.clock.now(),
+                        reason: error instanceof Error ? error.message : String(error),
+                    };
+                });
+            throw error;
+        }
+    }
     append(relativePath, validated, render) {
         assertSafeRelativePath(relativePath, 'canonical run path');
+        if (usesFormalLayoutBindings(readRunState(this.runDir).identity.run_format_version)
+            && requiresMaterialUsePlan(relativePath)) {
+            throw new Error('1.6 canonical material subjects require an atomic Core material-use plan');
+        }
         assertSlice5WriteWindow(this.runDir, readRunState(this.runDir), relativePath, 'append');
         if (!(validated instanceof ValidatedWorkerReturn)) {
             throw new Error('canonical writes require a validated worker return');
         }
         validated.assertAuthenticAndIntact();
+        if (usesFormalLayoutBindings(readRunState(this.runDir).identity.run_format_version))
+            assertMaterialReturnWritable(validated.data);
         if (!canonicalRunPath(relativePath)) {
             throw new Error(`path is outside the canonical writer surface: ${relativePath}`);
         }
@@ -384,6 +482,168 @@ export class LedgerWriter {
             validated.assertAuthenticAndIntact();
             return rendered;
         }, validated.simulation !== null, true);
+    }
+    reserveMaterialUse(validated, row, render) {
+        if (!(validated instanceof ValidatedWorkerReturn))
+            throw new Error('material reservation requires a validated producer');
+        const data = validated.assertAuthenticAndIntact();
+        assertMaterialUseProduced(data, row);
+        const release = acquireLedgerLock(this.runDir, this.clock.now(), false);
+        const scratch = mkdtempSync(join(tmpdir(), 'aleph-material-reservation-'));
+        try {
+            recoverMaterialTransactionsUnlocked(this.runDir);
+            recoverPendingLedgerTransactionsUnlocked(this.runDir, this.clock.now());
+            const state = readRunState(this.runDir);
+            if (state.execution.halt
+                || (validated.simulation && state.full_mode !== 'fixture-simulated'))
+                throw new Error('material reservation outside write window');
+            const context = validateRepresentationRun(loadRun(this.runDir));
+            this.assertMaterialWindow(row.owner_stage);
+            const prospective = join(scratch, 'run');
+            cpSync(this.runDir, prospective, { recursive: true });
+            const outputs = render(data);
+            const writes = Object.entries(outputs).map(([path, text]) => {
+                assertSafeRelativePath(path, 'reserved material subject');
+                if (!materialSubjectWritePaths(row.subject_kind).includes(path))
+                    throw new Error('reservation escaped Core subject surface');
+                assertNoSymlinkComponents(this.runDir, join(this.runDir, path));
+                const before = existsSync(join(this.runDir, path)) ? readFileSync(join(this.runDir, path)) : Buffer.alloc(0);
+                const after = Buffer.from(text);
+                writeFileAtomic(join(prospective, path), after);
+                return { path, before_hash: materialHash(before), after_base64: after.toString('base64'), after_hash: materialHash(after) };
+            });
+            const proposed = loadRun(prospective);
+            const reserved = { ...row, reviewed_by: 'none' };
+            reserved.review_subject_digest = representationUseDigest(proposed, context, reserved);
+            const view = representationReviewView(proposed, context, reserved);
+            const id = reserved.review_subject_digest.slice('sha256:'.length);
+            const reviewPath = `verification/harness/material-use-subjects/${id}.json`;
+            const reservationPath = join(this.runDir, 'control', 'transactions', `RES-material-${id}.json`);
+            const payload = {
+                format: 'aleph-loa-material-reservation/v1', raw_digest: validated.rawDigest,
+                producer_context_id: validated.contextId,
+                inventory_hash: context.inventoryHash, row: reserved, writes, review_path: reviewPath, view_hash: materialHash(view),
+            };
+            const bytes = stableJsonBytes(payload);
+            if (existsSync(reservationPath) && !readFileSync(reservationPath).equals(bytes))
+                throw new Error('material reservation retry changed');
+            if (existsSync(join(this.runDir, reviewPath)) && materialHash(readFileSync(join(this.runDir, reviewPath))) !== payload.view_hash)
+                throw new Error('reserved review view changed');
+            writeFileAtomic(reservationPath, bytes);
+            writeFileAtomic(join(this.runDir, reviewPath), view, 0o400);
+            return { row: reserved, review_path: reviewPath };
+        }
+        finally {
+            rmSync(scratch, { recursive: true, force: true });
+            release();
+        }
+    }
+    appendMaterialUse(validated, row, render, review) {
+        if (!(validated instanceof ValidatedWorkerReturn))
+            throw new Error('material writes require a validated worker return');
+        const data = validated.assertAuthenticAndIntact();
+        assertMaterialUseProduced(data, row);
+        if (row.subject_kind !== 'OBJ')
+            this.appendMaterialFindings(validated);
+        const release = acquireLedgerLock(this.runDir, this.clock.now(), false);
+        const scratch = mkdtempSync(join(tmpdir(), 'aleph-material-plan-'));
+        try {
+            recoverMaterialTransactionsUnlocked(this.runDir);
+            recoverPendingLedgerTransactionsUnlocked(this.runDir, this.clock.now());
+            const state = readRunState(this.runDir);
+            if (state.ledger.writer_id !== 'loa-orchestrator' || state.execution.halt
+                || (validated.simulation && state.full_mode !== 'fixture-simulated')) {
+                throw new Error('material write conflicts with pinned writer, halt, or simulation boundary');
+            }
+            const context = validateRepresentationRun(loadRun(this.runDir));
+            const retained = context.uses.find((use) => use.subject_kind === row.subject_kind && use.subject_id === row.subject_id
+                && use.review_subject_digest === row.review_subject_digest);
+            if (retained) {
+                if (stableJson(retained) !== stableJson(row))
+                    throw new Error('material retry differs from retained receipt');
+                return { key: `representation-use-subject:${row.review_subject_digest}:${row.subject_kind}:${row.subject_id}`,
+                    inventory_hash: context.inventoryHash, writes: [] };
+            }
+            this.assertMaterialWindow(row.owner_stage);
+            const next = render(data);
+            validated.assertAuthenticAndIntact();
+            const prospective = join(scratch, 'run');
+            cpSync(this.runDir, prospective, { recursive: true });
+            const writes = Object.entries(next).map(([path, text]) => {
+                assertSafeRelativePath(path, 'material subject path');
+                assertNoSymlinkComponents(this.runDir, join(this.runDir, path));
+                const before = existsSync(join(this.runDir, path)) ? readFileSync(join(this.runDir, path)) : Buffer.alloc(0);
+                const after = Buffer.from(text);
+                writeFileAtomic(join(prospective, path), after);
+                return { path, before_hash: materialHash(before), after_base64: after.toString('base64'), after_hash: materialHash(after) };
+            });
+            const materialInput = validateMaterialUseInput({
+                requirements: JSON.parse(row.requirements), use_state: row.use_state, fidelity_claim: row.fidelity_claim,
+                limitation_refs: JSON.parse(row.limitation_refs), reason: row.reason,
+            });
+            if (['CC', 'REL'].includes(row.subject_kind) && representationUseNeedsReview(context, materialInput)) {
+                const id = row.review_subject_digest.slice('sha256:'.length);
+                const reservation = JSON.parse(readFileSync(join(this.runDir, 'control', 'transactions', `RES-material-${id}.json`), 'utf8'));
+                if (reservation.inventory_hash !== context.inventoryHash || reservation.raw_digest !== validated.rawDigest
+                    || stableJson(reservation.writes) !== stableJson(writes)
+                    || stableJson(reservation.row) !== stableJson({ ...row, reviewed_by: 'none' }))
+                    throw new Error('reviewed material reservation differs');
+                if (!(review instanceof ValidatedWorkerReturn))
+                    throw new Error('material use requires accepted fresh L2F transport receipt');
+                if (!validated.contextId || review.producerContextId !== validated.contextId || review.contextId === validated.contextId)
+                    throw new Error('material reviewer did not isolate the actual producer context');
+                const verdict = review.assertAuthenticAndIntact();
+                assertMaterialReviewUpheld(verdict, row.review_subject_digest);
+                if (review.simulation && state.full_mode !== 'fixture-simulated')
+                    throw new Error('material review simulation cannot authorize this use');
+                const request = verifyWorkerBundle(join(this.runDir, 'control', 'worker-bundles', review.callId));
+                if (request.role !== 'verifier-l2f' || request.stage !== row.owner_stage
+                    || request.allowlist.length !== 1 || request.allowlist[0].run_path !== reservation.review_path)
+                    throw new Error('review transport did not challenge reserved material subject');
+            }
+            const plan = planRepresentationUseWrite({ model: loadRun(this.runDir), proposedModel: loadRun(prospective),
+                row, subjectWrites: writes, stage: state.execution.stage });
+            for (const write of plan.writes)
+                writeFileAtomic(join(prospective, write.path), Buffer.from(write.after_base64, 'base64'));
+            validateRepresentationRun(loadRun(prospective));
+            const key = materialHash(plan.key).slice('sha256:'.length);
+            const path = join(this.runDir, 'control', 'transactions', `TXN-material-${key}.json`);
+            if (existsSync(path))
+                throw new Error('material transaction key is already reserved with different bytes');
+            const stateAfter = structuredClone(state), at = this.clock.now();
+            const chainPath = join(this.runDir, 'control', 'ledger-chain.jsonl');
+            const chainBefore = existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '';
+            let chainAfter = chainBefore;
+            for (const write of plan.writes) {
+                const receipt = { format: LOA_LEDGER_RECEIPT_FORMAT, sequence: nextDecimal(stateAfter.ledger.sequence), path: write.path,
+                    before_digest: write.before_hash, after_digest: write.after_hash, return_digest: validated.rawDigest,
+                    previous_chain_digest: stateAfter.ledger.chain_head, writer: 'loa-orchestrator', written_at: at };
+                const chainDigest = materialHash(stableJsonBytes(receipt));
+                chainAfter += `${chainAfter && !chainAfter.endsWith('\n') ? '\n' : ''}${stableJson({ ...receipt, chain_digest: chainDigest })}\n`;
+                stateAfter.ledger.sequence = receipt.sequence;
+                stateAfter.ledger.chain_head = chainDigest;
+            }
+            stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
+            stateAfter.execution.resume.last_verified_at = at;
+            stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
+            const transaction = { format: 'aleph-loa-material-transaction/v1', plan, raw_digest: validated.rawDigest,
+                state_checkpoint: state.execution.resume.checkpoint_digest, state_after: stateAfter,
+                chain_before_hash: materialHash(chainBefore), chain_after: chainAfter, stage: state.execution.stage, row };
+            writeFileAtomic(path, stableJsonBytes({ ...transaction, digest: materialHash(stableJsonBytes(transaction)), status: 'prepared' }));
+            applyMaterialTransaction(this.runDir, path);
+            return plan;
+        }
+        finally {
+            rmSync(scratch, { recursive: true, force: true });
+            release();
+        }
+    }
+    appendMaterialFindings(validated) {
+        if (!(validated instanceof ValidatedWorkerReturn))
+            throw new Error('material findings require validated retained output');
+        const rows = materialFindingRows(loadRun(this.runDir), validated.assertAuthenticAndIntact(), readRunState(this.runDir).execution.stage, `invocation:${validated.callId}`);
+        for (const row of rows)
+            this.appendMaterialUse(validated, row, () => ({}));
     }
     commitAppend(relativePath, returnDigest, render, simulated, enforceLineageWindow) {
         const target = join(this.runDir, relativePath);
@@ -686,6 +946,22 @@ export class LedgerWriter {
         throw new Error('canonical relation retarget is not a supported Loa persistence operation');
     }
     advanceSlice5ClosurePhase(phase) {
+        const material = usesFormalLayoutBindings(readRunState(this.runDir).identity.run_format_version)
+            && phase === 'S4-C1-relations-closed';
+        const release = material ? acquireLedgerLock(this.runDir, this.clock.now(), false) : () => { };
+        try {
+            if (material) {
+                recoverMaterialTransactionsUnlocked(this.runDir);
+                if (retainedClosurePhases(this.runDir).includes(phase))
+                    return;
+            }
+            this.commitSlice5ClosurePhase(phase);
+        }
+        finally {
+            release();
+        }
+    }
+    commitSlice5ClosurePhase(phase) {
         const state = readRunState(this.runDir);
         if (!usesInternalAmbiguityLifecycle(state.identity.run_format_version)
             || state.execution.stage !== 'S4') {
@@ -697,7 +973,13 @@ export class LedgerWriter {
         }
         const runLogPath = join(this.runDir, RUN_LOG_PATH);
         const before = existsSync(runLogPath) ? readFileSync(runLogPath) : Buffer.alloc(0);
-        const next = appendedBytes(before, `closure_phase: ${phase}`);
+        let addition = `closure_phase: ${phase}`;
+        if (usesFormalLayoutBindings(state.identity.run_format_version)) {
+            validateRepresentationRun(loadRun(this.runDir));
+            if (phase === 'S4-C1-relations-closed')
+                addition += `\nrepresentation_use_closure_hash: ${materialHash(readFileSync(join(this.runDir, REPRESENTATION_USE_PATH)))}`;
+        }
+        const next = appendedBytes(before, addition);
         const scratch = mkdtempSync(join(tmpdir(), 'aleph-s5-phase-'));
         const prospective = join(scratch, 'run');
         try {
@@ -706,6 +988,8 @@ export class LedgerWriter {
             const model = loadRun(prospective);
             const results = new ResultCollector(state.run_id);
             runK2Relations(results, model);
+            if (usesFormalLayoutBindings(state.identity.run_format_version))
+                validateRepresentationRun(model);
             if (phase !== 'S4-C1-relations-closed') {
                 const bundleRoot = join(this.runDir, 'control', 'runtime', 'bundle');
                 const authority = loadPinnedCoreAuthority({
@@ -722,6 +1006,26 @@ export class LedgerWriter {
         }
         finally {
             rmSync(scratch, { recursive: true, force: true });
+        }
+        if (usesFormalLayoutBindings(state.identity.run_format_version) && phase === 'S4-C1-relations-closed') {
+            const seal = materialHash(readFileSync(join(this.runDir, REPRESENTATION_USE_PATH)));
+            const stateAfter = structuredClone(state);
+            stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
+            stateAfter.execution.resume.last_verified_at = this.clock.now();
+            stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
+            const chainPath = join(this.runDir, 'control', 'ledger-chain.jsonl');
+            const chain = existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '';
+            const plan = {
+                key: `representation-use-closure:${seal}`, inventory_hash: materialHash(readFileSync(join(this.runDir, REPRESENTATION_PATH))),
+                writes: [{ path: RUN_LOG_PATH, before_hash: materialHash(before), after_base64: next.toString('base64'), after_hash: materialHash(next) }],
+            };
+            const transaction = { format: 'aleph-loa-material-transaction/v1', plan, raw_digest: seal,
+                state_checkpoint: state.execution.resume.checkpoint_digest, state_after: stateAfter,
+                chain_before_hash: materialHash(chain), chain_after: chain, stage: 'S4', row: null };
+            const path = join(this.runDir, 'control', 'transactions', `TXN-material-${materialHash(plan.key).slice(7)}.json`);
+            writeFileAtomic(path, stableJsonBytes({ ...transaction, digest: materialHash(stableJsonBytes(transaction)), status: 'prepared' }));
+            applyMaterialTransaction(this.runDir, path);
+            return;
         }
         writeFileAtomic(runLogPath, next);
         updateRunState(this.runDir, this.clock.now(), (draft) => {

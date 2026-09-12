@@ -1,3 +1,5 @@
 # Node 20 release runtime generated deterministically from authoritative TypeScript.
 *.ts linguist-language=TypeScript
 runtime-js/** linguist-generated=true
+# This byte-authority fixture intentionally mixes LF and CRLF.
+docs/fixtures/formal-layout-bindings/inputs/material.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

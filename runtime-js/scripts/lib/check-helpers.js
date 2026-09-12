@@ -264,7 +264,7 @@ export function allStatusRows(model) {
     }
     return rows;
 }
-function runLogEvents(document) {
+export function runLogEvents(document) {
     const events = [];
     if (!document)
         return events;

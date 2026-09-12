@@ -69,6 +69,7 @@ export const LOA_ROLE_IDS = [
     'scribe',
     'verifier-l1',
     'verifier-l2',
+    'verifier-l2f',
     'verifier-l3',
     'verifier-l4',
     'verifier-l5',

@@ -43,9 +43,11 @@ function validateUnicode(value, path, errors) {
 class JsonMemberScanner {
     index = 0;
     text;
+    integerNumbers;
     duplicates = [];
-    constructor(text) {
+    constructor(text, integerNumbers = false) {
         this.text = text;
+        this.integerNumbers = integerNumbers;
     }
     scan() {
         this.scanValue('$');
@@ -83,9 +85,15 @@ class JsonMemberScanner {
             this.scanString();
         }
         else {
+            const start = this.index;
             while (this.index < this.text.length
                 && !/[\s,\]}]/u.test(this.text[this.index])) {
                 this.index += 1;
+            }
+            const token = this.text.slice(start, this.index);
+            if (this.integerNumbers && /^[-0-9]/u.test(token)
+                && (!/^(?:0|[1-9]\d*)$/u.test(token) || !Number.isSafeInteger(Number(token)))) {
+                throw new Error(`noncanonical integer at ${path}`);
             }
         }
     }
@@ -133,6 +141,16 @@ class JsonMemberScanner {
             this.skipWhitespace();
         }
     }
+}
+export function parseStrictJson(raw, integerNumbers = false) {
+    const text = typeof raw === 'string' ? raw
+        : new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(raw);
+    const value = JSON.parse(text);
+    const errors = new JsonMemberScanner(text, integerNumbers).scan().map((path) => `duplicate key ${path}`);
+    validateUnicode(value, '$', errors);
+    if (errors.length)
+        throw new Error(errors.join('; '));
+    return value;
 }
 function validateRequiredString(value, path, errors) {
     if (typeof value !== 'string') {

@@ -23,7 +23,10 @@ Rules:
 
 - K1.1 (`declaration`): every directory directly under `docs/fixtures/`
   either is one of the two legacy slices (validated exactly as today,
-  hardcoded) or contains a parseable `aleph-fixture` block —
+  hardcoded), contains a parseable `aleph-fixture` block, or groups declared
+  child fixtures. Discovery stops at a declared fixture and does not interpret
+  its internal directories as fixtures. An undeclared family with no declared
+  children fails —
   `FAIL <dir> K1.1 (declaration): no aleph-fixture block in README.md`.
 - K1.2 (`kind dispatch`): `kind: precis` runs the full existing check set
   with expectations taken from the block instead of constants (ID ranges,
@@ -471,3 +474,36 @@ The run-format capability registry is cumulative by construction: each
 registered format adds capabilities to the prefix established by every
 earlier format. Moving the current format to 1.5 therefore cannot deactivate
 exact evidence, source walk, lineage, or typed relations.
+
+## K2.18 — source representation bindings (1.6)
+
+The cumulative `formal-layout-bindings` capability activates the six T2.3
+inventory tables, exact SRC/AST/BND bytes and provenance, supplied coordinate
+mechanics, closed states, and the T3.6 use ledger. Core rejects malformed or
+injected formats, missing closure, changed capture hashes, stale use subjects,
+unavailable affirmative requirements, and forbidden gold assertions. It never
+judges table meaning, repairs equations, extracts chart values, or runs a model,
+renderer, OCR tool, network call, or semantic subprocess. A coherent shifted
+cell/header association can remain structural PASS.
+
+Reason tokens: `FORMAT`, `IDENTITY`, `INVENTORY`, `CAPTURE_HASH`, `BINDING`,
+`COORDINATE`, `ASSOCIATION`, `PROVENANCE`, `STATE`, `UNDECLARED_FEATURE`,
+`FIDELITY`, `USE_CLOSURE`, `UNSUPPORTED_EXTRACTION_SURFACE`, `FROZEN_WRITE`.
+The result names the affected identity and field.
+
+S0 freezes `representation_inventory_hash`. K2.14's 1.6 review basis uses
+`aleph-source-walk-review-basis/v2` and appends that inventory identity; prior
+formats keep their original digest algorithms. PKT/CC/REL subjects each need
+their exact receipt, and non-text/AST CC/REL use needs an upheld L2F verdict
+over its exact immutable digest. These checks establish retained record
+consistency; transport freshness is a separate process obligation.
+
+C1 seals the complete uses bytes in its existing structured S4 event. At
+ASSEMBLED and later, section 17 must contain the exact mechanical union of
+retained representation limitations and CANNOT_DETERMINE uses. No later
+projection may mutate an accepted Précis.
+
+Run `npm run test:representations` for real-CLI mutations and source/runtime
+parity, and `npm run test:representation-process` for simulated capture,
+review, writer, journal, seal and resume boundaries. Neither suite establishes
+semantic validation, production reachability, agent sanction, acceptance or v1.

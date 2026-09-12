@@ -48,7 +48,8 @@ export const SOURCE_WALK_RUN_FORMAT_VERSION = '1.2.0-provisional';
 export const LINEAGE_RUN_FORMAT_VERSION = '1.3.0-provisional';
 export const TYPED_RELATIONS_RUN_FORMAT_VERSION = '1.4.0-provisional';
 export const INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION = '1.5.0-provisional';
-export const CURRENT_RUN_FORMAT_VERSION = INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION;
+export const FORMAL_LAYOUT_RUN_FORMAT_VERSION = '1.6.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = FORMAL_LAYOUT_RUN_FORMAT_VERSION;
 export const PACKET_DEFINITION_HEADER = [
   'packet id',
   'source id',
@@ -76,6 +77,7 @@ export const SUPPORTED_RUN_FORMAT_VERSIONS = [
   SOURCE_WALK_RUN_FORMAT_VERSION,
   LINEAGE_RUN_FORMAT_VERSION,
   TYPED_RELATIONS_RUN_FORMAT_VERSION,
+  INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION,
   CURRENT_RUN_FORMAT_VERSION,
 ] as const;
 
@@ -87,6 +89,7 @@ export const RUN_CAPABILITIES = [
   'lineage',
   'typed-relations',
   'internal-ambiguity-lifecycle',
+  'formal-layout-bindings',
 ] as const;
 
 export type RunCapability = typeof RUN_CAPABILITIES[number];
@@ -118,6 +121,10 @@ const RUN_FORMAT_CAPABILITY_ADDITIONS: ReadonlyArray<{
   {
     version: INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION,
     additions: ['internal-ambiguity-lifecycle'],
+  },
+  {
+    version: FORMAL_LAYOUT_RUN_FORMAT_VERSION,
+    additions: ['formal-layout-bindings'],
   },
 ];
 
@@ -156,6 +163,10 @@ export function usesTypedRelations(runFormatVersion: string): boolean {
 
 export function usesInternalAmbiguityLifecycle(runFormatVersion: string): boolean {
   return hasRunCapability(runFormatVersion, 'internal-ambiguity-lifecycle');
+}
+
+export function usesFormalLayoutBindings(runFormatVersion: string): boolean {
+  return hasRunCapability(runFormatVersion, 'formal-layout-bindings');
 }
 
 export const EXACT_EVIDENCE_JOIN_POLICIES = [
@@ -1325,7 +1336,17 @@ export function loadRun(runDir: string): RunModel {
   // bytes are part of the durable run record, but they are not canonical Core
   // artifacts and must not participate in K2-K6 discovery or identifier scans.
   const filePaths = walkFiles(runDir).filter((path) => isCoreRunArtifact(runDir, path));
-  const files = filePaths.map((path) => ({
+  const earlyManifest = parseManifest(get('run-manifest.md'));
+  const opaqueLoci = usesFormalLayoutBindings(earlyManifest?.runFormatVersion || '')
+    ? new Set(parseCorpus(get('corpus/manifest.md')).sources.filter((s) => s.values.scheme === 'opaque-bytes')
+      .map((s) => s.values.locus.startsWith('corpus/') ? s.values.locus : `corpus/${s.values.locus}`))
+    : new Set<string>();
+  // Representation assets are bytes, not Markdown or additional entity definitions.
+  // Their inventory and hashes are reopened explicitly by K2.18.
+  const files = filePaths.filter((path) => (
+    !relative(runDir, path).split(sep).join('/').startsWith('corpus/representation-assets/')
+      && !opaqueLoci.has(relative(runDir, path).split(sep).join('/'))
+  )).map((path) => ({
     path,
     relativePath: relative(runDir, path),
     text: readFileSync(path, 'utf8'),
