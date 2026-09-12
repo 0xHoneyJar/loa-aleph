@@ -126,3 +126,7 @@ transplants bundle-restricted content into worker calls.
 ## Representation material — run format 1.6
 
 For 1.6, verify Core inventory/use closure, reserve IDs before L2F review, and commit each subject and receipt in one journaled transaction. Retain CANNOT_DETERMINE findings, never infer requirements, refuse post-freeze representation changes, and seal the use ledger at C1. Use the Core material planner and availability predicate.
+
+## Slice 7 semantic review (1.7)
+
+Construct 1.7 subjects, context allowlists and write plans through Core. Retain every assignment and result; enforce declared outcome predicates and composed single-writer transactions. Seal S2/S3 prefixes and the C1 ledger. Never fill semantic fields, select meaning, append helpful unsealed context, erase indeterminate reviews or waive independent L1/L2F obligations.

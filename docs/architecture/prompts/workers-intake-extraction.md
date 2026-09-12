@@ -110,99 +110,366 @@ CONSTRAINTS
 this source.
 **Withhold:** all other sources; all packets from other extractors; scope
 discussion; anything with `CC-`/disposition vocabulary.
+**Run format 1.7 semantic duties:** Return one semantic entry for every packet/material candidate. Propose the smallest coherent assertions and explicit source-bound context. Retain exact packets even when their semantics are awkward; never certify recall or adequacy. S2 origins are empty.
+
 **Output contract:**
 ```json
 {
-  "source_id": "",
-  "producer_invocation_id": "",
-  "walk_intervals": [
-    {
-      "start_byte": 0,
-      "end_byte": 0,
-      "outcome": "admitted|no-candidate-observed|excluded|deferred|unsupported",
-      "packet_candidate_indexes": [
-        0
-      ],
-      "criterion_ref": "admission:<n>|exclusion:<class>|none",
-      "closure_state": "closed|open|resolved",
-      "reason": null,
-      "closure_note": null
-    }
-  ],
-  "packets": [
-    {
-      "evidence_state": "exact|degraded-non-exact",
-      "join_policy": "single-fragment|adjacent-fragments|separate-fragments|not-applicable",
-      "fragments": [
-        {
-          "fragment_order": 1,
-          "locator": "",
-          "exact_bytes_base64": ""
+  "contract_format": "aleph-semantic-output-contract/v1",
+  "capability": "semantic-unit-review",
+  "role": "extractor",
+  "shape": {
+    "source_id": "",
+    "producer_invocation_id": "",
+    "walk_intervals": [
+      {
+        "start_byte": 0,
+        "end_byte": 0,
+        "outcome": "admitted|no-candidate-observed|excluded|deferred|unsupported",
+        "packet_candidate_indexes": [
+          0
+        ],
+        "criterion_ref": "admission:<n>|exclusion:<class>|none",
+        "closure_state": "closed|open|resolved",
+        "reason": null,
+        "closure_note": null
+      }
+    ],
+    "packets": [
+      {
+        "evidence_state": "exact|degraded-non-exact",
+        "join_policy": "single-fragment|adjacent-fragments|separate-fragments|not-applicable",
+        "fragments": [
+          {
+            "fragment_order": 1,
+            "locator": "",
+            "exact_bytes_base64": ""
+          }
+        ],
+        "rendered_text": "",
+        "degraded_source_locator": null,
+        "degradation_reason": null,
+        "criterion": 0,
+        "flags": [],
+        "material_use": {
+          "requirements": [
+            {
+              "object_id": "OBJ-…",
+              "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+              "binding_ids": [
+                "BND-…"
+              ]
+            }
+          ],
+          "use_state": "usable|CANNOT_DETERMINE",
+          "fidelity_claim": "none|exact-representation|gold",
+          "limitation_refs": [],
+          "reason": ""
         }
-      ],
-      "rendered_text": "",
-      "degraded_source_locator": null,
-      "degradation_reason": null,
-      "criterion": 0,
-      "flags": [],
-      "material_use": {
-        "requirements": [
+      }
+    ],
+    "extraction_events": [
+      {
+        "start_byte": 0,
+        "end_byte": 0,
+        "shared_position_key": "",
+        "event_ordinal": 1,
+        "packet_candidate_index": 0,
+        "origin": "primary"
+      }
+    ],
+    "next_cursor": {
+      "byte_offset": 0,
+      "shared_position_key": null,
+      "next_event_ordinal": null,
+      "predecessor_walk_index": null,
+      "predecessor_event_index": null,
+      "source_hash": "",
+      "reason": "initial|progress|bounded-pause|resumed-shared-position|source-complete"
+    },
+    "walk_exhausted": false,
+    "notes": [],
+    "material_findings": [
+      {
+        "object_id": "OBJ-…",
+        "material_use": {
+          "requirements": [
+            {
+              "object_id": "OBJ-…",
+              "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+              "binding_ids": [
+                "BND-…"
+              ]
+            }
+          ],
+          "use_state": "usable|CANNOT_DETERMINE",
+          "fidelity_claim": "none|exact-representation|gold",
+          "limitation_refs": [],
+          "reason": ""
+        }
+      }
+    ],
+    "semantic_units": [
+      {
+        "output_kind": "packet-candidate|material-candidate",
+        "output_index": 0,
+        "review_mode": "proposal|unresolved-record",
+        "origin_unit_refs": [
+          "SEM-0001/U1"
+        ],
+        "anchors": [
           {
-            "object_id": "OBJ-…",
-            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
-            "binding_ids": [
-              "BND-…"
-            ]
+            "anchor_id": "A1",
+            "source_id": "SRC-…",
+            "locator": "",
+            "start_byte": 0,
+            "end_byte": 1,
+            "exact_bytes_base64": ""
           }
         ],
-        "use_state": "usable|CANNOT_DETERMINE",
-        "fidelity_claim": "none|exact-representation|gold",
-        "limitation_refs": [],
-        "reason": ""
+        "semantics": {
+          "atomicity": "single-assertion|multiple-separable|inseparable-context|CANNOT_DETERMINE|no-claim",
+          "units": [
+            {
+              "unit_id": "U1",
+              "proposition": "",
+              "proposition_anchor_ids": [
+                "A1"
+              ],
+              "claim_roles": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "result-observation|method-procedure|interpretation-inference|background-context|definition|recommendation|attribution-report|limitation-uncertainty",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "scope": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "population|temporal|geographic|experiment-task|document-universe|quantified|exclusion-restriction",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "conditions": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "condition|precondition",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "qualifiers": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "degree|frequency|approximation|limitation|comparative|exception|confidence-uncertainty",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "modality": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "observed-descriptive|possible|capable|normative-should|obligatory-must|intended-designed|predicted-expected|hypothetical|counterfactual|recommended",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "attribution": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "source-author|quoted-entity|cited-external-in-corpus|reported-belief-opinion|system-model-interpretation",
+                    "source_text": "",
+                    "attributed_to": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "comparator": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "comparison-basis",
+                    "source_text": "",
+                    "subject_anchor_ids": [
+                      "A1"
+                    ],
+                    "baseline_anchor_ids": [
+                      "A1"
+                    ],
+                    "dimension_anchor_ids": [
+                      "A1"
+                    ],
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "metric": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "measured-quantity",
+                    "source_text": "",
+                    "quantity_anchor_ids": [
+                      "A1"
+                    ],
+                    "value_anchor_ids": [
+                      "A1"
+                    ],
+                    "unit_anchor_ids": [
+                      "A1"
+                    ],
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              }
+            }
+          ],
+          "contexts": [
+            {
+              "context_id": "C1",
+              "kind": "necessary-local|attribution|definition-terms|condition-scope|representation-layout|discourse",
+              "applies_to_unit_ids": [
+                "U1"
+              ],
+              "anchor_ids": [
+                "A1"
+              ],
+              "material_requirement_indexes": [
+                0
+              ],
+              "use": "required-for-interpretation|inspection-only|non-evidentiary"
+            }
+          ],
+          "couplings": [
+            {
+              "kind": "result-interpretation|attribution-content|comparison-comparator|metric-result|condition-claim|required-context",
+              "unit_ids": [
+                "U1"
+              ],
+              "anchor_ids": [
+                "A1"
+              ],
+              "treatment": "keep-distinguishable|keep-together|CANNOT_DETERMINE"
+            }
+          ],
+          "relation_proposals": [
+            {
+              "subject": {
+                "format": "aleph-relation-review-subject/v1",
+                "owner_stage": "S2|S3|S4",
+                "family": "claim-dependency|source-context|formal-reference|discourse|none",
+                "type": "semantic-prerequisite|antecedent-context|qualifier-context|configuration-context|structural-anchor|notation-definition|continuation-context|parallel-contrast-context|none",
+                "source_kind": "PKT|CC",
+                "source_id": "",
+                "target_kind": "PKT|CC|source-locus|null",
+                "target_id": "",
+                "target_source_id": "",
+                "target_locator": "",
+                "target_span_hash": "",
+                "record_state": "asserted|unresolved-target|explicitly-absent|indeterminate",
+                "null_reason": "",
+                "basis_packet_ids": [
+                  "PKT-…"
+                ],
+                "proposed_by": ""
+              },
+              "review_subject_digest": "",
+              "material_use": {
+                "requirements": [
+                  {
+                    "object_id": "OBJ-…",
+                    "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+                    "binding_ids": [
+                      "BND-…"
+                    ]
+                  }
+                ],
+                "use_state": "usable|CANNOT_DETERMINE",
+                "fidelity_claim": "none|exact-representation|gold",
+                "limitation_refs": [],
+                "reason": ""
+              }
+            }
+          ],
+          "unresolved_findings": [
+            {
+              "finding_id": "F1",
+              "field_path": "/semantics/atomicity",
+              "code": "atomicity-indeterminate|context-insufficient|scope-indeterminate|condition-indeterminate|qualifier-indeterminate|modality-indeterminate|attribution-indeterminate|role-indeterminate|referent-unresolved|comparator-indeterminate|metric-indeterminate|material-unavailable|relation-deferred|interpretation-unsupported",
+              "anchor_ids": [
+                "A1"
+              ],
+              "material_requirement_indexes": [
+                0
+              ],
+              "unknown_dimension": "none|population|temporal|geographic|experiment-task|document-universe|quantified|exclusion-restriction|comparison-dimension|measurement-unit",
+              "missing": "",
+              "requested_context": [
+                {
+                  "source_id": "SRC-…",
+                  "locator": "",
+                  "purpose": "local-context|same-source-referent-search|material-inspection"
+                }
+              ]
+            }
+          ]
+        }
       }
-    }
-  ],
-  "extraction_events": [
-    {
-      "start_byte": 0,
-      "end_byte": 0,
-      "shared_position_key": "",
-      "event_ordinal": 1,
-      "packet_candidate_index": 0,
-      "origin": "primary"
-    }
-  ],
-  "next_cursor": {
-    "byte_offset": 0,
-    "shared_position_key": null,
-    "next_event_ordinal": null,
-    "predecessor_walk_index": null,
-    "predecessor_event_index": null,
-    "source_hash": "",
-    "reason": "initial|progress|bounded-pause|resumed-shared-position|source-complete"
-  },
-  "walk_exhausted": false,
-  "notes": [],
-  "material_findings": [
-    {
-      "object_id": "OBJ-…",
-      "material_use": {
-        "requirements": [
-          {
-            "object_id": "OBJ-…",
-            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
-            "binding_ids": [
-              "BND-…"
-            ]
-          }
-        ],
-        "use_state": "usable|CANNOT_DETERMINE",
-        "fidelity_claim": "none|exact-representation|gold",
-        "limitation_refs": [],
-        "reason": ""
-      }
-    }
-  ]
+    ]
+  }
 }
 ```
 (Packet/evidence/fragment keys and all hashes are assigned by the orchestrator
@@ -248,77 +515,344 @@ CONSTRAINTS
 separate rendered transformations, and locators; the source files those
 packets point into (for local context only); normalization conventions.
 **Withhold:** other batches' outputs; the developing inventory; dispositions.
+**Run format 1.7 semantic duties:** Return one semantic entry for every claim/no-claim/material candidate. Emit every facet slot, preserve source-supported force, actor and condition, and bind outputs to reviewed S2 origins. Request exact packets for required context before affirmative use; do not merge for prose elegance. The allowed source window is exactly the named spans and inspection anchors, with no automatic radius or full-source attachment.
+
 **Output contract:**
 ```json
 {
-  "claims": [
-    {
-      "normalized_claim": "",
-      "packets": [
-        "PKT-…"
-      ],
-      "claim_type": "",
-      "widen_requests": [
-        {
-          "packet": "",
-          "new_locator": ""
+  "contract_format": "aleph-semantic-output-contract/v1",
+  "capability": "semantic-unit-review",
+  "role": "normalizer",
+  "shape": {
+    "claims": [
+      {
+        "normalized_claim": "",
+        "packets": [
+          "PKT-…"
+        ],
+        "claim_type": "",
+        "widen_requests": [
+          {
+            "packet": "",
+            "new_locator": ""
+          }
+        ],
+        "rationale": "",
+        "flags": [],
+        "material_use": {
+          "requirements": [
+            {
+              "object_id": "OBJ-…",
+              "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+              "binding_ids": [
+                "BND-…"
+              ]
+            }
+          ],
+          "use_state": "usable|CANNOT_DETERMINE",
+          "fidelity_claim": "none|exact-representation|gold",
+          "limitation_refs": [],
+          "reason": ""
         }
-      ],
-      "rationale": "",
-      "flags": [],
-      "material_use": {
-        "requirements": [
+      }
+    ],
+    "no_claim_packets": [
+      {
+        "packet": "PKT-…",
+        "basis": ""
+      }
+    ],
+    "lineage_proposals": [
+      {
+        "type": "split|replace|supersede|reject|exclude",
+        "predecessors": [
+          "PKT-…|CC-…"
+        ],
+        "successor_specs": [],
+        "basis": ""
+      }
+    ],
+    "material_findings": [
+      {
+        "object_id": "OBJ-…",
+        "material_use": {
+          "requirements": [
+            {
+              "object_id": "OBJ-…",
+              "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+              "binding_ids": [
+                "BND-…"
+              ]
+            }
+          ],
+          "use_state": "usable|CANNOT_DETERMINE",
+          "fidelity_claim": "none|exact-representation|gold",
+          "limitation_refs": [],
+          "reason": ""
+        }
+      }
+    ],
+    "semantic_units": [
+      {
+        "output_kind": "claim-candidate|no-claim-candidate|material-candidate",
+        "output_index": 0,
+        "review_mode": "proposal|unresolved-record",
+        "origin_unit_refs": [
+          "SEM-0001/U1"
+        ],
+        "anchors": [
           {
-            "object_id": "OBJ-…",
-            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
-            "binding_ids": [
-              "BND-…"
-            ]
+            "anchor_id": "A1",
+            "source_id": "SRC-…",
+            "locator": "",
+            "start_byte": 0,
+            "end_byte": 1,
+            "exact_bytes_base64": ""
           }
         ],
-        "use_state": "usable|CANNOT_DETERMINE",
-        "fidelity_claim": "none|exact-representation|gold",
-        "limitation_refs": [],
-        "reason": ""
+        "semantics": {
+          "atomicity": "single-assertion|multiple-separable|inseparable-context|CANNOT_DETERMINE|no-claim",
+          "units": [
+            {
+              "unit_id": "U1",
+              "proposition": "",
+              "proposition_anchor_ids": [
+                "A1"
+              ],
+              "claim_roles": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "result-observation|method-procedure|interpretation-inference|background-context|definition|recommendation|attribution-report|limitation-uncertainty",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "scope": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "population|temporal|geographic|experiment-task|document-universe|quantified|exclusion-restriction",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "conditions": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "condition|precondition",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "qualifiers": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "degree|frequency|approximation|limitation|comparative|exception|confidence-uncertainty",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "modality": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "observed-descriptive|possible|capable|normative-should|obligatory-must|intended-designed|predicted-expected|hypothetical|counterfactual|recommended",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "attribution": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "source-author|quoted-entity|cited-external-in-corpus|reported-belief-opinion|system-model-interpretation",
+                    "source_text": "",
+                    "attributed_to": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "comparator": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "comparison-basis",
+                    "source_text": "",
+                    "subject_anchor_ids": [
+                      "A1"
+                    ],
+                    "baseline_anchor_ids": [
+                      "A1"
+                    ],
+                    "dimension_anchor_ids": [
+                      "A1"
+                    ],
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "metric": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "measured-quantity",
+                    "source_text": "",
+                    "quantity_anchor_ids": [
+                      "A1"
+                    ],
+                    "value_anchor_ids": [
+                      "A1"
+                    ],
+                    "unit_anchor_ids": [
+                      "A1"
+                    ],
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              }
+            }
+          ],
+          "contexts": [
+            {
+              "context_id": "C1",
+              "kind": "necessary-local|attribution|definition-terms|condition-scope|representation-layout|discourse",
+              "applies_to_unit_ids": [
+                "U1"
+              ],
+              "anchor_ids": [
+                "A1"
+              ],
+              "material_requirement_indexes": [
+                0
+              ],
+              "use": "required-for-interpretation|inspection-only|non-evidentiary"
+            }
+          ],
+          "couplings": [
+            {
+              "kind": "result-interpretation|attribution-content|comparison-comparator|metric-result|condition-claim|required-context",
+              "unit_ids": [
+                "U1"
+              ],
+              "anchor_ids": [
+                "A1"
+              ],
+              "treatment": "keep-distinguishable|keep-together|CANNOT_DETERMINE"
+            }
+          ],
+          "relation_proposals": [
+            {
+              "subject": {
+                "format": "aleph-relation-review-subject/v1",
+                "owner_stage": "S2|S3|S4",
+                "family": "claim-dependency|source-context|formal-reference|discourse|none",
+                "type": "semantic-prerequisite|antecedent-context|qualifier-context|configuration-context|structural-anchor|notation-definition|continuation-context|parallel-contrast-context|none",
+                "source_kind": "PKT|CC",
+                "source_id": "",
+                "target_kind": "PKT|CC|source-locus|null",
+                "target_id": "",
+                "target_source_id": "",
+                "target_locator": "",
+                "target_span_hash": "",
+                "record_state": "asserted|unresolved-target|explicitly-absent|indeterminate",
+                "null_reason": "",
+                "basis_packet_ids": [
+                  "PKT-…"
+                ],
+                "proposed_by": ""
+              },
+              "review_subject_digest": "",
+              "material_use": {
+                "requirements": [
+                  {
+                    "object_id": "OBJ-…",
+                    "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+                    "binding_ids": [
+                      "BND-…"
+                    ]
+                  }
+                ],
+                "use_state": "usable|CANNOT_DETERMINE",
+                "fidelity_claim": "none|exact-representation|gold",
+                "limitation_refs": [],
+                "reason": ""
+              }
+            }
+          ],
+          "unresolved_findings": [
+            {
+              "finding_id": "F1",
+              "field_path": "/semantics/atomicity",
+              "code": "atomicity-indeterminate|context-insufficient|scope-indeterminate|condition-indeterminate|qualifier-indeterminate|modality-indeterminate|attribution-indeterminate|role-indeterminate|referent-unresolved|comparator-indeterminate|metric-indeterminate|material-unavailable|relation-deferred|interpretation-unsupported",
+              "anchor_ids": [
+                "A1"
+              ],
+              "material_requirement_indexes": [
+                0
+              ],
+              "unknown_dimension": "none|population|temporal|geographic|experiment-task|document-universe|quantified|exclusion-restriction|comparison-dimension|measurement-unit",
+              "missing": "",
+              "requested_context": [
+                {
+                  "source_id": "SRC-…",
+                  "locator": "",
+                  "purpose": "local-context|same-source-referent-search|material-inspection"
+                }
+              ]
+            }
+          ]
+        }
       }
-    }
-  ],
-  "no_claim_packets": [
-    {
-      "packet": "PKT-…",
-      "basis": ""
-    }
-  ],
-  "lineage_proposals": [
-    {
-      "type": "split|replace|supersede|reject|exclude",
-      "predecessors": [
-        "PKT-…|CC-…"
-      ],
-      "successor_specs": [],
-      "basis": ""
-    }
-  ],
-  "material_findings": [
-    {
-      "object_id": "OBJ-…",
-      "material_use": {
-        "requirements": [
-          {
-            "object_id": "OBJ-…",
-            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
-            "binding_ids": [
-              "BND-…"
-            ]
-          }
-        ],
-        "use_state": "usable|CANNOT_DETERMINE",
-        "fidelity_claim": "none|exact-representation|gold",
-        "limitation_refs": [],
-        "reason": ""
-      }
-    }
-  ]
+    ]
+  }
 }
 ```
 
@@ -577,3 +1111,355 @@ Findings-only output does not establish no-claim or a successful source walk.
 Workers allocate no USE IDs, canonical subject IDs, review IDs, or digests for
 material uses. Core reserves and verifies the exact subjects. Gold is a
 recognized forbidden assertion and always rejected.
+
+## Role: Successor Semantic Normalizer (S4 pre-C1)
+
+```text
+Express only the exact already-proposed lineage successor. Preserve the direct
+predecessor provenance union and meaning in every semantic facet. Return the
+same complete normalizer contract. Do not choose a merge group, decide
+duplicate-versus-overlap, change its membership, inspect unrelated inventory,
+or repair L3 judgment. If faithful preservation is impossible, retain the
+refuted or indeterminate proposal and block that successor.
+```
+
+**Bundle:** exact proposed successor; direct predecessor semantic records and provenance union; explicitly named legal source context and Slice 6 material views.
+**Withhold:** unrelated inventory and merge groups; L3 rationale or verdict preference; relation closure outcomes; downstream narratives; authority observations; expected answers.
+**Output contract:**
+```json
+{
+  "contract_format": "aleph-semantic-output-contract/v1",
+  "capability": "semantic-unit-review",
+  "role": "normalizer",
+  "shape": {
+    "claims": [
+      {
+        "normalized_claim": "",
+        "packets": [
+          "PKT-…"
+        ],
+        "claim_type": "",
+        "widen_requests": [
+          {
+            "packet": "",
+            "new_locator": ""
+          }
+        ],
+        "rationale": "",
+        "flags": [],
+        "material_use": {
+          "requirements": [
+            {
+              "object_id": "OBJ-…",
+              "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+              "binding_ids": [
+                "BND-…"
+              ]
+            }
+          ],
+          "use_state": "usable|CANNOT_DETERMINE",
+          "fidelity_claim": "none|exact-representation|gold",
+          "limitation_refs": [],
+          "reason": ""
+        }
+      }
+    ],
+    "no_claim_packets": [
+      {
+        "packet": "PKT-…",
+        "basis": ""
+      }
+    ],
+    "lineage_proposals": [
+      {
+        "type": "split|replace|supersede|reject|exclude",
+        "predecessors": [
+          "PKT-…|CC-…"
+        ],
+        "successor_specs": [],
+        "basis": ""
+      }
+    ],
+    "material_findings": [
+      {
+        "object_id": "OBJ-…",
+        "material_use": {
+          "requirements": [
+            {
+              "object_id": "OBJ-…",
+              "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+              "binding_ids": [
+                "BND-…"
+              ]
+            }
+          ],
+          "use_state": "usable|CANNOT_DETERMINE",
+          "fidelity_claim": "none|exact-representation|gold",
+          "limitation_refs": [],
+          "reason": ""
+        }
+      }
+    ],
+    "semantic_units": [
+      {
+        "output_kind": "claim-candidate|no-claim-candidate|material-candidate",
+        "output_index": 0,
+        "review_mode": "proposal|unresolved-record",
+        "origin_unit_refs": [
+          "SEM-0001/U1"
+        ],
+        "anchors": [
+          {
+            "anchor_id": "A1",
+            "source_id": "SRC-…",
+            "locator": "",
+            "start_byte": 0,
+            "end_byte": 1,
+            "exact_bytes_base64": ""
+          }
+        ],
+        "semantics": {
+          "atomicity": "single-assertion|multiple-separable|inseparable-context|CANNOT_DETERMINE|no-claim",
+          "units": [
+            {
+              "unit_id": "U1",
+              "proposition": "",
+              "proposition_anchor_ids": [
+                "A1"
+              ],
+              "claim_roles": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "result-observation|method-procedure|interpretation-inference|background-context|definition|recommendation|attribution-report|limitation-uncertainty",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "scope": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "population|temporal|geographic|experiment-task|document-universe|quantified|exclusion-restriction",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "conditions": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "condition|precondition",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "qualifiers": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "degree|frequency|approximation|limitation|comparative|exception|confidence-uncertainty",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "modality": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "observed-descriptive|possible|capable|normative-should|obligatory-must|intended-designed|predicted-expected|hypothetical|counterfactual|recommended",
+                    "source_text": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "attribution": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "source-author|quoted-entity|cited-external-in-corpus|reported-belief-opinion|system-model-interpretation",
+                    "source_text": "",
+                    "attributed_to": "",
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "comparator": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "comparison-basis",
+                    "source_text": "",
+                    "subject_anchor_ids": [
+                      "A1"
+                    ],
+                    "baseline_anchor_ids": [
+                      "A1"
+                    ],
+                    "dimension_anchor_ids": [
+                      "A1"
+                    ],
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              },
+              "metric": {
+                "state": "present|not-expressed|CANNOT_DETERMINE",
+                "items": [
+                  {
+                    "kind": "measured-quantity",
+                    "source_text": "",
+                    "quantity_anchor_ids": [
+                      "A1"
+                    ],
+                    "value_anchor_ids": [
+                      "A1"
+                    ],
+                    "unit_anchor_ids": [
+                      "A1"
+                    ],
+                    "anchor_ids": [
+                      "A1"
+                    ]
+                  }
+                ],
+                "basis_anchor_ids": [
+                  "A1"
+                ]
+              }
+            }
+          ],
+          "contexts": [
+            {
+              "context_id": "C1",
+              "kind": "necessary-local|attribution|definition-terms|condition-scope|representation-layout|discourse",
+              "applies_to_unit_ids": [
+                "U1"
+              ],
+              "anchor_ids": [
+                "A1"
+              ],
+              "material_requirement_indexes": [
+                0
+              ],
+              "use": "required-for-interpretation|inspection-only|non-evidentiary"
+            }
+          ],
+          "couplings": [
+            {
+              "kind": "result-interpretation|attribution-content|comparison-comparator|metric-result|condition-claim|required-context",
+              "unit_ids": [
+                "U1"
+              ],
+              "anchor_ids": [
+                "A1"
+              ],
+              "treatment": "keep-distinguishable|keep-together|CANNOT_DETERMINE"
+            }
+          ],
+          "relation_proposals": [
+            {
+              "subject": {
+                "format": "aleph-relation-review-subject/v1",
+                "owner_stage": "S2|S3|S4",
+                "family": "claim-dependency|source-context|formal-reference|discourse|none",
+                "type": "semantic-prerequisite|antecedent-context|qualifier-context|configuration-context|structural-anchor|notation-definition|continuation-context|parallel-contrast-context|none",
+                "source_kind": "PKT|CC",
+                "source_id": "",
+                "target_kind": "PKT|CC|source-locus|null",
+                "target_id": "",
+                "target_source_id": "",
+                "target_locator": "",
+                "target_span_hash": "",
+                "record_state": "asserted|unresolved-target|explicitly-absent|indeterminate",
+                "null_reason": "",
+                "basis_packet_ids": [
+                  "PKT-…"
+                ],
+                "proposed_by": ""
+              },
+              "review_subject_digest": "",
+              "material_use": {
+                "requirements": [
+                  {
+                    "object_id": "OBJ-…",
+                    "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+                    "binding_ids": [
+                      "BND-…"
+                    ]
+                  }
+                ],
+                "use_state": "usable|CANNOT_DETERMINE",
+                "fidelity_claim": "none|exact-representation|gold",
+                "limitation_refs": [],
+                "reason": ""
+              }
+            }
+          ],
+          "unresolved_findings": [
+            {
+              "finding_id": "F1",
+              "field_path": "/semantics/atomicity",
+              "code": "atomicity-indeterminate|context-insufficient|scope-indeterminate|condition-indeterminate|qualifier-indeterminate|modality-indeterminate|attribution-indeterminate|role-indeterminate|referent-unresolved|comparator-indeterminate|metric-indeterminate|material-unavailable|relation-deferred|interpretation-unsupported",
+              "anchor_ids": [
+                "A1"
+              ],
+              "material_requirement_indexes": [
+                0
+              ],
+              "unknown_dimension": "none|population|temporal|geographic|experiment-task|document-universe|quantified|exclusion-restriction|comparison-dimension|measurement-unit",
+              "missing": "",
+              "requested_context": [
+                {
+                  "source_id": "SRC-…",
+                  "locator": "",
+                  "purpose": "local-context|same-source-referent-search|material-inspection"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+```

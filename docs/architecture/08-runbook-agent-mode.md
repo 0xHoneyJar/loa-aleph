@@ -248,3 +248,7 @@ place of a ledger entry.
 ## Bounded 1.6 material execution
 
 Use `/loa-aleph start <inputs...>` with ordinary sources or explicit `.aleph-representation.json` descriptors. No converter, OCR, renderer or network fetch runs. Reserved descriptors are parsed by Core; malformed, ambiguous, symlinked and traversing input closure fails. Reserve subject IDs before L2F and commit the identical subject and receipt through Core material write plans. Resume verifies retained pins, exact inventory/assets, imported correspondence, uses/reviews and C1 seals before progress. Agent mode remains unsanctioned; fixture-simulated transport proves no production reachability.
+
+## Slice 7 semantic review (1.7)
+
+Apply T3.7 exhaustive semantic coverage, assignment-before-dispatch, immutable subjects/results, composed material/semantic write plans, retained failure history and stage/C1 seals. Before advancing resume, recover prepared transactions, verify retained identity, then validate only the bounded semantic closure and existing material prerequisites. F-03/F-04/F-05 and deferred generic resume findings remain unchanged. Simulation, static and manual evidence cannot be relabeled native execution.

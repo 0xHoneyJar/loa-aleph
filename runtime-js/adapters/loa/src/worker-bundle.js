@@ -7,6 +7,8 @@ import { loadCorePart, loadOutputContract, } from './core-loader.js';
 import { assertDownstreamOperationsAllowed, retainedRestrictionOverlays, } from '../../../scripts/lib/internal-ambiguity.js';
 import { loadRun, usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
 import { materialHash, REPRESENTATION_PATH, validateRepresentationRun } from '../../../scripts/lib/source-representation.js';
+import { hasRunCapability } from '../../../scripts/lib/run-model.js';
+import { SEMANTIC_LENS, semanticPromptRequirements, validateSemanticAttachmentDelivery, parseSemanticJson, validateSemanticSubject, parseSemanticLedger, SEMANTIC_PATH, validateSemanticProducerDelivery, } from '../../../scripts/lib/semantic-review.js';
 const ROLE_SPECS = {
     'intake-clerk': {
         path: 'docs/architecture/prompts/workers-intake-extraction.md',
@@ -116,6 +118,7 @@ const VERIFIER_SPECS = {
     'verifier-l1': { heading: 'L1 — coverage (S2 DoD)', stages: ['S2'] },
     'verifier-l2': { heading: 'L2 — entailment (S3 DoD)', stages: ['S3'] },
     'verifier-l2f': { heading: 'L2F — formal/table/layout use challenge (S3/S4)', stages: ['S3', 'S4'] },
+    'verifier-l2s': { heading: SEMANTIC_LENS, stages: ['S2', 'S3', 'S4'] },
     'verifier-l3': { heading: 'L3 — merge-refuter (S4 DoD)', stages: ['S4'] },
     'verifier-l4': { heading: 'L4 — disposition-refuter (S5 DoD)', stages: ['S5'] },
     'verifier-l5': { heading: 'L5 — contradiction-sweep (S4/S5)', stages: ['S4', 'S5'] },
@@ -240,10 +243,21 @@ function assertWorkerAttachmentPath(path) {
     }
 }
 function roleParts(bundle, role, stage) {
-    assertDispatchableRoleStage(role, stage);
+    const semantic = hasRunCapability(bundle.lock.run_format_version, 'semantic-unit-review');
+    if (!(semantic && role === 'normalizer' && stage === 'S4'))
+        assertDispatchableRoleStage(role, stage);
+    if (role === 'verifier-l2s') {
+        if (!semantic || !['S2', 'S3', 'S4'].includes(stage))
+            throw new Error('L2S requires the pinned semantic capability and stage');
+        return {
+            parts: semanticPromptRequirements(stage).map((part) => loadCorePart(bundle, part.path, part.selector)),
+            policyPartIndex: 2,
+            contract: loadOutputContract(bundle, 'docs/architecture/prompts/verifier-lenses.md', SEMANTIC_LENS),
+        };
+    }
     const common = loadCorePart(bundle, 'docs/architecture/prompts/README.md', 'fence:Common preamble (include verbatim in every call)');
     const material = usesFormalLayoutBindings(bundle.lock.run_format_version) ? [loadCorePart(bundle, 'docs/architecture/prompts/README.md', 'fence:Material constraints (run format 1.6)')] : [];
-    const stagePart = loadCorePart(bundle, 'docs/architecture/04-pipeline-stages-and-dod.md', `heading:${STAGE_HEADINGS[stage]}`);
+    const stagePart = loadCorePart(bundle, 'docs/architecture/04-pipeline-stages-and-dod.md', `heading:${semantic && role === 'normalizer' && stage === 'S4' ? 'S4 successor semantic preservation (1.7)' : STAGE_HEADINGS[stage]}`);
     const verifierSpec = VERIFIER_SPECS[role];
     if (verifierSpec) {
         const frame = loadCorePart(bundle, 'docs/architecture/prompts/verifier-lenses.md', 'fence:Common verifier frame (verbatim, after the common preamble)');
@@ -254,10 +268,13 @@ function roleParts(bundle, role, stage) {
             contract: loadOutputContract(bundle, 'docs/architecture/prompts/verifier-lenses.md', 'file'),
         };
     }
-    const spec = ROLE_SPECS[role];
+    const spec = semantic && role === 'normalizer' && stage === 'S4'
+        ? { path: 'docs/architecture/prompts/workers-intake-extraction.md', heading: 'Role: Successor Semantic Normalizer (S4 pre-C1)', stages: ['S4'] }
+        : ROLE_SPECS[role];
     const rolePart = loadCorePart(bundle, spec.path, `heading:${spec.heading}`);
+    const semanticParts = semantic && (role === 'extractor' || role === 'normalizer') ? [loadCorePart(bundle, 'docs/architecture/templates/03-extraction-claims.md', 'heading:T3.7 Semantic review (1.7)')] : [];
     return {
-        parts: [common, rolePart, stagePart, ...material],
+        parts: [common, rolePart, stagePart, ...semanticParts, ...material],
         policyPartIndex: 1,
         contract: loadOutputContract(bundle, spec.path, spec.heading),
     };
@@ -336,6 +353,10 @@ export function assembleWorkerBundle(options) {
     if (allowlist.length !== options.allowlist.length) {
         throw new Error('worker allowlist contains duplicate paths');
     }
+    if (hasRunCapability(options.bundle.lock.run_format_version, 'semantic-unit-review')
+        && (options.role === 'extractor' || options.role === 'normalizer')) {
+        validateSemanticProducerDelivery(loadRun(runDir), options.role, options.stage, options.callId, options.taskLine, allowlist.map((path) => ({ path, bytes: readStableRegularFile(join(runDir, path)).bytes })));
+    }
     if (options.role === 'verifier-l2f') {
         validateRepresentationRun(loadRun(runDir));
         const match = allowlist.length === 1
@@ -351,6 +372,27 @@ export function assembleWorkerBundle(options) {
             throw new Error('L2F must withhold the actual reserved producer context');
         if (options.taskLine !== 'Challenge the exact retained representation-use subject.')
             throw new Error('L2F task line must not add producer context');
+    }
+    if (options.role === 'verifier-l2s') {
+        const model = loadRun(runDir);
+        const subjectPath = allowlist.find((path) => path.startsWith('verification/harness/semantic-subjects/'));
+        if (!subjectPath)
+            throw new Error('SEM_ISOLATION L2S requires a sealed semantic subject');
+        const subject = parseSemanticJson(readFileSync(join(runDir, subjectPath)));
+        validateSemanticSubject(subject, model);
+        validateSemanticAttachmentDelivery(subject, options.taskLine, allowlist.map((path) => ({ path, bytes: readStableRegularFile(join(runDir, path)).bytes })));
+        const ledger = parseSemanticLedger(readFileSync(join(runDir, SEMANTIC_PATH), 'utf8'));
+        const assignmentRow = ledger.assignments.find((row) => {
+            const assignment = parseSemanticJson(readFileSync(join(runDir, row.assignment_path)));
+            return row.semantic_id === subject.semantic_id && assignment.invocation_id === options.callId;
+        });
+        if (!assignmentRow)
+            throw new Error('SEM_REVIEW L2S dispatch requires retained assignment');
+        const producerRow = ledger.subjects.find((row) => row.semantic_id === subject.semantic_id);
+        const producerPath = producerRow.producer_receipt_ref.split('@')[0];
+        const producer = parseSemanticJson(readFileSync(join(runDir, producerPath)));
+        if (options.producerContextId !== producer.context_id)
+            throw new Error('SEM_ISOLATION L2S requires actual producer context binding');
     }
     const loadedRole = roleParts(options.bundle, options.role, options.stage);
     const policyPart = loadedRole.parts[loadedRole.policyPartIndex];

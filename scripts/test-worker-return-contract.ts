@@ -10,6 +10,7 @@ import {
   validateWorkerReturnContract,
   type WorkerJsonValue,
 } from './lib/worker-return-contract.ts';
+import { isSemanticOutputContract, semanticCoverage, SEMANTIC_RESULT_FORMAT, validateSemanticOutputContract } from './lib/semantic-review.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
@@ -82,15 +83,32 @@ function json(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function semanticMaterialization(contract: unknown): WorkerJsonValue {
+  const role = validateSemanticOutputContract(contract);
+  if (role === 'normalizer') return { claims: [], no_claim_packets: [], lineage_proposals: [], material_findings: [], semantic_units: [] };
+  if (role === 'extractor') return {
+    source_id: 'SRC-701', producer_invocation_id: 'fixture-701', walk_intervals: [], packets: [], extraction_events: [],
+    next_cursor: { byte_offset: 0, shared_position_key: null, next_event_ordinal: null, predecessor_walk_index: null,
+      predecessor_event_index: null, source_hash: `sha256:${'1'.repeat(64)}`, reason: 'initial' },
+    walk_exhausted: false, notes: [], material_findings: [], semantic_units: [],
+  };
+  return { format: SEMANTIC_RESULT_FORMAT, subject_digest: `sha256:${'1'.repeat(64)}`, verdict: 'upheld',
+    field_reviews: semanticCoverage({ atomicity: 'CANNOT_DETERMINE', units: [], contexts: [], couplings: [], relation_proposals: [], unresolved_findings: [] }, 'material-only')
+      .map((field_path) => ({ field_path, verdict: 'upheld', issue: 'none', anchor_ids: [], material_requirement_indexes: [0],
+        explanation: 'Synthetic attempted material counter-reading; binding remains unchecked.' })),
+    unresolved_findings: [], attacks_tried: ['Synthetic material availability counter-reading.'], missing_for_determination: null,
+    rationale: 'This return exercises the portable shape contract only.', candidate_evidence: [] };
+}
+
 function main(): number {
   const results: CaseResult[] = [];
   const contracts = outputContracts();
 
-  runCase(results, 'all eighteen pinned prompt contracts accept a valid materialization', () => {
-    expect(contracts.length === 18, `expected 18 output contracts, found ${contracts.length}`);
+  runCase(results, 'all twenty pinned prompt contracts accept a valid materialization', () => {
+    expect(contracts.length === 20, `expected 20 output contracts, found ${contracts.length}`);
     contracts.forEach((contract, index) => {
       const validation = validateWorkerReturnContract(
-        json(materialize(contract)),
+        json(isSemanticOutputContract(contract) ? semanticMaterialization(contract) : materialize(contract)),
         contract,
       );
       expect(

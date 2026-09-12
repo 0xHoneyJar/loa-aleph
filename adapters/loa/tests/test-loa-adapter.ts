@@ -28,6 +28,7 @@ import {
   assembleBundles,
   verifyBundle,
 } from '../../../scripts/assemble-bundles.ts';
+import { predecessorSource } from '../../../scripts/compatibility-fixture-source.ts';
 import {
   findTable,
   parseTables,
@@ -713,7 +714,9 @@ function fixtureAuthorityResponse(corpus: CorpusSnapshot): S0AuthorityResponse {
 
 function prepareContext(tempRoot: string): AdapterTestContext {
   const assembledRoot = join(tempRoot, 'assembled');
-  const assembly = assembleBundles(REPO_ROOT, assembledRoot);
+  // These retained producer/closure fixtures exercise the 1.6 contract.
+  // Slice 7 transport and writer behavior has its own exhaustive process suite.
+  const assembly = assembleBundles(predecessorSource(REPO_ROOT, tempRoot, '1.6.0-provisional'), assembledRoot);
   expect(assembly.result === 'PASS', `bundle assembly failed: ${assembly.errors.join('; ')}`);
   const selected = assembly.bundles.find((bundle) => bundle.id === LOA_BUNDLE_ID);
   expect(selected !== undefined, `bundle assembly omitted ${LOA_BUNDLE_ID}`);
@@ -1456,7 +1459,8 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       );
       expect(
         checked.result === 'PASS',
-        `retained pre-S2 run failed its existing contract: ${checked.errors.join('; ')}`,
+        `retained pre-S2 run failed its existing contract: ${checked.errors.join('; ')} ${(checked.details as { check_record?: string })?.check_record
+          ? readFileSync((checked.details as { check_record: string }).check_record, 'utf8') : ''}`,
       );
     });
 
@@ -1474,7 +1478,8 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
       );
       expect(
         checked.result === 'PASS',
-        `valid retained S2 run failed normal checker behavior: ${checked.errors.join('; ')}`,
+        `valid retained S2 run failed normal checker behavior: ${checked.errors.join('; ')} ${(checked.details as { check_record?: string })?.check_record
+          ? readFileSync((checked.details as { check_record: string }).check_record, 'utf8') : ''}`,
       );
     });
 
@@ -1829,7 +1834,7 @@ export async function runLoaAdapterTests(): Promise<LoaAdapterTestReport> {
         ];
         expect(statuses[0] === 1, 'installed start did not dispatch its fail-closed input check');
         expect(statuses[1] === 0 && statuses[2] === 0, 'installed status or resume dispatch failed');
-        expect(statuses[3] === 0, 'CORPUS-FROZEN synthetic run failed installed validate');
+        expect(statuses[3] === 0, `CORPUS-FROZEN synthetic run failed installed validate: ${captured.join('\n')}`);
       } finally {
         console.log = priorLog;
         console.error = priorError;

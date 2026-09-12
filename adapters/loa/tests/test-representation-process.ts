@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleBundles } from '../../../scripts/assemble-bundles.ts';
+import { predecessorSource } from '../../../scripts/compatibility-fixture-source.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
 import { mdLineSpan } from '../../../scripts/lib/check-helpers.ts';
 import { materialFragmentsHash, materialHash, readRepresentationContext, representationMarkdown, representationUseDigest, representationUsesMarkdown, validateRepresentationRun, type MaterialRow } from '../../../scripts/lib/source-representation.ts';
@@ -106,7 +107,9 @@ function initialState(
 
 
 try {
-  const assembled = assembleBundles(ROOT, OUTPUT);
+  // Exercise the unchanged 1.6 contract in an isolated synthetic compatibility
+  // bundle. The retained 1.6 run fixture itself is never migrated.
+  const assembled = assembleBundles(predecessorSource(ROOT, TEMP, '1.6.0-provisional'), OUTPUT);
   assert.equal(assembled.result, 'PASS', assembled.errors.join('; '));
   const bundle = verifyAndLoadLoaBundle(join(OUTPUT, 'aleph-for-loa'));
   const profile = loadLoaProfile(defaultProfilePath(bundle.root));

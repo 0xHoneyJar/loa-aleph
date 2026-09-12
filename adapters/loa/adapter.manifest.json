@@ -6,7 +6,7 @@
     "version": "0.1.0-provisional",
     "host": "loa",
     "protocol_version": "1.0.0-provisional",
-    "run_format_version": "1.6.0-provisional",
+    "run_format_version": "1.7.0-provisional",
     "lifecycle": "implemented"
   },
   "core_consumption": {
@@ -67,7 +67,8 @@
     "runtime-js/adapters/loa/src/worker-bundle.js",
     "runtime-js/adapters/loa/src/worker-dispatch.js",
     "runtime-js/adapters/loa/src/worker-return.js",
-    "adapters/loa/tests/test-representation-process.ts"
+    "adapters/loa/tests/test-representation-process.ts",
+    "adapters/loa/tests/test-semantic-review-process.ts"
   ],
   "references": [
     "adapter-protocol/README.md",

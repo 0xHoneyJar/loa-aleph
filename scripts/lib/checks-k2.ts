@@ -39,6 +39,7 @@ import {
   EXACT_EVIDENCE_JOIN_POLICIES,
   EXACT_EVIDENCE_RUN_FORMAT_VERSION,
   forwardExecutionIdentityProblems,
+  hasRunCapability,
   LEGACY_RUN_FORMAT_VERSION,
   PACKET_DEFINITION_HEADER,
   SOURCE_POSITION_FORMAT,
@@ -552,7 +553,7 @@ function exactSha256(value: string): string | null {
   return match ? match[1] : null;
 }
 
-function framedExactEvidenceHash(fragments: readonly Buffer[]): string {
+export function framedExactEvidenceHash(fragments: readonly Buffer[]): string {
   const parts: Buffer[] = [
     Buffer.from(`${EXACT_EVIDENCE_FORMAT}\0`, 'utf8'),
   ];
@@ -2512,6 +2513,15 @@ function checkSourceWalk(results: ResultCollector, model: RunModel): void {
 function checkIds(results: ResultCollector, model: RunModel): void {
   results.run('K2.5', 'id integrity', (fail) => {
     const indexes = makeIndexes(model);
+    const semanticReservations = new Set<string>();
+    if (hasRunCapability(model.manifest?.runFormatVersion || '', 'semantic-unit-review')) {
+      for (const file of model.files.filter((f) => /^verification\/harness\/semantic-subjects\/SEM-\d{4,}\.json$/u.test(f.relativePath))) {
+        try {
+          const candidate = JSON.parse(file.text) as { output_binding?: { kind?: string; reserved_claim_id?: string } };
+          if (candidate.output_binding?.kind === 'claim' && candidate.output_binding.reserved_claim_id) semanticReservations.add(candidate.output_binding.reserved_claim_id);
+        } catch { /* K2.19 owns exact semantic bytes, reservation validity and references. */ }
+      }
+    }
     const predecessorRun = model.manifest?.predecessorRun || '';
     const predecessorLine = model.manifest?.bullets.locations.get('predecessor run') || 0;
     for (const duplicate of duplicateDefinitions(model)) {
@@ -2536,6 +2546,8 @@ function checkIds(results: ResultCollector, model: RunModel): void {
         }
         const seen = new Set(idsIn(scanText, family));
         for (const id of seen) {
+          if (family === 'CC' && semanticReservations.has(id)
+            && /^verification\/harness\/semantic-(?:subjects|results|process|producer-views)\//u.test(file.relativePath)) continue;
           if (!indexes[family].has(id)) {
             fail(`${id} in ${file.relativePath} has no defining ${family} row`);
           }
@@ -3147,6 +3159,7 @@ function checkKernelReport(results: ResultCollector, model: RunModel): void {
 }
 
 export function runK2(results: ResultCollector, model: RunModel, root: string): void {
+  runK2Semantics(results, model);
   runK2Representations(results, model);
   checkLayout(results, model);
   checkManifest(results, model);
@@ -3191,3 +3204,4 @@ export function runK2(results: ResultCollector, model: RunModel, root: string): 
   }
   runK2Ambiguities(results, model, pinnedCoreAuthority);
 }
+import { runK2Semantics } from './checks-k2-semantics.ts';

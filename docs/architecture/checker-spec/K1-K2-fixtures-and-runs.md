@@ -507,3 +507,7 @@ Run `npm run test:representations` for real-CLI mutations and source/runtime
 parity, and `npm run test:representation-process` for simulated capture,
 review, writer, journal, seal and resume boundaries. Neither suite establishes
 semantic validation, production reachability, agent sanction, acceptance or v1.
+
+## Slice 7 semantic review (1.7)
+
+K2.19 checks semantic subject and review accounting for cumulative semantic-unit-review. Stable tokens: SEM_FORMAT, SEM_ENUM, SEM_REFERENCE, SEM_EVIDENCE, SEM_SUBJECT, SEM_REVIEW, SEM_ISOLATION, SEM_STATE, SEM_ACCOUNTING, SEM_WINDOW, SEM_COMPATIBILITY. It is deterministic/read-only and cannot decide semantic atomicity, meaning, force, attribution, entailment, truth, result/interpretation splitting, duplicate equivalence or preferred wording. Structural alternatives and a coherent semantic error must pass.

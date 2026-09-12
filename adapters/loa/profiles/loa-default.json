@@ -263,6 +263,14 @@
       "budget_policy": "stage-pinned",
       "cache_policy": "exact-pinned-prefix",
       "batch_policy": "eligible-pinned"
+    },
+    "verifier-l2s": {
+      "model_slot": "adversarial",
+      "effort": "xhigh",
+      "context_policy": "fresh-blind-allowlist",
+      "budget_policy": "stage-pinned",
+      "cache_policy": "exact-pinned-prefix",
+      "batch_policy": "eligible-pinned"
     }
   },
   "model_slots": {

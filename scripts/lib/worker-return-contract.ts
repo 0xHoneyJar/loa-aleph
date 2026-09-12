@@ -1,4 +1,5 @@
 import { TextDecoder } from 'node:util';
+import { isSemanticOutputContract, semanticReturnJsonSchema, validateSemanticOutputContract, validateSemanticReturn } from './semantic-review.ts';
 
 export type WorkerJsonPrimitive = null | boolean | number | string;
 export type WorkerJsonValue =
@@ -10,6 +11,7 @@ export interface WorkerReturnContractValidation {
   result: 'PASS' | 'FAIL';
   errors: string[];
   canonicalValue: WorkerJsonValue | null;
+  binding?: 'checked' | 'not-checked';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -217,6 +219,7 @@ function nonemptyStringSchema(): WorkerJsonValue {
  * shape that a host-native constrained-output mechanism may enforce.
  */
 export function contractExemplarToJsonSchema(example: unknown): WorkerJsonValue {
+  if (isSemanticOutputContract(example)) return semanticReturnJsonSchema(validateSemanticOutputContract(example), '1.7.0-provisional');
   if (example === null) {
     return {
       anyOf: [
@@ -299,7 +302,7 @@ function rationaleSentenceCount(value: string): number {
   return count;
 }
 
-function validateJudgmentRationale(
+export function validateJudgmentRationale(
   value: unknown,
   path: string,
   errors: string[],
@@ -409,6 +412,14 @@ export function validateWorkerReturnContract(
   raw: string | Buffer,
   contractExemplar: unknown,
 ): WorkerReturnContractValidation {
+  if (isSemanticOutputContract(contractExemplar)) {
+    try {
+      const role = validateSemanticOutputContract(contractExemplar);
+      return validateSemanticReturn(role, '1.7.0-provisional', parseStrictJson(raw, true));
+    } catch (error) {
+      return { result: 'FAIL', errors: [error instanceof Error ? error.message : String(error)], canonicalValue: null, binding: 'not-checked' };
+    }
+  }
   const errors: string[] = [];
   if (!isRecord(contractExemplar)) {
     errors.push('Core output contract root must be an object');

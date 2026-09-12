@@ -22,7 +22,7 @@ import {
   type LoaRoleId,
   type RuntimeSnapshot,
 } from './types.ts';
-import { CURRENT_RUN_FORMAT_VERSION, SUPPORTED_RUN_FORMAT_VERSIONS, usesFormalLayoutBindings } from '../../../scripts/lib/run-model.ts';
+import { CURRENT_RUN_FORMAT_VERSION, SUPPORTED_RUN_FORMAT_VERSIONS, usesFormalLayoutBindings, hasRunCapability } from '../../../scripts/lib/run-model.ts';
 import {
   assertSafeRelativePath,
   digestFile,
@@ -173,7 +173,11 @@ export function parseLoaProfile(value: unknown, runFormatVersion = CURRENT_RUN_F
   const legacyMaterialRole = (SUPPORTED_RUN_FORMAT_VERSIONS as readonly string[]).includes(runFormatVersion)
     && !usesFormalLayoutBindings(runFormatVersion) && isRecord(profile.role_mappings)
     && !('verifier-l2f' in profile.role_mappings);
-  const expectedRoles = legacyMaterialRole ? LOA_ROLE_IDS.filter((role) => role !== 'verifier-l2f') : LOA_ROLE_IDS;
+  const legacySemanticRole = (SUPPORTED_RUN_FORMAT_VERSIONS as readonly string[]).includes(runFormatVersion)
+    && !hasRunCapability(runFormatVersion, 'semantic-unit-review') && isRecord(profile.role_mappings)
+    && !('verifier-l2s' in profile.role_mappings);
+  const expectedRoles = LOA_ROLE_IDS.filter((role) => !(legacyMaterialRole && role === 'verifier-l2f')
+    && !(legacySemanticRole && role === 'verifier-l2s'));
   if (!isRecord(profile.role_mappings)
     || !exactStrings(Object.keys(profile.role_mappings), expectedRoles)) {
     throw new Error('Loa profile does not map every Core role exactly once');

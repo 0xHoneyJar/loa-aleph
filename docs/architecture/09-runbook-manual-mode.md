@@ -250,3 +250,7 @@ The sparse rules trim representation, never guarantees. Even at full sparsity:
 ## Manual representation records (1.6)
 
 Apply T2.3 and T3.6 without adapter control files. Preserve SRC bytes separately from AST outputs, freeze the exact inventory at S0, and record a receipt for each canonical PKT/CC/REL plus failed OBJ candidates. Required unavailable structure yields CANNOT_DETERMINE; never reconstruct equations or infer chart values. Obtain the specified fresh material-use review and seal uses at C1. Derive the section 17 limitation summary from retained material. Manual mode remains the only sanctioned execution path.
+
+## Slice 7 semantic review (1.7)
+
+New 1.7 manual runs follow T3.7 exact semantic files and seals. Retain distinct producer/reviewer actors and pass IDs with the exact seven-field manual evidence record. A same-person later sitting is temporal evidence and does not satisfy independent producer/reviewer review. These are manual semantic roles, not human semantic-authority gates. Original retained procedures and runs are not migrated.

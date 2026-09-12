@@ -84,6 +84,7 @@ import {
   LedgerWriter,
   recoverPendingLedgerTransactions,
   recoverPendingMaterialTransactions,
+  recoverPendingSemanticTransactions,
 } from './ledger-writer.ts';
 import {
   CLOSURE_PHASES,
@@ -588,6 +589,7 @@ export function resumeLoaRun(
     recoverPendingS0Transaction(runDir, options.clock);
     recoverPendingAuthorityTransactions(runDir, options.clock);
     recoverPendingMaterialTransactions(runDir);
+    recoverPendingSemanticTransactions(runDir);
     recoverPendingLedgerTransactions(runDir, options.clock);
     let state = verifyRunControl(runDir);
     const runtime = verifyRetainedRuntimeIdentity(runDir, state);

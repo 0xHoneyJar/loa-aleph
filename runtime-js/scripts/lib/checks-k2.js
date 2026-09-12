@@ -3,7 +3,7 @@ import { basename, join, resolve } from 'node:path';
 import { TextDecoder } from 'node:util';
 import { activeClaims, allStatusRows, compareTimestamp, duplicateDefinitions, firstRunLogEntry, location, makeIndexes, mdLineSpan, normalizeSha256, parseTimestamp, pathIsWithin, reachedState, sha256, sourceFilePath, } from './check-helpers.js';
 import { envelopeSection, findTable, findTables, findTableByFirstHeader, headingSection, idsIn, normalizeHeader, numberedEnvelopeHeadings, parseBulletFields, parseTables, tableCells, isSeparatorRow, } from './markdown.js';
-import { CURRENT_RUN_FORMAT_VERSION, CLAIM_DEFINITION_HEADER, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, LEGACY_RUN_FORMAT_VERSION, PACKET_DEFINITION_HEADER, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, usesFormalLayoutBindings, } from './run-model.js';
+import { CURRENT_RUN_FORMAT_VERSION, CLAIM_DEFINITION_HEADER, DISPOSITIONS, EXACT_EVIDENCE_FORMAT, EXACT_EVIDENCE_JOIN_POLICIES, EXACT_EVIDENCE_RUN_FORMAT_VERSION, forwardExecutionIdentityProblems, hasRunCapability, LEGACY_RUN_FORMAT_VERSION, PACKET_DEFINITION_HEADER, SOURCE_POSITION_FORMAT, SOURCE_WALK_CURSOR_REASONS, SOURCE_WALK_FORMAT, SUPPORTED_RUN_FORMAT_VERSIONS, usesExactEvidence, usesForwardExecutionIdentity, usesLineage, usesSourceWalk, usesFormalLayoutBindings, } from './run-model.js';
 import { runK2Lineage } from './checks-k2-lineage.js';
 import { runK2Relations } from './checks-k2-relations.js';
 import { runK2Ambiguities } from './checks-k2-ambiguities.js';
@@ -423,7 +423,7 @@ function exactSha256(value) {
     const match = value.match(/^sha256:([a-f0-9]{64})$/);
     return match ? match[1] : null;
 }
-function framedExactEvidenceHash(fragments) {
+export function framedExactEvidenceHash(fragments) {
     const parts = [
         Buffer.from(`${EXACT_EVIDENCE_FORMAT}\0`, 'utf8'),
     ];
@@ -1976,6 +1976,17 @@ function checkSourceWalk(results, model) {
 function checkIds(results, model) {
     results.run('K2.5', 'id integrity', (fail) => {
         const indexes = makeIndexes(model);
+        const semanticReservations = new Set();
+        if (hasRunCapability(model.manifest?.runFormatVersion || '', 'semantic-unit-review')) {
+            for (const file of model.files.filter((f) => /^verification\/harness\/semantic-subjects\/SEM-\d{4,}\.json$/u.test(f.relativePath))) {
+                try {
+                    const candidate = JSON.parse(file.text);
+                    if (candidate.output_binding?.kind === 'claim' && candidate.output_binding.reserved_claim_id)
+                        semanticReservations.add(candidate.output_binding.reserved_claim_id);
+                }
+                catch { /* K2.19 owns exact semantic bytes, reservation validity and references. */ }
+            }
+        }
         const predecessorRun = model.manifest?.predecessorRun || '';
         const predecessorLine = model.manifest?.bullets.locations.get('predecessor run') || 0;
         for (const duplicate of duplicateDefinitions(model)) {
@@ -1998,6 +2009,9 @@ function checkIds(results, model) {
                 }
                 const seen = new Set(idsIn(scanText, family));
                 for (const id of seen) {
+                    if (family === 'CC' && semanticReservations.has(id)
+                        && /^verification\/harness\/semantic-(?:subjects|results|process|producer-views)\//u.test(file.relativePath))
+                        continue;
                     if (!indexes[family].has(id)) {
                         fail(`${id} in ${file.relativePath} has no defining ${family} row`);
                     }
@@ -2580,6 +2594,7 @@ function checkKernelReport(results, model) {
     });
 }
 export function runK2(results, model, root) {
+    runK2Semantics(results, model);
     runK2Representations(results, model);
     checkLayout(results, model);
     checkManifest(results, model);
@@ -2625,3 +2640,4 @@ export function runK2(results, model, root) {
     }
     runK2Ambiguities(results, model, pinnedCoreAuthority);
 }
+import { runK2Semantics } from './checks-k2-semantics.js';

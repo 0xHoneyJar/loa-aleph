@@ -1,6 +1,6 @@
 import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { CORE_STAGES, LOA_LEDGER_RECEIPT_FORMAT, } from './types.js';
 import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, nextDecimal, sha256Digest, stableJson, stableJsonBytes, writeFileAtomic, } from './fs.js';
 import { acquireDurableProcessLock, openHumanAuthorityGate, readRunState, stateCheckpointDigest, writeRunState, updateRunState, } from './run-control.js';
@@ -11,7 +11,8 @@ import { hasRunLogEvent } from '../../../scripts/lib/check-helpers.js';
 import { runK2Ambiguities } from '../../../scripts/lib/checks-k2-ambiguities.js';
 import { runK2Relations } from '../../../scripts/lib/checks-k2-relations.js';
 import { ResultCollector } from '../../../scripts/lib/results.js';
-import { loadRun, usesFormalLayoutBindings, usesInternalAmbiguityLifecycle } from '../../../scripts/lib/run-model.js';
+import { loadRun, usesFormalLayoutBindings, usesInternalAmbiguityLifecycle, hasRunCapability } from '../../../scripts/lib/run-model.js';
+import { assertSemanticWindow, validateSemanticPlan, validateSemanticRun, planSemanticWrite, semanticJson, semanticClosureHash, validateSemanticAcceptedBindings, SEMANTIC_PATH, semanticRequiresWritePlan, validateCompletedSemanticPlan, } from '../../../scripts/lib/semantic-review.js';
 import { materialHash, assertMaterialReturnWritable, assertMaterialUseProduced, assertMaterialReviewUpheld, materialFindingRows, materialSubjectWritePaths, validateMaterialPlanIdentity, assertMaterialWriteWindow, requiresMaterialUsePlan, planRepresentationUseWrite, representationReviewView, representationUseDigest, representationUseClosureHash, representationUseNeedsReview, validateMaterialUseInput, REPRESENTATION_PATH, REPRESENTATION_USE_PATH, validateRepresentationRun, } from '../../../scripts/lib/source-representation.js';
 const CANONICAL_PREFIXES = [
     'arms/',
@@ -107,6 +108,86 @@ function appendedBytes(before, addition) {
 function isRecord(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+function applySemanticTransaction(runDir, path) {
+    const transaction = JSON.parse(readFileSync(path, 'utf8'));
+    const { digest, status, ...payload } = transaction;
+    if (transaction.format !== 'aleph-loa-semantic-transaction/v1' || !['prepared', 'committed'].includes(status)
+        || materialHash(semanticJson(payload)) !== digest)
+        throw new Error('SEM_STATE semantic transaction changed');
+    validateSemanticPlan(transaction.plan);
+    if (basename(path) !== `TXN-semantic-${materialHash(transaction.plan.key).slice(7)}.json`)
+        throw new Error('SEM_STATE semantic journal reservation path differs');
+    for (const ref of [...transaction.acceptance_refs, ...(status === 'prepared' ? transaction.plan.prerequisite_hashes : [])]) {
+        assertSafeRelativePath(ref.path, 'semantic prerequisite');
+        assertNoSymlinkComponents(runDir, join(runDir, ref.path));
+        if (!existsSync(join(runDir, ref.path)) || materialHash(readFileSync(join(runDir, ref.path))) !== ref.digest)
+            throw new Error(`SEM_SUBJECT lost/changed semantic prerequisite ${ref.path}`);
+    }
+    const state = readRunState(runDir), chainPath = join(runDir, 'control/ledger-chain.jsonl');
+    if (status === 'committed') {
+        if (!stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_after.identity))
+            || !readFileSync(chainPath).subarray(0, Buffer.byteLength(transaction.chain_after)).equals(Buffer.from(transaction.chain_after))) {
+            throw new Error('SEM_STATE committed semantic identity/chain differs');
+        }
+        validateCompletedSemanticPlan(loadRun(runDir), transaction.plan);
+        return;
+    }
+    if (state.execution.stage !== transaction.plan.stage || !stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_after.identity))
+        || ![transaction.state_checkpoint, transaction.state_after.execution.resume.checkpoint_digest].includes(state.execution.resume.checkpoint_digest))
+        throw new Error('SEM_STATE semantic transaction run/stage/checkpoint differs');
+    const chain = existsSync(chainPath) ? readFileSync(chainPath) : Buffer.alloc(0);
+    if (![transaction.chain_before_hash, materialHash(transaction.chain_after)].includes(materialHash(chain)))
+        throw new Error('SEM_STATE semantic chain changed');
+    const scratch = mkdtempSync(join(tmpdir(), 'aleph-semantic-recovery-'));
+    try {
+        cpSync(runDir, join(scratch, 'run'), { recursive: true });
+        for (const write of transaction.plan.writes) {
+            assertSafeRelativePath(write.path, 'semantic write');
+            assertNoSymlinkComponents(runDir, join(runDir, write.path));
+            const before = existsSync(join(runDir, write.path)) ? readFileSync(join(runDir, write.path)) : Buffer.alloc(0);
+            if (![write.before_hash, write.after_hash].includes(materialHash(before)))
+                throw new Error(`SEM_STATE semantic preimage changed ${write.path}`);
+            writeFileAtomic(join(scratch, 'run', write.path), Buffer.from(write.after_base64, 'base64'));
+        }
+        const proposed = loadRun(join(scratch, 'run'));
+        validateSemanticRun(proposed);
+        validateRepresentationRun(proposed);
+        const closed = semanticClosureHash(loadRun(runDir));
+        if (closed !== null && !transaction.plan.key.endsWith(':seal:C1'))
+            throw new Error('SEM_WINDOW pending semantic transaction cannot reopen C1');
+        for (const write of transaction.plan.writes) {
+            const bytes = Buffer.from(write.after_base64, 'base64');
+            if (!existsSync(join(runDir, write.path)) || !readFileSync(join(runDir, write.path)).equals(bytes))
+                writeFileAtomic(join(runDir, write.path), bytes);
+        }
+        writeFileAtomic(chainPath, transaction.chain_after);
+        writeRunState(runDir, structuredClone(transaction.state_after));
+        writeFileAtomic(path, Buffer.from(semanticJson({ ...transaction, status: 'committed' })));
+    }
+    finally {
+        rmSync(scratch, { recursive: true, force: true });
+    }
+}
+function recoverSemanticTransactionsUnlocked(runDir) {
+    const root = join(runDir, 'control/transactions');
+    if (!existsSync(root))
+        return;
+    const pending = readdirSync(root).filter((name) => /^TXN-semantic-[0-9a-f]{64}\.json$/u.test(name))
+        .map((name) => join(root, name)).filter((path) => JSON.parse(readFileSync(path, 'utf8')).status !== 'committed');
+    if (pending.length > 1)
+        throw new Error('SEM_STATE forked prepared semantic transactions');
+    for (const path of pending)
+        applySemanticTransaction(runDir, path);
+}
+export function recoverPendingSemanticTransactions(runDir) {
+    const release = acquireLedgerLock(runDir, new Date().toISOString(), true);
+    try {
+        recoverSemanticTransactionsUnlocked(runDir);
+    }
+    finally {
+        release();
+    }
+}
 function applyMaterialTransaction(runDir, path) {
     const raw = JSON.parse(readFileSync(path, 'utf8'));
     if (!isRecord(raw) || raw.format !== 'aleph-loa-material-transaction/v1')
@@ -118,7 +199,20 @@ function applyMaterialTransaction(runDir, path) {
     if (status === 'committed')
         return;
     validateMaterialPlanIdentity(transaction.plan, transaction.row, transaction.stage);
+    if (transaction.semantic_plan)
+        validateSemanticPlan(transaction.semantic_plan);
     const state = readRunState(runDir);
+    if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review') && transaction.row === null) {
+        if (!transaction.semantic_plan || !stableJsonBytes(transaction.semantic_plan.writes).equals(stableJsonBytes(transaction.plan.writes))) {
+            throw new Error('SEM_STATE C1 requires the composed Core semantic seal plan');
+        }
+        for (const ref of transaction.semantic_plan.prerequisite_hashes) {
+            assertSafeRelativePath(ref.path, 'semantic C1 prerequisite');
+            assertNoSymlinkComponents(runDir, join(runDir, ref.path));
+            if (materialHash(readFileSync(join(runDir, ref.path))) !== ref.digest)
+                throw new Error('SEM_SUBJECT C1 prerequisite changed');
+        }
+    }
     if (state.execution.stage !== transaction.stage
         || ![transaction.state_checkpoint, transaction.state_after.execution.resume.checkpoint_digest].includes(state.execution.resume.checkpoint_digest)
         || !stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_after.identity)))
@@ -140,6 +234,8 @@ function applyMaterialTransaction(runDir, path) {
         }
         const proposed = loadRun(join(scratch, 'run'));
         const context = validateRepresentationRun(proposed);
+        if (transaction.semantic_plan)
+            validateSemanticRun(proposed);
         if (transaction.row) {
             if (representationUseClosureHash(proposed) !== null)
                 throw new Error('FROZEN_WRITE: pending material use cannot reopen C1');
@@ -158,7 +254,8 @@ function applyMaterialTransaction(runDir, path) {
             writeFileAtomic(join(runDir, write.path), Buffer.from(write.after_base64, 'base64'));
         writeFileAtomic(chainPath, transaction.chain_after);
         writeRunState(runDir, structuredClone(transaction.state_after));
-        writeFileAtomic(path, stableJsonBytes({ ...transaction, status: 'committed' }));
+        writeFileAtomic(path, transaction.semantic_plan ? Buffer.from(semanticJson({ ...transaction, status: 'committed' }))
+            : stableJsonBytes({ ...transaction, status: 'committed' }));
     }
     finally {
         rmSync(scratch, { recursive: true, force: true });
@@ -443,6 +540,90 @@ export class LedgerWriter {
         this.runDir = resolve(runDir);
         this.clock = clock;
     }
+    executeSemanticWrite(options) {
+        if (!(options.producer instanceof ValidatedWorkerReturn) || options.reviews.some((r) => !(r instanceof ValidatedWorkerReturn)))
+            throw new Error('SEM_ISOLATION semantic writes require accepted transport returns');
+        const release = acquireLedgerLock(this.runDir, this.clock.now(), false);
+        const scratch = mkdtempSync(join(tmpdir(), 'aleph-semantic-plan-'));
+        try {
+            recoverMaterialTransactionsUnlocked(this.runDir);
+            recoverPendingLedgerTransactionsUnlocked(this.runDir, this.clock.now());
+            recoverSemanticTransactionsUnlocked(this.runDir);
+            const state = readRunState(this.runDir), stage = state.execution.stage;
+            if (state.ledger.writer_id !== 'loa-orchestrator' || state.execution.halt || options.producer.simulation && state.full_mode !== 'fixture-simulated')
+                throw new Error('SEM_ISOLATION writer/halt/simulation boundary');
+            const key = `semantic:${options.semantic_id}:${options.subject_digest}:${options.operation}:${options.record_id}`;
+            const path = join(this.runDir, 'control/transactions', `TXN-semantic-${materialHash(key).slice(7)}.json`);
+            if (existsSync(path)) {
+                const prior = JSON.parse(readFileSync(path, 'utf8'));
+                const after = Object.fromEntries(prior.plan.writes.map((w) => [w.path, Buffer.from(w.after_base64, 'base64').toString('utf8')]));
+                if (semanticJson(after) !== semanticJson(options.next))
+                    throw new Error('SEM_STATE changed bytes under existing semantic idempotency key');
+                applySemanticTransaction(this.runDir, path);
+                return prior.plan;
+            }
+            assertSemanticWindow(loadRun(this.runDir), stage);
+            const acceptanceRefs = [];
+            const acceptedBindings = [];
+            for (const returned of [options.producer, ...options.reviews]) {
+                returned.assertAuthenticAndIntact();
+                if (returned.simulation && state.full_mode !== 'fixture-simulated')
+                    throw new Error('SEM_ISOLATION simulated review in native run');
+                const request = verifyWorkerBundle(join(this.runDir, 'control/worker-bundles', returned.callId));
+                acceptedBindings.push({ call_id: returned.callId, context_id: returned.contextId, raw_return_hash: returned.rawDigest, role: request.role });
+                if (returned !== options.producer && (request.kind !== 'refuter' || !['verifier-l2s', 'verifier-l2f'].includes(request.role)
+                    || returned.producerContextId !== options.producer.contextId || returned.contextId === options.producer.contextId))
+                    throw new Error('SEM_ISOLATION actual accepted reviewer context/role differs');
+                for (const name of ['raw.json', 'validation.json']) {
+                    const ref = `control/worker-returns/${returned.callId}/${name}`;
+                    const bytes = readFileSync(join(this.runDir, ref));
+                    if (name === 'raw.json' && materialHash(bytes) !== returned.rawDigest)
+                        throw new Error('SEM_SUBJECT raw accepted return changed');
+                    acceptanceRefs.push({ path: ref, digest: materialHash(bytes) });
+                }
+            }
+            const prospective = join(scratch, 'run');
+            cpSync(this.runDir, prospective, { recursive: true });
+            const writes = Object.entries(options.next).map(([path, text]) => {
+                assertSafeRelativePath(path, 'semantic write');
+                assertNoSymlinkComponents(this.runDir, join(this.runDir, path));
+                const before = existsSync(join(this.runDir, path)) ? readFileSync(join(this.runDir, path)) : Buffer.alloc(0);
+                const after = Buffer.from(text);
+                writeFileAtomic(join(prospective, path), after);
+                return { path, before_hash: materialHash(before), after_base64: after.toString('base64'), after_hash: materialHash(after) };
+            });
+            const plan = planSemanticWrite({ model: loadRun(this.runDir), proposedModel: loadRun(prospective), stage,
+                semantic_id: options.semantic_id, subject_digest: options.subject_digest, operation: options.operation, record_id: options.record_id,
+                writes, prerequisite_paths: options.prerequisite_paths });
+            validateSemanticAcceptedBindings(loadRun(prospective), options.semantic_id, options.operation, acceptedBindings[0], acceptedBindings.slice(1));
+            validateRepresentationRun(loadRun(prospective));
+            const stateAfter = structuredClone(state), chainPath = join(this.runDir, 'control/ledger-chain.jsonl');
+            const chainBefore = existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '';
+            let chainAfter = chainBefore;
+            for (const write of plan.writes) {
+                const receipt = { format: LOA_LEDGER_RECEIPT_FORMAT, sequence: nextDecimal(stateAfter.ledger.sequence), path: write.path,
+                    before_digest: write.before_hash, after_digest: write.after_hash, return_digest: options.producer.rawDigest,
+                    previous_chain_digest: stateAfter.ledger.chain_head, writer: 'loa-orchestrator', written_at: this.clock.now() };
+                const digest = materialHash(stableJsonBytes(receipt));
+                chainAfter += `${chainAfter && !chainAfter.endsWith('\n') ? '\n' : ''}${stableJson({ ...receipt, chain_digest: digest })}\n`;
+                stateAfter.ledger.sequence = receipt.sequence;
+                stateAfter.ledger.chain_head = digest;
+            }
+            stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
+            stateAfter.execution.resume.last_verified_at = this.clock.now();
+            stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
+            const transaction = { format: 'aleph-loa-semantic-transaction/v1', plan, acceptance_refs: acceptanceRefs,
+                state_checkpoint: state.execution.resume.checkpoint_digest, state_after: stateAfter,
+                chain_before_hash: materialHash(chainBefore), chain_after: chainAfter };
+            writeFileAtomic(path, Buffer.from(semanticJson({ ...transaction, digest: materialHash(semanticJson(transaction)), status: 'prepared' })));
+            applySemanticTransaction(this.runDir, path);
+            return plan;
+        }
+        finally {
+            rmSync(scratch, { recursive: true, force: true });
+            release();
+        }
+    }
     assertMaterialWindow(ownerStage) {
         const state = readRunState(this.runDir);
         try {
@@ -462,6 +643,8 @@ export class LedgerWriter {
     }
     append(relativePath, validated, render) {
         assertSafeRelativePath(relativePath, 'canonical run path');
+        if (semanticRequiresWritePlan(loadRun(this.runDir), relativePath))
+            throw new Error('SEM_WINDOW canonical semantic writes require a Core semantic plan');
         if (usesFormalLayoutBindings(readRunState(this.runDir).identity.run_format_version)
             && requiresMaterialUsePlan(relativePath)) {
             throw new Error('1.6 canonical material subjects require an atomic Core material-use plan');
@@ -541,6 +724,9 @@ export class LedgerWriter {
     appendMaterialUse(validated, row, render, review) {
         if (!(validated instanceof ValidatedWorkerReturn))
             throw new Error('material writes require a validated worker return');
+        if (row.subject_kind === 'CC' && semanticRequiresWritePlan(loadRun(this.runDir), 'ledgers/claim-inventory.md')) {
+            throw new Error('SEM_WINDOW 1.7 CC admission requires the composed Core semantic/material plan');
+        }
         const data = validated.assertAuthenticAndIntact();
         assertMaterialUseProduced(data, row);
         if (row.subject_kind !== 'OBJ')
@@ -952,6 +1138,10 @@ export class LedgerWriter {
         try {
             if (material) {
                 recoverMaterialTransactionsUnlocked(this.runDir);
+                if (hasRunCapability(readRunState(this.runDir).identity.run_format_version, 'semantic-unit-review')) {
+                    recoverPendingLedgerTransactionsUnlocked(this.runDir, this.clock.now());
+                    recoverSemanticTransactionsUnlocked(this.runDir);
+                }
                 if (retainedClosurePhases(this.runDir).includes(phase))
                     return;
             }
@@ -979,13 +1169,28 @@ export class LedgerWriter {
             if (phase === 'S4-C1-relations-closed')
                 addition += `\nrepresentation_use_closure_hash: ${materialHash(readFileSync(join(this.runDir, REPRESENTATION_USE_PATH)))}`;
         }
+        if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review') && phase === 'S4-C1-relations-closed') {
+            const semantic = validateSemanticRun(loadRun(this.runDir));
+            if (semantic.pending.length)
+                throw new Error('SEM_ACCOUNTING pending semantic subjects block C1');
+            addition += `\nsemantic_review_closure_hash: ${materialHash(readFileSync(join(this.runDir, SEMANTIC_PATH)))}`;
+        }
         const next = appendedBytes(before, addition);
         const scratch = mkdtempSync(join(tmpdir(), 'aleph-s5-phase-'));
         const prospective = join(scratch, 'run');
+        let semanticSealPlan;
         try {
             cpSync(this.runDir, prospective, { recursive: true });
             writeFileSync(join(prospective, RUN_LOG_PATH), next);
             const model = loadRun(prospective);
+            if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review'))
+                validateSemanticRun(model);
+            if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review') && phase === 'S4-C1-relations-closed') {
+                semanticSealPlan = planSemanticWrite({ model: loadRun(this.runDir), proposedModel: model, stage: 'S4',
+                    semantic_id: 'none', subject_digest: materialHash(readFileSync(join(this.runDir, SEMANTIC_PATH))),
+                    operation: 'seal', record_id: 'C1', prerequisite_paths: [],
+                    writes: [{ path: RUN_LOG_PATH, before_hash: materialHash(before), after_base64: next.toString('base64'), after_hash: materialHash(next) }] });
+            }
             const results = new ResultCollector(state.run_id);
             runK2Relations(results, model);
             if (usesFormalLayoutBindings(state.identity.run_format_version))
@@ -1012,18 +1217,31 @@ export class LedgerWriter {
             const stateAfter = structuredClone(state);
             stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
             stateAfter.execution.resume.last_verified_at = this.clock.now();
-            stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
             const chainPath = join(this.runDir, 'control', 'ledger-chain.jsonl');
             const chain = existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '';
+            let chainAfter = chain;
+            if (semanticSealPlan) {
+                const receipt = { format: LOA_LEDGER_RECEIPT_FORMAT, sequence: nextDecimal(stateAfter.ledger.sequence),
+                    path: RUN_LOG_PATH, before_digest: materialHash(before), after_digest: materialHash(next),
+                    return_digest: semanticSealPlan.subject_digest, previous_chain_digest: stateAfter.ledger.chain_head,
+                    writer: 'loa-orchestrator', written_at: this.clock.now() };
+                const digest = materialHash(stableJsonBytes(receipt));
+                chainAfter += `${chainAfter && !chainAfter.endsWith('\n') ? '\n' : ''}${stableJson({ ...receipt, chain_digest: digest })}\n`;
+                stateAfter.ledger.sequence = receipt.sequence;
+                stateAfter.ledger.chain_head = digest;
+            }
+            stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
             const plan = {
                 key: `representation-use-closure:${seal}`, inventory_hash: materialHash(readFileSync(join(this.runDir, REPRESENTATION_PATH))),
                 writes: [{ path: RUN_LOG_PATH, before_hash: materialHash(before), after_base64: next.toString('base64'), after_hash: materialHash(next) }],
             };
             const transaction = { format: 'aleph-loa-material-transaction/v1', plan, raw_digest: seal,
                 state_checkpoint: state.execution.resume.checkpoint_digest, state_after: stateAfter,
-                chain_before_hash: materialHash(chain), chain_after: chain, stage: 'S4', row: null };
+                chain_before_hash: materialHash(chain), chain_after: chainAfter, stage: 'S4', row: null,
+                ...(semanticSealPlan ? { semantic_plan: semanticSealPlan } : {}) };
             const path = join(this.runDir, 'control', 'transactions', `TXN-material-${materialHash(plan.key).slice(7)}.json`);
-            writeFileAtomic(path, stableJsonBytes({ ...transaction, digest: materialHash(stableJsonBytes(transaction)), status: 'prepared' }));
+            const record = { ...transaction, digest: materialHash(stableJsonBytes(transaction)), status: 'prepared' };
+            writeFileAtomic(path, semanticSealPlan ? Buffer.from(semanticJson(record)) : stableJsonBytes(record));
             applyMaterialTransaction(this.runDir, path);
             return;
         }

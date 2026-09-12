@@ -67,3 +67,7 @@ into Précis §17.
 ## L2F exact material use review (1.6)
 
 Use the existing VER field table with lens `L2F`, stage `S3` or `S4`, and target `representation-use-subject:sha256:<64-lowercase-hex>`. Verdicts remain `upheld`, `refuted`, or `cannot-determine`; candidate_evidence is empty. Only upheld permits the identical reserved usable CC/REL subject. The canonical use receipt names that VER. Show the exact subject, packet bytes/hashes, selected structural dependencies and provenance/limitations; withhold producer rationale, other batches, dispositions, authority responses, narratives and calibration answers. A retained VER is structural evidence, not proof of live freshness.
+
+## Slice 7 semantic review (1.7)
+
+L2S has the dedicated closed SemanticResult contract in T3.7. Keep the canonical JSON plus the T7.1 companion with exact target semantic-review-subject:sha256:<hex>, L2S lens and stage. Every field has an ordered review slot; candidate_evidence is exactly []. Assignment and execution evidence are retained outside reviewer attachments.

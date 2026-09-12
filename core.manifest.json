@@ -4,7 +4,7 @@
     "id": "aleph-core",
     "version": "0.1.0-provisional",
     "adapter_protocol_version": "1.0.0-provisional",
-    "run_format_version": "1.6.0-provisional",
+    "run_format_version": "1.7.0-provisional",
     "digest_algorithm": "sha256-path-file-digest-v1"
   },
   "manual_execution_binding": {
@@ -403,7 +403,50 @@
       "docs/fixtures/formal-layout-bindings/positive/verification/harness/S4-relations/VER-1412.md",
       "docs/fixtures/formal-layout-bindings/positive/corpus/sources/SRC-401-source-walk.txt",
       "docs/fixtures/formal-layout-bindings/positive/clusters/route-cards/README.md",
-      "scripts/compatibility-fixture-source.ts"
+      "scripts/compatibility-fixture-source.ts",
+      "runtime-js/scripts/lib/checks-k2-semantics.js",
+      "runtime-js/scripts/lib/semantic-review.js",
+      "scripts/lib/checks-k2-semantics.ts",
+      "scripts/lib/semantic-review.ts",
+      "scripts/semantic-fixture-support.ts",
+      "scripts/test-semantic-review-mutations.ts",
+      "scripts/test-semantic-review-contracts.ts",
+      "docs/fixtures/semantic-unit-review/cases.json",
+      "docs/fixtures/semantic-unit-review/README.md",
+      "docs/fixtures/semantic-unit-review/positive/README.md",
+      "docs/fixtures/semantic-unit-review/positive/control/runtime/bundle/bundle.lock.json",
+      "docs/fixtures/semantic-unit-review/positive/control/runtime/bundle/docs/architecture/04-pipeline-stages-and-dod.md",
+      "docs/fixtures/semantic-unit-review/positive/control/runtime/bundle/docs/architecture/prompts/README.md",
+      "docs/fixtures/semantic-unit-review/positive/control/runtime/bundle/docs/architecture/prompts/verifier-lenses.md",
+      "docs/fixtures/semantic-unit-review/positive/control/runtime/bundle/docs/architecture/templates/03-extraction-claims.md",
+      "docs/fixtures/semantic-unit-review/positive/corpus/manifest.md",
+      "docs/fixtures/semantic-unit-review/positive/corpus/representations.md",
+      "docs/fixtures/semantic-unit-review/positive/corpus/sources/semantic.txt",
+      "docs/fixtures/semantic-unit-review/positive/ledgers/claim-inventory.md",
+      "docs/fixtures/semantic-unit-review/positive/ledgers/disposition-ledger.md",
+      "docs/fixtures/semantic-unit-review/positive/ledgers/extraction-criteria.md",
+      "docs/fixtures/semantic-unit-review/positive/ledgers/lineage.md",
+      "docs/fixtures/semantic-unit-review/positive/ledgers/packet-index.md",
+      "docs/fixtures/semantic-unit-review/positive/ledgers/representation-uses.md",
+      "docs/fixtures/semantic-unit-review/positive/ledgers/semantic-review.md",
+      "docs/fixtures/semantic-unit-review/positive/ledgers/source-walk.md",
+      "docs/fixtures/semantic-unit-review/positive/run-log.md",
+      "docs/fixtures/semantic-unit-review/positive/run-manifest.md",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/S2/VER-0701.md",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/S3/VER-0702.md",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-assignments/VER-0701.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-assignments/VER-0702.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-process/manual-producer-0701.raw.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-process/manual-producer-0702.raw.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-process/producer-0701.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-process/producer-0702.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-process/reviewer-0701.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-process/reviewer-0702.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-results/VER-0701.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-results/VER-0702.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-stage-seals/S2.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-subjects/SEM-0701.json",
+      "docs/fixtures/semantic-unit-review/positive/verification/harness/semantic-subjects/SEM-0702.json"
     ],
     "adapter": {
       "hermes": [
@@ -459,7 +502,8 @@
         "runtime-js/adapters/loa/src/worker-bundle.js",
         "runtime-js/adapters/loa/src/worker-dispatch.js",
         "runtime-js/adapters/loa/src/worker-return.js",
-        "adapters/loa/tests/test-representation-process.ts"
+        "adapters/loa/tests/test-representation-process.ts",
+        "adapters/loa/tests/test-semantic-review-process.ts"
       ]
     },
     "packaging": [
@@ -700,7 +744,14 @@
     "runtime-js/scripts/lib/source-representation.js",
     "runtime-js/scripts/lib/checks-k2-representations.js",
     "scripts/test-representation-mutations.ts",
-    "scripts/compatibility-fixture-source.ts"
+    "scripts/compatibility-fixture-source.ts",
+    "scripts/lib/checks-k2-semantics.ts",
+    "scripts/lib/semantic-review.ts",
+    "runtime-js/scripts/lib/checks-k2-semantics.js",
+    "runtime-js/scripts/lib/semantic-review.js",
+    "scripts/semantic-fixture-support.ts",
+    "scripts/test-semantic-review-mutations.ts",
+    "scripts/test-semantic-review-contracts.ts"
   ],
   "reference_documents": [
     "AGENTS.md",
