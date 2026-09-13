@@ -857,22 +857,39 @@ for unresolved-record review. Refuted results may name overlap/distinct as
 the counterassessment; the orchestrator cannot substitute it into the original
 proposal as an approved revised decision.
 
-**Quorum:** for this new capability, use three fresh L3 reviewers for every
-comparison group. This applies the existing exhaustive-class panel size
-without inventing a threshold for “big” merges. All receive the identical
-subject independently. Any cannot-determine requires a second panel of three
-fresh contexts over the same subject under the existing round-2 principle.
-All assigned results are retained. Any refutation blocks absorption; any
-cannot-determine blocks absorption even if later votes uphold. No majority
-may erase a surviving distinction or uncertainty. This explicitly replaces
-the common majority permission only for 1.8 duplicate admission, following
-Slice 7's conservative all-assigned-result treatment. Other lenses keep their
-existing quorum doctrine.
+**Quorum:** for run format 1.8 `duplicate-overlap-review` only, every
+duplicate/overlap comparison proposal receives exactly one required fresh
+`verifier-l3` review in round 1. An upheld result satisfies the L3 prerequisite
+subject to every other admission predicate; a refuted result blocks absorption
+for that proposal. Only a round-1 cannot-determine requires exactly one second
+fresh `verifier-l3` review, in round 2, of the identical sealed subject.
+
+| Round 1 | Round 2 | Aggregate decision | Absorption |
+| --- | --- | --- | --- |
+| `upheld` | Not permitted | `upheld` | Eligible only under all other predicates |
+| `refuted` | Not permitted | `refuted` | Blocked |
+| `cannot-determine` | Required, pending | No DDR yet | Blocked |
+| `cannot-determine` | `upheld` | `cannot-determine` | Blocked |
+| `cannot-determine` | `refuted` | `refuted` | Blocked |
+| `cannot-determine` | `cannot-determine` | `cannot-determine` | Blocked; unresolved |
+
+All required results remain retained. No majority voting is used. Extra
+reviews may not be solicited to outvote or erase a refutation, a
+cannot-determine result, or a surviving material distinction. There is no
+third round. This is a capability-specific replacement for the generic Q9
+placeholder quorum; predecessor-format L3 behavior and all other
+lens/class quorum rules remain unchanged. Agent/hybrid execution retains
+exact fresh-context/model/profile isolation requirements.
 
 Every required assignment must finish before a reviewed decision is recorded.
-Budget exhaustion retains pending work. Extra panels cannot be solicited until
-the desired answer wins. A revised comparison needs a new subject with
-materially identified changed basis/declaration and a link to its predecessor.
+Budget exhaustion retains pending work. A revised comparison needs a new
+subject with materially identified changed basis/declaration and a link to
+its predecessor.
+After indeterminacy, pursuing absorption requires genuinely new legal
+frozen-corpus basis/context, a revised proposal/new subject, and a new review
+sequence. Changing a declaration or requesting another verdict alone is
+insufficient; a later upheld review cannot erase the earlier indeterminate
+result.
 Digest-identical copied proposals cannot manufacture fresh evidence.
 
 ## 14. Durable artifacts and exact states
@@ -916,12 +933,19 @@ Assignment is exactly
 `{format,proposal_id,subject_digest,review_id,role,profile_digest,invocation_id,
 producer_binding_hash,round,execution_kind}`,
 format `aleph-duplicate-assignment/v1`, role `verifier-l3`, round 1 or 2.
+There is exactly one assignment/result in round 1. Round 2 has exactly one
+assignment/result if and only if round 1 returns cannot-determine; its
+assignment follows that retained result and binds the identical proposal and
+subject digest. No additional assignment in either round or third round is
+legal. An uncompleted required assignment remains pending, not an omitted
+review or permission to select a replacement verdict.
 Assignment is durable before dispatch and points to an existing immutable
 subject. Invocation IDs are unique across all reviewer assignments. Actual
 execution kind is verified from receipts; a claimed label cannot override them.
 
-One `DDR-NNNN` decision per DUP records all assigned completed review IDs in
-dispatch order. Its verdict follows section 13 across all returns.
+One `DDR-NNNN` decision per DUP records the one completed review ID, or both
+completed review IDs when round 2 is required, in dispatch order. Its verdict
+follows the section 13 table mechanically across those retained returns.
 `reviewed_outcome` equals the proposal outcome only when upheld; otherwise
 literal `none`. This does not overwrite individual counterassessments.
 
@@ -981,7 +1005,9 @@ Before canonical absorption Core must require all of:
 1. Active 1.8 capability; S3 closed; retained execution stage S4; C1 not closed;
    no S5+ work or unrelated halt; exact original run/bundle/runtime pins.
 2. Exact subject, basis, delivery, producer binding and completed independent
-   reviewer assignments/results; DDR upheld; all required reviews upheld.
+   reviewer assignment/result under section 13; round 1 upheld and DDR upheld.
+   A round-1 cannot-determine remains blocking after round 2, even if round 2
+   is upheld; no refutation or indeterminacy may be erased.
 3. `review_mode=proposal`, `outcome=duplicate`, `treatment=new-successor`;
    no endorsed contradiction; no unknown/separate-claims distinction; complete
    field coverage and provenance; no blocking unresolved finding.
@@ -1089,9 +1115,10 @@ For each new manual L3 review, require the existing seven-field evidence shape:
 }
 ```
 
-Actors and passes are distinct. Reviewers in the same panel are distinct from
-the producer and one another, including across the two panels for one DUP;
-each sees only its sealed subject, not the other votes. Bind
+The round-1 reviewer is distinct from the producer. A required round-2
+reviewer is distinct from both the producer and round-1 reviewer; all their
+passes are also distinct. Each reviewer sees only the identical sealed subject,
+not the other reviewer's result or rationale. Bind
 `producer_pass_id` to the retained producer `context_id`,
 `reviewer_pass_id` to assignment `invocation_id`, and both subject/shown
 digests to the exact delivered subject. The duplicate producer, successor
@@ -1140,7 +1167,8 @@ DUP_COMPATIBILITY
 The checker may verify required artifacts, strict syntax/enums/IDs, exact
 selected current or historical identity as appropriate, source reopening,
 complete declared union and field coverage, subject/delivery digests,
-assignment/result existence and equality, mechanically detectable isolation
+assignment/result existence, equality, exact round cardinality and mechanical
+aggregation under section 13, mechanically detectable isolation
 violations, legal outcome/effect combinations, exact canonical joins and
 retained stage/closure consistency. Structural reports name these propositions.
 
@@ -1326,13 +1354,13 @@ oracle. Expected deterministic results concern internal structure only.
 | D8-F10 | Three source occurrences reporting the same bounded observation | Complete packet/source/occurrence union, including equal hashes |
 | D8-F11 | Flattened chart description versus available table structure | Different material limitations can block comparison; no inferred values |
 | D8-F12 | Similar sentences whose “it” has an unresolved antecedent | Ambiguity carried, not resolved by L3 |
-| D8-F13 | Frozen context cannot determine equivalence | First-class unknown, visible finding, no absorption |
-| D8-F14 | Three-member duplicate group | Direct group review; no pairwise-transitivity shortcut |
-| D8-F15 | Eligible duplicate followed by faithful successor | Distinct L3, normalizer, L2S, required L2F and composed canonical records |
+| D8-F13 | Frozen context cannot determine equivalence | First-class unknown with visible finding; round-1 cannot-determine requires one fresh round-2 review; upheld/refuted/cannot-determine variants aggregate as section 13, all without absorption |
+| D8-F14 | Three-member duplicate group | Direct group review with one required round-1 L3 review; group size adds no reviewers or pairwise-transitivity shortcut |
+| D8-F15 | Eligible duplicate followed by faithful successor | One upheld round-1 L3 review, distinct normalizer/L2S, required L2F and composed canonical records; no extra L3 review |
 | D8-F16 | Same reviewed duplicate but successor drops “during trial A” | L2S refutes; DUP decision retained, no successor admission |
 | D8-F17 | Two different internally coherent semantic outcomes | Both structurally PASS; no expected semantic answer in K2 |
 | D8-F18 | Mechanically coherent semantic error, e.g. declared collapsibility of a real condition | Structural PASS retained beside an adversarial counterexample |
-| D8-F19 | Retained 1.0–1.7 runs and explicit old format copies | Original behavior/pins; no retroactive review or migration |
+| D8-F19 | Retained 1.0–1.7 runs and explicit old format copies | Original behavior/pins and predecessor Q9 quorum; no retroactive review or migration |
 | D8-F20 | Same-origin repeated report in two sources | Every occurrence retained; no automatic independent corroboration |
 | D8-F21 | Same topic, different assertion with no claimed overlap | `distinct`, no extra relation taxonomy |
 | D8-F22 | Exact assertion equivalence but origin independence unknown | Duplicate judgment can be retained; absorption blocked by binary-map origin requirement |
@@ -1365,13 +1393,13 @@ reach the intended check; report the actual failing token, not merely exit 1.
 | D8-M07 | Absorbed predecessor remains in current output or is terminalized twice | DUP_ACCOUNTING / K2.15 |
 | D8-M08 | LIN group/type/successor disagrees with map or effect | DUP_ACCOUNTING |
 | D8-M09 | Change a SEM subject without a new DUP subject | DUP_SUBJECT |
-| D8-M10 | Remove required reviewer assignment | DUP_REVIEW |
-| D8-M11 | Remove required result/round-2 result | DUP_REVIEW |
+| D8-M10 | Remove the round-1 assignment or the required round-2 assignment after cannot-determine | DUP_REVIEW |
+| D8-M11 | Remove the round-1 result or required round-2 result | DUP_REVIEW |
 | D8-M12 | Retarget result to another subject | DUP_SUBJECT |
 | D8-M13 | Producer/reviewer or reviewer/reviewer context reuse | DUP_ISOLATION |
 | D8-M14 | Extra attachment or withheld-context leak in delivered bundle | DUP_ISOLATION |
 | D8-M15 | Invalid outcome/treatment enum | DUP_ENUM |
-| D8-M16 | Admit unknown equivalence as duplicate | DUP_STATE |
+| D8-M16 | Admit unknown equivalence as duplicate, including round-1 cannot-determine followed by round-2 upheld | DUP_STATE |
 | D8-M17 | Delete qualifier coverage/declaration, not semantically mislabel it | DUP_ACCOUNTING |
 | D8-M18 | Delete condition coverage/declaration | DUP_ACCOUNTING |
 | D8-M19 | Omit required ambiguity/material context or asset | DUP_SUBJECT / DUP_EVIDENCE |
@@ -1387,9 +1415,9 @@ reach the intended check; report the actual failing token, not merely exit 1.
 | D8-M29 | Map unknown origins to independent/restatement without reviewed new basis | DUP_STATE |
 | D8-M30 | Orphan admitted CC, absent DUE or unmatched merge row | DUP_ACCOUNTING |
 | D8-M31 | Wrong/duplicate C1 seal or seal outside exact C1 event | DUP_WINDOW |
-| D8-M32 | Fake manual model/profile/effort or same actor in different passes | DUP_ISOLATION, after adopted manual clarification |
+| D8-M32 | Fake manual model/profile/effort, producer self-review, or round-2 actor/pass reused from round 1 | DUP_ISOLATION, after adopted manual clarification |
 | D8-M33 | Duplicate JSON key, noncanonical bytes, malformed pointer/order | DUP_FORMAT / DUP_REFERENCE |
-| D8-M34 | Extra review panel used to erase earlier failure | DUP_STATE |
+| D8-M34 | Extra reviewer, round 2 without round-1 cannot-determine, or a third round; erase an earlier failure through an extra review | DUP_STATE |
 | D8-M35 | Changed bytes under an existing transaction key or forked journal | DUP_STATE |
 
 Each counterpart also includes the relevant lawful case: historical
@@ -1408,13 +1436,13 @@ from actual retained evidence using existing execution honesty.
 | D8-P01 | Genuine fresh invocation, if separately authorized and actually run: request, assignment, terminal event stream, actual session/model and accepted return all match |
 | D8-P02 | Fixture callback follows real sealed assemble/prepare/dispatch/accept path and stays fixture-simulated |
 | D8-P03 | Static record validates only its retained structure and cannot satisfy native/agent freshness |
-| D8-P04 | Actual manual distinct actors/passes versus synthetic declarations are reported separately; no fake profile |
+| D8-P04 | Actual manual round-1 reviewer distinct from producer, conditional round-2 reviewer distinct from both, and distinct passes versus synthetic declarations are reported separately; no fake profile |
 | D8-P05 | Producer context reused by L3 is refused before canonical write |
 | D8-P06 | Reviewer context reused by another reviewer/round is refused |
 | D8-P07 | Forbidden attachment or extra task text is refused at assembly, verification and acceptance |
 | D8-P08 | Proposal or basis changes after assignment: old result cannot bind revised bytes |
 | D8-P09 | Accepted result retargeted to another DUP/VER fails |
-| D8-P10 | Cannot-determine → required fresh second panel → revised new subject; old unknown remains |
+| D8-P10 | Round-1 cannot-determine → exactly one fresh round-2 review of identical subject; upheld leaves unknown blocking, refuted yields refuted, cannot-determine leaves unresolved; pursuit of absorption requires new legal frozen-corpus basis/context, revised proposal/new subject and a new review sequence; old results remain |
 | D8-P11 | Refuted/withdrawn/failed successor histories survive later valid success |
 | D8-P12 | Canonical write before L3 completion, after refutation, or before L2S is refused without partial effects |
 | D8-P13 | Crash/restart at reservation, assignment, result, DDR, effect and each composed admission write recovers once |
@@ -1541,6 +1569,11 @@ The future implementation DoD is conjunctive:
 - the closed vocabulary, strict schema/native/fallback agreement, currentness,
   occurrence union, retained distinctions, exact profile/prompt/context binding,
   quorum, unknown behavior and role separation are implemented as specified;
+- each comparison has one required fresh round-1 L3 review and exactly one
+  second fresh review only after cannot-determine, with section 13 aggregation
+  and no extra reviews or majority voting; retained indeterminacy blocks
+  absorption even after upheld, and pursuing absorption requires new legal
+  frozen-corpus basis/context, a new subject and a new review sequence;
 - no canonical absorption before eligible L3 + separate successor L2S/L2F;
   no partial CC/LIN/map/USE/semantic/DUP transaction or post-C1 rewrite;
 - historical failures, refusals, unknowns and later revisions remain
@@ -1576,17 +1609,23 @@ changed by later authority.
 
 ## 26. Design delivery boundary and unresolved policy
 
-This delivery changes only this proposal and one
-`files.repository_administration` entry in `core.manifest.json`.
+The initial delivery changed only this proposal and one
+`files.repository_administration` entry in `core.manifest.json`. This quorum
+revision changes only the proposal, through a normal follow-up commit from
+proposal commit `9c813c985fcdf8431765280665af98f8693dc93b`, tree
+`4416714f049e6a7ca96cbfd44c9ebd5e7af8de6f`, and proposal blob
+`5a165ace1e8260f478e949fd464268f07ddb7027`. That commit is not amended.
 No adopted record, authorization, historical calibration file, Slice 7 history,
 Core/checker/prompt/adapter/runtime/test behavior, current run format, retained
-run, or fixture is changed. The manifest addition classifies this document; it
-does not add it to a Core/runtime payload.
+run, or fixture is changed. The existing manifest entry classifies this
+document; it remains unchanged and does not add the proposal to a Core/runtime
+payload.
 
-Producer validation for this delivery must inspect the exact two-file diff,
+Producer validation for this revision must inspect the exact one-file diff
+from the proposal commit above, reconcile every quorum occurrence,
 run `git diff --check` and applicable Core/admin validation, compare every
-pre-existing tracked file against the starting byte inventory except the
-single manifest administration insertion, and compare Core/checker/adapter
+other tracked file against that commit's starting byte inventory, including
+the unchanged manifest, and compare Core/checker/adapter
 content digests. Run the existing generated-runtime drift check without
 regenerating source. Recheck adopted proposal blobs and stash/workstream
 identities. Report exact commit/tree/proposal blob after committing.
@@ -1595,9 +1634,10 @@ The genuine open human-policy question is Q8-MANUAL: exact manual L3
 `reviewer_profile` representation under the explicitly limited L2S
 clarification. The recommendation is concrete, but not adopted by this
 producer. The outcome spellings, contradiction annotation placement,
-all-comparison panel rule, conservative origin-unknown admission and new seal
-are explicit proposed policies for adoption, not unspecified implementation
-choices. No other load-bearing decision is delegated to implementation.
+capability-specific one-review/conditional-second-review rule, conservative
+origin-unknown admission and new seal are explicit proposed policies for
+adoption, not unspecified implementation choices. No other load-bearing
+decision is delegated to implementation.
 
 This proposal is to be committed and pushed on the named design branch.
 No Slice 8 implementation, Slice 9 intent-fidelity work, blind SRC-001 replay,
