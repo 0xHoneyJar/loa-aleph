@@ -1977,6 +1977,17 @@ function checkIds(results, model) {
     results.run('K2.5', 'id integrity', (fail) => {
         const indexes = makeIndexes(model);
         const semanticReservations = new Set();
+        const duplicateReservations = new Set();
+        if (hasRunCapability(model.manifest?.runFormatVersion || '', 'duplicate-overlap-review')) {
+            for (const file of model.files.filter((f) => /^verification\/harness\/duplicate-subjects\/DUP-\d{4,}\.json$/u.test(f.relativePath))) {
+                try {
+                    const candidate = JSON.parse(file.text);
+                    if (candidate.reservation?.successor_id)
+                        duplicateReservations.add(candidate.reservation.successor_id);
+                }
+                catch { /* K2.20 owns exact subject bytes and reservation validity. */ }
+            }
+        }
         if (hasRunCapability(model.manifest?.runFormatVersion || '', 'semantic-unit-review')) {
             for (const file of model.files.filter((f) => /^verification\/harness\/semantic-subjects\/SEM-\d{4,}\.json$/u.test(f.relativePath))) {
                 try {
@@ -2011,6 +2022,12 @@ function checkIds(results, model) {
                 for (const id of seen) {
                     if (family === 'CC' && semanticReservations.has(id)
                         && /^verification\/harness\/semantic-(?:subjects|results|process|producer-views)\//u.test(file.relativePath))
+                        continue;
+                    if (family === 'CC' && duplicateReservations.has(id)
+                        && /^verification\/harness\/duplicate-(?:subjects|results|effects|process)\//u.test(file.relativePath))
+                        continue;
+                    if (family === 'CC' && duplicateReservations.has(id) && semanticReservations.has(id)
+                        && /^verification\/harness\/material-use-subjects\/[0-9a-f]{64}\.json$/u.test(file.relativePath))
                         continue;
                     if (!indexes[family].has(id)) {
                         fail(`${id} in ${file.relativePath} has no defining ${family} row`);
@@ -2594,6 +2611,7 @@ function checkKernelReport(results, model) {
     });
 }
 export function runK2(results, model, root) {
+    runK2Duplicates(results, model);
     runK2Semantics(results, model);
     runK2Representations(results, model);
     checkLayout(results, model);
@@ -2641,3 +2659,4 @@ export function runK2(results, model, root) {
     runK2Ambiguities(results, model, pinnedCoreAuthority);
 }
 import { runK2Semantics } from './checks-k2-semantics.js';
+import { runK2Duplicates } from './checks-k2-duplicates.js';

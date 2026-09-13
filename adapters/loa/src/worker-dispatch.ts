@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isDuplicateOutputContract } from '../../../scripts/lib/duplicate-review.ts';
 
 import {
   chmodSync,
@@ -245,7 +246,7 @@ function canonicalFile(path: string, label: string, semantic = false): { value: 
 function semanticInvocation(invocation: LoaNativeWorkerInvocation): boolean {
   const bytes = readStableRegularFile(join(invocation.worker_bundle_root, 'contracts/output.json')).bytes;
   if (sha256Digest(bytes) !== invocation.request.output_contract.digest) throw new Error('sealed output contract changed');
-  return isSemanticOutputContract(JSON.parse(bytes.toString('utf8')));
+  return isSemanticOutputContract(JSON.parse(bytes.toString('utf8'))) || isDuplicateOutputContract(JSON.parse(bytes.toString('utf8')));
 }
 function workerReturnBytes(invocation: LoaNativeWorkerInvocation, value: unknown): Buffer {
   return semanticInvocation(invocation) ? Buffer.from(semanticJson(value)) : stableJsonBytes(value);

@@ -175,3 +175,1231 @@ no arm outputs that don't exist yet.
 ## Slice 7 semantic review (1.7)
 
 For 1.7, admitted semantic facets are read-only source-preservation/challenge context for S5 and S6. Judge dispositions and CC×SRC evidence roles independently. Content-role annotations never map to claim_type, support roles, S5 dispositions, relation types or human authority.
+
+## Merge Judge discovery (1.8)
+
+```text
+ROLE: Merge Judge.
+TASK: Identify candidate comparisons in the attached current-claim catalogue; do not decide equivalence.
+Propose candidate groups and missing comparison coverage. Signals never certify equivalence. Zero candidates means only none were proposed. Do not optimize claim count.
+```
+
+**Shown:** only the Core-produced bounded current-claim catalogue window.
+**Withheld:** calibration answers, expected groups, downstream dispositions, routing, synthesis, human-authority observations, prior reviewer verdicts and hidden rationale.
+
+**Output contract:**
+```json
+{
+  "contract_format": "aleph-duplicate-output-contract/v1",
+  "capability": "duplicate-overlap-review",
+  "task": "discovery",
+  "role": "merge-judge",
+  "shape": {
+    "type": "object",
+    "properties": {
+      "candidates": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "member_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^CC-[0-9]+$"
+              },
+              "minItems": 2
+            },
+            "basis_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "signal": {
+              "type": "string",
+              "enum": [
+                "semantic-proposal",
+                "identical-text",
+                "shared-packet"
+              ]
+            }
+          },
+          "required": [
+            "member_ids",
+            "basis_refs",
+            "signal"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 0
+      },
+      "unresolved_findings": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "member_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^CC-[0-9]+$"
+              },
+              "minItems": 0
+            },
+            "missing": {
+              "type": "string",
+              "minLength": 1
+            },
+            "requested_context": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^SRC-[0-9]+$"
+                  },
+                  "locator": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "enum": [
+                      "local-context",
+                      "same-source-referent-search",
+                      "material-inspection"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_id",
+                  "locator",
+                  "purpose"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            }
+          },
+          "required": [
+            "member_ids",
+            "missing",
+            "requested_context"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 0
+      },
+      "rationale": {
+        "type": "string",
+        "minLength": 1
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 0
+      }
+    },
+    "required": [
+      "candidates",
+      "unresolved_findings",
+      "rationale",
+      "flags"
+    ],
+    "additionalProperties": false
+  }
+}
+```
+
+
+## Merge Judge comparison (1.8)
+
+```text
+ROLE: Merge Judge.
+TASK: Propose one duplicate-versus-overlap decision for the attached complete comparison basis.
+Compare every member of the attached complete basis. Search for surviving distinctions across all seventeen dimensions. Record exact occurrences, origin uncertainty, and every limitation. A representative is a basis for a new successor, never a surviving predecessor. Propose no final canonical write.
+```
+
+**Shown:** only the Core-produced bounded comparison basis and exact candidate reference.
+**Withheld:** calibration answers, expected groups, downstream dispositions, routing, synthesis, human-authority observations, prior reviewer verdicts and hidden rationale.
+
+**Output contract:**
+```json
+{
+  "contract_format": "aleph-duplicate-output-contract/v1",
+  "capability": "duplicate-overlap-review",
+  "task": "comparison",
+  "role": "merge-judge",
+  "shape": {
+    "type": "object",
+    "properties": {
+      "proposal": {
+        "type": "object",
+        "properties": {
+          "candidate_ref": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^DCD-(?=[0-9]*[1-9])[0-9]{4,}/G[1-9][0-9]*$"
+          },
+          "member_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^CC-[0-9]+$"
+            },
+            "minItems": 2
+          },
+          "member_semantic_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "claim_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^CC-[0-9]+$"
+                },
+                "semantic_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^SEM-(?=[0-9]*[1-9])[0-9]{4,}$"
+                },
+                "subject_digest": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "unit_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "claim_id",
+                "semantic_id",
+                "subject_digest",
+                "unit_refs"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 2
+          },
+          "comparison_basis_digest": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "review_mode": {
+            "type": "string",
+            "enum": [
+              "proposal",
+              "unresolved-record"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "duplicate",
+              "overlap",
+              "distinct",
+              "CANNOT_DETERMINE"
+            ]
+          },
+          "treatment": {
+            "type": "string",
+            "enum": [
+              "new-successor",
+              "keep-separate"
+            ]
+          },
+          "distinctions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "distinction_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^D[1-9][0-9]*$"
+                },
+                "dimension": {
+                  "type": "string",
+                  "enum": [
+                    "proposition",
+                    "conditions",
+                    "qualifiers",
+                    "scope",
+                    "modality",
+                    "attribution",
+                    "comparator",
+                    "metric",
+                    "claim_roles",
+                    "result-interpretation",
+                    "source-occurrence",
+                    "support-origin",
+                    "material",
+                    "ambiguity",
+                    "lineage",
+                    "relations",
+                    "context"
+                  ]
+                },
+                "member_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^CC-[0-9]+$"
+                  },
+                  "minItems": 1
+                },
+                "input_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^/"
+                  },
+                  "minItems": 1
+                },
+                "treatment": {
+                  "type": "string",
+                  "enum": [
+                    "retained",
+                    "collapsible",
+                    "CANNOT_DETERMINE"
+                  ]
+                },
+                "retained_at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "successor-content",
+                        "occurrence-history",
+                        "separate-claims"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "content_anchor_refs": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "semantic_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^SEM-(?=[0-9]*[1-9])[0-9]{4,}$"
+                          },
+                          "anchor_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^A[1-9][0-9]*$"
+                          }
+                        },
+                        "required": [
+                          "semantic_id",
+                          "anchor_id"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "source_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^SRC-[0-9]+$"
+                          },
+                          "locator": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "start_byte": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "end_byte": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "selection_hash": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        },
+                        "required": [
+                          "source_id",
+                          "locator",
+                          "start_byte",
+                          "end_byte",
+                          "selection_hash"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "minItems": 0
+                },
+                "context_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 0
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "distinction_id",
+                "dimension",
+                "member_ids",
+                "input_refs",
+                "treatment",
+                "retained_at",
+                "content_anchor_refs",
+                "context_refs",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 17
+          },
+          "contradiction_pairs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^CC-[0-9]+$"
+                },
+                "b": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^CC-[0-9]+$"
+                },
+                "distinction_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                },
+                "anchor_refs": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "semantic_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^SEM-(?=[0-9]*[1-9])[0-9]{4,}$"
+                          },
+                          "anchor_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^A[1-9][0-9]*$"
+                          }
+                        },
+                        "required": [
+                          "semantic_id",
+                          "anchor_id"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "source_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^SRC-[0-9]+$"
+                          },
+                          "locator": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "start_byte": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "end_byte": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "selection_hash": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        },
+                        "required": [
+                          "source_id",
+                          "locator",
+                          "start_byte",
+                          "end_byte",
+                          "selection_hash"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "minItems": 1
+                },
+                "why": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "a",
+                "b",
+                "distinction_refs",
+                "anchor_refs",
+                "why"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          },
+          "origin_assessment": {
+            "type": "object",
+            "properties": {
+              "corroboration": {
+                "type": "string",
+                "enum": [
+                  "independent",
+                  "restatement",
+                  "CANNOT_DETERMINE"
+                ]
+              },
+              "occurrence_groups": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "occurrence_keys": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "minItems": 1
+                    },
+                    "basis_refs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^/"
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": [
+                    "occurrence_keys",
+                    "basis_refs"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "basis_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^/"
+                },
+                "minItems": 1
+              },
+              "unresolved_finding_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "corroboration",
+              "occurrence_groups",
+              "basis_refs",
+              "unresolved_finding_refs"
+            ],
+            "additionalProperties": false
+          },
+          "representative": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "basis_member_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^CC-[0-9]+$"
+                    },
+                    "minItems": 1
+                  },
+                  "basis_unit_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
+                  "wording_basis": {
+                    "type": "string",
+                    "enum": [
+                      "selected-member",
+                      "combined-expression"
+                    ]
+                  },
+                  "retained_distinction_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 0
+                  }
+                },
+                "required": [
+                  "basis_member_ids",
+                  "basis_unit_refs",
+                  "wording_basis",
+                  "retained_distinction_refs"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "successor_request": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "lineage_type": {
+                    "type": "string",
+                    "enum": [
+                      "duplicate",
+                      "merge"
+                    ]
+                  },
+                  "proposed_claim": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "claim_type": {
+                    "type": "string",
+                    "enum": [
+                      "factual",
+                      "design-intent",
+                      "constraint",
+                      "preference",
+                      "open-question"
+                    ]
+                  },
+                  "packet_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
+                  "source_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
+                  "semantic_content_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^/"
+                    },
+                    "minItems": 1
+                  },
+                  "material_use": {
+                    "type": "object",
+                    "properties": {
+                      "requirements": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "object_id": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "feature": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "binding_ids": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "minItems": 0
+                            }
+                          },
+                          "required": [
+                            "object_id",
+                            "feature",
+                            "binding_ids"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "minItems": 0
+                      },
+                      "use_state": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "fidelity_claim": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "limitation_refs": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "minItems": 0
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "requirements",
+                      "use_state",
+                      "fidelity_claim",
+                      "limitation_refs",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "lineage_type",
+                  "proposed_claim",
+                  "claim_type",
+                  "packet_ids",
+                  "source_ids",
+                  "semantic_content_refs",
+                  "material_use"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provenance_union": {
+            "type": "object",
+            "properties": {
+              "packet_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "source_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "occurrences": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "source_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "source_hash": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "packet_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "evidence_key": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "fragment_order": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "locator": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "fragment_hash": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "start_byte": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "end_byte": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "source_id",
+                    "source_hash",
+                    "packet_id",
+                    "evidence_key",
+                    "fragment_order",
+                    "locator",
+                    "fragment_hash",
+                    "start_byte",
+                    "end_byte"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "member_occurrences": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "claim_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^CC-[0-9]+$"
+                    },
+                    "occurrence_keys": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "minItems": 1
+                    },
+                    "unit_occurrences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "unit_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "anchor_refs": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "semantic_id": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "^SEM-(?=[0-9]*[1-9])[0-9]{4,}$"
+                                    },
+                                    "anchor_id": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "^A[1-9][0-9]*$"
+                                    }
+                                  },
+                                  "required": [
+                                    "semantic_id",
+                                    "anchor_id"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "source_id": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "^SRC-[0-9]+$"
+                                    },
+                                    "locator": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "start_byte": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "end_byte": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "selection_hash": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "^sha256:[0-9a-f]{64}$"
+                                    }
+                                  },
+                                  "required": [
+                                    "source_id",
+                                    "locator",
+                                    "start_byte",
+                                    "end_byte",
+                                    "selection_hash"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            "minItems": 0
+                          },
+                          "occurrence_keys": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "minItems": 1
+                          }
+                        },
+                        "required": [
+                          "unit_ref",
+                          "anchor_refs",
+                          "occurrence_keys"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": [
+                    "claim_id",
+                    "occurrence_keys",
+                    "unit_occurrences"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 2
+              }
+            },
+            "required": [
+              "packet_ids",
+              "source_ids",
+              "occurrences",
+              "member_occurrences"
+            ],
+            "additionalProperties": false
+          },
+          "unresolved_findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "finding_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^F[1-9][0-9]*$"
+                },
+                "dimension": {
+                  "type": "string",
+                  "enum": [
+                    "proposition",
+                    "conditions",
+                    "qualifiers",
+                    "scope",
+                    "modality",
+                    "attribution",
+                    "comparator",
+                    "metric",
+                    "claim_roles",
+                    "result-interpretation",
+                    "source-occurrence",
+                    "support-origin",
+                    "material",
+                    "ambiguity",
+                    "lineage",
+                    "relations",
+                    "context"
+                  ]
+                },
+                "input_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^/"
+                  },
+                  "minItems": 1
+                },
+                "anchor_refs": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "semantic_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^SEM-(?=[0-9]*[1-9])[0-9]{4,}$"
+                          },
+                          "anchor_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^A[1-9][0-9]*$"
+                          }
+                        },
+                        "required": [
+                          "semantic_id",
+                          "anchor_id"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "source_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^SRC-[0-9]+$"
+                          },
+                          "locator": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "start_byte": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "end_byte": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "selection_hash": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        },
+                        "required": [
+                          "source_id",
+                          "locator",
+                          "start_byte",
+                          "end_byte",
+                          "selection_hash"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "minItems": 0
+                },
+                "material_refs": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "use_subject_digest": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "requirement_index": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "use_subject_digest",
+                          "requirement_index"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "use_subject_digest": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "limitation_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^(REP|OBJ|ASC)-(?=[0-9]*[1-9])[0-9]{4,}$"
+                          }
+                        },
+                        "required": [
+                          "use_subject_digest",
+                          "limitation_id"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "minItems": 0
+                },
+                "missing": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "requested_context": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "source_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^SRC-[0-9]+$"
+                      },
+                      "locator": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "purpose": {
+                        "type": "string",
+                        "enum": [
+                          "local-context",
+                          "same-source-referent-search",
+                          "material-inspection"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_id",
+                      "locator",
+                      "purpose"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "minItems": 0
+                }
+              },
+              "required": [
+                "finding_id",
+                "dimension",
+                "input_refs",
+                "anchor_refs",
+                "material_refs",
+                "missing",
+                "requested_context"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "candidate_ref",
+          "member_ids",
+          "member_semantic_refs",
+          "comparison_basis_digest",
+          "review_mode",
+          "outcome",
+          "treatment",
+          "distinctions",
+          "contradiction_pairs",
+          "origin_assessment",
+          "representative",
+          "successor_request",
+          "provenance_union",
+          "unresolved_findings"
+        ],
+        "additionalProperties": false
+      },
+      "rationale": {
+        "type": "string",
+        "minLength": 1
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 0
+      }
+    },
+    "required": [
+      "proposal",
+      "rationale",
+      "flags"
+    ],
+    "additionalProperties": false
+  }
+}
+```

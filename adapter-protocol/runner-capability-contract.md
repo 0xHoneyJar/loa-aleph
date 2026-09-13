@@ -108,3 +108,9 @@ runner and bundle pins.
 ## Slice 7 semantic review (1.7)
 
 For 1.7 semantic-unit-review, Core owns exact native/fallback schemas, subject/context construction, structural predicates and write plans. Host transport sends only the sealed L2S allowlist with the fixed Core task and existing fresh refuter infrastructure. Retain actual execution evidence and quarantine invalid returns; standalone binding not-checked cannot authorize admission. No provider abstraction or new autonomous orchestrator is introduced.
+
+## Slice 8 duplicate review (1.8)
+
+Core owns the `aleph-duplicate-output-contract/v1` discovery, comparison, refutation and contradiction-discovery contracts selected by `duplicate-overlap-review`. Hosts use existing Merge Judge, L3 and L5 roles. Native schema and portable fallback reject unknown fields; detached validation reports binding `not-checked`. Only exact full-run/request validation may report checked binding.
+
+Core constructs the exact shown catalogue/basis and sealed L3 subject. The adapter attaches those bytes, retains actual invocation/return evidence and executes Core's initialize, record-discovery, reserve-subject, assign-review, record-review, decide, record-effect, admit and seal plans mechanically. Admission is one journal containing the duplicate plan and existing semantic/material subplans, with exact accepted returns, prerequisites, preimages/after-images and checkpoint/chain evidence. No duplicate semantic policy belongs in adapter regexes or local outcome enums. Genuine model execution remains separately authorized. Fixture, static and manual evidence is never native dispatch.

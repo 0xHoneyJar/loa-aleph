@@ -511,3 +511,7 @@ semantic validation, production reachability, agent sanction, acceptance or v1.
 ## Slice 7 semantic review (1.7)
 
 K2.19 checks semantic subject and review accounting for cumulative semantic-unit-review. Stable tokens: SEM_FORMAT, SEM_ENUM, SEM_REFERENCE, SEM_EVIDENCE, SEM_SUBJECT, SEM_REVIEW, SEM_ISOLATION, SEM_STATE, SEM_ACCOUNTING, SEM_WINDOW, SEM_COMPATIBILITY. It is deterministic/read-only and cannot decide semantic atomicity, meaning, force, attribution, entailment, truth, result/interpretation splitting, duplicate equivalence or preferred wording. Structural alternatives and a coherent semantic error must pass.
+
+## K2.20 — duplicate comparison and admission accounting
+
+The exact new cumulative contract, stable tokens, compatibility limits, conditional quorum, source-bound closure, immutable accounting, C1 seal and semantic exclusions are in [K2-20-duplicate-review.md](K2-20-duplicate-review.md). Motivating records are synthetic challenge declarations, never expected semantic answers.

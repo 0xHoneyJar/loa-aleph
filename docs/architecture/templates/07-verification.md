@@ -71,3 +71,7 @@ Use the existing VER field table with lens `L2F`, stage `S3` or `S4`, and target
 ## Slice 7 semantic review (1.7)
 
 L2S has the dedicated closed SemanticResult contract in T3.7. Keep the canonical JSON plus the T7.1 companion with exact target semantic-review-subject:sha256:<hex>, L2S lens and stage. Every field has an ordered review slot; candidate_evidence is exactly []. Assignment and execution evidence are retained outside reviewer attachments.
+
+## Slice 8 L3 duplicate review
+
+For capability `duplicate-overlap-review`, retain the exact immutable duplicate subject, assignment, result, execution evidence and agreeing S4 VER companion. Its target is `duplicate-review-subject:<subject-digest>` and its lens/stage are exactly `L3`/`S4`. Comparison outcome and reviewer verdict are separate fields. Results contain all seventeen dimension reviews, exact distinction and unordered-pair coverage, contradiction annotations, retained findings and `candidate_evidence=[]`. Round 2 exists only after round-1 cannot-determine, over the identical subject; it can never erase that uncertainty. The duplicate normalizer and L2S preservation review remain separate. Static declarations, simulated dispatch, manual separate passes and genuine native dispatch retain their actual evidence classes.

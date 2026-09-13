@@ -10,6 +10,7 @@ import {
   type WorkerJsonValue,
 } from './lib/worker-return-contract.ts';
 import { isSemanticOutputContract } from './lib/semantic-review.ts';
+import { isDuplicateOutputContract } from './lib/duplicate-review.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const FORMAT = 'aleph-worker-return-validation/v1';
@@ -67,7 +68,7 @@ export function validateWorkerReturnFiles(
   if (contractBytes) {
     try {
       contract = JSON.parse(contractBytes.toString('utf8')) as unknown;
-      if (isSemanticOutputContract(contract)) contract = parseStrictJson(contractBytes, true);
+      if (isSemanticOutputContract(contract) || isDuplicateOutputContract(contract)) contract = parseStrictJson(contractBytes, true);
     } catch (error) {
       errors.push(
         `Core output contract is invalid JSON: ${

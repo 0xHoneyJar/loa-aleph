@@ -1,0 +1,1 @@
+[{"claim_id":"CC-0803","claim_projection":{"normalized_claim":"The indicator lit during trial A.","packets":["PKT-0701","PKT-0702"],"sources":["SRC-701"],"claim_type":"factual"},"semantic_id":"SEM-0803","semantic_subject_digest":"sha256:13357b79cfd9988177723e92386a82d6db3280b0b42fb43510948bf71d9e6536","packet_ids":["PKT-0701","PKT-0702"],"source_ids":["SRC-701"]}]

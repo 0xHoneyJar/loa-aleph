@@ -252,3 +252,9 @@ Use `/loa-aleph start <inputs...>` with ordinary sources or explicit `.aleph-rep
 ## Slice 7 semantic review (1.7)
 
 Apply T3.7 exhaustive semantic coverage, assignment-before-dispatch, immutable subjects/results, composed material/semantic write plans, retained failure history and stage/C1 seals. Before advancing resume, recover prepared transactions, verify retained identity, then validate only the bounded semantic closure and existing material prerequisites. F-03/F-04/F-05 and deferred generic resume findings remain unchanged. Simulation, static and manual evidence cannot be relabeled native execution.
+
+## Slice 8 duplicate review (1.8)
+
+Use the cumulative `duplicate-overlap-review` capability. At real S4 entry initialize the six-table ledger, build the current S3-closed catalogue, retain complete discovery and independent L5 windows, and account for every explicit candidate. Deliver bounded complete comparisons to Merge Judge, then seal each proposal with Core and assign one fresh L3 before dispatch. Its fixed task and exact attachment set are immutable. Follow the conditional two-round rule in [K2.20](checker-spec/K2-20-duplicate-review.md); no voting or extra retry is permitted.
+
+Only an eligible reviewed request reaches the existing S4 normalizer. Fresh L2S and required L2F precede one composed duplicate/semantic/material writer transaction. Reconcile relations under L3R after duplicate identity changes, then seal C1 and proceed through C2/C3. Recover the existing prepared journal before dependent work and preserve exact retries, failed histories and all pins. No public command, autonomous replay, real native invocation authority, F-03 closure or agent sanction follows from this implementation surface.

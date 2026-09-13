@@ -1,3 +1,4 @@
+import { duplicateSuccessorSubject, duplicatePath, validateDuplicateRun } from './duplicate-review.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
 import { TextDecoder } from 'node:util';
@@ -48,7 +49,7 @@ export const SEMANTIC_HEADERS = {
     resolutions: ['resolution_id', 'semantic_id', 'outcome', 'review_ids', 'canonical_refs', 'origin_unit_refs', 'followup_semantic_ids'],
 };
 export const SEMANTIC_SUMMARY_HEADERS = ['semantic_id', 'finding_id', 'source_ids', 'state', 'subject_digest'];
-function semanticRelationRow(proposal) {
+export function semanticRelationRow(proposal) {
     const s = proposal.subject;
     return { file: 'semantic relation proposal', line: 0, raw: '', cells: [], values: {
             relationId: '', ownerStage: s.owner_stage, family: s.family, type: s.type, sourceKind: s.source_kind,
@@ -726,7 +727,7 @@ function selectedSemanticReference(model, reference) {
     }
     return { path: match[1], pointer: match[2], value };
 }
-function validateSemanticWorkingAmbiguity(model, s, value) {
+export function validateSemanticWorkingAmbiguity(model, s, value) {
     const a = value;
     requireSemantic(obj(value) && semanticJson(value) === ambiguityReviewSubjectJson(a), 'SEM_FORMAT', 'ambiguity context', 'exact existing Slice 5 working subject required');
     oneOf(a.search_scope_kind, SEARCH_SCOPE_KINDS, 'ambiguity scope');
@@ -1736,6 +1737,8 @@ export function planSemanticWrite(options) {
         const bytes = readMaterialFile(options.proposedModel.runDir, record_id === 'C1' ? SEMANTIC_PATH : `verification/harness/semantic-stage-seals/${record_id}.json`);
         requireSemantic(materialHash(bytes) === subject_digest, 'SEM_SUBJECT', 'seal', 'seal plan digest differs');
     }
+    if (stage === 'S4' && operation === 'admit' && hasRunCapability(model.manifest?.runFormatVersion || '', 'duplicate-overlap-review'))
+        validateDuplicateRun(options.proposedModel);
     validateSemanticRun(options.proposedModel);
     if (operation === 'admit' || operation === 'seal') {
         const checks = new ResultCollector(options.proposedModel.manifest?.runId || 'semantic-plan');
@@ -2148,6 +2151,10 @@ export function semanticProducerView(model, role, stage, selections, retained = 
             validateSemanticSubject(origin, model);
             origins.set(origin.semantic_id, origin);
         }
+        else if (hasRunCapability(model.manifest?.runFormatVersion || '', 'duplicate-overlap-review')
+            && /^verification\/harness\/duplicate-subjects\/DUP-\d{4,}\.json$/u.test(entry.path)) {
+            requireSemantic(stage === 'S4' && role === 'normalizer' && entry.selector === 'json:/proposal/successor_request', 'SEM_ISOLATION', entry.path, 'normalizer receives only the reviewed successor request');
+        }
         else if (/^verification\/harness\/semantic-process\/LIN-\d+\.json$/u.test(entry.path)) {
             requireSemantic(stage === 'S4' && ['lineage_id', 'owner_stage', 'type', 'predecessors', 'successors']
                 .some((field) => entry.selector === `json:/${field}`), 'SEM_ISOLATION', entry.path, 'only already-proposed successor membership allowed');
@@ -2257,6 +2264,13 @@ export function semanticProducerView(model, role, stage, selections, retained = 
         requireSemantic(shown.some((cells) => cells[0] === sourceId && cells.includes(completion.values.finalCursorId))
             && shown.every((cells) => cells[0] === sourceId || cells[1] === sourceId), 'SEM_ISOLATION', 'referent search', 'exact source completion and source-local search records required');
     }
+    if (stage === 'S4' && hasRunCapability(model.manifest?.runFormatVersion || '', 'duplicate-overlap-review')) {
+        requireSemantic(context.successor, 'SEM_REFERENCE', 'S4', 'reserved reviewed successor required');
+        const duplicate = duplicateSuccessorSubject(model, context.successor.lineage_id, retained);
+        requireSemantic(selections.filter((entry) => entry.path === duplicatePath('subjects', duplicate.proposal_id)
+            && entry.selector === 'json:/proposal/successor_request').length === 1, 'SEM_ISOLATION', 'S4', 'exact reviewed request must actually be shown');
+        requireSemantic(semanticJson(context.origin_unit_refs) === semanticJson(duplicate.proposal.member_semantic_refs.flatMap((m) => m.unit_refs)), 'SEM_REFERENCE', 'S4', 'normalizer cannot alter reviewed comparison membership');
+    }
     const bytes = Buffer.from(`# Bounded semantic producer context\n\n${selected.map(([entry, value]) => `${semanticJson(entry)}\n${semanticJson(value)}`).join('\n\n')}\n`);
     return { bytes, context, assets: [...assets].map(([path, bytes]) => ({ path, bytes })).sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path))) };
 }
@@ -2320,6 +2334,11 @@ export function semanticProducerSelections(model, role, stage, options) {
         if (options.lineage_id)
             for (const field of ['lineage_id', 'owner_stage', 'type', 'predecessors', 'successors'])
                 add(`verification/harness/semantic-process/${options.lineage_id}.json`, `json:/${field}`, 'lineage-context');
+    }
+    if (stage === 'S4' && hasRunCapability(model.manifest?.runFormatVersion || '', 'duplicate-overlap-review')) {
+        requireSemantic(options.lineage_id, 'SEM_REFERENCE', 'S4', 'reviewed duplicate reservation required');
+        const duplicate = duplicateSuccessorSubject(model, options.lineage_id);
+        add(duplicatePath('subjects', duplicate.proposal_id), 'json:/proposal/successor_request', 'inspection-context');
     }
     entries.sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path)) || Buffer.compare(Buffer.from(a.selector), Buffer.from(b.selector)));
     semanticProducerView(model, role, stage, entries);

@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { sourceWalkReviewBasisDigest } from '../../../scripts/lib/checks-k2.ts';
 import { join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { assembleBundles } from '../../../scripts/assemble-bundles.ts';
@@ -19,8 +20,10 @@ import {
 import { makeSemanticFixture, fixtureResult, fixtureCompanion, fixtureTable, SEMANTIC_TEST_ROOT, writeFixtureFile } from '../../../scripts/semantic-fixture-support.ts';
 import { type LoaRunState, type LoaRoleId, type JsonValue } from '../src/types.ts';
 import type { ValidatedWorkerReturn } from '../src/worker-return.ts';
+import { predecessorSource } from '../../../scripts/compatibility-fixture-source.ts';
 
 const RUNTIME = process.argv.includes('--runtime') || process.env.SEMANTIC_RUNTIME_TEST === '1';
+const duplicateSeed = process.argv.find((arg) => arg.startsWith('--duplicate-seed='))?.slice('--duplicate-seed='.length);
 const adapterModule = (name: string): string => new URL(RUNTIME ? `../../../runtime-js/adapters/loa/src/${name}.js` : `../src/${name}.ts`, import.meta.url).href;
 const { verifyAndLoadLoaBundle } = await import(adapterModule('core-loader')) as typeof import('../src/core-loader.ts');
 const { captureRuntimeSnapshot, loadLoaProfile, defaultProfilePath, validateResolvedHost } = await import(adapterModule('runtime-snapshot')) as typeof import('../src/runtime-snapshot.ts');
@@ -56,12 +59,12 @@ function probePrepared(name: string, transactionName: string, before: ReturnType
   assert(readFileSync(join(copy, 'control/run-state.json')).equals(readFileSync(join(run, 'control/run-state.json'))));
   pass(`fresh subprocess recovers ${name}`);
 }
-const assembled = assembleBundles(ROOT, join(TEMP, 'bundles'));
+const assembled = assembleBundles(duplicateSeed ? ROOT : predecessorSource(ROOT, TEMP, '1.7.0-provisional'), join(TEMP, 'bundles'));
 assert.equal(assembled.result, 'PASS', assembled.errors.join('; '));
 const bundle = verifyAndLoadLoaBundle(join(TEMP, 'bundles/aleph-for-loa'));
 const profile = loadLoaProfile(defaultProfilePath(bundle.root));
 const host = validateResolvedHost(readJsonFile(join(ROOT, 'adapters/loa/tests/fixtures/host-capabilities.json')), profile.value, { allowSimulation: true });
-const run = join(TEMP, 'run'), f = makeSemanticFixture(run);
+const run = duplicateSeed || join(TEMP, 'run'), f = makeSemanticFixture(run, undefined, undefined, undefined, duplicateSeed ? '1.8.0-provisional' : '1.7.0-provisional');
 writeFixtureFile(run, 'ledgers/relations.md', `# Typed Relations\n\n- relation_format: ${RELATION_FORMAT}\n\n`
   + fixtureTable([...RELATION_TABLE_HEADER], []));
 // A declared supplied structure exercises an independent L2F obligation. These
@@ -88,6 +91,12 @@ f.subject.material_use!.requirements.push({ object_id: 'OBJ-0900', feature: 'for
 (f.returned.packets as Array<Record<string, unknown>>)[0].material_use = f.subject.material_use;
 const capture = Object.fromEntries(['ledgers/packet-index.md', 'ledgers/source-walk.md'].map((path) =>
   [path, readFileSync(join(run, path), 'utf8').replaceAll('manual-producer-0701', 'CALL-PRODUCER')]));
+if (duplicateSeed) {
+  writeFixtureFile(run, 'ledgers/source-walk.md', capture['ledgers/source-walk.md']);
+  const model = loadRun(run);
+  capture['ledgers/source-walk.md'] = capture['ledgers/source-walk.md']
+    .replace(model.sourceWalk.gapReviews[0].values.reviewBasisDigest, sourceWalkReviewBasisDigest(model, 'SRC-701', 'CUR-0702')!);
+}
 const uses = readRepresentationContext(loadRun(run)).uses;
 uses[0].requirements = semanticJson(f.subject.material_use!.requirements);
 uses[0].review_subject_digest = representationUseDigest(loadRun(run), readRepresentationContext(loadRun(run)), uses[0]);
@@ -263,7 +272,7 @@ assert.equal(reservedMaterial.row.review_subject_digest, use.review_subject_dige
 const materialReview = worker('CALL-L2F-NORMALIZER', 'verifier-l2f', { verdict: 'upheld', rationale: 'Synthetic material challenge only.',
   attacks_tried: ['Omitted grouping and glyph-loss challenge.'], evidence_ids: ['PKT-0701'], candidate_evidence: [], missing_for_determination: null, flags: [] },
   [reservedMaterial.review_path], 'Challenge the exact retained representation-use subject.', claimProducer.context_id);
-writer.append('verification/harness/VER-0900.md', materialReview.validated, () => '# Material review\n\n'
+writer.append('verification/harness/VER-0900.md', materialReview.validated, () => (duplicateSeed ? '# Verdict VER-0900\n\n' : '# Material review\n\n')
   + fixtureTable(['field', 'value'], [['lens', 'L2F'], ['stage', 'S3'], ['target', `representation-use-subject:${use.review_subject_digest}`],
     ['shown', reservedMaterial.review_path], ['withheld', 'Producer rationale and other batches.'], ['verdict', 'upheld'], ['consequence', 'Fixture simulation only.']]));
 pass('separate accepted L2F challenges the exact reserved material view before CC admission');
@@ -309,6 +318,10 @@ assert.deepEqual(validateSemanticRun(loadRun(run)).executions, ['fixture-simulat
 assert.equal(loadRun(run).claims.filter((c) => c.values.claimId === 'CC-0702').length, 1);
 write('admit', 'SMR-0701', next, [reviewed.validated]);
 pass('accepted S3 claim, USE and semantic resolution commit together; an older completed retry preserves later rows');
+if (duplicateSeed) {
+  console.log(`Duplicate process seed retained: ${duplicateSeed}`);
+  process.exit(0);
+}
 const transactionName = `TXN-semantic-${materialHash(admittedPlan.key).slice(7)}.json`;
 const transaction = JSON.parse(readFileSync(join(run, 'control/transactions', transactionName), 'utf8'));
 function recoveryCopy(name: string): string {

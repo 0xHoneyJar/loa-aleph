@@ -1,3 +1,4 @@
+import { assertDuplicateWindow, validateDuplicatePlan, validateDuplicateRun, planDuplicateWrite, duplicateClosureHash, DUPLICATE_PATH, duplicateRequiresWritePlan, validateCompletedDuplicatePlan, duplicateAdmissionSubplans, validateDuplicateAdmissionSubplans, } from '../../../scripts/lib/duplicate-review.js';
 import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
@@ -13,7 +14,7 @@ import { runK2Relations } from '../../../scripts/lib/checks-k2-relations.js';
 import { ResultCollector } from '../../../scripts/lib/results.js';
 import { loadRun, usesFormalLayoutBindings, usesInternalAmbiguityLifecycle, hasRunCapability } from '../../../scripts/lib/run-model.js';
 import { assertSemanticWindow, validateSemanticPlan, validateSemanticRun, planSemanticWrite, semanticJson, semanticClosureHash, validateSemanticAcceptedBindings, SEMANTIC_PATH, semanticRequiresWritePlan, validateCompletedSemanticPlan, } from '../../../scripts/lib/semantic-review.js';
-import { materialHash, assertMaterialReturnWritable, assertMaterialUseProduced, assertMaterialReviewUpheld, materialFindingRows, materialSubjectWritePaths, validateMaterialPlanIdentity, assertMaterialWriteWindow, requiresMaterialUsePlan, planRepresentationUseWrite, representationReviewView, representationUseDigest, representationUseClosureHash, representationUseNeedsReview, validateMaterialUseInput, REPRESENTATION_PATH, REPRESENTATION_USE_PATH, validateRepresentationRun, } from '../../../scripts/lib/source-representation.js';
+import { materialHash, assertMaterialReturnWritable, assertMaterialUseProduced, assertMaterialReviewUpheld, materialFindingRows, materialSubjectWritePaths, validateMaterialPlanIdentity, assertMaterialWriteWindow, requiresMaterialUsePlan, planRepresentationUseWrite, representationReviewView, representationUseDigest, representationUseClosureHash, representationUseNeedsReview, validateMaterialUseInput, REPRESENTATION_PATH, REPRESENTATION_USE_PATH, validateRepresentationRun, readMaterialFile, } from '../../../scripts/lib/source-representation.js';
 const CANONICAL_PREFIXES = [
     'arms/',
     'clusters/',
@@ -188,6 +189,89 @@ export function recoverPendingSemanticTransactions(runDir) {
         release();
     }
 }
+function applyDuplicateTransaction(runDir, path) {
+    const transaction = JSON.parse(readFileSync(path, 'utf8'));
+    const { digest, status, ...payload } = transaction;
+    if (transaction.format !== 'aleph-loa-duplicate-transaction/v1' || !['prepared', 'committed'].includes(status)
+        || materialHash(semanticJson(payload)) !== digest)
+        throw new Error('DUP_STATE duplicate transaction changed');
+    validateDuplicatePlan(transaction.plan);
+    if (basename(path) !== `TXN-duplicate-${materialHash(transaction.plan.key).slice(7)}.json`)
+        throw new Error('DUP_STATE duplicate journal reservation path differs');
+    for (const ref of [...transaction.acceptance_refs, ...(status === 'prepared' ? transaction.plan.prerequisite_hashes : [])]) {
+        assertSafeRelativePath(ref.path, 'duplicate prerequisite');
+        assertNoSymlinkComponents(runDir, join(runDir, ref.path));
+        if (!existsSync(join(runDir, ref.path)) || materialHash(readFileSync(join(runDir, ref.path))) !== ref.digest)
+            throw new Error(`DUP_SUBJECT lost/changed duplicate prerequisite ${ref.path}`);
+    }
+    const state = readRunState(runDir), chainPath = join(runDir, 'control/ledger-chain.jsonl');
+    if (status === 'committed') {
+        if (!stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_after.identity))
+            || !readFileSync(chainPath).subarray(0, Buffer.byteLength(transaction.chain_after)).equals(Buffer.from(transaction.chain_after))) {
+            throw new Error('DUP_STATE committed duplicate identity/chain differs');
+        }
+        validateCompletedDuplicatePlan(loadRun(runDir), transaction.plan);
+        validateDuplicateAdmissionSubplans(loadRun(runDir), transaction.plan, transaction.admission_subplans);
+        return;
+    }
+    if (state.execution.stage !== transaction.plan.stage || !stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_after.identity))
+        || ![transaction.state_checkpoint, transaction.state_after.execution.resume.checkpoint_digest].includes(state.execution.resume.checkpoint_digest))
+        throw new Error('DUP_STATE duplicate transaction run/stage/checkpoint differs');
+    const chain = existsSync(chainPath) ? readFileSync(chainPath) : Buffer.alloc(0);
+    if (![transaction.chain_before_hash, materialHash(transaction.chain_after)].includes(materialHash(chain)))
+        throw new Error('DUP_STATE duplicate chain changed');
+    const scratch = mkdtempSync(join(tmpdir(), 'aleph-duplicate-recovery-'));
+    try {
+        cpSync(runDir, join(scratch, 'run'), { recursive: true });
+        for (const write of transaction.plan.writes) {
+            assertSafeRelativePath(write.path, 'duplicate write');
+            assertNoSymlinkComponents(runDir, join(runDir, write.path));
+            const before = existsSync(join(runDir, write.path)) ? readFileSync(join(runDir, write.path)) : Buffer.alloc(0);
+            if (![write.before_hash, write.after_hash].includes(materialHash(before)))
+                throw new Error(`DUP_STATE duplicate preimage changed ${write.path}`);
+            writeFileAtomic(join(scratch, 'run', write.path), Buffer.from(write.after_base64, 'base64'));
+        }
+        const proposed = loadRun(join(scratch, 'run'));
+        validateDuplicateRun(proposed);
+        validateDuplicateAdmissionSubplans(proposed, transaction.plan, transaction.admission_subplans);
+        validateSemanticRun(proposed);
+        validateRepresentationRun(proposed);
+        const closed = duplicateClosureHash(loadRun(runDir));
+        if (closed !== null && !transaction.plan.key.endsWith(':seal:C1'))
+            throw new Error('DUP_WINDOW pending duplicate transaction cannot reopen C1');
+        for (const write of transaction.plan.writes) {
+            const bytes = Buffer.from(write.after_base64, 'base64');
+            if (!existsSync(join(runDir, write.path)) || !readFileSync(join(runDir, write.path)).equals(bytes))
+                writeFileAtomic(join(runDir, write.path), bytes);
+        }
+        writeFileAtomic(chainPath, transaction.chain_after);
+        writeRunState(runDir, structuredClone(transaction.state_after));
+        writeFileAtomic(path, Buffer.from(semanticJson({ ...transaction, status: 'committed' })));
+    }
+    finally {
+        rmSync(scratch, { recursive: true, force: true });
+    }
+}
+function recoverDuplicateTransactionsUnlocked(runDir) {
+    const root = join(runDir, 'control/transactions');
+    if (!existsSync(root))
+        return;
+    const pending = readdirSync(root).filter((name) => /^TXN-duplicate-[0-9a-f]{64}\.json$/u.test(name))
+        .map((name) => join(root, name)).filter((path) => JSON.parse(readFileSync(path, 'utf8')).status !== 'committed');
+    if (pending.length > 1)
+        throw new Error('DUP_STATE forked prepared duplicate transactions');
+    for (const path of pending)
+        applyDuplicateTransaction(runDir, path);
+}
+export function recoverPendingDuplicateTransactions(runDir) {
+    const release = acquireLedgerLock(runDir, new Date().toISOString(), true);
+    try {
+        recoverDuplicateTransactionsUnlocked(runDir);
+    }
+    finally {
+        release();
+    }
+}
 function applyMaterialTransaction(runDir, path) {
     const raw = JSON.parse(readFileSync(path, 'utf8'));
     if (!isRecord(raw) || raw.format !== 'aleph-loa-material-transaction/v1')
@@ -201,7 +285,17 @@ function applyMaterialTransaction(runDir, path) {
     validateMaterialPlanIdentity(transaction.plan, transaction.row, transaction.stage);
     if (transaction.semantic_plan)
         validateSemanticPlan(transaction.semantic_plan);
+    if (transaction.duplicate_plan)
+        validateDuplicatePlan(transaction.duplicate_plan);
     const state = readRunState(runDir);
+    if (hasRunCapability(state.identity.run_format_version, 'duplicate-overlap-review') && transaction.row === null) {
+        if (!transaction.duplicate_plan || !stableJsonBytes(transaction.duplicate_plan.writes).equals(stableJsonBytes(transaction.plan.writes)))
+            throw new Error('DUP_STATE C1 requires the composed Core duplicate seal plan');
+        for (const ref of transaction.duplicate_plan.prerequisite_hashes) {
+            if (materialHash(readMaterialFile(runDir, ref.path)) !== ref.digest)
+                throw new Error(`DUP_SUBJECT changed C1 prerequisite ${ref.path}`);
+        }
+    }
     if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review') && transaction.row === null) {
         if (!transaction.semantic_plan || !stableJsonBytes(transaction.semantic_plan.writes).equals(stableJsonBytes(transaction.plan.writes))) {
             throw new Error('SEM_STATE C1 requires the composed Core semantic seal plan');
@@ -236,6 +330,8 @@ function applyMaterialTransaction(runDir, path) {
         const context = validateRepresentationRun(proposed);
         if (transaction.semantic_plan)
             validateSemanticRun(proposed);
+        if (transaction.duplicate_plan)
+            validateDuplicateRun(proposed);
         if (transaction.row) {
             if (representationUseClosureHash(proposed) !== null)
                 throw new Error('FROZEN_WRITE: pending material use cannot reopen C1');
@@ -549,6 +645,7 @@ export class LedgerWriter {
             recoverMaterialTransactionsUnlocked(this.runDir);
             recoverPendingLedgerTransactionsUnlocked(this.runDir, this.clock.now());
             recoverSemanticTransactionsUnlocked(this.runDir);
+            recoverDuplicateTransactionsUnlocked(this.runDir);
             const state = readRunState(this.runDir), stage = state.execution.stage;
             if (state.ledger.writer_id !== 'loa-orchestrator' || state.execution.halt || options.producer.simulation && state.full_mode !== 'fixture-simulated')
                 throw new Error('SEM_ISOLATION writer/halt/simulation boundary');
@@ -624,6 +721,86 @@ export class LedgerWriter {
             release();
         }
     }
+    executeDuplicateWrite(options) {
+        if (options.accepted.some((r) => !(r instanceof ValidatedWorkerReturn)))
+            throw new Error('DUP_ISOLATION actual accepted returns required');
+        const release = acquireLedgerLock(this.runDir, this.clock.now(), false), scratch = mkdtempSync(join(tmpdir(), 'aleph-duplicate-plan-'));
+        try {
+            recoverMaterialTransactionsUnlocked(this.runDir);
+            recoverPendingLedgerTransactionsUnlocked(this.runDir, this.clock.now());
+            recoverSemanticTransactionsUnlocked(this.runDir);
+            recoverDuplicateTransactionsUnlocked(this.runDir);
+            const state = readRunState(this.runDir);
+            if (state.ledger.writer_id !== 'loa-orchestrator' || state.execution.halt)
+                throw new Error('DUP_ISOLATION writer/halt boundary');
+            const key = `duplicate:${options.proposal_id}:${options.subject_digest}:${options.operation}:${options.record_id}`;
+            const path = join(this.runDir, 'control/transactions', `TXN-duplicate-${materialHash(key).slice(7)}.json`);
+            if (existsSync(path)) {
+                const prior = JSON.parse(readFileSync(path, 'utf8'));
+                const after = Object.fromEntries(prior.plan.writes.map((w) => [w.path, Buffer.from(w.after_base64, 'base64').toString('utf8')]));
+                if (semanticJson(after) !== semanticJson(options.next))
+                    throw new Error('DUP_STATE changed bytes under duplicate idempotency key');
+                applyDuplicateTransaction(this.runDir, path);
+                return prior.plan;
+            }
+            assertDuplicateWindow(loadRun(this.runDir));
+            const acceptanceRefs = [], acceptanceBindings = [];
+            for (const returned of options.accepted) {
+                returned.assertAuthenticAndIntact();
+                if (returned.simulation && state.full_mode !== 'fixture-simulated')
+                    throw new Error('DUP_ISOLATION simulated return in native run');
+                const request = verifyWorkerBundle(join(this.runDir, 'control/worker-bundles', returned.callId));
+                acceptanceBindings.push({ call_id: returned.callId, context_id: returned.contextId, raw_return_hash: returned.rawDigest, role: request.role });
+                for (const name of ['raw.json', 'validation.json']) {
+                    const ref = `control/worker-returns/${returned.callId}/${name}`, bytes = readFileSync(join(this.runDir, ref));
+                    if (name === 'raw.json' && materialHash(bytes) !== returned.rawDigest)
+                        throw new Error('DUP_SUBJECT accepted raw bytes changed');
+                    acceptanceRefs.push({ path: ref, digest: materialHash(bytes) });
+                }
+            }
+            const prospective = join(scratch, 'run');
+            cpSync(this.runDir, prospective, { recursive: true });
+            const writes = Object.entries(options.next).map(([path, text]) => {
+                assertSafeRelativePath(path, 'duplicate write');
+                assertNoSymlinkComponents(this.runDir, join(this.runDir, path));
+                const before = existsSync(join(this.runDir, path)) ? readFileSync(join(this.runDir, path)) : Buffer.alloc(0), after = Buffer.from(text);
+                writeFileAtomic(join(prospective, path), after);
+                return { path, before_hash: materialHash(before), after_base64: after.toString('base64'), after_hash: materialHash(after) };
+            });
+            const model = loadRun(prospective);
+            const plan = planDuplicateWrite({ model: loadRun(this.runDir), proposedModel: model, proposal_id: options.proposal_id,
+                subject_digest: options.subject_digest, operation: options.operation, record_id: options.record_id, writes,
+                prerequisite_paths: options.prerequisite_paths, acceptance_bindings: acceptanceBindings });
+            const admission_subplans = duplicateAdmissionSubplans(loadRun(this.runDir), model, plan);
+            validateSemanticRun(model);
+            validateRepresentationRun(model);
+            const stateAfter = structuredClone(state), chainPath = join(this.runDir, 'control/ledger-chain.jsonl');
+            const chainBefore = existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '';
+            let chainAfter = chainBefore;
+            for (const write of plan.writes) {
+                const receipt = { format: LOA_LEDGER_RECEIPT_FORMAT, sequence: nextDecimal(stateAfter.ledger.sequence), path: write.path,
+                    before_digest: write.before_hash, after_digest: write.after_hash, return_digest: options.accepted[0]?.rawDigest || materialHash(Buffer.alloc(0)),
+                    previous_chain_digest: stateAfter.ledger.chain_head, writer: 'loa-orchestrator', written_at: this.clock.now() };
+                const digest = materialHash(stableJsonBytes(receipt));
+                chainAfter += `${chainAfter && !chainAfter.endsWith('\n') ? '\n' : ''}${stableJson({ ...receipt, chain_digest: digest })}\n`;
+                stateAfter.ledger.sequence = receipt.sequence;
+                stateAfter.ledger.chain_head = digest;
+            }
+            stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
+            stateAfter.execution.resume.last_verified_at = this.clock.now();
+            stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
+            const transaction = { format: 'aleph-loa-duplicate-transaction/v1', plan, admission_subplans, acceptance_refs: acceptanceRefs,
+                state_checkpoint: state.execution.resume.checkpoint_digest, state_after: stateAfter,
+                chain_before_hash: materialHash(chainBefore), chain_after: chainAfter };
+            writeFileAtomic(path, Buffer.from(semanticJson({ ...transaction, digest: materialHash(semanticJson(transaction)), status: 'prepared' })));
+            applyDuplicateTransaction(this.runDir, path);
+            return plan;
+        }
+        finally {
+            rmSync(scratch, { recursive: true, force: true });
+            release();
+        }
+    }
     assertMaterialWindow(ownerStage) {
         const state = readRunState(this.runDir);
         try {
@@ -643,6 +820,8 @@ export class LedgerWriter {
     }
     append(relativePath, validated, render) {
         assertSafeRelativePath(relativePath, 'canonical run path');
+        if (duplicateRequiresWritePlan(loadRun(this.runDir), relativePath))
+            throw new Error('DUP_WINDOW duplicate writes require a Core duplicate plan');
         if (semanticRequiresWritePlan(loadRun(this.runDir), relativePath))
             throw new Error('SEM_WINDOW canonical semantic writes require a Core semantic plan');
         if (usesFormalLayoutBindings(readRunState(this.runDir).identity.run_format_version)
@@ -1141,6 +1320,7 @@ export class LedgerWriter {
                 if (hasRunCapability(readRunState(this.runDir).identity.run_format_version, 'semantic-unit-review')) {
                     recoverPendingLedgerTransactionsUnlocked(this.runDir, this.clock.now());
                     recoverSemanticTransactionsUnlocked(this.runDir);
+                    recoverDuplicateTransactionsUnlocked(this.runDir);
                 }
                 if (retainedClosurePhases(this.runDir).includes(phase))
                     return;
@@ -1175,21 +1355,36 @@ export class LedgerWriter {
                 throw new Error('SEM_ACCOUNTING pending semantic subjects block C1');
             addition += `\nsemantic_review_closure_hash: ${materialHash(readFileSync(join(this.runDir, SEMANTIC_PATH)))}`;
         }
+        if (hasRunCapability(state.identity.run_format_version, 'duplicate-overlap-review') && phase === 'S4-C1-relations-closed') {
+            const duplicate = validateDuplicateRun(loadRun(this.runDir));
+            if (duplicate.pending.length)
+                throw new Error('DUP_ACCOUNTING pending duplicate work blocks C1');
+            addition += `\nduplicate_review_closure_hash: ${materialHash(readFileSync(join(this.runDir, DUPLICATE_PATH)))}`;
+        }
         const next = appendedBytes(before, addition);
         const scratch = mkdtempSync(join(tmpdir(), 'aleph-s5-phase-'));
         const prospective = join(scratch, 'run');
         let semanticSealPlan;
+        let duplicateSealPlan;
         try {
             cpSync(this.runDir, prospective, { recursive: true });
             writeFileSync(join(prospective, RUN_LOG_PATH), next);
             const model = loadRun(prospective);
             if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review'))
                 validateSemanticRun(model);
+            if (hasRunCapability(state.identity.run_format_version, 'duplicate-overlap-review'))
+                validateDuplicateRun(model);
             if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review') && phase === 'S4-C1-relations-closed') {
                 semanticSealPlan = planSemanticWrite({ model: loadRun(this.runDir), proposedModel: model, stage: 'S4',
                     semantic_id: 'none', subject_digest: materialHash(readFileSync(join(this.runDir, SEMANTIC_PATH))),
                     operation: 'seal', record_id: 'C1', prerequisite_paths: [],
                     writes: [{ path: RUN_LOG_PATH, before_hash: materialHash(before), after_base64: next.toString('base64'), after_hash: materialHash(next) }] });
+            }
+            if (hasRunCapability(state.identity.run_format_version, 'duplicate-overlap-review') && phase === 'S4-C1-relations-closed') {
+                duplicateSealPlan = planDuplicateWrite({ model: loadRun(this.runDir), proposedModel: model, proposal_id: 'none',
+                    subject_digest: materialHash(readFileSync(join(this.runDir, DUPLICATE_PATH))), operation: 'seal', record_id: 'C1',
+                    writes: [{ path: RUN_LOG_PATH, before_hash: materialHash(before), after_base64: next.toString('base64'), after_hash: materialHash(next) }],
+                    prerequisite_paths: [], acceptance_bindings: [] });
             }
             const results = new ResultCollector(state.run_id);
             runK2Relations(results, model);
@@ -1238,7 +1433,7 @@ export class LedgerWriter {
             const transaction = { format: 'aleph-loa-material-transaction/v1', plan, raw_digest: seal,
                 state_checkpoint: state.execution.resume.checkpoint_digest, state_after: stateAfter,
                 chain_before_hash: materialHash(chain), chain_after: chainAfter, stage: 'S4', row: null,
-                ...(semanticSealPlan ? { semantic_plan: semanticSealPlan } : {}) };
+                ...(semanticSealPlan ? { semantic_plan: semanticSealPlan } : {}), ...(duplicateSealPlan ? { duplicate_plan: duplicateSealPlan } : {}) };
             const path = join(this.runDir, 'control', 'transactions', `TXN-material-${materialHash(plan.key).slice(7)}.json`);
             const record = { ...transaction, digest: materialHash(stableJsonBytes(transaction)), status: 'prepared' };
             writeFileAtomic(path, semanticSealPlan ? Buffer.from(semanticJson(record)) : stableJsonBytes(record));

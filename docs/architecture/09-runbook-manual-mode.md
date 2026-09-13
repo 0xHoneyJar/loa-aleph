@@ -254,3 +254,15 @@ Apply T2.3 and T3.6 without adapter control files. Preserve SRC bytes separately
 ## Slice 7 semantic review (1.7)
 
 New 1.7 manual runs follow T3.7 exact semantic files and seals. Retain distinct producer/reviewer actors and pass IDs with the exact seven-field manual evidence record. A same-person later sitting is temporal evidence and does not satisfy independent producer/reviewer review. These are manual semantic roles, not human semantic-authority gates. Original retained procedures and runs are not migrated.
+
+## Slice 8 duplicate review (1.8)
+
+Only new runs with `duplicate-overlap-review` use T3.8. Q8-MANUAL permits exactly this profile solely for their duplicate-review L3 subject:
+
+```json
+{"profile_id":"n/a (core-manual)","profile_digest":null,"role":"verifier-l3","model_identity":"human"}
+```
+
+Retained run identity remains core-manual / human-operator / human, with profile n/a (core-manual) and mapping n/a (manual). Retain the seven-field actor/pass evidence separately. Round 1 requires a reviewer distinct from the comparison producer. Only cannot-determine requires round 2; that reviewer is a different actor from both earlier actors, with all corresponding passes distinct. Both reviewers see the identical sealed subject, without prior verdicts. The comparison producer may express a successor only in a new bounded normalizer pass; L2S is a different actor/pass and cannot reuse an L3 reviewing pass. Same-person separate sittings do not satisfy independence.
+
+Evidence remains `manual-separate-pass`; no profile digest, model object or model-effort mapping is fabricated. Synthetic actor declarations do not prove human execution. This exception does not extend to other roles or retained predecessor runs. Preserve discovery/union/history accounting and the C1/C2/C3 order in [K2.20](checker-spec/K2-20-duplicate-review.md).

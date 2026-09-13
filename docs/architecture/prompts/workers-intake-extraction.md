@@ -1463,3 +1463,7 @@ refuted or indeterminate proposal and block that successor.
   }
 }
 ```
+
+## Slice 8 capability selection
+
+For duplicate-overlap-review, Core selects the bounded discovery/comparison contracts in workers-judgment.md for the existing Merge Judge. The predecessor Merge Judge contract remains operative for older pins. An S4 successor normalizer receives only the eligible reviewed content request, exact member origins and reserved existing lineage event; it cannot choose membership or reuse an L3 verdict as L2S.

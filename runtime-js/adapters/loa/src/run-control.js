@@ -1,3 +1,4 @@
+import { validateDuplicateRun } from '../../../scripts/lib/duplicate-review.js';
 import { existsSync, linkSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { proceduralAuthorityRequestJson, proceduralAuthorityResponseJson, validateProceduralAuthorityRequest, validateProceduralAuthorityResponse, PROCEDURAL_FOLLOWUP_REASONS, } from '../../../scripts/lib/internal-ambiguity.js';
@@ -554,6 +555,8 @@ export function verifyRunControl(runDir) {
     }
     if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review'))
         validateSemanticRun(loadRun(runDir));
+    if (hasRunCapability(state.identity.run_format_version, 'duplicate-overlap-review'))
+        validateDuplicateRun(loadRun(runDir));
     const corpus = verifyCorpusSnapshot(runDir);
     if (corpus.run_id !== state.run_id
         || corpus.tree_digest !== state.corpus.tree_digest

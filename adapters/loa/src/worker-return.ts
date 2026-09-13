@@ -1,3 +1,4 @@
+import { isDuplicateOutputContract, validateDuplicateOutputContract, validateDuplicateReturn, validateDuplicateProducerDelivery, validateDuplicateReviewDispatch } from '../../../scripts/lib/duplicate-review.ts';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {
   basename,
@@ -258,7 +259,7 @@ export function validateWorkerReturn(
     || request.output_contract.selector.length === 'output-contract:'.length) {
     throw new Error('worker output contract selector is invalid');
   }
-  const parsed = parseRaw(options.raw, isSemanticOutputContract(JSON.parse(contractBytes.toString('utf8'))));
+  const parsed = parseRaw(options.raw, (isSemanticOutputContract(JSON.parse(contractBytes.toString('utf8'))) || isDuplicateOutputContract(JSON.parse(contractBytes.toString('utf8')))));
   const rawDigest = sha256Digest(parsed.bytes);
   writeFileAtomic(join(returnRoot, 'raw.json'), parsed.bytes);
   const errors: string[] = [];
@@ -276,10 +277,19 @@ export function validateWorkerReturn(
       );
     }
     const validation = validateWorkerReturnContract(parsed.bytes, example);
-    semantic = isSemanticOutputContract(example);
+    semantic = isSemanticOutputContract(example) || isDuplicateOutputContract(example);
     errors.push(...validation.errors);
     canonicalValue = validation.canonicalValue as JsonValue | null;
     if (canonicalValue !== null && errors.length === 0) {
+      if (isDuplicateOutputContract(example)) {
+        const task = validateDuplicateOutputContract(example), model = loadRun(dirname(dirname(dirname(workerRoot))));
+        const attachments = request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(workerRoot, a.attachment_path)) }));
+        const context = task === 'refutation' ? { model, subject: validateDuplicateReviewDispatch(model, request.call_id, request.task_line,
+          request.isolation.producer_context_id, attachments) }
+          : validateDuplicateProducerDelivery(model, task, request.call_id, request.task_line, attachments);
+        const checked = validateDuplicateReturn(task, model.manifest!.runFormatVersion, canonicalValue, context);
+        errors.push(...checked.errors);
+      }
       if (isSemanticOutputContract(example)) {
         const runDir = dirname(dirname(dirname(workerRoot)));
         const model = loadRun(runDir);

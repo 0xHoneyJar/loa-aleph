@@ -11,7 +11,7 @@ import { captureRuntimeSnapshot, defaultProfilePath, loadLoaProfile, validateRes
 import { invokePinnedChecker, } from './checker.js';
 import { verifyLoaInstallation } from './installer.js';
 import { runLoaPreflight } from './preflight.js';
-import { LedgerWriter, recoverPendingLedgerTransactions, recoverPendingMaterialTransactions, recoverPendingSemanticTransactions, } from './ledger-writer.js';
+import { LedgerWriter, recoverPendingLedgerTransactions, recoverPendingMaterialTransactions, recoverPendingSemanticTransactions, recoverPendingDuplicateTransactions, } from './ledger-writer.js';
 import { CLOSURE_PHASES, closurePhasesFromText, nextClosurePhase, } from '../../../scripts/lib/internal-ambiguity.js';
 import { usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
 import { representationUsesMarkdown, REPRESENTATION_USE_PATH, assertRepresentationExtractionSupported, readRepresentationContext, RepresentationError } from '../../../scripts/lib/source-representation.js';
@@ -389,6 +389,7 @@ export function resumeLoaRun(runId, options = {}) {
         recoverPendingAuthorityTransactions(runDir, options.clock);
         recoverPendingMaterialTransactions(runDir);
         recoverPendingSemanticTransactions(runDir);
+        recoverPendingDuplicateTransactions(runDir);
         recoverPendingLedgerTransactions(runDir, options.clock);
         let state = verifyRunControl(runDir);
         const runtime = verifyRetainedRuntimeIdentity(runDir, state);
