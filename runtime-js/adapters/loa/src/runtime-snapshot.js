@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync, } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { LOA_ADAPTER_ID, LOA_HOST_FORMAT, LOA_MODEL_SLOTS, LOA_PROFILE_FORMAT, LOA_REQUIRED_HOST_CAPABILITIES, LOA_ROLE_IDS, LOA_RUNTIME_SNAPSHOT_FORMAT, } from './types.js';
-import { CURRENT_RUN_FORMAT_VERSION, SUPPORTED_RUN_FORMAT_VERSIONS, usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
+import { CURRENT_RUN_FORMAT_VERSION, SUPPORTED_RUN_FORMAT_VERSIONS, usesFormalLayoutBindings, hasRunCapability } from '../../../scripts/lib/run-model.js';
 import { assertSafeRelativePath, digestFile, digestTreeRecords, makeTreeReadOnly, readJsonFile, readStableRegularFile, sha256Digest, stableJsonBytes, utf8Compare, writeFileAtomic, writeJsonAtomic, } from './fs.js';
 import { readLockedFile, readVerifiedBundleLock, verifyAndLoadLoaBundle, } from './core-loader.js';
 import { isProviderPinnedClaudeModelId, validateClaudeCodeHostCapabilities, } from './claude-code-host.js';
@@ -110,7 +110,11 @@ export function parseLoaProfile(value, runFormatVersion = CURRENT_RUN_FORMAT_VER
     const legacyMaterialRole = SUPPORTED_RUN_FORMAT_VERSIONS.includes(runFormatVersion)
         && !usesFormalLayoutBindings(runFormatVersion) && isRecord(profile.role_mappings)
         && !('verifier-l2f' in profile.role_mappings);
-    const expectedRoles = legacyMaterialRole ? LOA_ROLE_IDS.filter((role) => role !== 'verifier-l2f') : LOA_ROLE_IDS;
+    const legacySemanticRole = SUPPORTED_RUN_FORMAT_VERSIONS.includes(runFormatVersion)
+        && !hasRunCapability(runFormatVersion, 'semantic-unit-review') && isRecord(profile.role_mappings)
+        && !('verifier-l2s' in profile.role_mappings);
+    const expectedRoles = LOA_ROLE_IDS.filter((role) => !(legacyMaterialRole && role === 'verifier-l2f')
+        && !(legacySemanticRole && role === 'verifier-l2s'));
     if (!isRecord(profile.role_mappings)
         || !exactStrings(Object.keys(profile.role_mappings), expectedRoles)) {
         throw new Error('Loa profile does not map every Core role exactly once');

@@ -269,16 +269,17 @@ function checkRow(
   currentClaims: ReadonlySet<string>,
   currentPackets: ReadonlySet<string>,
   fail: (message: string) => void,
+  proposal = false,
 ): void {
   const values = row.values;
   const label = values.relationId || 'relation row';
   const familyKnown = isOneOf(values.family, RELATION_FAMILIES);
   const typeKnown = isOneOf(values.type, RELATION_TYPES);
 
-  if (row.cells.length !== RELATION_TABLE_HEADER.length) {
+  if (!proposal && row.cells.length !== RELATION_TABLE_HEADER.length) {
     fail(`${label} has ${row.cells.length} fields; expected exactly 17`);
   }
-  if (!/^REL-\d+$/.test(values.relationId)) {
+  if (!proposal && !/^REL-\d+$/.test(values.relationId)) {
     fail(`${label} relation_id must be REL-<digits> at ${location(row)}`);
   }
   if (!isOneOf(values.recordState, RELATION_RECORD_STATES)) {
@@ -456,7 +457,7 @@ function checkRow(
   if (!/^(?:human|invocation):\S+$/.test(values.proposedBy)) {
     fail(`${label} proposed_by must use human:<actor-slug> or invocation:<producer-invocation-id>`);
   }
-  if (!exactId(values.reviewedBy, 'VER')) {
+  if (!proposal && !exactId(values.reviewedBy, 'VER')) {
     fail(`${label} reviewed_by must be exactly one VER-<digits> identity`);
   }
   if (!/^sha256:[a-f0-9]{64}$/.test(values.reviewSubjectDigest)) {
@@ -467,7 +468,7 @@ function checkRow(
       fail(`${label} review_subject_digest does not match the complete canonical pre-review subject`);
     }
   }
-  if (exactId(values.reviewedBy, 'VER')) {
+  if (!proposal && exactId(values.reviewedBy, 'VER')) {
     const verdicts = verifierVerdicts(model, values.reviewedBy);
     if (verdicts.length !== 1) {
       fail(`${label} reviewed_by ${values.reviewedBy} must resolve to exactly one verifier verdict; found ${verdicts.length}`);
@@ -503,6 +504,16 @@ function checkRow(
   ) {
     fail(`${label} self-edge ${values.sourceId} -> ${values.targetId} is forbidden`);
   }
+}
+
+/** The same Slice 4 rules, before REL allocation or L3R certification. */
+export function relationProposalProblems(model: RunModel, row: RelationRow, historical = false): string[] {
+  const problems: string[] = [];
+  checkRow(model, row,
+    historical ? new Set(model.claims.map((c) => c.values.claimId)) : lineageCurrentClaimIds(model),
+    historical ? new Set(model.packets.map((p) => p.values.packetId)) : lineageCurrentPacketIds(model),
+    (problem) => problems.push(problem), true);
+  return problems;
 }
 
 export function runK2Relations(results: ResultCollector, model: RunModel): void {

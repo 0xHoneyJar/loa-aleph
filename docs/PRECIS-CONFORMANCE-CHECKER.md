@@ -426,3 +426,7 @@ approved slice and a stable, false-positive-free pattern before adoption:
 ## Representation conformance (1.6)
 
 K2.18 is implemented in `scripts/lib/checks-k2-representations.ts` using the single Core model in `source-representation.ts`. The focused representation mutation and process suites cover exact bytes, declared structural availability, semantic-overreach guards, retained imports, use closure and durable writes. Run `npm run test:representations` and `npm run test:representation-process`. K2.14 uses the 1.6 review-basis extension with representation_inventory_hash; earlier digest algorithms remain unchanged. Neither check establishes semantic correctness, replay acceptance, agent sanction or v1.
+
+## Slice 7 semantic review (1.7)
+
+K2.19 adds exact 1.7 semantic accounting under T3.7, without reinterpreting 1.0–1.6 fixtures or inferring semantic correctness. It reopens source bytes, subjects, assignments, results, resolutions, stage seals and C1 closure. Incidental marker strings in frozen corpus bytes remain data.

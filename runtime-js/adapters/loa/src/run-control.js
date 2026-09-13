@@ -552,6 +552,8 @@ export function verifyRunControl(runDir) {
     if (usesFormalLayoutBindings(state.identity.run_format_version) && state.corpus.state === 'frozen') {
         validateRepresentationRun(loadRun(runDir));
     }
+    if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review'))
+        validateSemanticRun(loadRun(runDir));
     const corpus = verifyCorpusSnapshot(runDir);
     if (corpus.run_id !== state.run_id
         || corpus.tree_digest !== state.corpus.tree_digest
@@ -1166,3 +1168,5 @@ export function recordHumanAuthorityDecision(runDir, decision) {
         release();
     }
 }
+import { validateSemanticRun } from '../../../scripts/lib/semantic-review.js';
+import { hasRunCapability } from '../../../scripts/lib/run-model.js';

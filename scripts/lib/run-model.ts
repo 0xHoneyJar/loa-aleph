@@ -49,7 +49,8 @@ export const LINEAGE_RUN_FORMAT_VERSION = '1.3.0-provisional';
 export const TYPED_RELATIONS_RUN_FORMAT_VERSION = '1.4.0-provisional';
 export const INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION = '1.5.0-provisional';
 export const FORMAL_LAYOUT_RUN_FORMAT_VERSION = '1.6.0-provisional';
-export const CURRENT_RUN_FORMAT_VERSION = FORMAL_LAYOUT_RUN_FORMAT_VERSION;
+export const SEMANTIC_REVIEW_RUN_FORMAT_VERSION = '1.7.0-provisional';
+export const CURRENT_RUN_FORMAT_VERSION = SEMANTIC_REVIEW_RUN_FORMAT_VERSION;
 export const PACKET_DEFINITION_HEADER = [
   'packet id',
   'source id',
@@ -78,7 +79,8 @@ export const SUPPORTED_RUN_FORMAT_VERSIONS = [
   LINEAGE_RUN_FORMAT_VERSION,
   TYPED_RELATIONS_RUN_FORMAT_VERSION,
   INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION,
-  CURRENT_RUN_FORMAT_VERSION,
+  FORMAL_LAYOUT_RUN_FORMAT_VERSION,
+  SEMANTIC_REVIEW_RUN_FORMAT_VERSION,
 ] as const;
 
 export const RUN_CAPABILITIES = [
@@ -90,6 +92,7 @@ export const RUN_CAPABILITIES = [
   'typed-relations',
   'internal-ambiguity-lifecycle',
   'formal-layout-bindings',
+  'semantic-unit-review',
 ] as const;
 
 export type RunCapability = typeof RUN_CAPABILITIES[number];
@@ -125,6 +128,10 @@ const RUN_FORMAT_CAPABILITY_ADDITIONS: ReadonlyArray<{
   {
     version: FORMAL_LAYOUT_RUN_FORMAT_VERSION,
     additions: ['formal-layout-bindings'],
+  },
+  {
+    version: SEMANTIC_REVIEW_RUN_FORMAT_VERSION,
+    additions: ['semantic-unit-review'],
   },
 ];
 

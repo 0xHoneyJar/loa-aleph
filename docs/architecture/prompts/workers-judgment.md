@@ -171,3 +171,7 @@ no arm outputs that don't exist yet.
   "posture_changes": [{ "rc_id": "", "from": "", "to": "",
   "trigger": "" }] }
 ```
+
+## Slice 7 semantic review (1.7)
+
+For 1.7, admitted semantic facets are read-only source-preservation/challenge context for S5 and S6. Judge dispositions and CC×SRC evidence roles independently. Content-role annotations never map to claim_type, support roles, S5 dispositions, relation types or human authority.

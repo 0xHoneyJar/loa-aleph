@@ -617,3 +617,7 @@ disposition. Historical predecessor formats retain their pinned behavior.
 ## Source representation artifacts (1.6)
 
 `corpus/representations.md` contains T2.3 REP/AST/RPR/BND/OBJ/ASC tables; `corpus/representation-assets/AST-NNNN.<ext>` retains exact supplied bytes. `ledgers/representation-uses.md` contains T3.6 USE receipts. See templates 02 and 03 for the canonical grammar. The S0 inventory seal and C1 use seal are immutable. No JSON twin or adapter record replaces the canonical tables.
+
+## Slice 7 semantic review (1.7)
+
+T3.7 defines semantic-review.md, immutable SEM/VER JSON, assignments, resolutions, exact source anchors and mechanically derived Précis section 17 findings for 1.7. Canonical JSON has exact listed keys/order and no extensions. Preserve exact evidence, material-use, lineage, relations and ambiguity contracts separately.

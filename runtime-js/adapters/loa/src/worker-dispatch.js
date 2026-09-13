@@ -8,6 +8,8 @@ import { readRunState } from './run-control.js';
 import { runtimeSnapshotPath, verifyRuntimeSnapshot, } from './runtime-snapshot.js';
 import { assembleWorkerBundle, verifyWorkerBundle, } from './worker-bundle.js';
 import { verifyAndLoadLoaBundle } from './core-loader.js';
+import { isSemanticOutputContract, semanticJson } from '../../../scripts/lib/semantic-review.js';
+import { parseStrictJson } from '../../../scripts/lib/worker-return-contract.js';
 import { canonicalWorkerReturnRoot, contractExemplarToJsonSchema, validateWorkerReturn, } from './worker-return.js';
 import { buildClaudeCodeWorkerPrompt, invokeClaudeCodeWorker, isProviderPinnedClaudeModelId, parseClaudeCodeStream, } from './claude-code-host.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
@@ -30,19 +32,28 @@ function exactKeys(value, keys) {
     return actual.length === expected.length
         && actual.every((key, index) => key === expected[index]);
 }
-function canonicalFile(path, label) {
+function canonicalFile(path, label, semantic = false) {
     const stable = readStableRegularFile(path);
     let value;
     try {
-        value = JSON.parse(stable.bytes.toString('utf8'));
+        value = semantic ? parseStrictJson(stable.bytes, true) : JSON.parse(stable.bytes.toString('utf8'));
     }
     catch (error) {
         throw new Error(`${label} is invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
     }
-    if (!stable.bytes.equals(stableJsonBytes(value))) {
+    if (!stable.bytes.equals(semantic ? Buffer.from(semanticJson(value)) : stableJsonBytes(value))) {
         throw new Error(`${label} is not canonical JSON`);
     }
     return { value, bytes: stable.bytes };
+}
+function semanticInvocation(invocation) {
+    const bytes = readStableRegularFile(join(invocation.worker_bundle_root, 'contracts/output.json')).bytes;
+    if (sha256Digest(bytes) !== invocation.request.output_contract.digest)
+        throw new Error('sealed output contract changed');
+    return isSemanticOutputContract(JSON.parse(bytes.toString('utf8')));
+}
+function workerReturnBytes(invocation, value) {
+    return semanticInvocation(invocation) ? Buffer.from(semanticJson(value)) : stableJsonBytes(value);
 }
 function parseWorkerAssemblyInput(path) {
     const loaded = canonicalFile(path, 'Loa worker assembly input');
@@ -508,6 +519,9 @@ function readNativeDispatchRecord(path, invocation, host, structuredReturnBytes)
     const eventPath = invocation.result.event_stream_path;
     assertImmutableRegularFile(eventPath, 'Claude Code event stream');
     const eventStream = readStableRegularFile(eventPath).bytes;
+    if (semanticInvocation(invocation))
+        for (const line of eventStream.toString('utf8').split('\n').filter((line) => line.trim()))
+            parseStrictJson(line);
     if (record.event_stream_digest !== sha256Digest(eventStream)
         || evidence.event_stream_digest !== record.event_stream_digest
         || evidence.event_stream_byte_length !== String(eventStream.byteLength)) {
@@ -537,7 +551,7 @@ function readNativeDispatchRecord(path, invocation, host, structuredReturnBytes)
     }
     if (stableJson(parsed.structuredOutput) !== stableJson(structuredValue)
         || evidence.format !== LOA_CLAUDE_CODE_DISPATCH_FORMAT
-        || evidence.structured_output_digest !== sha256Digest(structuredReturnBytes)
+        || evidence.structured_output_digest !== sha256Digest(semanticInvocation(invocation) ? stableJsonBytes(structuredValue) : structuredReturnBytes)
         || record.receipt.context_id !== evidence.session_id
         || record.receipt.model_identity.model_id !== evidence.observed_model
         || evidence.effort !== invocation.model_identity.effort
@@ -577,7 +591,7 @@ export function acceptLoaWorkerHandoff(options) {
     const dispatchRecordPath = join(returnRoot, NATIVE_DISPATCH_FILE);
     const nativeReturnPath = join(returnRoot, NATIVE_RETURN_FILE);
     assertImmutableRegularFile(nativeReturnPath, 'Loa native structured return');
-    const returned = canonicalFile(nativeReturnPath, 'Loa native structured return');
+    const returned = canonicalFile(nativeReturnPath, 'Loa native structured return', semanticInvocation(invocation));
     const raw = returned.bytes;
     const host = pinnedHostBinding(workerBundleRoot, invocation.request).host;
     const dispatch = readNativeDispatchRecord(dispatchRecordPath, invocation, host, raw);
@@ -617,7 +631,7 @@ export function dispatchPreparedClaudeCodeHandoff(options) {
         }
     }
     const completed = invokeClaudeCodeWorker(invocation, binding.host);
-    const returnBytes = stableJsonBytes(completed.structuredReturn);
+    const returnBytes = workerReturnBytes(invocation, completed.structuredReturn);
     const dispatchRecord = {
         format: NATIVE_DISPATCH_FORMAT,
         invocation_digest: invocation.invocation_digest,
@@ -673,7 +687,7 @@ export function dispatchPreparedLoaWorker(options) {
     if (stableJson(result.receipt.simulation) !== stableJson(invocation.simulation)) {
         throw new Error('Loa fresh-context host lost or forged its simulation label');
     }
-    const returnBytes = stableJsonBytes(result.structured_return);
+    const returnBytes = workerReturnBytes(invocation, result.structured_return);
     const dispatchRecord = {
         format: NATIVE_DISPATCH_FORMAT,
         invocation_digest: invocation.invocation_digest,

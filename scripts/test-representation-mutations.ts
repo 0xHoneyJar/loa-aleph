@@ -317,9 +317,10 @@ try {
     assert(source.includes(Buffer.from('&amp;')) && source.includes(Buffer.from('  Ω')));
   });
   test('FX16 formats 1.0–1.5 do not activate material capability', () => {
-    for (const version of SUPPORTED_RUN_FORMAT_VERSIONS.slice(0, -1)) assert.equal(hasRunCapability(version, 'formal-layout-bindings'), false);
-    assert.equal(hasRunCapability('1.6.0-provisional', 'formal-layout-bindings'), true);
-    assert.equal(hasRunCapability('1.7.0-provisional', 'formal-layout-bindings'), false);
+    const firstMaterial = SUPPORTED_RUN_FORMAT_VERSIONS.indexOf('1.6.0-provisional');
+    for (const version of SUPPORTED_RUN_FORMAT_VERSIONS.slice(0, firstMaterial)) assert.equal(hasRunCapability(version, 'formal-layout-bindings'), false);
+    for (const version of SUPPORTED_RUN_FORMAT_VERSIONS.slice(firstMaterial)) assert.equal(hasRunCapability(version, 'formal-layout-bindings'), true);
+    assert.equal(hasRunCapability('99.0.0-provisional', 'formal-layout-bindings'), false);
   });
   test('FX17 rendered formal export has independent asset identity', () => {
     const raw = descriptor(), rendered = Buffer.from('x² + y²'), log = Buffer.from('synthetic renderer receipt; settings unknown');
@@ -442,7 +443,7 @@ try {
   }, 'FORMAT');
   test('unknown format is refused', () => {
     const run = copyPositive('unknown-format'); const p = join(run, 'run-manifest.md');
-    writeFileSync(p, readFileSync(p, 'utf8').replace('1.6.0-provisional', '1.7.0-provisional')); cli(run, 'FORMAT');
+    writeFileSync(p, readFileSync(p, 'utf8').replace('1.6.0-provisional', '99.0.0-provisional')); cli(run, 'FORMAT');
   }, 'FORMAT');
   test('frozen inventory omission is refused', () => {
     const run = frozen('missing-inventory'); rmSync(join(run, REPRESENTATION_PATH)); cli(run, 'CAPTURE_HASH');
