@@ -471,7 +471,7 @@ export function makeDuplicateSuccessorFixture(run: string, rejected = false,
     unit_definitions: basis.members.map((m) => ({ kind: 'CC', id: m.claim_id, projection: m.claim_projection as never })) };
   const successor = addFixtureNormalization(f.semantic, { number: successorNumber, lineage,
     origins: proposal.member_semantic_refs.flatMap((m) => m.unit_refs), packets: proposal.provenance_union.packet_ids,
-    anchors: f.semantic.entry.anchors, semantics: fixtureSemantics(proposal.successor_request!.proposed_claim),
+    anchors: f.semantic.entry.anchors,
     proposition: rejected ? 'The indicator lit.' : proposal.successor_request!.proposed_claim,
     outcome: rejected ? 'not-admitted' : 'admitted' });
   if (rejected) {

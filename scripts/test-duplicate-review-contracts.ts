@@ -18,6 +18,7 @@ const runtime = process.argv.includes('--runtime');
 const modulePath = (name: string): string => new URL(runtime ? `../runtime-js/scripts/${name}.js` : `./${name}.ts`, import.meta.url).href;
 const core = await import(modulePath('lib/duplicate-review')) as typeof import('./lib/duplicate-review.ts');
 const { validateRun } = await import(modulePath('validate-run')) as typeof import('./validate-run.ts');
+const { validateSemanticSubject } = await import(modulePath('lib/semantic-review')) as typeof import('./lib/semantic-review.ts');
 const { validateWorkerReturnContract, contractExemplarToJsonSchema } = await import(modulePath('lib/worker-return-contract')) as typeof import('./lib/worker-return-contract.ts');
 const temp = mkdtempSync(join(tmpdir(), 'aleph-duplicate-contracts-'));
 const records: Array<{ id: string; result: 'PASS' | 'FAIL'; error?: string }> = [];
@@ -56,6 +57,27 @@ try {
       assert.equal(validateWorkerReturnContract(semanticJson({ ...value as object, unexpected: true }), contract).result, 'FAIL');
     }
   });
+  test('D8-C13 native comparison material and frozen-request constraints match portable admission', () => {
+    type Shape = { properties: Record<string, Shape>; anyOf: Shape[]; items: Shape; enum: string[]; minItems: number; pattern: string };
+    const schema = core.duplicateReturnJsonSchema('comparison', '1.8.0-provisional') as unknown as Shape;
+    const material = schema.properties.proposal.properties.successor_request.anyOf[0].properties.material_use;
+    assert.equal(material.properties.requirements.minItems, 1);
+    assert.deepEqual(material.properties.use_state.enum, ['usable', 'CANNOT_DETERMINE']);
+    assert.deepEqual(material.properties.fidelity_claim.enum, ['none', 'exact-representation']);
+    assert.deepEqual(material.properties.requirements.items.properties.feature.enum,
+      ['text-bytes', 'table-grid', 'header-association', 'caption-association', 'formal-structure', 'image', 'chart-values', 'spatial-region']);
+    const requested = schema.properties.proposal.properties.unresolved_findings.items.properties.requested_context.items.properties;
+    assert(new RegExp(requested.locator.pattern).test('L1-L3'));
+    assert(!new RegExp(requested.locator.pattern).test('external-document'));
+    const proposal = duplicateFixtureSuccessorProposal(f.subject!.comparison_basis);
+    for (const [field, invalid] of [['use_state', 'ready'], ['fidelity_claim', 'gold'], ['requirements', []]] as const) {
+      const changed = structuredClone(proposal);
+      Object.assign(changed.successor_request!.material_use, { [field]: invalid });
+      const result = core.validateDuplicateReturn('comparison', '1.8.0-provisional',
+        { proposal: changed, rationale: 'Synthetic invalid material declaration.', flags: [] });
+      assert.equal(result.result, 'FAIL');
+    }
+  });
   test('D8-C03 bound comparison and refutation validate against actual complete basis', () => {
     const model = loadRun(f.run), basis = f.subject!.comparison_basis;
     const proposal = core.validateDuplicateReturn('comparison', '1.8.0-provisional',
@@ -63,6 +85,36 @@ try {
     assert.equal(proposal.result, 'PASS', proposal.errors.join('; ')); assert.equal(proposal.binding, 'checked');
     const review = core.validateDuplicateReturn('refutation', '1.8.0-provisional', duplicateFixtureResult(f.subject!), { model, subject: f.subject });
     assert.equal(review.result, 'PASS', review.errors.join('; ')); assert.equal(review.binding, 'checked');
+  });
+  test('D8-C14 checked return binding reopens run pins, basis and assigned candidate', () => {
+    const model = loadRun(f.run), subject = structuredClone(f.subject!);
+    subject.run_binding.run_id = 'UNRELATED-RUN';
+    const review = core.validateDuplicateReturn('refutation', '1.8.0-provisional', duplicateFixtureResult(subject), { model, subject });
+    assert.equal(review.result, 'FAIL'); assert.equal(review.binding, 'not-checked');
+    const basis = structuredClone(f.subject!.comparison_basis);
+    basis.members[0].claim_text_base64 = Buffer.from('Different frozen bytes.').toString('base64');
+    for (const context of [{ model, basis }, { model, basis: f.subject!.comparison_basis, candidate_ref: 'DCD-9999/G1' }]) {
+      const comparison = core.validateDuplicateReturn('comparison', '1.8.0-provisional',
+        { proposal: f.subject!.proposal, rationale: 'Synthetic mismatched return context.', flags: [] }, context);
+      assert.equal(comparison.result, 'FAIL'); assert.equal(comparison.binding, 'not-checked');
+    }
+  });
+  test('D8-C15 active S4 lineage and map require composed plans; predecessor guard is unchanged', () => {
+    const model = loadRun(f.run);
+    for (const path of ['ledgers/lineage.md', 'ledgers/merge-map.md']) assert(core.duplicateRequiresWritePlan(model, path));
+    model.manifest!.runFormatVersion = '1.7.0-provisional';
+    for (const path of ['ledgers/lineage.md', 'ledgers/merge-map.md']) assert(!core.duplicateRequiresWritePlan(model, path));
+  });
+  test('D8-C16 failed successor history survives later success without permitting fresh stale reservations', () => {
+    const history = makeDuplicateSuccessorFixture(join(temp, 'failed-history'), true);
+    const path = join(history.run, 'verification/harness/semantic-subjects/SEM-0803.json'), before = readFileSync(path);
+    duplicateFixtureDiscovery(history, [['CC-0801', 'CC-0802']], '0002');
+    makeDuplicateSuccessorFixture(history.run, false, { base: history, proposalNumber: '0002', predecessor: 'DUP-0001',
+      successorNumber: '0805', wording: 'The indicator was lit during trial A.' });
+    check(history.run);
+    assert(readFileSync(path).equals(before));
+    assert.deepEqual(history.ledger.effects.map((e) => e.effect), ['not-admitted', 'canonicalized']);
+    assert.throws(() => validateSemanticSubject(JSON.parse(before.toString('utf8')), loadRun(history.run), new Set(), true), /SEM_REFERENCE/u);
   });
   test('D8-C04 same text with coherent cannot-determine remains structurally valid', () => {
     const unknown = makeDuplicateFixture(join(temp, 'unknown'), { outcome: 'CANNOT_DETERMINE' });

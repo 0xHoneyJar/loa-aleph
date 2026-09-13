@@ -8,7 +8,7 @@ import { relationReviewSubjectJson, RELATION_REVIEW_SUBJECT_FORMAT } from './rel
 import { relationProposalProblems } from './checks-k2-relations.js';
 import { runK2Lineage } from './checks-k2-lineage.js';
 import { ResultCollector } from './results.js';
-import { materialHash, materialTableMarkdown, readMaterialFile, readRepresentationContext, validateMaterialUseInput, planRepresentationUseWrite, validateMaterialPlanIdentity, validateRepresentationRun } from './source-representation.js';
+import { materialHash, materialTableMarkdown, readMaterialFile, readRepresentationContext, validateMaterialUseInput, planRepresentationUseWrite, validateMaterialPlanIdentity, validateRepresentationRun, MATERIAL_FEATURES } from './source-representation.js';
 import { parseStrictJson, validateJudgmentRationale } from './worker-return-contract.js';
 import { canonicalJsonBytes, bundleLockBytes, resealBundleLock } from './bundle-format.js';
 import { parseStructuredVerifierRecord, INTERNAL_AMBIGUITY_REVIEW_SUBJECT_FORMAT } from './internal-ambiguity.js';
@@ -1639,6 +1639,7 @@ export function validateDuplicateRun(model) {
 export function duplicateRequiresWritePlan(model, path) {
     return hasRunCapability(model.manifest?.runFormatVersion || '', 'duplicate-overlap-review')
         && (path === DUPLICATE_PATH || /^verification\/harness\/duplicate-(discovery|subjects|assignments|results|effects)\//u.test(path)
+            || ['ledgers/lineage.md', 'ledgers/merge-map.md'].includes(path) && duplicateStage(model) >= 4
             || path.startsWith('verification/harness/duplicate-process/')
                 && (duplicateStage(model) !== 4 || duplicateClosureHash(model) !== null));
 }
@@ -1888,7 +1889,7 @@ export function duplicateReturnJsonSchema(task, version) {
             closedSchema({ use_subject_digest: sha, requirement_index: index }),
             closedSchema({ use_subject_digest: sha, limitation_id: stringSchema('^(REP|OBJ|ASC)-(?=[0-9]*[1-9])[0-9]{4,}$') }),
         ] });
-    const requested = arraySchema(closedSchema({ source_id: stringSchema('^SRC-[0-9]+$'), locator: str,
+    const requested = arraySchema(closedSchema({ source_id: stringSchema('^SRC-[0-9]+$'), locator: stringSchema('^L[1-9][0-9]*-L[1-9][0-9]*$'),
         purpose: enumSchema(['local-context', 'same-source-referent-search', 'material-inspection']) }));
     const finding = closedSchema({ finding_id: stringSchema('^F[1-9][0-9]*$'), dimension: enumSchema(DUPLICATE_DIMENSIONS),
         input_refs: pointers, anchor_refs: anchors, material_refs: material, missing: str, requested_context: requested });
@@ -1911,8 +1912,11 @@ export function duplicateReturnJsonSchema(task, version) {
             pair_reviews: arraySchema(closedSchema({ a: cc, b: cc, verdict: enumSchema(DUPLICATE_VERDICTS), distinction_refs: arraySchema(str, 1), origin_basis_refs: pointers, explanation: str }), 1),
             contradiction_pairs: arraySchema(pair), unresolved_findings: arraySchema(finding), attacks_tried: arraySchema(str, 1),
             missing_for_determination: nullableSchema(str), rationale: str, candidate_evidence: { type: 'array', items: false, maxItems: 0 } });
-    const materialUse = closedSchema({ requirements: arraySchema(closedSchema({ object_id: str, feature: str, binding_ids: strings })),
-        use_state: str, fidelity_claim: str, limitation_refs: strings, reason: str });
+    const materialUse = closedSchema({ requirements: arraySchema(closedSchema({
+            object_id: stringSchema('^OBJ-(?=[0-9]*[1-9])[0-9]{4,}$'), feature: enumSchema(MATERIAL_FEATURES),
+            binding_ids: arraySchema(stringSchema('^BND-(?=[0-9]*[1-9])[0-9]{4,}$')),
+        }), 1), use_state: enumSchema(['usable', 'CANNOT_DETERMINE']), fidelity_claim: enumSchema(['none', 'exact-representation']),
+        limitation_refs: arraySchema(stringSchema('^(REP|OBJ|ASC)-(?=[0-9]*[1-9])[0-9]{4,}$')), reason: str });
     const occurrence = closedSchema({ source_id: str, source_hash: sha, packet_id: str, evidence_key: str, fragment_order: { ...index, minimum: 1 },
         locator: str, fragment_hash: sha, start_byte: index, end_byte: index });
     const proposal = closedSchema({
@@ -1993,6 +1997,20 @@ export function validateDuplicateReturn(task, version, value, context) {
         duplicateJson(value);
         schemaShape(value, duplicateReturnJsonSchema(task, version));
         const returned = value;
+        if (context) {
+            requireDuplicate(context.model.manifest?.runFormatVersion === version, 'DUP_COMPATIBILITY', 'return context', 'run format differs');
+            if (task === 'refutation' && context.subject)
+                validateDuplicateSubject(context.subject, context.model);
+            else if (task === 'comparison' && context.basis) {
+                const proposal = returned.proposal;
+                if (context.candidate_ref)
+                    equal(proposal.candidate_ref, context.candidate_ref, 'DUP_SUBJECT', 'assigned candidate');
+                const actual = duplicateProducerView(context.model, task, { candidate_ref: proposal.candidate_ref });
+                equal(context.basis, actual.context.basis, 'DUP_SUBJECT', 'return comparison basis');
+            }
+            else if (task !== 'refutation' && task !== 'comparison' && context.member_ids)
+                duplicateProducerView(context.model, task, { member_ids: context.member_ids });
+        }
         if (task === 'refutation')
             validateDuplicateResult(value, context?.subject);
         else if (task === 'comparison') {
@@ -2056,7 +2074,8 @@ export function duplicateProducerView(model, task, selection) {
         const c = d.candidates.find((c) => c.candidate_id === group);
         requireDuplicate(c, 'DUP_REFERENCE', 'comparison selection', 'retained candidate required');
         const basis = buildComparisonBasis(model, c.member_ids);
-        return { bytes: Buffer.from(semanticJson({ candidate_ref: selection.candidate_ref, comparison_basis: basis })), context: { model, basis } };
+        return { bytes: Buffer.from(semanticJson({ candidate_ref: selection.candidate_ref, comparison_basis: basis })),
+            context: { model, basis, candidate_ref: selection.candidate_ref } };
     }
     keys(selection, ['member_ids'], 'discovery selection');
     const catalogue = discoveryCatalogue(model, model.claims.map((r) => r.values.claimId), parseLineage(model).rows.map((r) => r.values.lineageId));

@@ -6,28 +6,28 @@
 
 | semantic_id | owner_stage | subject_kind | subject_path | subject_digest | predecessor_semantic_id | producer_receipt_ref |
 | --- | --- | --- | --- | --- | --- | --- |
-| SEM-0701 | S2 | packet-group | verification/harness/semantic-subjects/SEM-0701.json | sha256:6c386725e5fecb1884252b46f5a903692c2a43040fa13622a46b1aca20a080d6 | none | verification/harness/semantic-process/producer-0701.json@sha256:75e5df6e9b675301e040f97c44979c1dd3e32c1d15ec67e6ec476434cfbcd18d |
-| SEM-0801 | S3 | claim | verification/harness/semantic-subjects/SEM-0801.json | sha256:989ddc5d74475b8f442bd008195c4719983de4d0e2b6b944a4db1ba5501f268b | none | verification/harness/semantic-process/producer-0801.json@sha256:9615bd5ca020795a1367c9c89e44c3930ed927a17041021a836a007ddf4d30fb |
-| SEM-0802 | S3 | claim | verification/harness/semantic-subjects/SEM-0802.json | sha256:58e2e0bf4d6d63acb44dd0cca1bdbeacbf3e6b2cecfff28a2f3393d2da3aeaf3 | none | verification/harness/semantic-process/producer-0802.json@sha256:60385c0322008c1917dae299199284a232daa3a370490108a37273c6eeb453bf |
-| SEM-0803 | S4 | claim | verification/harness/semantic-subjects/SEM-0803.json | sha256:13357b79cfd9988177723e92386a82d6db3280b0b42fb43510948bf71d9e6536 | none | verification/harness/semantic-process/producer-0803.json@sha256:140befcb5bc824842fd6b49ffcfabaf50de8f86665ac0d5d1ed9376e06b043fe |
+| SEM-0701 | S2 | packet-group | verification/harness/semantic-subjects/SEM-0701.json | sha256:76a4223b45b1df488bab5b660bf34ba01d8d950a0a6f79cc81d622027b4c0b32 | none | verification/harness/semantic-process/producer-0701.json@sha256:75e5df6e9b675301e040f97c44979c1dd3e32c1d15ec67e6ec476434cfbcd18d |
+| SEM-0801 | S3 | claim | verification/harness/semantic-subjects/SEM-0801.json | sha256:6454d2fe5b03c9a877cde7c26996e086787c166bd781a7eff4ac95e9f9cf8a04 | none | verification/harness/semantic-process/producer-0801.json@sha256:9615bd5ca020795a1367c9c89e44c3930ed927a17041021a836a007ddf4d30fb |
+| SEM-0802 | S3 | claim | verification/harness/semantic-subjects/SEM-0802.json | sha256:a71fcd25791d873054e02a063cc8f7307d6f962dc5bc199a45089076e5a0f2cc | none | verification/harness/semantic-process/producer-0802.json@sha256:60385c0322008c1917dae299199284a232daa3a370490108a37273c6eeb453bf |
+| SEM-0803 | S4 | claim | verification/harness/semantic-subjects/SEM-0803.json | sha256:c9918fd12427a9c302c359072d274ff3b83a65036fd6c426be4e11487c895359 | none | verification/harness/semantic-process/producer-0803.json@sha256:140befcb5bc824842fd6b49ffcfabaf50de8f86665ac0d5d1ed9376e06b043fe |
 
 ## assignments
 
 | review_id | semantic_id | assignment_path | assignment_digest |
 | --- | --- | --- | --- |
-| VER-0701 | SEM-0701 | verification/harness/semantic-assignments/VER-0701.json | sha256:a6591320260b215af0b71a7ad11d0368b14d7eb2fd4d5a0c7bcc451b941b5f09 |
-| VER-0801 | SEM-0801 | verification/harness/semantic-assignments/VER-0801.json | sha256:b2f43e1ed65d49d87c95d04a30ff17f26f759337d51e017cd35013304aaa1c6e |
-| VER-0802 | SEM-0802 | verification/harness/semantic-assignments/VER-0802.json | sha256:1075d02d08312c8f8acbee35856105e3742256b3810c893eab1db1736eaf5f00 |
-| VER-0803 | SEM-0803 | verification/harness/semantic-assignments/VER-0803.json | sha256:0deb2b71e8b7a374f3c55a561568965019ccc5eac41f25e46164169529a9b54a |
+| VER-0701 | SEM-0701 | verification/harness/semantic-assignments/VER-0701.json | sha256:d3d2f1a040ed5c6a493a3884e5d138e89d9cdcee6a3bacc63a026687b4463c83 |
+| VER-0801 | SEM-0801 | verification/harness/semantic-assignments/VER-0801.json | sha256:a7e06265004e8e013907f8de9dcd768b1c1175f01ed8d001066788af4ae09c6c |
+| VER-0802 | SEM-0802 | verification/harness/semantic-assignments/VER-0802.json | sha256:389bfabacf35bb3a3c5002e7db1a81fa8e187245308ac3f8bc7abd9b830f0fd7 |
+| VER-0803 | SEM-0803 | verification/harness/semantic-assignments/VER-0803.json | sha256:c2b7c0f3204f296b83da2913d9ff78ff3a505719f8711ce0edf52573e7f91fc1 |
 
 ## results
 
 | review_id | semantic_id | result_path | result_digest | execution_kind | execution_evidence_ref |
 | --- | --- | --- | --- | --- | --- |
-| VER-0701 | SEM-0701 | verification/harness/semantic-results/VER-0701.json | sha256:f328ebb2df019b849104ddf15d10728b77d047987c3213f89ec2ee5f1b153b64 | manual-separate-pass | verification/harness/semantic-process/reviewer-VER-0701.json@sha256:448a4cdd245380c41741acfc5c5534fc7078c0f9d71aa086f6df94d5cd5857c4 |
-| VER-0801 | SEM-0801 | verification/harness/semantic-results/VER-0801.json | sha256:0eb28978f96b7264b7ae51b60c90dd063ccf24c8fb4099423eec684bcb7fa85b | manual-separate-pass | verification/harness/semantic-process/reviewer-0801.json@sha256:882fdc9ce1e7239c9c1cb78be45c6206bbe8c5ac71352d91870d50a9e17b95ff |
-| VER-0802 | SEM-0802 | verification/harness/semantic-results/VER-0802.json | sha256:b5f6b735b1a445c7a5f55694e2eae8b5225ecf61ffb3c8c32d119f83bd85f05a | manual-separate-pass | verification/harness/semantic-process/reviewer-0802.json@sha256:38eb337fe7c8f6c1202dafabf5dd238732acb90e28da18d7936825887aaf781f |
-| VER-0803 | SEM-0803 | verification/harness/semantic-results/VER-0803.json | sha256:13a62b9d3ad4f2d07f68a20175cf9e8690ca63c8a9a4645c366e89e0ebc1ff57 | manual-separate-pass | verification/harness/semantic-process/reviewer-0803.json@sha256:2637be996efb7daea4ad93972ec119f290a429c154687356532a593514a6098e |
+| VER-0701 | SEM-0701 | verification/harness/semantic-results/VER-0701.json | sha256:47af38caeaaa532b949c43ae0020991e4928f312de95badb551e0dce14973197 | manual-separate-pass | verification/harness/semantic-process/reviewer-VER-0701.json@sha256:8b69cb635dda9973d400d746ecd7142dd57661c6fe4aade87e19cc5a43885b4f |
+| VER-0801 | SEM-0801 | verification/harness/semantic-results/VER-0801.json | sha256:ad9ad82dd09322c079220ecf809e0ddae91a88cf35edf23d6fb47c730c8124b9 | manual-separate-pass | verification/harness/semantic-process/reviewer-0801.json@sha256:5c2d99c1d67ad3f005bebd1e709407f13a616811c78a1cd83a93afc394be85e6 |
+| VER-0802 | SEM-0802 | verification/harness/semantic-results/VER-0802.json | sha256:77518004a8e2fdee0b96911b2a480f816fea405d9885e803c31b2aa7f2f7c1aa | manual-separate-pass | verification/harness/semantic-process/reviewer-0802.json@sha256:82d0b87a66e3cd6102fc0c480812065802df9446440e17993ada43ee2a944a4a |
+| VER-0803 | SEM-0803 | verification/harness/semantic-results/VER-0803.json | sha256:464ee55a1ff281876d4b7c16477419d5f08caa9ec070c4e9c086752afa557721 | manual-separate-pass | verification/harness/semantic-process/reviewer-0803.json@sha256:7b0da92be20bb0c5024e7a0e75d7b198595826d31a5b8319e98420ba9217f83a |
 
 ## resolutions
 

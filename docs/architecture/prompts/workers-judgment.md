@@ -267,7 +267,8 @@ Propose candidate groups and missing comparison coverage. Signals never certify 
                   },
                   "locator": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "^L[1-9][0-9]*-L[1-9][0-9]*$"
                   },
                   "purpose": {
                     "type": "string",
@@ -877,17 +878,28 @@ Compare every member of the attached complete basis. Search for surviving distin
                           "properties": {
                             "object_id": {
                               "type": "string",
-                              "minLength": 1
+                              "minLength": 1,
+                              "pattern": "^OBJ-(?=[0-9]*[1-9])[0-9]{4,}$"
                             },
                             "feature": {
                               "type": "string",
-                              "minLength": 1
+                              "enum": [
+                                "text-bytes",
+                                "table-grid",
+                                "header-association",
+                                "caption-association",
+                                "formal-structure",
+                                "image",
+                                "chart-values",
+                                "spatial-region"
+                              ]
                             },
                             "binding_ids": {
                               "type": "array",
                               "items": {
                                 "type": "string",
-                                "minLength": 1
+                                "minLength": 1,
+                                "pattern": "^BND-(?=[0-9]*[1-9])[0-9]{4,}$"
                               },
                               "minItems": 0
                             }
@@ -899,21 +911,28 @@ Compare every member of the attached complete basis. Search for surviving distin
                           ],
                           "additionalProperties": false
                         },
-                        "minItems": 0
+                        "minItems": 1
                       },
                       "use_state": {
                         "type": "string",
-                        "minLength": 1
+                        "enum": [
+                          "usable",
+                          "CANNOT_DETERMINE"
+                        ]
                       },
                       "fidelity_claim": {
                         "type": "string",
-                        "minLength": 1
+                        "enum": [
+                          "none",
+                          "exact-representation"
+                        ]
                       },
                       "limitation_refs": {
                         "type": "array",
                         "items": {
                           "type": "string",
-                          "minLength": 1
+                          "minLength": 1,
+                          "pattern": "^(REP|OBJ|ASC)-(?=[0-9]*[1-9])[0-9]{4,}$"
                         },
                         "minItems": 0
                       },
@@ -1328,7 +1347,8 @@ Compare every member of the attached complete basis. Search for surviving distin
                       },
                       "locator": {
                         "type": "string",
-                        "minLength": 1
+                        "minLength": 1,
+                        "pattern": "^L[1-9][0-9]*-L[1-9][0-9]*$"
                       },
                       "purpose": {
                         "type": "string",

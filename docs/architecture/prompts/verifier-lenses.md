@@ -872,7 +872,8 @@ Actively seek surviving differences in proposition, conditions, qualifiers, scop
                   },
                   "locator": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "^L[1-9][0-9]*-L[1-9][0-9]*$"
                   },
                   "purpose": {
                     "type": "string",

@@ -8,14 +8,14 @@
 - created: 2026-08-13
 - core_id: aleph-core
 - core_version: 0.1.0-provisional
-- core_digest: sha256:1a83c6e9a67f96513c9c8bb3847f4b08ede5efa202cb9268e35059dc090e7972
+- core_digest: sha256:cf0da1359b35228604c9a5bc05a5e05f0dc4061f98e320c42d79e386fcdb89e4
 - adapter_id: core-manual
 - adapter_version: 1.0.0-provisional
 - adapter_digest: sha256:2222222222222222222222222222222222222222222222222222222222222222
 - bundle_id: aleph-fixture-manual
-- bundle_digest: sha256:83aa8540b026f1486f6fc5c72fc70ff0c09ed499f633ca3fc7b056df4f1ee730
+- bundle_digest: sha256:725609bf849f5744df98ef828c851f4fcc939318e15edc7adb2039a9d9bc8e41
 - bundle_lock_ref: control/runtime/bundle/bundle.lock.json
-- checker_digest: sha256:68c98e30272076776a279e11b92c003e869487bc72d88e4591a3519b22466fd7
+- checker_digest: sha256:3d801f8f188dac5ea4decf3eec3d057066bdac761d952cd747b46b7c2d556f2d
 - adapter_protocol_version: 1.0.0-provisional
 - run_format_version: 1.8.0-provisional
 - host_identity: human-operator

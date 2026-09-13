@@ -1033,9 +1033,17 @@ export function validateSemanticSubject(value: unknown, model: RunModel, visitin
     else {
       const reserved = parseSemanticJson(readMaterialFile(model.runDir, `verification/harness/semantic-process/${context.lineage_id}.json`));
       keys(reserved, ['lineage_id', 'owner_stage', 'type', 'predecessors', 'successors', 'basis', 'established_by'], 'reserved lineage row');
+      // Slice 8 retains failed successor attempts after a later reviewed group
+      // consumes their predecessors. This permits historical inspection only;
+      // fresh reservations and canonical admission keep their currentness gates.
+      const retainedFailure = !newReservation && subject.owner_stage === 'S4'
+        && hasRunCapability(model.manifest!.runFormatVersion, 'duplicate-overlap-review')
+        && existsSync(join(model.runDir, SEMANTIC_PATH))
+        && parseSemanticLedger(readMaterialFile(model.runDir, SEMANTIC_PATH).toString('utf8')).resolutions
+          .some((r) => r.semantic_id === subject.semantic_id && r.outcome === 'not-admitted' && r.canonical_refs === '[]');
       requireSemantic(existingId(context.lineage_id, 'LIN') && reserved.lineage_id === context.lineage_id
-        && context.event.predecessors.every((id) => id.startsWith('PKT-')
-          ? lineageCurrentPacketIds(model).has(id) : lineageCurrentClaimIds(model).has(id)),
+        && (retainedFailure || context.event.predecessors.every((id) => id.startsWith('PKT-')
+          ? lineageCurrentPacketIds(model).has(id) : lineageCurrentClaimIds(model).has(id))),
       'SEM_REFERENCE', context.lineage_id, 'reserved event requires its exact LIN identity and current predecessors');
       cells = Object.values(reserved) as string[];
     }

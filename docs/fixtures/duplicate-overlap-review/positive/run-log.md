@@ -19,7 +19,7 @@ Synthetic manual semantic review records.
 ## 2026-09-12 08:30 UTC — S2 — exit
 
 semantic_stage: S2
-semantic_review_seal_ref: verification/harness/semantic-stage-seals/S2.json@sha256:5d32a593d0d5b9a0abae127b1b8ccaa7a57eb4da17f0ea6087b1b1332315676f
+semantic_review_seal_ref: verification/harness/semantic-stage-seals/S2.json@sha256:0d1a8f3689d4407a168067a54f61504acf25a5ab88dfca96ff27e12508630a4f
 
 ## 2026-09-12 09:00 UTC — S3 — entry
 
@@ -28,7 +28,7 @@ Synthetic normalization records.
 ## 2026-09-12 09:30 UTC — S3 — exit
 
 semantic_stage: S3
-semantic_review_seal_ref: verification/harness/semantic-stage-seals/S3.json@sha256:ea8db051045889640405f1715e6891bdcae24e35a6b4b71e5ca2832e556d4a0b
+semantic_review_seal_ref: verification/harness/semantic-stage-seals/S3.json@sha256:eb855569fcc217c2c3cc63ac39f3209d1445fa91e951fcc182a2987666c7c391
 
 ## 2026-09-13 10:00 UTC — S4 — entry
 
@@ -38,8 +38,8 @@ Synthetic duplicate challenge accounting.
 
 closure_phase: S4-C1-relations-closed
 representation_use_closure_hash: sha256:cd9d5eb3673b05f2a88aa0f2b3fe1b91a341bf2042915bde68a85b697cc2be9d
-semantic_review_closure_hash: sha256:e207c6b60d0a07d5e85f6f4d81facf9452e51a8d78ae3b2e6e5320ce57b76b69
-duplicate_review_closure_hash: sha256:1ac4c22d1fc72fbb218ed6ce75ba795c158e5198b5bc1b84b41bdd38a3c610e4
+semantic_review_closure_hash: sha256:f1325cd6555337f8e4070ed0d7deec4cca97c5444347f721a1f67bbf4d66abc9
+duplicate_review_closure_hash: sha256:bfd90babaa262dc192c247eb727a80a63016e5bdbee7925878265d21ca37fb9f
 
 ## 2026-09-13 11:10 UTC — S4 — closure
 
