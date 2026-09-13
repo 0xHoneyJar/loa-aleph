@@ -46,6 +46,8 @@
       "docs/architecture/17-slice-5-successor-repair-reconciliation.md",
       "docs/architecture/18-slice-6-implementation-reconciliation.md",
       "docs/architecture/19-slice-7-implementation-reconciliation.md",
+      "docs/architecture/20-slice-8-implementation-reconciliation.md",
+      "docs/architecture/20-slice-8-producer-test-results.json",
       "docs/architecture/README.md",
       "docs/architecture/checker-spec/K1-K2-fixtures-and-runs.md",
       "docs/architecture/checker-spec/K3-evidence-roles.md",
