@@ -29,7 +29,7 @@
     "test:worker-return": "node scripts/test-worker-return-contract.ts",
     "test:core-mutations": "node scripts/test-core-boundary-mutations.ts",
     "test:mutations": "node scripts/test-conformance-mutations.ts",
-    "test": "npm run typecheck && npm run test:runtime && npm run validate:core && npm run test:worker-return && npm run test:loa-host && npm run test:loa-adapter && npm run test:loa-installer && npm run validate && node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial && node scripts/validate-run.ts --run docs/fixtures/projection-adversarial && node scripts/validate-run.ts --run docs/fixtures/run-slice-2 && npm run test:internal-ambiguity-contracts && npm run test:internal-ambiguity-mutations && npm run test:slice5-process && npm run test:representations && npm run test:representation-process && npm run test:semantic-review-contracts && npm run test:semantic-review-mutations && npm run test:semantic-review-process && npm run test:mutations && npm run test:lineage-mutations && npm run test:relation-mutations && npm run test:core-mutations && npm run test:bundles && npm run test:release-package",
+    "test": "npm run typecheck && npm run test:runtime && npm run validate:core && npm run test:worker-return && npm run test:loa-host && npm run test:loa-adapter && npm run test:loa-installer && npm run validate && node scripts/validate-run.ts --run docs/fixtures/evidence-role-adversarial && node scripts/validate-run.ts --run docs/fixtures/projection-adversarial && node scripts/validate-run.ts --run docs/fixtures/run-slice-2 && npm run test:internal-ambiguity-contracts && npm run test:internal-ambiguity-mutations && npm run test:slice5-process && npm run test:representations && npm run test:representation-process && npm run test:semantic-review-contracts && npm run test:semantic-review-mutations && npm run test:semantic-review-process && npm run test:duplicate-review && npm run test:mutations && npm run test:lineage-mutations && npm run test:relation-mutations && npm run test:core-mutations && npm run test:bundles && npm run test:release-package",
     "test:lineage-mutations": "node scripts/test-lineage-mutations.ts",
     "test:relation-mutations": "node scripts/test-relation-mutations.ts",
     "test:internal-ambiguity-contracts": "node scripts/test-internal-ambiguity-contracts.ts",
@@ -39,7 +39,12 @@
     "test:representation-process": "node adapters/loa/tests/test-representation-process.ts",
     "test:semantic-review-contracts": "node scripts/test-semantic-review-contracts.ts",
     "test:semantic-review-mutations": "node scripts/test-semantic-review-mutations.ts",
-    "test:semantic-review-process": "node adapters/loa/tests/test-semantic-review-process.ts && node adapters/loa/tests/test-semantic-review-process.ts --runtime"
+    "test:semantic-review-process": "node adapters/loa/tests/test-semantic-review-process.ts && node adapters/loa/tests/test-semantic-review-process.ts --runtime",
+    "test:duplicate-review-contracts": "node scripts/test-duplicate-review-contracts.ts",
+    "test:duplicate-review-fixtures": "node scripts/test-duplicate-review-fixtures.ts",
+    "test:duplicate-review-mutations": "node scripts/test-duplicate-review-mutations.ts",
+    "test:duplicate-review-process": "node adapters/loa/tests/test-duplicate-review-process.ts",
+    "test:duplicate-review": "node scripts/test-duplicate-review-parity.ts"
   },
   "devDependencies": {
     "@types/node": "22.20.1",

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isDuplicateOutputContract } from '../../../scripts/lib/duplicate-review.js';
 import { chmodSync, existsSync, lstatSync, readFileSync, } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,7 +51,7 @@ function semanticInvocation(invocation) {
     const bytes = readStableRegularFile(join(invocation.worker_bundle_root, 'contracts/output.json')).bytes;
     if (sha256Digest(bytes) !== invocation.request.output_contract.digest)
         throw new Error('sealed output contract changed');
-    return isSemanticOutputContract(JSON.parse(bytes.toString('utf8')));
+    return isSemanticOutputContract(JSON.parse(bytes.toString('utf8'))) || isDuplicateOutputContract(JSON.parse(bytes.toString('utf8')));
 }
 function workerReturnBytes(invocation, value) {
     return semanticInvocation(invocation) ? Buffer.from(semanticJson(value)) : stableJsonBytes(value);

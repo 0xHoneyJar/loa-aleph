@@ -621,3 +621,7 @@ disposition. Historical predecessor formats retain their pinned behavior.
 ## Slice 7 semantic review (1.7)
 
 T3.7 defines semantic-review.md, immutable SEM/VER JSON, assignments, resolutions, exact source anchors and mechanically derived Précis section 17 findings for 1.7. Canonical JSON has exact listed keys/order and no extensions. Preserve exact evidence, material-use, lineage, relations and ambiguity contracts separately.
+
+## Slice 8 duplicate review (1.8)
+
+T3.8 adds `ledgers/duplicate-review.md` with six exact tables and immutable DCD, DUP, VER assignment/result, DDR and DUE accounting. Strict compact canonical JSON preserves listed key order, exact UTF-8/base64 and complete occurrence coordinates. The ComparisonBasis, proposal, subject, result and effect shapes are Core-owned. Proposals are semantic declarations; provenance union is mechanical conservation. K2.20 checks their structural joins without deciding equivalence. Précis section 17 carries the exact six-column duplicate finding summary, including historical unknowns, refutations and failed successors. See [K2.20](checker-spec/K2-20-duplicate-review.md) and T3.8.

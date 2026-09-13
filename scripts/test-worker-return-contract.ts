@@ -11,6 +11,8 @@ import {
   type WorkerJsonValue,
 } from './lib/worker-return-contract.ts';
 import { isSemanticOutputContract, semanticCoverage, SEMANTIC_RESULT_FORMAT, validateSemanticOutputContract } from './lib/semantic-review.ts';
+import { isDuplicateOutputContract, validateDuplicateOutputContract } from './lib/duplicate-review.ts';
+import { makeDuplicateFixture, duplicateFixtureResult } from './duplicate-fixture-support.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
@@ -100,15 +102,29 @@ function semanticMaterialization(contract: unknown): WorkerJsonValue {
     rationale: 'This return exercises the portable shape contract only.', candidate_evidence: [] };
 }
 
+function duplicateMaterialization(contract: unknown): WorkerJsonValue {
+  const task = validateDuplicateOutputContract(contract);
+  if (task === 'discovery') return { candidates: [], unresolved_findings: [], rationale: 'No candidates were proposed in this synthetic window.', flags: [] };
+  if (task === 'contradiction-discovery') return { verdict: 'upheld', rationale: 'Synthetic sweep declaration only.',
+    attacks_tried: ['Tried a contradictory reading.'], evidence_ids: [], candidate_evidence: [], missing_for_determination: null, flags: [], flagged_pairs: [] };
+  const temp = mkdtempSync(join(tmpdir(), 'duplicate-worker-contract-'));
+  try {
+    const f = makeDuplicateFixture(temp);
+    return (task === 'comparison' ? { proposal: f.subject!.proposal, rationale: 'Synthetic comparison declaration only.', flags: [] }
+      : duplicateFixtureResult(f.subject!)) as unknown as WorkerJsonValue;
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+}
+
 function main(): number {
   const results: CaseResult[] = [];
   const contracts = outputContracts();
 
-  runCase(results, 'all twenty pinned prompt contracts accept a valid materialization', () => {
-    expect(contracts.length === 20, `expected 20 output contracts, found ${contracts.length}`);
+  runCase(results, 'all twenty-four pinned prompt contracts accept a valid materialization', () => {
+    expect(contracts.length === 24, `expected 24 output contracts, found ${contracts.length}`);
     contracts.forEach((contract, index) => {
       const validation = validateWorkerReturnContract(
-        json(isSemanticOutputContract(contract) ? semanticMaterialization(contract) : materialize(contract)),
+        json(isDuplicateOutputContract(contract) ? duplicateMaterialization(contract)
+          : isSemanticOutputContract(contract) ? semanticMaterialization(contract) : materialize(contract)),
         contract,
       );
       expect(

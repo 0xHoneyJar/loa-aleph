@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateWorkerReturnContract, parseStrictJson, } from './lib/worker-return-contract.js';
 import { isSemanticOutputContract } from './lib/semantic-review.js';
+import { isDuplicateOutputContract } from './lib/duplicate-review.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const FORMAT = 'aleph-worker-return-validation/v1';
 function digest(bytes) {
@@ -30,7 +31,7 @@ export function validateWorkerReturnFiles(contractPath, returnPath) {
     if (contractBytes) {
         try {
             contract = JSON.parse(contractBytes.toString('utf8'));
-            if (isSemanticOutputContract(contract))
+            if (isSemanticOutputContract(contract) || isDuplicateOutputContract(contract))
                 contract = parseStrictJson(contractBytes, true);
         }
         catch (error) {

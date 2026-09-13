@@ -1,5 +1,6 @@
 import { TextDecoder } from 'node:util';
 import { isSemanticOutputContract, semanticReturnJsonSchema, validateSemanticOutputContract, validateSemanticReturn } from './semantic-review.js';
+import { isDuplicateOutputContract, duplicateReturnJsonSchema, validateDuplicateOutputContract, validateDuplicateReturn, parseDuplicateJson } from './duplicate-review.js';
 function isRecord(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -191,6 +192,8 @@ function nonemptyStringSchema() {
  * shape that a host-native constrained-output mechanism may enforce.
  */
 export function contractExemplarToJsonSchema(example) {
+    if (isDuplicateOutputContract(example))
+        return duplicateReturnJsonSchema(validateDuplicateOutputContract(example), '1.8.0-provisional');
     if (isSemanticOutputContract(example))
         return semanticReturnJsonSchema(validateSemanticOutputContract(example), '1.7.0-provisional');
     if (example === null) {
@@ -362,6 +365,15 @@ function validateAgainstContractExemplar(value, example, path, errors) {
  * network access.
  */
 export function validateWorkerReturnContract(raw, contractExemplar) {
+    if (isDuplicateOutputContract(contractExemplar)) {
+        try {
+            const task = validateDuplicateOutputContract(contractExemplar);
+            return validateDuplicateReturn(task, '1.8.0-provisional', parseDuplicateJson(raw));
+        }
+        catch (error) {
+            return { result: 'FAIL', errors: [error instanceof Error ? error.message : String(error)], canonicalValue: null, binding: 'not-checked' };
+        }
+    }
     if (isSemanticOutputContract(contractExemplar)) {
         try {
             const role = validateSemanticOutputContract(contractExemplar);

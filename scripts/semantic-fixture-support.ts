@@ -9,6 +9,7 @@ import { loadRun, EXACT_EVIDENCE_FORMAT } from './lib/run-model.ts';
 import {
   materialHash, materialTableMarkdown, prepareRepresentationCapture, readRepresentationContext,
   representationMarkdown, representationUseDigest, representationUsesMarkdown, type MaterialRow, type MaterialUseInput,
+  representationUseNeedsReview,
 } from './lib/source-representation.ts';
 import {
   buildSemanticSubject, emptySemanticLedger, semanticAssignmentPath, semanticCoverage,
@@ -70,10 +71,11 @@ export interface SemanticFixture {
   assignment: SemanticAssignment; result: SemanticResult; ledger: SemanticLedger;
 }
 export function makeSemanticFixture(run: string, text = 'With the filter enabled, the counter rose.',
-  declaredSemantics?: Semantics, anchors?: AnchorInput[]): SemanticFixture {
+  declaredSemantics?: Semantics, anchors?: AnchorInput[], version = '1.7.0-provisional'): SemanticFixture {
   const root = SEMANTIC_TEST_ROOT;
   const manifest = JSON.parse(readFileSync(join(root, 'core.manifest.json'), 'utf8')) as CoreManifest;
   const adapter = JSON.parse(readFileSync(join(root, 'adapters/loa/adapter.manifest.json'), 'utf8')) as AdapterManifest;
+  manifest.core.run_format_version = version; adapter.adapter.run_format_version = version;
   const lock = createBundleLock(buildBundlePlan(root, manifest, manifest.bundle_targets.find((t) => t.adapter_id === 'loa')!, adapter));
   writeFixtureFile(run, 'control/runtime/bundle/bundle.lock.json', bundleLockBytes(lock));
   for (const path of new Set(['S2', 'S3', 'S4'].flatMap((stage) => semanticPromptRequirements(stage as 'S2').map((p) => p.path)))) {
@@ -92,7 +94,7 @@ export function makeSemanticFixture(run: string, text = 'With the filter enabled
   writeFixtureFile(run, 'corpus/manifest.md', corpus);
   let runManifest = readFileSync(join(root, 'docs/fixtures/exact-evidence-fragments/run-manifest.md'), 'utf8')
     .replaceAll('RUN-exact-evidence-fragments', 'RUN-semantic-unit-review')
-    .replace('1.1.0-provisional', '1.7.0-provisional');
+    .replace('1.1.0-provisional', version);
   for (const [key, value] of Object.entries({ core_digest: lock.core.tree_digest, checker_digest: lock.checker_digest,
     bundle_digest: lock.bundle.digest, bundle_lock_ref: 'control/runtime/bundle/bundle.lock.json', corpus_hash: materialHash(source) })) {
     runManifest = runManifest.replace(new RegExp(`^-${' '}${key}: .+$`, 'mu'), `- ${key}: ${value}`);
@@ -191,8 +193,9 @@ export function assertSemanticFixture(run: string): void {
 }
 
 /** Synthetic ordered fragments; no production extraction or source-walk proof. */
-export function makeFragmentSemanticFixture(run: string): SemanticFixture {
-  const first = 'The counter rose.', middle = 'Unrelated surrounding text.', last = 'The battery discharged.';
+export function makeFragmentSemanticFixture(run: string, first = 'The counter rose.', last = 'The battery discharged.',
+  version = '1.7.0-provisional'): SemanticFixture {
+  const middle = 'Unrelated surrounding text.';
   const text = `${first}\n${middle}\n${last}`, start = Buffer.byteLength(`${first}\n${middle}\n`);
   const anchors: AnchorInput[] = [
     { anchor_id: 'A1', source_id: 'SRC-701', locator: 'L1-L1', start_byte: 0, end_byte: Buffer.byteLength(first), exact_bytes_base64: Buffer.from(first).toString('base64') },
@@ -200,7 +203,7 @@ export function makeFragmentSemanticFixture(run: string): SemanticFixture {
   ];
   const semantics: Semantics = { atomicity: 'multiple-separable', units: [fixtureUnit(first, first), fixtureUnit(last, last, 'U2', 'A2')],
     contexts: [], couplings: [], relation_proposals: [], unresolved_findings: [] };
-  const f = makeSemanticFixture(run, text, semantics, anchors);
+  const f = makeSemanticFixture(run, text, semantics, anchors, version);
   const packetText = readFileSync(join(run, 'ledgers/packet-index.md'), 'utf8'), tables = parseTables(packetText);
   const exactFragments = [Buffer.from(`${first}\n`), Buffer.from(last)];
   const packetRows = anchors.map((a, i) => [`PKT-070${i + 1}`, 'SRC-701', a.locator, materialHash(exactFragments[i]),
@@ -264,11 +267,16 @@ export function sealFixtureSemanticStage(f: SemanticFixture, stage: 'S2' | 'S3')
 export function addFixtureNormalization(f: SemanticFixture, options: {
   noClaim?: boolean; semantics?: Semantics; proposition?: string; number?: string;
   predecessor?: string; origins?: string[]; outcome?: 'admitted' | 'not-admitted' | 'unresolved-recorded';
-  lineage?: LineageContext;
+  lineage?: LineageContext; packets?: string[]; anchors?: AnchorInput[]; materialUse?: MaterialUseInput;
+  relationContext?: SemanticSubject['relation_context'];
 } = {}): SemanticFixture {
   const stage = options.lineage ? 'S4' : 'S3';
-  const number = options.number || '0702', id = `SEM-${number}`, packet = f.subject.output_binding.kind === 'packet-group'
-    ? f.subject.output_binding.packet_ids[0] : 'PKT-0701';
+  const number = options.number || '0702', id = `SEM-${number}`, packet = options.packets?.[0] || (f.subject.output_binding.kind === 'packet-group'
+    ? f.subject.output_binding.packet_ids[0] : 'PKT-0701');
+  const packets = options.packets || [packet];
+  const packetModel = loadRun(f.run);
+  const sources = [...new Set(packets.map((id) => packetModel.packets.find((p) => p.values.packetId === id)!.values.sourceId))];
+  const materialUse = options.materialUse || TEXT_USE;
   if (!readFileSync(join(f.run, 'run-log.md'), 'utf8').includes('semantic_stage: S2')) {
     sealFixtureSemanticStage(f, 'S2');
     writeFixtureFile(f.run, 'run-log.md', readFileSync(join(f.run, 'run-log.md'), 'utf8') + '\n## 2026-09-12 09:00 UTC — S3 — entry\n\nSynthetic normalization records.\n');
@@ -284,9 +292,9 @@ export function addFixtureNormalization(f: SemanticFixture, options: {
   if (options.proposition && semantics.units[0]) semantics.units[0].proposition = options.proposition;
   const entry: SemanticEntry = { output_kind: options.noClaim ? 'no-claim-candidate' : 'claim-candidate', output_index: 0,
     review_mode: options.outcome === 'unresolved-recorded' ? 'unresolved-record' : 'proposal',
-    origin_unit_refs: origins, anchors: f.entry.anchors, semantics };
-  const claim = { normalized_claim: semantics.units[0]?.proposition || 'Tentative unresolved proposal.', packets: [packet],
-    claim_type: 'factual', widen_requests: [], rationale: 'Synthetic proposed normalization for structural testing.', flags: [], material_use: TEXT_USE };
+    origin_unit_refs: origins, anchors: options.anchors || f.entry.anchors, semantics };
+  const claim = { normalized_claim: semantics.units[0]?.proposition || 'Tentative unresolved proposal.', packets,
+    claim_type: 'factual', widen_requests: [], rationale: 'Synthetic proposed normalization for structural testing.', flags: [], material_use: materialUse };
   const returned = { claims: options.noClaim ? [] : [claim], no_claim_packets: options.noClaim ? [{ packet, basis: 'Synthetic explicit no-claim proposal.' }] : [],
     lineage_proposals: [], material_findings: [], semantic_units: [entry] };
   const producer = { call_id: `manual-producer-${number}`, context_id: `manual-producer-pass-${number}`,
@@ -296,25 +304,33 @@ export function addFixtureNormalization(f: SemanticFixture, options: {
   writeFixtureFile(f.run, `verification/harness/semantic-process/${producer.call_id}.raw.json`, semanticJson(returned));
   const model = loadRun(f.run), context = readRepresentationContext(model);
   const useRow: MaterialRow = { use_id: `USE-${number}`, owner_stage: stage, subject_kind: 'CC', subject_id: `CC-${number}`,
-    basis_packet_ids: semanticJson([packet]), requirements: semanticJson(TEXT_USE.requirements), use_state: 'usable', fidelity_claim: 'none',
-    limitation_refs: '[]', reason: 'none', established_by: 'synthetic-manual-normalizer', review_subject_digest: '', reviewed_by: 'none' };
+    basis_packet_ids: semanticJson(packets), requirements: semanticJson(materialUse.requirements), use_state: materialUse.use_state, fidelity_claim: materialUse.fidelity_claim,
+    limitation_refs: semanticJson(materialUse.limitation_refs), reason: materialUse.reason, established_by: 'synthetic-manual-normalizer', review_subject_digest: '', reviewed_by: 'none' };
   if (!options.noClaim) {
     model.claims.push({ file: 'ledgers/claim-inventory.md', line: 0, raw: '', cells: [], values: {
-      claimId: `CC-${number}`, normalizedClaim: semanticClaimCell(claim.normalized_claim), packets: packet, sources: 'SRC-701', claimType: 'factual',
+      claimId: `CC-${number}`, normalizedClaim: semanticClaimCell(claim.normalized_claim), packets: packets.join(', '), sources: sources.join(', '), claimType: 'factual',
       disposition: '', rationale: '', judgedBy: '', verified: '', status: 'active',
     } });
     useRow.review_subject_digest = representationUseDigest(model, context, useRow);
+    if (representationUseNeedsReview(context, materialUse)) {
+      useRow.reviewed_by = `VER-9${number}`;
+      writeFixtureFile(f.run, `verification/harness/${useRow.reviewed_by}.md`, `# Verdict ${useRow.reviewed_by}\n\n`
+        + fixtureTable(['field', 'value'], [['target', `representation-use-subject:${useRow.review_subject_digest}`],
+          ['lens', 'L2F'], ['stage', stage], ['shown', 'Exact synthetic use subject and supplied structure.'],
+          ['withheld', 'Producer rationale, duplicate and semantic reviews.'], ['verdict', 'upheld'],
+          ['consequence', 'Static fixture declaration only; no human or model review executed.']]));
+    }
   }
   const originContext = [...new Set(origins.map((ref) => ref.split('/')[0]))].map((id) =>
     semanticOriginProjection(JSON.parse(readFileSync(join(f.run, semanticSubjectPath(id)), 'utf8')) as SemanticSubject));
   const subject = buildSemanticSubject(model, { semantic_id: id, owner_stage: stage, subject_kind: options.noClaim ? 'no-claim' : 'claim',
     review_mode: entry.review_mode, predecessor_semantic_id: options.predecessor || 'none', producer_binding_hash: semanticProducerBinding(producer),
     reviewer_profile: MANUAL_REVIEWER, output_binding: options.noClaim ? { kind: 'no-claim', packet_id: packet, basis: returned.no_claim_packets[0].basis }
-      : { kind: 'claim', reserved_claim_id: `CC-${number}`, normalized_claim: claim.normalized_claim, packet_ids: [packet], source_ids: ['SRC-701'], claim_type: 'factual' },
+      : { kind: 'claim', reserved_claim_id: `CC-${number}`, normalized_claim: claim.normalized_claim, packet_ids: packets, source_ids: sources, claim_type: 'factual' },
     origin_unit_refs: origins, origin_context: originContext,
-    anchors: entry.anchors, semantics, material_use: options.noClaim ? null : TEXT_USE,
+    anchors: entry.anchors, semantics, material_use: options.noClaim ? null : materialUse,
     material_views: semanticMaterialViews(model, options.noClaim ? context.uses.filter((r) => r.subject_kind === 'PKT' && r.subject_id === packet) : [useRow]),
-    lineage_context: options.lineage ? [options.lineage] : [], relation_context: [], ambiguity_context: [] });
+    lineage_context: options.lineage ? [options.lineage] : [], relation_context: options.relationContext || [], ambiguity_context: [] });
   const digest = materialHash(semanticJson(subject)), result = fixtureResult(subject);
   const assignment: SemanticAssignment = { format: SEMANTIC_ASSIGNMENT_FORMAT, semantic_id: id, subject_digest: digest,
     review_id: `VER-${number}`, role: 'verifier-l2s', profile_digest: null, invocation_id: `manual-reviewer-pass-${number}`,
@@ -344,7 +360,7 @@ export function addFixtureNormalization(f: SemanticFixture, options: {
     const path = 'ledgers/claim-inventory.md';
     writeFixtureFile(f.run, path, readFileSync(join(f.run, path), 'utf8')
       + fixtureTable(['claim_id', 'normalized claim', 'packets', 'sources', 'claim_type', 'disposition', 'rationale', 'judged_by', 'verified', 'status'],
-        [[`CC-${number}`, claim.normalized_claim, packet, 'SRC-701', 'factual', '', '', '', '', 'active']]).split('\n').slice(2).join('\n'));
+        [[`CC-${number}`, claim.normalized_claim, packets.join(', '), sources.join(', '), 'factual', '', '', '', '', 'active']]).split('\n').slice(2).join('\n'));
     writeFixtureFile(f.run, 'ledgers/representation-uses.md', representationUsesMarkdown([...context.uses, useRow]));
     if (options.lineage) {
       const row = JSON.parse(readFileSync(join(f.run, `verification/harness/semantic-process/${options.lineage.lineage_id}.json`), 'utf8'));

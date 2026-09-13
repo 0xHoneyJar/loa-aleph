@@ -14,14 +14,14 @@ export function predecessorSource(repository: string, root: string, version = '1
     copyFileSync(join(repository, path), join(target, path));
   }
   for (const path of ['core.manifest.json', 'adapters/loa/adapter.manifest.json', 'adapters/hermes/adapter.manifest.json', 'adapter-protocol/adapter.schema.json']) {
-    writeFileSync(join(target, path), readFileSync(join(target, path), 'utf8').replaceAll('1.7.0-provisional', version));
+    writeFileSync(join(target, path), readFileSync(join(target, path), 'utf8').replaceAll('1.8.0-provisional', version));
   }
   const prompts = join(target, 'docs/architecture/prompts/workers-intake-extraction.md');
   const strip = (value: unknown): unknown => Array.isArray(value) ? value.map(strip)
     : value && typeof value === 'object' && 'contract_format' in value && 'shape' in value ? strip(value.shape)
     : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).filter(([k]) => !(version === '1.5.0-provisional'
       ? ['material_use', 'material_findings', 'semantic_units'] : ['semantic_units']).includes(k)).map(([k,v]) => [k,strip(v)])) : value;
-  writeFileSync(prompts, readFileSync(prompts, 'utf8').replace(/```json\n([\s\S]*?)\n```/gu, (_all, json: string) => '```json\n' + JSON.stringify(strip(JSON.parse(json)), null, 2) + '\n```'));
+  if (version !== '1.7.0-provisional') writeFileSync(prompts, readFileSync(prompts, 'utf8').replace(/```json\n([\s\S]*?)\n```/gu, (_all, json: string) => '```json\n' + JSON.stringify(strip(JSON.parse(json)), null, 2) + '\n```'));
   for (const args of [['init', '-q'], ['add', '--all'], ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'Synthetic predecessor compatibility source']]) {
     const result = spawnSync('git', args, { cwd: target, encoding: 'utf8' });
     expect(result.status === 0, `compatibility repository preparation failed: ${result.stderr}`);

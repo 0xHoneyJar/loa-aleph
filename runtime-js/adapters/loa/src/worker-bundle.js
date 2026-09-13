@@ -1,3 +1,4 @@
+import { duplicateTaskForRole, duplicatePromptRequirements, validateDuplicateProducerDelivery, validateDuplicateReviewDispatch, validateDuplicateBundleDelivery, validateDuplicateRoleDelivery } from '../../../scripts/lib/duplicate-review.js';
 import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { CORE_STAGES, LOA_WORKER_REQUEST_FORMAT, } from './types.js';
@@ -242,7 +243,15 @@ function assertWorkerAttachmentPath(path) {
         throw new Error(`worker allowlist may not expose adapter control state: ${path}`);
     }
 }
-function roleParts(bundle, role, stage) {
+function roleParts(bundle, role, stage, taskLine) {
+    const duplicateTask = duplicateTaskForRole(bundle.lock.run_format_version, role, stage, taskLine);
+    if (duplicateTask) {
+        const requirements = duplicatePromptRequirements(duplicateTask);
+        const index = duplicateTask === 'refutation' || duplicateTask === 'contradiction-discovery' ? 2 : 1;
+        const charter = requirements[index];
+        return { parts: requirements.map((part) => loadCorePart(bundle, part.path, part.selector)), policyPartIndex: index,
+            contract: loadOutputContract(bundle, charter.path, charter.selector.slice('heading:'.length)) };
+    }
     const semantic = hasRunCapability(bundle.lock.run_format_version, 'semantic-unit-review');
     if (!(semantic && role === 'normalizer' && stage === 'S4'))
         assertDispatchableRoleStage(role, stage);
@@ -312,8 +321,8 @@ function blindPolicyFor(part, materializedPath) {
         digest: sha256Digest(slice.bytes),
     };
 }
-export function coreBlindPolicyReference(bundle, role, stage) {
-    const loaded = roleParts(bundle, role, stage);
+export function coreBlindPolicyReference(bundle, role, stage, taskLine) {
+    const loaded = roleParts(bundle, role, stage, taskLine);
     const part = loaded.parts[loaded.policyPartIndex];
     const slice = blindPolicySlice(part);
     return `${part.path}#${part.selector}@${sha256Digest(slice.bytes)}`;
@@ -353,6 +362,7 @@ export function assembleWorkerBundle(options) {
     if (allowlist.length !== options.allowlist.length) {
         throw new Error('worker allowlist contains duplicate paths');
     }
+    validateDuplicateRoleDelivery(options.bundle.lock.run_format_version, options.role, options.stage, options.taskLine, allowlist);
     if (hasRunCapability(options.bundle.lock.run_format_version, 'semantic-unit-review')
         && (options.role === 'extractor' || options.role === 'normalizer')) {
         validateSemanticProducerDelivery(loadRun(runDir), options.role, options.stage, options.callId, options.taskLine, allowlist.map((path) => ({ path, bytes: readStableRegularFile(join(runDir, path)).bytes })));
@@ -394,10 +404,18 @@ export function assembleWorkerBundle(options) {
         if (options.producerContextId !== producer.context_id)
             throw new Error('SEM_ISOLATION L2S requires actual producer context binding');
     }
-    const loadedRole = roleParts(options.bundle, options.role, options.stage);
+    const duplicateTask = duplicateTaskForRole(options.bundle.lock.run_format_version, options.role, options.stage, options.taskLine);
+    if (duplicateTask) {
+        const model = loadRun(runDir), attachments = allowlist.map((path) => ({ path, bytes: readStableRegularFile(join(runDir, path)).bytes }));
+        if (duplicateTask === 'refutation')
+            validateDuplicateReviewDispatch(model, options.callId, options.taskLine, options.producerContextId || null, attachments);
+        else
+            validateDuplicateProducerDelivery(model, duplicateTask, options.callId, options.taskLine, attachments);
+    }
+    const loadedRole = roleParts(options.bundle, options.role, options.stage, options.taskLine);
     const policyPart = loadedRole.parts[loadedRole.policyPartIndex];
     const policyText = blindPolicySlice(policyPart).bytes.toString('utf8');
-    const expectedCoreRef = coreBlindPolicyReference(options.bundle, options.role, options.stage);
+    const expectedCoreRef = coreBlindPolicyReference(options.bundle, options.role, options.stage, options.taskLine);
     const withheldNames = new Set();
     for (const entry of options.withheld) {
         if (!entry || typeof entry !== 'object'
@@ -503,12 +521,15 @@ export function verifyWorkerBundle(root) {
     if (request.format !== LOA_WORKER_REQUEST_FORMAT) {
         throw new Error('worker request format is invalid');
     }
-    assertDispatchableRoleStage(request.role, request.stage);
+    const runDir = resolve(bundleRoot, '../../..');
+    const duplicateSuccessor = request.role === 'normalizer' && request.stage === 'S4'
+        && hasRunCapability(loadRun(runDir).manifest?.runFormatVersion || '', 'duplicate-overlap-review');
+    if (!duplicateSuccessor)
+        assertDispatchableRoleStage(request.role, request.stage);
     assertWorkerRoleIsolation(request.role, request.kind, request.isolation?.producer_context_id);
     if (workerBundleDigest(bundleRoot, request) !== request.bundle_digest) {
         throw new Error('worker bundle digest mismatch');
     }
-    const runDir = resolve(bundleRoot, '../../..');
     const downstream = CORE_STAGES.indexOf(request.stage) >= CORE_STAGES.indexOf('S5');
     const restrictions = downstream ? retainedRestrictionOverlays(loadRun(runDir)) : [];
     if (JSON.stringify(request.procedural_restrictions) !== JSON.stringify(restrictions)) {
@@ -566,5 +587,9 @@ export function verifyWorkerBundle(root) {
             throw new Error(`worker attachment changed: ${attachment.attachment_path}`);
         }
     }
+    const model = loadRun(runDir), duplicateTask = duplicateTaskForRole(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line);
+    validateDuplicateRoleDelivery(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line, request.allowlist.map((a) => a.run_path));
+    if (duplicateTask)
+        validateDuplicateBundleDelivery(model, duplicateTask, request.call_id, request.task_line, request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
     return request;
 }

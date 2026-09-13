@@ -1,0 +1,57 @@
+# Run Manifest — RUN-semantic-unit-review
+
+## Identity
+
+- run_id: RUN-semantic-unit-review
+- predecessor_run: none
+- mode: manual
+- created: 2026-08-13
+- core_id: aleph-core
+- core_version: 0.1.0-provisional
+- core_digest: sha256:cf0da1359b35228604c9a5bc05a5e05f0dc4061f98e320c42d79e386fcdb89e4
+- adapter_id: core-manual
+- adapter_version: 1.0.0-provisional
+- adapter_digest: sha256:2222222222222222222222222222222222222222222222222222222222222222
+- bundle_id: aleph-fixture-manual
+- bundle_digest: sha256:725609bf849f5744df98ef828c851f4fcc939318e15edc7adb2039a9d9bc8e41
+- bundle_lock_ref: control/runtime/bundle/bundle.lock.json
+- checker_digest: sha256:3d801f8f188dac5ea4decf3eec3d057066bdac761d952cd747b46b7c2d556f2d
+- adapter_protocol_version: 1.0.0-provisional
+- run_format_version: 1.8.0-provisional
+- host_identity: human-operator
+- runtime_snapshot_ref: control/runtime/snapshot.json
+- runtime_snapshot_digest: sha256:6666666666666666666666666666666666666666666666666666666666666666
+- doctrine_sha: 07cf2a5a843f68e09628a7055e72c304af87f3d0
+
+## Corpus binding
+
+- representation_inventory_hash: sha256:609b4d024896a3c4d206d551796d957b6bbedcd1f6e0c7134006bc0c7a4e241d
+
+- corpus_ref: corpus/manifest.md
+- corpus_hash: sha256:8f50ed0bf43d596997f667ca264463d51cd1a9d634b82cafa351fbc8e05caca5
+- declared_scope: synthetic exact-evidence structure only
+
+## Execution profile
+
+| field | value |
+|-------|-------|
+| model_ids (per role, exact strings; or "human") | human |
+| adapter profile ID + digest | n/a (core-manual) |
+| model/context/effort mapping actually used | n/a (manual) |
+| profile deviations | none |
+| fan-out limits | n/a (manual) |
+| budgets granted (per stage, tokens) | n/a (manual) |
+
+## State log
+
+| # | state | entered | actor | note |
+|---|-------|---------|-------|------|
+| 1 | DRAFT | 2026-08-13 09:00 UTC | manual-fixture-coordinator | run directory created |
+| 2 | CORPUS-FROZEN | 2026-08-13 09:10 UTC | fixture-simulated authority | one synthetic source frozen |
+| 3 | DISTILLING | 2026-08-13 09:20 UTC | manual-fixture-runner | exact-evidence packetization began |
+
+## Authority sign-offs
+
+| gate | decision | by | date | reference |
+|------|----------|----|------|-----------|
+| S0 corpus scope + sensitivity | fixture-simulated approved; synthetic source only | fixture-simulated authority | 2026-08-13 09:10 UTC | run-log.md S0 exit |

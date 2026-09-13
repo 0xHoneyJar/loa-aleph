@@ -71,3 +71,7 @@ locally.
 ## K2.18 — source representation bindings
 
 K2.18 applies only through the cumulative `formal-layout-bindings` capability. It verifies T2.3/T3.6 canonical grammar, identifiers, byte hashes, input closure, provenance, coordinates, association existence, declared availability, exact use subjects/review targets, seals and section 17 limitations. Its stable reason tokens are FORMAT, IDENTITY, INVENTORY, CAPTURE_HASH, BINDING, COORDINATE, ASSOCIATION, PROVENANCE, STATE, UNDECLARED_FEATURE, FIDELITY, USE_CLOSURE, UNSUPPORTED_EXTRACTION_SURFACE and FROZEN_WRITE. The read-only Core module calls no model, network, renderer or semantic subprocess. Coherent shifted-cell meaning can remain structural PASS.
+
+## K2.20 — duplicate comparison and admission accounting
+
+See [the Slice 8 specification](K2-20-duplicate-review.md). Capability selection is cumulative; discovery completeness, comparison coverage, provenance conservation and reviewed admission are separate structural predicates. No deterministic semantic equivalence oracle is introduced.

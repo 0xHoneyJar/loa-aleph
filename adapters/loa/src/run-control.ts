@@ -1,3 +1,4 @@
+import { validateDuplicateRun } from '../../../scripts/lib/duplicate-review.ts';
 import {
   existsSync,
   linkSync,
@@ -705,6 +706,7 @@ export function verifyRunControl(runDir: string): LoaRunState {
     validateRepresentationRun(loadRun(runDir));
   }
   if (hasRunCapability(state.identity.run_format_version, 'semantic-unit-review')) validateSemanticRun(loadRun(runDir));
+  if (hasRunCapability(state.identity.run_format_version, 'duplicate-overlap-review')) validateDuplicateRun(loadRun(runDir));
   const corpus = verifyCorpusSnapshot(runDir);
   if (corpus.run_id !== state.run_id
     || corpus.tree_digest !== state.corpus.tree_digest

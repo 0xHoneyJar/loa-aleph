@@ -430,3 +430,7 @@ K2.18 is implemented in `scripts/lib/checks-k2-representations.ts` using the sin
 ## Slice 7 semantic review (1.7)
 
 K2.19 adds exact 1.7 semantic accounting under T3.7, without reinterpreting 1.0–1.6 fixtures or inferring semantic correctness. It reopens source bytes, subjects, assignments, results, resolutions, stage seals and C1 closure. Incidental marker strings in frozen corpus bytes remain data.
+
+## Slice 8 duplicate review (1.8)
+
+[K2.20](architecture/checker-spec/K2-20-duplicate-review.md) checks cumulative duplicate discovery, exact sealed comparison/review accounting, occurrence union, conditional quorum, admission joins, retained findings and the additional C1 seal. It is read-only and uses no model/network/rendering. All eleven DUP reason tokens identify structural failures. Same-text distinct/unknown and different-text duplicate declarations can pass, including coherent semantic errors. PASS carries no equivalence, independent-support, semantic-recall or reviewer-quality warrant. Original 1.0–1.7 behavior and pins remain applicable to retained runs.

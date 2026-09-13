@@ -1,0 +1,39 @@
+# Semantic Review
+
+- semantic_review_format: aleph-semantic-review/v1
+
+## subjects
+
+| semantic_id | owner_stage | subject_kind | subject_path | subject_digest | predecessor_semantic_id | producer_receipt_ref |
+| --- | --- | --- | --- | --- | --- | --- |
+| SEM-0701 | S2 | packet-group | verification/harness/semantic-subjects/SEM-0701.json | sha256:e8b678f7a29eda82ac397a36009680759dfe198b834359e145c408e49e9bc536 | none | verification/harness/semantic-process/producer-0701.json@sha256:75e5df6e9b675301e040f97c44979c1dd3e32c1d15ec67e6ec476434cfbcd18d |
+| SEM-0801 | S3 | claim | verification/harness/semantic-subjects/SEM-0801.json | sha256:f6a58cf6fe25a351876217741e6dd38009480db65728285623792ca2264b2794 | none | verification/harness/semantic-process/producer-0801.json@sha256:9615bd5ca020795a1367c9c89e44c3930ed927a17041021a836a007ddf4d30fb |
+| SEM-0802 | S3 | claim | verification/harness/semantic-subjects/SEM-0802.json | sha256:15f59ded4a9f7205e6fdba91afab753420a407b8da399ad4e5d159fd2cf50bde | none | verification/harness/semantic-process/producer-0802.json@sha256:60385c0322008c1917dae299199284a232daa3a370490108a37273c6eeb453bf |
+| SEM-0803 | S4 | claim | verification/harness/semantic-subjects/SEM-0803.json | sha256:875f47e977e03c853ebf3ccfe83babad00a941be46702c92aa7fd584c56e3c35 | none | verification/harness/semantic-process/producer-0803.json@sha256:b38859267e2e5cc31bdbb7bfdf72270c219bce9e5bcb8cec95de16e324f81ad5 |
+
+## assignments
+
+| review_id | semantic_id | assignment_path | assignment_digest |
+| --- | --- | --- | --- |
+| VER-0701 | SEM-0701 | verification/harness/semantic-assignments/VER-0701.json | sha256:f40774e4a097af08e729bd028d42cf9311fe770f1246ee6371993fb4e8e2e0ad |
+| VER-0801 | SEM-0801 | verification/harness/semantic-assignments/VER-0801.json | sha256:88a962ef3cab18983d905fd65e913b5d575814b6bf768758e935e5a4f3b13bd1 |
+| VER-0802 | SEM-0802 | verification/harness/semantic-assignments/VER-0802.json | sha256:6cb79f0091255f9b685a2e1bbe39cf19f8d0f565ff323178f7d4938b73c2574e |
+| VER-0803 | SEM-0803 | verification/harness/semantic-assignments/VER-0803.json | sha256:c2c1a8d836f8f742f50c1bb840171fc906950ed41dcdee639017589b22bf534c |
+
+## results
+
+| review_id | semantic_id | result_path | result_digest | execution_kind | execution_evidence_ref |
+| --- | --- | --- | --- | --- | --- |
+| VER-0701 | SEM-0701 | verification/harness/semantic-results/VER-0701.json | sha256:28d31a0f1c9a01d9f2ffb50529a2df195ddeab4cb5d9eb4cbc9dc67af8f9268d | manual-separate-pass | verification/harness/semantic-process/reviewer-VER-0701.json@sha256:00324d84236a89a71b3cbfb226c8061f3648c5d5a394103f63fd12a0620986e8 |
+| VER-0801 | SEM-0801 | verification/harness/semantic-results/VER-0801.json | sha256:efb75eae90eb88a39f64f496a57c735d0b898bcbe0de106ec8a3eb4a2a9e626d | manual-separate-pass | verification/harness/semantic-process/reviewer-0801.json@sha256:6151981ac808b99c1bcb16694a9dc6a0996794195ff0adeaff4c7bc18ab33b8c |
+| VER-0802 | SEM-0802 | verification/harness/semantic-results/VER-0802.json | sha256:358b38acb624fa3f881a5b32eab1f1d95619589de2a9c00841c4ef9c153b0d57 | manual-separate-pass | verification/harness/semantic-process/reviewer-0802.json@sha256:c2eeda7e62997f1996b2e05407ce7481ac65f645c8a56dc1e061684109d4ef6b |
+| VER-0803 | SEM-0803 | verification/harness/semantic-results/VER-0803.json | sha256:c2f7a7965c571d50c6c395e619a776dda6bd59ec90b29507cde9dc74fd3955ed | manual-separate-pass | verification/harness/semantic-process/reviewer-VER-0803.json@sha256:37e25f5e59ae5dc95b0937d5e9e467b15e6d97320fb77d820d70510e77a06a2c |
+
+## resolutions
+
+| resolution_id | semantic_id | outcome | review_ids | canonical_refs | origin_unit_refs | followup_semantic_ids |
+| --- | --- | --- | --- | --- | --- | --- |
+| SMR-0701 | SEM-0701 | admitted | ["VER-0701"] | ["PKT-0701","PKT-0702"] | [] | [] |
+| SMR-0801 | SEM-0801 | admitted | ["VER-0801"] | ["CC-0801"] | ["SEM-0701/U1"] | [] |
+| SMR-0802 | SEM-0802 | admitted | ["VER-0802"] | ["CC-0802"] | ["SEM-0701/U2"] | [] |
+| SMR-0803 | SEM-0803 | not-admitted | ["VER-0803"] | [] | ["SEM-0801/U1","SEM-0802/U1"] | [] |
