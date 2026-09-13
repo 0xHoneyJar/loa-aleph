@@ -638,7 +638,10 @@ if (runtime && process.env.DUPLICATE_NODE20) {
   for (const target of [run, join(temp, 'agent-static-relabel')]) {
     const executed = spawnSync(recoveryNode, [installed, '--run', target, '--json'], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
     assert.equal(executed.status, target === run ? 0 : 1, executed.stderr);
-    assert.deepEqual(JSON.parse(executed.stdout), validateRun({ run: target }));
+    const source = spawnSync(process.execPath, [new URL('../../../scripts/validate-run.ts', import.meta.url).pathname,
+      '--run', target, '--json'], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+    assert.equal(source.status, executed.status, source.stderr);
+    assert.deepEqual(JSON.parse(executed.stdout), JSON.parse(source.stdout));
   }
 }
 const report = { result: 'PASS', records, mutations,
