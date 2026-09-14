@@ -1,0 +1,175 @@
+{
+  "result": "PASS",
+  "families": 28,
+  "cases": 41,
+  "records": [
+    {
+      "id": "D8-F01",
+      "scenario": "Equal text retains two distinct frozen occurrence coordinates",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F02",
+      "scenario": "Paraphrase proposal undergoes L3 followed by separate S4 SEM/L2S",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F03",
+      "scenario": "Enabled versus disabled condition",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F04",
+      "scenario": "Usually versus always qualifier",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F05",
+      "scenario": "One trial versus every trial scope",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F06",
+      "scenario": "Can versus must modality",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F07",
+      "scenario": "Observation, attributed interpretation and role remain distinguishable",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F08",
+      "scenario": "Overlap keeps both current claims without a lineage/map mutation",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F09",
+      "scenario": "Structured contradiction annotation preserves both claims without a truth winner",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F10",
+      "scenario": "Three source identities and occurrences survive equal source hashes",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F11",
+      "scenario": "Material limitation remains explicit and requests frozen inspection without inferred values",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F12",
+      "scenario": "Unresolved antecedent remains a frozen-source finding",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F13",
+      "scenario": "Conditional round two retains indeterminacy or refutation for all three verdicts",
+      "result": "PASS",
+      "cases": 3
+    },
+    {
+      "id": "D8-F14",
+      "scenario": "Direct three-member subject covers all pairs with one L3 round",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F15",
+      "scenario": "Faithful successor and complete synthetic C1/C2/C3 closure",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F16",
+      "scenario": "L2S preservation failure retains upheld L3 without successor admission",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F17",
+      "scenario": "Competing semantic declarations over identical text both pass structure",
+      "result": "PASS",
+      "cases": 2
+    },
+    {
+      "id": "D8-F18",
+      "scenario": "Semantically wrong declared condition collapse remains a structural PASS counterexample",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F19",
+      "scenario": "Retained 1.0 through 1.7 pins and behavior plus inert source marker text",
+      "result": "PASS",
+      "cases": 9
+    },
+    {
+      "id": "D8-F20",
+      "scenario": "Repeated same-origin reporting does not become independent corroboration",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F21",
+      "scenario": "Same topic but different assertion remains distinct",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F22",
+      "scenario": "Equivalence with unknown support origin cannot authorize absorption",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F23",
+      "scenario": "Identical facet shapes with different meanings may receive a refutation",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F24",
+      "scenario": "Different facet declarations do not deterministically forbid a duplicate",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F25",
+      "scenario": "Metric and comparator coverage uses exact source anchors",
+      "result": "PASS",
+      "cases": 1
+    },
+    {
+      "id": "D8-F26",
+      "scenario": "Incident relation proposals remain visible without transferring L3R authority",
+      "result": "PASS",
+      "cases": 2
+    },
+    {
+      "id": "D8-F27",
+      "scenario": "Zero candidates with full discovery and independent sweep closes structurally",
+      "result": "PASS",
+      "cases": 2
+    },
+    {
+      "id": "D8-F28",
+      "scenario": "Refuted mixed group and later reviewed subgroup retain separate immutable history",
+      "result": "PASS",
+      "cases": 1
+    }
+  ]
+}

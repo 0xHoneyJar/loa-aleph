@@ -1,0 +1,77 @@
+{
+  "result": "PASS",
+  "records": [
+    {
+      "id": "D8-C01 complete same-text distinct run preserves separate occurrences",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C02 all four worker contracts share strict native/fallback shapes and detached binding is not-checked",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C13 native comparison material and frozen-request constraints match portable admission",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C03 bound comparison and refutation validate against actual complete basis",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C14 checked return binding reopens run pins, basis and assigned candidate",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C15 active S4 lineage and map require composed plans; predecessor guard is unchanged",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C16 failed successor history survives later success without permitting fresh stale reservations",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C04 same text with coherent cannot-determine remains structurally valid",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C05 conditional round two upheld",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C05 conditional round two refuted",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C05 conditional round two cannot-determine",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C06 eligible successor uses new identity with exact occurrence union and independent L2S",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C07 L2S preservation refutation keeps upheld DUP decision without admission",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C08 different text and deliberately wrong declared duplicate both pass structure",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C09 empty candidate discovery closes without asserting semantic recall",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C10 exact L3 task and attachment set; portable candidate evidence stays empty",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C11 strict canonical JSON rejects duplicate keys, whitespace, invalid unicode and keys out of order",
+      "result": "PASS"
+    },
+    {
+      "id": "D8-C12 explicit L5 pair requires new discovery and cannot disappear before C1",
+      "result": "PASS"
+    }
+  ]
+}

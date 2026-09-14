@@ -1,0 +1,50 @@
+{
+  "execution_kind": "static-record",
+  "notice": "Synthetic relation/C2 rows and their consistent journal suffix are constructed fixture inputs. No accepted-return relation-production reachability is claimed.",
+  "receipts": [
+    {
+      "format": "aleph-loa-ledger-receipt/v1",
+      "sequence": "86",
+      "path": "ledgers/relations.md",
+      "before_digest": "sha256:066b282ab096d925fe28470d3fd460ff731feebdd96e0754fec4bd51abfe18fa",
+      "after_digest": "sha256:3d28a6f2d3d3628162ea02e9ede980fda9a9283d9efbf4bf57216425e39793cc",
+      "return_digest": "sha256:c3de9c85695d70905397c2c29c02f3f1ec7dab1b354a5035b0684f0e09f7c418",
+      "previous_chain_digest": "sha256:e1f6b5d6a3f9cceab76a55cb0b263d860a1ede287758125bc0a314f0f16df3fd",
+      "writer": "loa-orchestrator",
+      "written_at": "2026-09-13T12:00:00.000Z"
+    },
+    {
+      "format": "aleph-loa-ledger-receipt/v1",
+      "sequence": "87",
+      "path": "ledgers/representation-uses.md",
+      "before_digest": "sha256:f9b228daadea0f05614db6e2572f3bf22fd7644b523204a66b0a3d43b9c6f0f4",
+      "after_digest": "sha256:be118745d5b20eab6cbe0010c0ca25066080f4515bbc9f7411fb3248be63836a",
+      "return_digest": "sha256:c3de9c85695d70905397c2c29c02f3f1ec7dab1b354a5035b0684f0e09f7c418",
+      "previous_chain_digest": "sha256:31cb390df417dc76da6cdda2e52178d2c9d294fa818e15543c5340a604a937c2",
+      "writer": "loa-orchestrator",
+      "written_at": "2026-09-13T12:00:00.000Z"
+    },
+    {
+      "format": "aleph-loa-ledger-receipt/v1",
+      "sequence": "88",
+      "path": "ledgers/internal-ambiguities.md",
+      "before_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after_digest": "sha256:3fbc2827028d8bd295f5aba564dd62000d73f77ccd3744f7950a182617ecccbf",
+      "return_digest": "sha256:c3de9c85695d70905397c2c29c02f3f1ec7dab1b354a5035b0684f0e09f7c418",
+      "previous_chain_digest": "sha256:42b4f1c70d0c6b1a0a30ffbf2ab2580a90de4e25f1eae6284d26ca18134109a7",
+      "writer": "loa-orchestrator",
+      "written_at": "2026-09-13T12:00:00.000Z"
+    },
+    {
+      "format": "aleph-loa-ledger-receipt/v1",
+      "sequence": "89",
+      "path": "verification/harness/S4/VER-0850.md",
+      "before_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after_digest": "sha256:6282d429420c651b38b3628b18b1983ecefd2fca5ef9275aee17b27c04a63e6e",
+      "return_digest": "sha256:c3de9c85695d70905397c2c29c02f3f1ec7dab1b354a5035b0684f0e09f7c418",
+      "previous_chain_digest": "sha256:b68f348e2354bcce5e3fa1951ff1a58c746d9ec5d5dd3b3a6085121bc2101ef5",
+      "writer": "loa-orchestrator",
+      "written_at": "2026-09-13T12:00:00.000Z"
+    }
+  ]
+}

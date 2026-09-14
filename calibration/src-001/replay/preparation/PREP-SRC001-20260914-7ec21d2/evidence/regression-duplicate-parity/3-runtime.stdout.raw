@@ -1,0 +1,146 @@
+{
+  "result": "PASS",
+  "records": [
+    {
+      "id": "D8-P01",
+      "result": "NOT RUN",
+      "evidence": "genuine native invocation requires separate authority"
+    },
+    {
+      "id": "D8-P20",
+      "result": "PASS",
+      "evidence": "Actual sealed transport failure to read complete supplied context retains an unfinished assignment and blocks C1; no truncated or upheld result is substituted."
+    },
+    {
+      "id": "D8-P06",
+      "result": "PASS",
+      "evidence": "A retained fixture dispatch receipt reusing the first reviewer context is refused by actual sealed return acceptance."
+    },
+    {
+      "id": "D8-P07",
+      "result": "PASS",
+      "evidence": "Extra task text and attachment refused at actual assembly; resealed task changes refused at bundle verification and return acceptance."
+    },
+    {
+      "id": "D8-P08",
+      "result": "PASS",
+      "evidence": "Changed member content after assignment refuses the retained old result at actual acceptance without changing the duplicate ledger."
+    },
+    {
+      "id": "D8-P09",
+      "result": "PASS",
+      "evidence": "Retargeted accepted-result bytes are refused through the sealed worker return path."
+    },
+    {
+      "id": "D8-P18",
+      "result": "PASS",
+      "evidence": "Actual discovery/comparison views differ from the exact sealed L3 subject; unrelated withheld canaries and global catalogue are absent from L3 attachments."
+    },
+    {
+      "id": "D8-P05",
+      "result": "PASS",
+      "evidence": "Actual sealed return acceptance refuses a producer-context receipt before canonical write."
+    },
+    {
+      "id": "D8-P02",
+      "result": "PASS",
+      "evidence": "Fixture callback used sealed discovery, comparison, assignment, fresh L3 dispatch, acceptance and canonical writer; labels remain fixture-simulated."
+    },
+    {
+      "id": "D8-P19",
+      "result": "PASS",
+      "evidence": "Actual synthetic normalizer/L2S dispatch, acceptance and writer retain preservation refutation and upheld DDR; no successor identity is admitted."
+    },
+    {
+      "id": "D8-P10",
+      "result": "PASS",
+      "evidence": "All three round-two branches used the identical sealed subject and remained blocking. A new static frozen working-context declaration required a new proposal, subject, fresh L3 and successor reviews through transport/writer; the earlier unknown and both results remain."
+    },
+    {
+      "id": "D8-P12",
+      "result": "PASS",
+      "evidence": "Missing accepted successor/L2S/L2F bindings refused without canonical changes; complete admission used one duplicate journal with semantic/material subplans."
+    },
+    {
+      "id": "D8-P16",
+      "result": "PASS",
+      "evidence": "Actual comparison assembly refuses an overlapping group whose predecessors were already consumed; canonical bytes stay unchanged."
+    },
+    {
+      "id": "D8-P13",
+      "result": "PASS",
+      "evidence": "44 fresh-process interruption boundaries recovered exactly once across retained duplicate operations and every composed admission write."
+    },
+    {
+      "id": "D8-P15",
+      "result": "PASS",
+      "evidence": "Completed exact retry after later discovery is a no-op; changed bytes, lost prerequisites, preimages and forked journals refuse before writing."
+    },
+    {
+      "id": "D8-P14",
+      "result": "PASS",
+      "evidence": "4 C1 preparation/seal/chain/checkpoint boundaries recover one composed material/semantic/duplicate closure; relation/C2 rows and their journal suffix are explicitly static fixture inputs."
+    },
+    {
+      "id": "D8-P17",
+      "result": "PASS",
+      "evidence": "C1-only resume preserves seals, refuses duplicate/semantic/REL rewrites and completes existing C2/C3 over explicitly static fixture declarations."
+    },
+    {
+      "id": "D8-P04",
+      "result": "PASS",
+      "evidence": "Synthetic manual actor/pass declarations pass; producer and conditional reviewer reuse fail. Actual human review NOT RUN; four-key profile is not independence evidence."
+    },
+    {
+      "id": "D8-P03",
+      "result": "PASS",
+      "evidence": "A static record passes only explicit fixture structure; the same evidence class cannot satisfy agent freshness."
+    },
+    {
+      "id": "D8-P11",
+      "result": "PASS",
+      "evidence": "Static fixture histories retain refuted, withdrawn and failed successor records beside later separately reviewed successes with new identities; no production reachability inferred."
+    }
+  ],
+  "mutations": [
+    {
+      "id": "D8-M35-preimage",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE"
+      ]
+    },
+    {
+      "id": "D8-M35-lost-review",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_SUBJECT"
+      ]
+    },
+    {
+      "id": "D8-M35-fork",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE"
+      ]
+    },
+    {
+      "id": "D8-M35-journal-bytes",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE"
+      ]
+    },
+    {
+      "id": "D8-M35-idempotency-key",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE"
+      ]
+    }
+  ],
+  "evidence_directory": "/tmp/aleph-duplicate-process-YhMUcS",
+  "native_model_calls": 0,
+  "recovered_boundaries": 44,
+  "closure_boundaries": 4
+}

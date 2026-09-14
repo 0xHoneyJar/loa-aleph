@@ -1,0 +1,27 @@
+{
+  "result": "PASS",
+  "records": [
+    {
+      "test": "scripts/test-duplicate-review-contracts.ts",
+      "result": "PASS",
+      "cases": 18
+    },
+    {
+      "test": "scripts/test-duplicate-review-fixtures.ts",
+      "result": "PASS",
+      "cases": 28
+    },
+    {
+      "test": "scripts/test-duplicate-review-mutations.ts",
+      "result": "PASS",
+      "cases": 44
+    },
+    {
+      "test": "adapters/loa/tests/test-duplicate-review-process.ts",
+      "result": "PASS",
+      "cases": 20
+    }
+  ],
+  "evidence_directory": "/tmp/aleph-duplicate-parity-LheFuU",
+  "genuine_model_calls": 0
+}

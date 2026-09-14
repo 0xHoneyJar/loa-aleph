@@ -1,0 +1,365 @@
+{
+  "result": "PASS",
+  "records": [
+    {
+      "id": "D8-M01",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REFERENCE",
+        "K2.20",
+        "K2.19",
+        "K2.18",
+        "K2.5",
+        "K2.15"
+      ]
+    },
+    {
+      "id": "D8-M02",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REFERENCE"
+      ]
+    },
+    {
+      "id": "D8-M03",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REFERENCE",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M04",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M05",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M06",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REFERENCE",
+        "K2.20",
+        "K2.5"
+      ]
+    },
+    {
+      "id": "D8-M07",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20",
+        "K2.15"
+      ]
+    },
+    {
+      "id": "D8-M08",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M09",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_SUBJECT",
+        "K2.20",
+        "K2.19",
+        "K2.18"
+      ]
+    },
+    {
+      "id": "D8-M10",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REVIEW",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M11",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REVIEW",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M10-round1",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REVIEW",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M11-round1",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REVIEW",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M12",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_SUBJECT",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M13",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ISOLATION",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M14",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ISOLATION"
+      ]
+    },
+    {
+      "id": "D8-M15",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ENUM",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M16",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M16-reviewer-finding",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M17",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M18",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M19",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_SUBJECT",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M20",
+      "result": "PASS",
+      "actual_tokens": [
+        "K2.18",
+        "K2.16"
+      ]
+    },
+    {
+      "id": "D8-M21",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_REVIEW",
+        "K2.20",
+        "K2.19"
+      ]
+    },
+    {
+      "id": "D8-M22",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_WINDOW"
+      ]
+    },
+    {
+      "id": "D8-M23",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_COMPATIBILITY"
+      ]
+    },
+    {
+      "id": "D8-M24",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M25",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ISOLATION",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M26",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_SUBJECT",
+        "K2.20",
+        "K2.19",
+        "K2.18"
+      ]
+    },
+    {
+      "id": "D8-M27",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M28",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M29",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M30",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M30-omitted-successor-attempt",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ACCOUNTING",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M31",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_WINDOW",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M32",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ISOLATION",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M32-extra-effort",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ISOLATION",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M32-fake-digest",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ISOLATION",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M32-round2-reviewer_actor",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ISOLATION",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M32-round2-reviewer_pass_id",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_ISOLATION",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M33",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_FORMAT",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M29-map-origin-laundering",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M34",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE",
+        "K2.20"
+      ]
+    },
+    {
+      "id": "D8-M34-third-round",
+      "result": "PASS",
+      "actual_tokens": [
+        "DUP_STATE",
+        "K2.20"
+      ]
+    }
+  ],
+  "process_mutation": "D8-M35 is exercised against actual writer journals in test-duplicate-review-process.ts."
+}
