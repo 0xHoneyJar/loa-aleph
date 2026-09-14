@@ -8,8 +8,36 @@ import type { Fixture } from './synthetic.ts';
 import * as H from '../protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/index.ts';
 import type { Data } from '../protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/index.ts';
 import { materialFeatureAvailable, prepareRepresentationCapture } from '../../../../scripts/lib/source-representation.ts';
+import { validateWorkerReturnContract } from '../../../../scripts/lib/worker-return-contract.ts';
 
 const tests: Data[] = [], mutations: Data[] = [];
+const retainedBlobs = new Map<string,string>();
+function retainBlob(bytes:Buffer):string {
+  const sha256=H.digest(bytes);retainedBlobs.set(sha256,bytes.toString('base64'));return sha256;
+}
+function references(value:unknown):H.ArtifactRef[] {
+  if(!value||typeof value!=='object')return [];
+  const record=value as Data;
+  if(!Array.isArray(value)&&Object.keys(value).length===4&&['store','path','byte_length','sha256'].every(k=>typeof record[k]==='string')
+    &&record.store.startsWith('sha256:')&&record.sha256.startsWith('sha256:'))return [value as H.ArtifactRef];
+  return Object.values(value).flatMap(references);
+}
+function retainReferences(c:Fixture,value:unknown):Data[] {
+  const queue=references(value),seen=new Set<string>(),rows:Data[]=[];
+  while(queue.length) {
+    const ref=queue.shift()!,key=H.canonicalBytes(ref).toString();if(seen.has(key))continue;seen.add(key);
+    try {
+      const raw=c.f.stores.read(ref);rows.push({artifact_ref:ref,blob_sha256:retainBlob(raw)});
+      try {queue.push(...references(JSON.parse(raw.toString('utf8'))));}catch {/* Raw evidence is retained even when it is not JSON. */}
+    }catch(error){rows.push({artifact_ref:ref,unresolved_reason:String(error)});}
+  }
+  return rows;
+}
+function retainSnapshot(c:Fixture):Data[] {
+  return H.inventory(c.resultRoot).filter(e=>e.type==='file').map(e=>({path:e.path,mode:e.mode,
+    byte_length:e.byte_length,blob_sha256:retainBlob(H.exactFile(c.resultRoot,e.path))}));
+}
+
 function test(name: string, action: () => void): void {
   try { action(); tests.push({ name, result: 'PASS' }); console.log(`PASS ${name}`); }
   catch (error) {
@@ -159,11 +187,17 @@ function mutation(id:string, checkId:string, subject:(c:Fixture)=>unknown, chang
     const control = H.check(checkId,run);
     assert.equal(control.result,'PASS',`nonpassing control ${JSON.stringify(control)}`);
     const before = H.canonicalBytes(subject(c));
+    const beforeArtifacts=retainReferences(c,subject(c));
+    const beforeSnapshot=['R06','R07'].includes(checkId)?retainSnapshot(c):[];
     change(c);
     const after = H.canonicalBytes(subject(c));
+    const afterArtifacts=retainReferences(c,subject(c));
+    const afterSnapshot=['R06','R07'].includes(checkId)?retainSnapshot(c):[];
     assert(!before.equals(after),'mutation did not change the subject');
     const result = H.check(checkId,run);
     mutations.push({mutation_id:id,check_id:checkId,control,result,expected_token:expected,
+      referenced_artifacts_before:beforeArtifacts,referenced_artifacts_after:afterArtifacts,
+      snapshot_files_before:beforeSnapshot,snapshot_files_after:afterSnapshot,
       before_sha256:H.digest(before),before_base64:before.toString('base64'),
       after_sha256:H.digest(after),after_base64:after.toString('base64')});
     assert.notEqual(result.result,'PASS','mutation escaped');
@@ -207,7 +241,18 @@ mutation('H-M20','R02',c=>c.release,c=>{c.release.builds[0].actual_build_checkou
 mutation('H-M21','R02',c=>c.release,c=>{c.release.builds[1].archive_ref=c.f.put('SYNTHETIC-release.tar.gz',Buffer.from('SYNTHETIC nondeterministic archive'));},'BLOCKED_RELEASE_REPRODUCTION');
 mutation('H-M22','R03',c=>c.observation,c=>{c.observation.observed_channels.push('SYNTHETIC-unrecorded-FD-dependency');},'FAIL_CONTEXT_LEAK');
 mutation('H-M23','R05',c=>c.execution,c=>{c.execution.deliveries[0].execution_class='native-dispatch';},'BLOCKED_CONTEXT_EVIDENCE');
-mutation('H-M24','R05',c=>c.outcome,c=>{c.outcome.completion='COMPLETE_TO_DECLARED_ENDPOINT';},'BLOCKED_F03_PRODUCTION_REACHABILITY');
+mutation('H-M24','R05',c=>({outcome:c.outcome,execution:c.execution}),c=>{c.outcome.completion='COMPLETE_TO_DECLARED_ENDPOINT';},
+  'BLOCKED_F03_PRODUCTION_REACHABILITY',undefined,c=>{
+    const prompt=readFileSync('docs/architecture/prompts/workers-intake-extraction.md','utf8');
+    const contracts=[...prompt.matchAll(/\*\*Output contract[^*]*\*\*\s*```json\s*([\s\S]*?)\s*```/gu)].map(m=>JSON.parse(m[1]));
+    const contract=contracts.find(value=>value.role==='normalizer');assert(contract);
+    const raw=Buffer.from(JSON.stringify({claims:[],no_claim_packets:[],lineage_proposals:[],material_findings:[],semantic_units:[]}));
+    const validation=validateWorkerReturnContract(raw,contract);assert.equal(validation.result,'PASS');
+    c.execution.accepted_return_refs=[c.f.put('SYNTHETIC-accepted-return.json',raw)];
+    c.execution.quarantined_return_refs=[c.f.put('SYNTHETIC-quarantined-return.json',raw)];
+    c.execution.raw_checker_result_ref=c.f.put('SYNTHETIC-Core-return-validation.json',validation);
+    c.execution.raw_adapter_result_ref=c.f.put('SYNTHETIC-transport-result.json',{result:'PASS',ledger_write:false,execution_class:'synthetic'});
+  });
 mutation('H-M25','R05',c=>c.execution,c=>{c.execution.manual_passes[0].evidence.reviewer_actor='SYNTHETIC-producer';},
   'BLOCKED_CONTEXT_EVIDENCE',undefined,c=>{
     const mode={...c.mode,mode:'manual',sanction_status:'sanctioned-manual-path',evidence_kind:'manual-separate-pass'};
@@ -262,7 +307,13 @@ test('mapping absent sides and unknown buckets cannot disappear', () => {
 });
 test('CLI refuses replay, provider, release, attestation and reference operations',()=>{
   const cli=resolve('calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts');
-  for(const command of ['start','resume','attest','prepare-release','open-reference'])assert.throws(()=>execFileSync(process.execPath,[cli,command],{stdio:'pipe'}));
+  for(const command of ['start','resume','attest','prepare-release','open-reference']) {
+    try {execFileSync(process.execPath,[cli,command],{stdio:'pipe'});assert.fail('unsafe command was accepted');}
+    catch(error) {
+      const failure=error as {status?:number;stdout?:Buffer};assert.equal(failure.status,1);
+      const report=JSON.parse(failure.stdout!.toString('utf8'));assert.equal(report.token,'RECORD_REFUSED');assert.equal(report.result,'FAIL');
+    }
+  }
 });
 test('synthetic ZIP extraction selects only approved bytes and rejects malicious metadata',()=>{
   function zip(rows:Array<{name:string;bytes:Buffer;mode?:number;method?:number}>):Buffer {
@@ -367,7 +418,15 @@ test('deterministic repeated R01-R09 reports and independently rebuilt fixture i
   assert.equal(rebuilt.inv.inventory_digest,controls.inv.inventory_digest);
   assert.equal(H.digest(H.canonicalBytes(rebuilt.freeze)),H.digest(H.canonicalBytes(controls.freeze)));
 });
+test('mutation evidence retains actual synthetic payload bytes without temporary-store dependence',()=>{
+  for(const mutation of mutations)for(const item of [...mutation.referenced_artifacts_before,...mutation.referenced_artifacts_after,
+    ...mutation.snapshot_files_before,...mutation.snapshot_files_after]) {
+    if(item.blob_sha256)assert.equal(H.digest(Buffer.from(retainedBlobs.get(item.blob_sha256)!,'base64')),item.blob_sha256);
+    else assert(item.unresolved_reason);
+  }
+});
 const evidence={format:'SYNTHETIC-harness-test-evidence/v1',execution_class:'synthetic',tests,controls:positiveResults,mutations,
+  blobs:[...retainedBlobs].sort(([a],[b])=>a.localeCompare(b)).map(([sha256,base64])=>({sha256,byte_length:String(Buffer.from(base64,'base64').length),base64})),
   real_release_preparations:'0',attestation_probes:'0',replay_model_calls:'0',real_replay_ids:'0',closed_reference_accesses:'0',real_comparisons:'0'};
 const reportArg=process.argv.indexOf('--report');
 if(reportArg>=0) {

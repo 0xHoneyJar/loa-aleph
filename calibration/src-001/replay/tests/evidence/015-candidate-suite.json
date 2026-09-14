@@ -1,0 +1,14 @@
+{
+  "command": [
+    "node",
+    "/tmp/SYNTHETIC-src001-retention-candidate/calibration/src-001/replay/tests/test-harness.ts",
+    "--report",
+    "/tmp/SYNTHETIC-src001-retained-results-015.json"
+  ],
+  "base_head": "483e247936ff0f77e3830dbdef63c01655f12a94",
+  "base_tree": "776fe93a408f90b13c18e5d4068305f51b358196",
+  "candidate_test_sha256": "9c947bee1e46adfc1c726bcc8cfee4089c7934ab6545e4e2ee5b5cca2ecabe15",
+  "exit_code": 0,
+  "stdout": "PASS R01\nPASS R02\nPASS R03\nPASS R04\nPASS R05\nPASS R06\nPASS R07\nPASS R08\nPASS R09\nPASS all closed versioned schemas: positive, unknown key, missing field, duplicate JSON key\nPASS enums, decimal strings, UTF-8, canonical JSON, escaped duplicate keys\nPASS path and ArtifactRef closure\nPASS approved opaque input metadata and bounded imported representation\nPASS event chain append-only, fork/sequence/predecessor/mutation and time independence\nPASS H-F1 inaccessible canary, input plumbing and closure controls\nPASS H-F2 blocked and completed synthetic snapshots with full directories\nPASS H-F3 actual ID renaming, same-ID indeterminacy and many-sided mappings\nPASS H-F4 indeterminate mapping, findings, summaries and denominator\nPASS raw JSON/JSONL/Markdown selectors preserve exact selected bytes\nPASS H-M01\nPASS H-M02\nPASS H-M03\nPASS H-M04\nPASS H-M05\nPASS H-M06\nPASS H-M07\nPASS H-M08\nPASS H-M09\nPASS H-M10\nPASS H-M11\nPASS H-M12\nPASS H-M13\nPASS H-M14\nPASS H-M15\nPASS H-M16\nPASS H-M17\nPASS H-M18\nPASS H-M19\nPASS H-M20\nPASS H-M21\nPASS H-M22\nPASS H-M23\nPASS H-M24\nPASS H-M25\nPASS H-M26\nPASS H-M27\nPASS H-M28\nPASS H-M29\nPASS additional leak encodings, alias, environment, and unknown ingress variants\nPASS freeze path/mode/hidden/quarantine mutations and detached-key rejection\nPASS mapping absent sides and unknown buckets cannot disappear\nPASS CLI refuses replay, provider, release, attestation and reference operations\nPASS synthetic ZIP extraction selects only approved bytes and rejects malicious metadata\nPASS visibility derivation closure, generations, and unapproved roots\nPASS manual conditional reviewer, L3/L2S pass reuse, normalizer pass and no fallback\nPASS comparison output inventory and synthetic audit subject structure\nPASS protocol inventory and unchanged imported Core contract lock\nPASS deterministic repeated R01-R09 reports and independently rebuilt fixture identities\nPASS mutation evidence retains actual synthetic payload bytes without temporary-store dependence\nSYNTHETIC TESTS 59/59; MUTATIONS 29/29\n",
+  "stderr": ""
+}
