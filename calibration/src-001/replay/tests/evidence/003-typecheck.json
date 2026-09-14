@@ -1,0 +1,12 @@
+{
+  "command": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "calibration/src-001/replay/tests/tsconfig.json",
+    "--noEmit"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}
