@@ -1,0 +1,89 @@
+{
+  "command": [
+    "node",
+    "calibration/src-001/replay/tests/test-harness.ts",
+    "--report",
+    "calibration/src-001/replay/tests/evidence/008-synthetic-results.json"
+  ],
+  "source_inventory": [
+    {
+      "path": "calibration/src-001/replay/fixtures/README.md",
+      "sha256": "87e99d9c16bd3188f39d0e74ea8794ba83fc63d5141c0db2d6485541c5a04918"
+    },
+    {
+      "path": "calibration/src-001/replay/fixtures/SYNTHETIC-criteria.md",
+      "sha256": "2b8e3117cf70179d0e1bf33fc1bf1ff0d94fbd41d68e36d4db65f1935d65efaf"
+    },
+    {
+      "path": "calibration/src-001/replay/fixtures/SYNTHETIC-source.txt",
+      "sha256": "c97d1617fd834bf0ce249c0e5a2d4494eed0225e752ff0aedbf529485c5c65b1"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/README.md",
+      "sha256": "5992bde31f2fd320d53311ec723ba30c0b6067148ef4d0dab24d90354c083fd7"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/protocol-lock.json",
+      "sha256": "3446e3c9bc25a447fed4a9a5c8cbbd0985c1e1152f024d6ad17bac2e1b67fe09"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/schemas/records.schema.json",
+      "sha256": "e549e259a82b38fea671b89b9b982b17041d0c466794269059805487042e1cdc"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+      "sha256": "8a175c0ba23470fe86a817aa5c929ba22d880fcac8474837f17a73e72287a757"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/comparison.ts",
+      "sha256": "5ee440826c7d67c9c8aefd86b3192f677f3e0aca88a708bbc7746f2849b2e3af"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/freeze.ts",
+      "sha256": "4d0e4d10edcb81945754fda4e6cbc6dc2c54e21f9ff936ea745d3459f25abdc9"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/index.ts",
+      "sha256": "f1e277f049ce87f0ea6913cc81bcfa56159f731addccddef67efffb88e2cae6b"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/inputs-release.ts",
+      "sha256": "a9a679960f9193784e28f51020bdd482ff56c0bd06da2d7b50092682ab0761f6"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/protocol.ts",
+      "sha256": "1149da66e122f69c621821962a6ddfd92d7a3c70d4f429b0ba3591a608700648"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/records.ts",
+      "sha256": "36436f77b129c724568f3b551487aa92a6f4e9b5feaf58c57b19f8b886cb6401"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/storage.ts",
+      "sha256": "d4631c4723465bb71c6d41d11c0f77575ffa213eab64744cc1ce9503debe6e51"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/synthetic-archive.ts",
+      "sha256": "a21a38c49660547dec1c7caf4f2bea9f8379d93d6cc8b034934dc3ae33ddf333"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/visibility-execution.ts",
+      "sha256": "ff8f79487a369db9527dc82bea729ecd3d1787de935b28f14566df676285165c"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/synthetic.ts",
+      "sha256": "63b5914af2a77e1318e3014b3b7499c6d0209ebe41b78c6f777ad9fdf513544a"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/test-harness.ts",
+      "sha256": "288d325df945be977f5a09ff7444068e58e757e04f7ac8a214d1d241d44f47cc"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/tsconfig.json",
+      "sha256": "21df06c2a9305401679623d267dcea11c539ac657bafaaff71fc886b3bd835a8"
+    }
+  ],
+  "exit_code": 0,
+  "stdout": "PASS R01\nPASS R02\nPASS R03\nPASS R04\nPASS R05\nPASS R06\nPASS R07\nPASS R08\nPASS R09\nPASS all closed versioned schemas: positive, unknown key, missing field, duplicate JSON key\nPASS enums, decimal strings, UTF-8, canonical JSON, escaped duplicate keys\nPASS path and ArtifactRef closure\nPASS approved opaque input metadata and bounded imported representation\nPASS event chain append-only, fork/sequence/predecessor/mutation and time independence\nPASS H-F1 inaccessible canary, input plumbing and closure controls\nPASS H-F2 blocked and completed synthetic snapshots with full directories\nPASS H-F3 actual ID renaming, same-ID indeterminacy and many-sided mappings\nPASS H-F4 indeterminate mapping, findings, summaries and denominator\nPASS raw JSON/JSONL/Markdown selectors preserve exact selected bytes\nPASS H-M01\nPASS H-M02\nPASS H-M03\nPASS H-M04\nPASS H-M05\nPASS H-M06\nPASS H-M07\nPASS H-M08\nPASS H-M09\nPASS H-M10\nPASS H-M11\nPASS H-M12\nPASS H-M13\nPASS H-M14\nPASS H-M15\nPASS H-M16\nPASS H-M17\nPASS H-M18\nPASS H-M19\nPASS H-M20\nPASS H-M21\nPASS H-M22\nPASS H-M23\nPASS H-M24\nPASS H-M25\nPASS H-M26\nPASS H-M27\nPASS H-M28\nPASS H-M29\nPASS additional leak encodings, alias, environment, and unknown ingress variants\nPASS freeze path/mode/hidden/quarantine mutations and detached-key rejection\nPASS mapping absent sides and unknown buckets cannot disappear\nPASS CLI refuses replay, provider, release, attestation and reference operations\nPASS synthetic ZIP extraction selects only approved bytes and rejects malicious metadata\nPASS visibility derivation closure, generations, and unapproved roots\nPASS manual conditional reviewer, L3/L2S pass reuse, normalizer pass and no fallback\nPASS comparison output inventory and synthetic audit subject structure\nPASS protocol inventory and unchanged imported Core contract lock\nPASS deterministic repeated R01-R09 reports and independently rebuilt fixture identities\nSYNTHETIC TESTS 58/58; MUTATIONS 29/29\n",
+  "stderr": ""
+}

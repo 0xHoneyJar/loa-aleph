@@ -1,0 +1,90 @@
+{
+  "format": "src001-producer-final-checks/v1",
+  "head": "63235ac27486f0c4d3d52377f80df183a28ba3b7",
+  "tree": "60ee1b745a5c4f1f7cfca63248607598daea33fe",
+  "commands": [
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "calibration/src-001/replay/tests/tsconfig.json",
+        "--noEmit"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": "0.292",
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "calibration/src-001/replay/tests/test-harness.ts",
+        "--report",
+        "/tmp/SYNTHETIC-src001-final-results-016.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": "8.628",
+      "stdout": "PASS R01\nPASS R02\nPASS R03\nPASS R04\nPASS R05\nPASS R06\nPASS R07\nPASS R08\nPASS R09\nPASS all closed versioned schemas: positive, unknown key, missing field, duplicate JSON key\nPASS enums, decimal strings, UTF-8, canonical JSON, escaped duplicate keys\nPASS path and ArtifactRef closure\nPASS approved opaque input metadata and bounded imported representation\nPASS event chain append-only, fork/sequence/predecessor/mutation and time independence\nPASS H-F1 inaccessible canary, input plumbing and closure controls\nPASS H-F2 blocked and completed synthetic snapshots with full directories\nPASS H-F3 actual ID renaming, same-ID indeterminacy and many-sided mappings\nPASS H-F4 indeterminate mapping, findings, summaries and denominator\nPASS raw JSON/JSONL/Markdown selectors preserve exact selected bytes\nPASS H-M01\nPASS H-M02\nPASS H-M03\nPASS H-M04\nPASS H-M05\nPASS H-M06\nPASS H-M07\nPASS H-M08\nPASS H-M09\nPASS H-M10\nPASS H-M11\nPASS H-M12\nPASS H-M13\nPASS H-M14\nPASS H-M15\nPASS H-M16\nPASS H-M17\nPASS H-M18\nPASS H-M19\nPASS H-M20\nPASS H-M21\nPASS H-M22\nPASS H-M23\nPASS H-M24\nPASS H-M25\nPASS H-M26\nPASS H-M27\nPASS H-M28\nPASS H-M29\nPASS additional leak encodings, alias, environment, and unknown ingress variants\nPASS freeze path/mode/hidden/quarantine mutations and detached-key rejection\nPASS mapping absent sides and unknown buckets cannot disappear\nPASS CLI refuses replay, provider, release, attestation and reference operations\nPASS synthetic ZIP extraction selects only approved bytes and rejects malicious metadata\nPASS visibility derivation closure, generations, and unapproved roots\nPASS manual conditional reviewer, L3/L2S pass reuse, normalizer pass and no fallback\nPASS comparison output inventory and synthetic audit subject structure\nPASS protocol inventory and unchanged imported Core contract lock\nPASS deterministic repeated R01-R09 reports and independently rebuilt fixture identities\nPASS mutation evidence retains actual synthetic payload bytes without temporary-store dependence\nSYNTHETIC TESTS 59/59; MUTATIONS 29/29\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+        "verify-protocol"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": "0.193",
+      "stdout": "{\"proposition\":\"Exact protocol and imported contract bytes match their lock.\",\"result\":\"PASS\",\"token\":\"PROTOCOL_LOCK_PASS\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/validate-core-boundary.ts",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": "0.310",
+      "stdout": "{\n  \"result\": \"PASS\",\n  \"checks\": [\n    {\n      \"id\": \"CB1\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(core manifest): core manifest format and required fields are valid\"\n    },\n    {\n      \"id\": \"CB2\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(inventory classification): 875 tracked and nonignored untracked files have exactly one classification\"\n    },\n    {\n      \"id\": \"CB3\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(Core completeness and class boundaries): doctrine, contracts, fixtures, goldens, checkers, and manual binding remain in Core\"\n    },\n    {\n      \"id\": \"CB4\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(checker and typed manifest references): checker and typed boundary references resolve to classified paths\"\n    },\n    {\n      \"id\": \"CB5\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(adapter manifest shape): adapter manifests and protocol schema are structurally valid\"\n    },\n    {\n      \"id\": \"CB6\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(adapter lifecycle honesty): lifecycle labels, capabilities, entrypoints, installation, profiles, and evidence agree\"\n    },\n    {\n      \"id\": \"CB7\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(adapter ownership and Core non-override): adapters own only their host paths and cannot override or duplicate Core\"\n    },\n    {\n      \"id\": \"CB8\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(foreign-adapter exclusion): selected-adapter payloads, typed dependencies, and bundle inventories exclude foreign adapters\"\n    },\n    {\n      \"id\": \"CB10\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(Core-owned procedural authority semantics): Loa delegates structured material-impact authority eligibility to the Core helper\"\n    },\n    {\n      \"id\": \"CB9\",\n      \"scope\": \"CORE-BOUNDARY\",\n      \"status\": \"PASS\",\n      \"message\": \"(bundle digests and Core equality): all bundle targets share Core digest sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c\"\n    }\n  ],\n  \"inventory\": {\n    \"total\": 875,\n    \"core\": 600,\n    \"adapters\": {\n      \"hermes\": 1,\n      \"loa\": 52\n    },\n    \"packaging\": 8,\n    \"repositoryAdministration\": 214\n  },\n  \"digests\": {\n    \"algorithm\": \"sha256-path-file-digest-v1\",\n    \"core\": \"sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c\",\n    \"checker\": \"sha256:214c0ed2448f9200242cbba7ec6f71f454b24a1818ee090aa593911368f2496e\",\n    \"manualExecutionBinding\": \"sha256:81c536d14dca524a7dea0a1ab0cf263cde985079f7c75e37e5d633ded65c7715\",\n    \"adapters\": {\n      \"loa\": \"sha256:fa38c4556f80afdd8227e5e4e0e3f37af2d8d33ead5f3669f6f3a51e5cf6916f\",\n      \"hermes\": \"sha256:4335e08f14ac5836857ad288eb80cef9b2d3e4bc46b725a99966147baed9188c\"\n    },\n    \"bundles\": {\n      \"aleph-for-loa\": {\n        \"adapterId\": \"loa\",\n        \"coreDigest\": \"sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c\",\n        \"adapterDigest\": \"sha256:fa38c4556f80afdd8227e5e4e0e3f37af2d8d33ead5f3669f6f3a51e5cf6916f\",\n        \"payloadDigest\": \"sha256:276addb59829cd4735293c34e0fc1877cdcd221b3d01fd7bf6c758838c9e6572\",\n        \"lockProjectionDigest\": \"sha256:71a9b04124d117853922e948edae5c85019a330a337a1ecf89b6ca8f9071e963\",\n        \"bundleDigest\": \"sha256:e83ab57e971f2d508fe2b42139cd122b9fd70b9b309574efd10307ff6795c909\"\n      },\n      \"aleph-for-hermes\": {\n        \"adapterId\": \"hermes\",\n        \"coreDigest\": \"sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c\",\n        \"adapterDigest\": \"sha256:4335e08f14ac5836857ad288eb80cef9b2d3e4bc46b725a99966147baed9188c\",\n        \"payloadDigest\": \"sha256:c938cc7566e8d7ada5ce23beab924317226940a654733c9f6ab961dd801f7795\",\n        \"lockProjectionDigest\": \"sha256:23681d4d19e3ff4895aa79c58a034c6288580047692a5451fdfcb39bea1f5363\",\n        \"bundleDigest\": \"sha256:c1b1006916ab2fd5cd93ea2127fd60f3009ff09ea5001be0ce68e27a2047fdb6\"\n      }\n    }\n  },\n  \"adapters\": [\n    {\n      \"id\": \"hermes\",\n      \"lifecycle\": \"planned\",\n      \"fullModeClaimed\": false,\n      \"preflight\": \"NOT-READY\",\n      \"preflightReasons\": [\n        \"adapter lifecycle is planned; no runnable entrypoint or installation exists\"\n      ]\n    },\n    {\n      \"id\": \"loa\",\n      \"lifecycle\": \"implemented\",\n      \"fullModeClaimed\": true,\n      \"preflight\": \"READY\",\n      \"preflightReasons\": []\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "npm",
+        "run",
+        "runtime:check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": "0.507",
+      "stdout": "\n> loa-aleph@0.0.0 runtime:check\n> node packaging/build-runtime-js.ts check\n\nRUNTIME-JS PASS (42 files)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "84b6d9d734ab68f3986ce6b969ea0fb6e577bad2",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": "0.017",
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "result": "PASS",
+  "repeatability": {
+    "retained_result": "calibration/src-001/replay/tests/evidence/015-synthetic-results.json",
+    "retained_sha256": "1b43046741339778f10630a6e32ae6f1fa6bdc6d9a82361fde2485a8cda0dbad",
+    "repeated_sha256": "1b43046741339778f10630a6e32ae6f1fa6bdc6d9a82361fde2485a8cda0dbad",
+    "byte_length": "1032081",
+    "byte_identical": true,
+    "test_groups": "59",
+    "mutations": "29",
+    "retained_blobs": "69",
+    "normalization": "none"
+  }
+}

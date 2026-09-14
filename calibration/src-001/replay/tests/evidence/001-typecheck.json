@@ -1,0 +1,12 @@
+{
+  "command": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "calibration/src-001/replay/tests/tsconfig.json",
+    "--noEmit"
+  ],
+  "exit_code": 1,
+  "stdout": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/storage.ts(10,5): error TS2322: Type 'string' is not assignable to type '\"/\" | \"\\\\\"'.\n",
+  "stderr": ""
+}

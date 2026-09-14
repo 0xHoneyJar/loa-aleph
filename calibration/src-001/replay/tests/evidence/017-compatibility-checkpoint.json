@@ -1,0 +1,217 @@
+{
+  "format": "src001-producer-publication-proof/v1",
+  "verification_command": [
+    "python3",
+    "/tmp/SYNTHETIC-src001-publication-proof.py",
+    "/tmp/SYNTHETIC-src001-compatibility-017.json"
+  ],
+  "verification_source": "import copy\nimport hashlib\nimport json\nimport pathlib\nimport subprocess\nimport sys\n\nROOT = pathlib.Path(\"/home/eileenspectremoon/loa-dev/loa-aleph\")\nBASE = \"84b6d9d734ab68f3986ce6b969ea0fb6e577bad2\"\nBRANCH = \"agent/src-001-blind-replay-harness-implementation-20260914\"\nMAIN = \"c949ea5f39daef42d22ca2e4111164d63dffcbf1\"\nAUTH = \"calibration/src-001/core-design-basis/AUTHORIZED-blind-src-001-replay-harness-implementation-20260914.md\"\nRECON = \"docs/architecture/21-blind-src-001-replay-harness-implementation-reconciliation.md\"\n\n\ndef git(*args):\n    return subprocess.check_output([\"git\", *args], cwd=ROOT).decode().strip()\n\n\ndef tree(rev):\n    result = {}\n    for row in subprocess.check_output([\"git\", \"ls-tree\", \"-rz\", rev], cwd=ROOT).split(b\"\\0\"):\n        if row:\n            meta, name = row.split(b\"\\t\", 1)\n            result[name.decode()] = meta.decode()\n    return result\n\n\nassert git(\"branch\", \"--show-current\") == BRANCH\nassert git(\"remote\", \"get-url\", \"origin\") in (\n    \"git@github.com:0xHoneyJar/loa-aleph.git\",\n    \"https://github.com/0xHoneyJar/loa-aleph.git\",\n)\nassert not git(\"status\", \"--porcelain=v1\", \"--untracked-files=all\")\nassert git(\"rev-parse\", f\"{BASE}^{{tree}}\") == \"ec802d9a5a9ac0910bcc1aca2cfec5394bc22092\"\nassert git(\"rev-parse\", \"main\") == MAIN\nassert git(\"rev-parse\", \"agent/src-001-blind-replay-harness-design-20260914\") == BASE\nassert git(\"rev-parse\", f\"{MAIN}^{{tree}}\") == \"8ced176e50da0d05070b164cfe725752df947d3f\"\nassert git(\"rev-parse\", \"--is-shallow-repository\") == \"false\"\nassert not git(\"replace\", \"-l\")\nassert not git(\"log\", \"--merges\", \"--format=%H\", f\"{BASE}..HEAD\")\nsubprocess.run([\"git\", \"merge-base\", \"--is-ancestor\", BASE, \"HEAD\"], cwd=ROOT, check=True)\nsubprocess.run([\"git\", \"merge-base\", \"--is-ancestor\", MAIN, BASE], cwd=ROOT, check=True)\nsubprocess.run([\"git\", \"diff\", \"--check\", BASE, \"HEAD\"], cwd=ROOT, check=True)\n\nbefore, after = tree(BASE), tree(\"HEAD\")\nassert set(before) <= set(after)\nchanged = [p for p in before if before[p] != after[p]]\nassert changed == [\"core.manifest.json\"]\nadded = sorted(set(after) - set(before))\nfor path in added:\n    assert path in (AUTH, RECON) or path.startswith((\n        \"calibration/src-001/replay/protocol/\",\n        \"calibration/src-001/replay/fixtures/\",\n        \"calibration/src-001/replay/tests/\",\n    )), path\nassert not (ROOT / \"calibration/src-001/replay/attempts\").exists()\n\noriginal = json.loads(git(\"show\", f\"{BASE}:core.manifest.json\"))\ncurrent = json.loads((ROOT / \"core.manifest.json\").read_text())\nold_admin = original[\"files\"][\"repository_administration\"]\nnew_admin = current[\"files\"][\"repository_administration\"]\nassert len(new_admin) == len(set(new_admin))\nassert set(new_admin) - set(old_admin) == set(added)\nassert set(old_admin) <= set(new_admin)\ncomparison = copy.deepcopy(current)\ncomparison[\"files\"][\"repository_administration\"] = old_admin\nassert comparison == original\nassert current[\"core\"][\"run_format_version\"] == \"1.8.0-provisional\"\nfor path in current[\"files\"][\"core\"]:\n    assert before[path] == after[path]\nfor paths in current[\"files\"][\"adapter\"].values():\n    for path in paths:\n        assert before[path] == after[path]\nruntime = [p for p in before if p.startswith(\"runtime-js/\")]\nassert all(before[p] == after[p] for p in runtime)\nassert git(\"rev-parse\", f\"HEAD:{AUTH}\") == \"4a1375742984878fc7ab19e6bdbfe6c6768a2fbd\"\nauthority = [\n    (\"PROPOSED-blind-src-001-replay-harness-design-20260914.md\", \"40370866bcdfd3c70941aac21298aaaae96fff6e\"),\n    (\"ADOPTED-blind-src-001-replay-harness-design-20260914.md\", \"25d60b9ec93eaa187fbf16ccf23ab305e1a70e85\"),\n    (\"ADOPTED-blind-src-001-replay-Q-R1-execution-policy-clarification-20260914.md\", \"fcd52d4e0f8638012986bc95d2c1560b12c92e3b\"),\n]\nfor name, blob in authority:\n    path = f\"calibration/src-001/core-design-basis/{name}\"\n    assert git(\"rev-parse\", f\"HEAD:{path}\") == blob\nproposal = ROOT / f\"calibration/src-001/core-design-basis/{authority[0][0]}\"\nassert hashlib.sha256(proposal.read_bytes()).hexdigest() == \"52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8\"\nprotected = {\n    \"agent/loa-adapter-release\": (\"b9e2db742a087b8ae659ec39e476ed5e240cfa1f\", \"f9daba8ba3e9b33e2895265a1427d61829a90722\"),\n    \"refs/stash\": (\"e5b49e873d8a03fcd0d1b3bc65fc7c80cb8b6ce8\", \"a71318a42d8dca812f7d57161d21e4d3bc1b388b\"),\n}\nfor ref, (commit, digest) in protected.items():\n    assert git(\"rev-parse\", ref) == commit\n    assert git(\"rev-parse\", f\"{ref}^{{tree}}\") == digest\nsaved = json.loads(pathlib.Path(\"/tmp/SYNTHETIC-src001-compatibility-011.json\").read_text())\nworktrees = git(\"worktree\", \"list\", \"--porcelain\").split(\"\\n\\n\")\nassert worktrees[1:] == saved[\"preserved_worktree_registrations\"]\n\nreport = {\n    \"format\": \"src001-producer-publication-proof/v1\",\n    \"verification_command\": [\"python3\", str(pathlib.Path(__file__)), sys.argv[1]],\n    \"verification_source\": pathlib.Path(__file__).read_text(),\n    \"verification_source_sha256\": hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),\n    \"repository\": \"0xHoneyJar/loa-aleph\",\n    \"branch\": BRANCH,\n    \"base_commit\": BASE,\n    \"base_tree\": git(\"rev-parse\", f\"{BASE}^{{tree}}\"),\n    \"subject_commit\": git(\"rev-parse\", \"HEAD\"),\n    \"subject_tree\": git(\"rev-parse\", \"HEAD^{tree}\"),\n    \"canonical_main\": MAIN,\n    \"working_tree\": \"clean\",\n    \"authority_blobs\": \"unchanged\",\n    \"authorization_blob\": git(\"rev-parse\", f\"HEAD:{AUTH}\"),\n    \"unchanged_preexisting_paths\": str(len(before) - 1),\n    \"preexisting_changed_paths\": changed,\n    \"manifest_change\": \"repository_administration additions only\",\n    \"new_path_inventory\": [{\"path\": p, \"git_entry\": after[p]} for p in added],\n    \"core_paths_unchanged\": str(len(current[\"files\"][\"core\"])),\n    \"adapter_paths_unchanged\": {k: str(len(v)) for k, v in current[\"files\"][\"adapter\"].items()},\n    \"runtime_paths_unchanged\": str(len(runtime)),\n    \"run_format\": current[\"core\"][\"run_format_version\"],\n    \"generic_package_and_retained_run_pins\": \"exact mode/blob equality\",\n    \"protected_refs\": protected,\n    \"preserved_worktree_registrations\": worktrees[1:],\n    \"new_aleph_capabilities\": \"0\",\n    \"public_commands_added\": \"0\",\n    \"real_replay_attempt_directories\": \"0\",\n    \"intent_fidelity\": \"not begun\",\n    \"merges\": \"0\",\n    \"result\": \"PASS\",\n}\ndestination = pathlib.Path(sys.argv[1])\nwith destination.open(\"x\") as handle:\n    handle.write(json.dumps(report, indent=2) + \"\\n\")\nprint(json.dumps({k: report[k] for k in (\"subject_commit\", \"subject_tree\", \"unchanged_preexisting_paths\", \"core_paths_unchanged\", \"runtime_paths_unchanged\", \"result\")}))\n",
+  "verification_source_sha256": "49ad38d8fd5146adb4f92e52bdf2701f556679a0fcee36f0cb4d790fdccc43dc",
+  "repository": "0xHoneyJar/loa-aleph",
+  "branch": "agent/src-001-blind-replay-harness-implementation-20260914",
+  "base_commit": "84b6d9d734ab68f3986ce6b969ea0fb6e577bad2",
+  "base_tree": "ec802d9a5a9ac0910bcc1aca2cfec5394bc22092",
+  "subject_commit": "63235ac27486f0c4d3d52377f80df183a28ba3b7",
+  "subject_tree": "60ee1b745a5c4f1f7cfca63248607598daea33fe",
+  "canonical_main": "c949ea5f39daef42d22ca2e4111164d63dffcbf1",
+  "working_tree": "clean",
+  "authority_blobs": "unchanged",
+  "authorization_blob": "4a1375742984878fc7ab19e6bdbfe6c6768a2fbd",
+  "unchanged_preexisting_paths": "834",
+  "preexisting_changed_paths": [
+    "core.manifest.json"
+  ],
+  "manifest_change": "repository_administration additions only",
+  "new_path_inventory": [
+    {
+      "path": "calibration/src-001/core-design-basis/AUTHORIZED-blind-src-001-replay-harness-implementation-20260914.md",
+      "git_entry": "100644 blob 4a1375742984878fc7ab19e6bdbfe6c6768a2fbd"
+    },
+    {
+      "path": "calibration/src-001/replay/fixtures/README.md",
+      "git_entry": "100644 blob 5ef63bbd4561575dad407b7abf416a2854350a4f"
+    },
+    {
+      "path": "calibration/src-001/replay/fixtures/SYNTHETIC-criteria.md",
+      "git_entry": "100644 blob 327d3d33085209af4de78dd563fd9d6aa974a516"
+    },
+    {
+      "path": "calibration/src-001/replay/fixtures/SYNTHETIC-source.txt",
+      "git_entry": "100644 blob 856c76ffd33cd714ddd1c7425359b0d8592a423a"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/README.md",
+      "git_entry": "100644 blob c42a2be4d913a959f342e055f1d9a494cb50a67f"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/protocol-lock.json",
+      "git_entry": "100644 blob 7d206295cb07bdd48348a6beeb888070a08cd1c6"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/schemas/records.schema.json",
+      "git_entry": "100644 blob 5b3d03014974b5ef6e9ced383f9183eb7b5a72a2"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+      "git_entry": "100644 blob cd5213c3b635e3efb7ceb268da95761229268d03"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/comparison.ts",
+      "git_entry": "100644 blob 96e3b76018796b7f4e4146cf5a5b37f26f9ccebc"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/freeze.ts",
+      "git_entry": "100644 blob d7a3f5af507c14a7c302ca6118ee6b42980714e9"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/index.ts",
+      "git_entry": "100644 blob 2e36daaa330cfa6b6012d6d1352d205c4eed1d48"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/inputs-release.ts",
+      "git_entry": "100644 blob 25d7548a2134121b551c85b523cf70417344222c"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/protocol.ts",
+      "git_entry": "100644 blob 65929f01fe9d30ac69964620cc64924337da4b58"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/records.ts",
+      "git_entry": "100644 blob d9d2ee11e8776cb0e251e3c561b5bcc615934cb6"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/storage.ts",
+      "git_entry": "100644 blob 5f1603289a3be4cedfeec6f8b9ef9b32d5480ba1"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/synthetic-archive.ts",
+      "git_entry": "100644 blob b2d997f8488aabb555f043c55badaf751d1eeac7"
+    },
+    {
+      "path": "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/visibility-execution.ts",
+      "git_entry": "100644 blob 8369d0617947e16cb8dfb3f004d3f6f86e0540b3"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/001-typecheck.json",
+      "git_entry": "100644 blob fbc1091440e0d7e52f28378e2982e7cd1bd86549"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/002-controls.json",
+      "git_entry": "100644 blob 45d7ef6fdc1a4df649ef28f00317cac43a481da6"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/003-typecheck.json",
+      "git_entry": "100644 blob f70014e972d520a99fd3f68d98981a1f3226f320"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/004-suite.json",
+      "git_entry": "100644 blob 383a879ecdf87525ec2bac1293c7c0502a529561"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/004-synthetic-results.json",
+      "git_entry": "100644 blob 449e44d9df9f4ca618f8275b0911f92214b9ea18"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/005-typecheck.json",
+      "git_entry": "100644 blob f70014e972d520a99fd3f68d98981a1f3226f320"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/006-suite.json",
+      "git_entry": "100644 blob 8b273cb9a124073b92887615053ed825c0c00bd3"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/006-synthetic-results.json",
+      "git_entry": "100644 blob 755c5ab8ff0bfd8a38e6b9b5d0c04cc2403915b9"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/007-typecheck.json",
+      "git_entry": "100644 blob 9ad82a2c91ae10843cd9ea751a607e39a997c330"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/008-suite.json",
+      "git_entry": "100644 blob dbf37435d92b6ea9fd6cff2234a05feea66c1f1b"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/008-synthetic-results.json",
+      "git_entry": "100644 blob 2244259b75c6e0130e6e4fb13ed5d644b49915fe"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/009-opaque-identities.json",
+      "git_entry": "100644 blob 2ed2148dce830e30ffa408163fb57733bd21806b"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/010-regression-sandbox.json",
+      "git_entry": "100644 blob b9ac150e45ca1884b4a681c3fad5c54bd44c14ea"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/011-compatibility-checkpoint.json",
+      "git_entry": "100644 blob 3ecf3d2231f9e3918a7c3fd4c0d704bfac88bccb"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/012-regression-permitted.json",
+      "git_entry": "100644 blob 7785d6a4c63185cffbf73cda05db40093ba609c7"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/013-environment-attempts.json",
+      "git_entry": "100644 blob b73b544c9f3d78d09f1dd044b893a3b243017c15"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/014-candidate-typecheck.json",
+      "git_entry": "100644 blob a116eb67feefc4e9eb9809f33f28d201ceb09137"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/015-candidate-suite.json",
+      "git_entry": "100644 blob 4308beb3d2e6464643de606dbe0a8d0ca00ff92f"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/015-synthetic-results.json",
+      "git_entry": "100644 blob b02625b284da666624f9ca03e71a0d00ca296b82"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/evidence/REPAIR-LOG.md",
+      "git_entry": "100644 blob e4efcbbc95f7190ca1a627377afb8bbd9693ea27"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/synthetic.ts",
+      "git_entry": "100644 blob f59c486aa4f15803d58fc37ee4bedb734dd47a77"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/test-harness.ts",
+      "git_entry": "100644 blob bbd18a1154c9e3f7b1a380868f0465be8fdaf06c"
+    },
+    {
+      "path": "calibration/src-001/replay/tests/tsconfig.json",
+      "git_entry": "100644 blob 4950e20d620af1cde2f9c182d24b1ad81f107978"
+    }
+  ],
+  "core_paths_unchanged": "600",
+  "adapter_paths_unchanged": {
+    "hermes": "1",
+    "loa": "52"
+  },
+  "runtime_paths_unchanged": "42",
+  "run_format": "1.8.0-provisional",
+  "generic_package_and_retained_run_pins": "exact mode/blob equality",
+  "protected_refs": {
+    "agent/loa-adapter-release": [
+      "b9e2db742a087b8ae659ec39e476ed5e240cfa1f",
+      "f9daba8ba3e9b33e2895265a1427d61829a90722"
+    ],
+    "refs/stash": [
+      "e5b49e873d8a03fcd0d1b3bc65fc7c80cb8b6ce8",
+      "a71318a42d8dca812f7d57161d21e4d3bc1b388b"
+    ]
+  },
+  "preserved_worktree_registrations": [
+    "worktree /tmp/loa-aleph-s5a2-final-17e1d1a.lkyTtl\nHEAD 17e1d1acda17a38d72214af5022b8145220f96d8\ndetached\nprunable gitdir file points to non-existent location",
+    "worktree /tmp/loa-aleph-s5a2-repair-20260908.EoH8Ki\nHEAD 17e1d1acda17a38d72214af5022b8145220f96d8\ndetached\nprunable gitdir file points to non-existent location",
+    "worktree /tmp/loa-aleph-s7-retained-adoption-094a7ce\nHEAD 094a7ce3220631c8d4ee4c179e79b9b4529b6681\ndetached\nprunable gitdir file points to non-existent location",
+    "worktree /tmp/slice6-pre16-authority\nHEAD e45a1d9b1cafc5ef3b6a1fb46a61a8a395d45770\ndetached\nprunable gitdir file points to non-existent location"
+  ],
+  "new_aleph_capabilities": "0",
+  "public_commands_added": "0",
+  "real_replay_attempt_directories": "0",
+  "intent_fidelity": "not begun",
+  "merges": "0",
+  "result": "PASS"
+}

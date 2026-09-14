@@ -1,0 +1,22 @@
+{
+  "format": "SYNTHETIC-producer-opaque-identity-check/v1",
+  "measurements": [
+    {
+      "path": "calibration/src-001/closed-reference/SRC-001-closed-development-calibration-reference-20260811T162619+0200.zip",
+      "byte_length": "5539645",
+      "sha256": "sha256:f4c42e65d611395c9bacdb7ecf3ab7e4d01b1d21fd50c6c150b0cc6a8847a9f0",
+      "result": "PASS",
+      "access": "opaque whole-file hash only; no parsing or member access"
+    },
+    {
+      "path": "calibration/src-001/closed-reference/SRC-001-closed-development-calibration-reference-20260811T162619+0200-manifest.json",
+      "byte_length": "215207",
+      "sha256": "sha256:3bc9e618b98faef9f1aa4ebbca02c5c8d9c29e955d853b5b6e497a3d17cf9dcf",
+      "result": "PASS",
+      "access": "opaque whole-file hash only; no parsing or member access"
+    }
+  ],
+  "archive_member_accesses": "0",
+  "answer_content_accesses": "0",
+  "real_input_exports": "0"
+}

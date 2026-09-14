@@ -1,0 +1,69 @@
+{
+  "format": "src001-producer-environment-attempts/v1",
+  "attempts": [
+    {
+      "operation": "pre-mutation live remote identity verification",
+      "result": "environment failure then unchanged successful retry",
+      "error": "fatal: unable to access 'https://github.com/0xHoneyJar/loa-aleph.git/': Could not resolve host: github.com",
+      "retry": "git ls-remote in permitted host context",
+      "verified_design_head": "84b6d9d734ab68f3986ce6b969ea0fb6e577bad2",
+      "verified_main_head": "c949ea5f39daef42d22ca2e4111164d63dffcbf1"
+    },
+    {
+      "operation": "path-specific implementation staging",
+      "command": [
+        "git",
+        "add",
+        "--",
+        "calibration/src-001/replay/fixtures/README.md",
+        "calibration/src-001/replay/fixtures/SYNTHETIC-criteria.md",
+        "calibration/src-001/replay/fixtures/SYNTHETIC-source.txt",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/README.md",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/protocol-lock.json",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/schemas/records.schema.json",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/comparison.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/freeze.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/index.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/inputs-release.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/protocol.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/records.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/storage.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/synthetic-archive.ts",
+        "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/visibility-execution.ts",
+        "calibration/src-001/replay/tests/evidence/001-typecheck.json",
+        "calibration/src-001/replay/tests/evidence/002-controls.json",
+        "calibration/src-001/replay/tests/evidence/003-typecheck.json",
+        "calibration/src-001/replay/tests/evidence/004-suite.json",
+        "calibration/src-001/replay/tests/evidence/004-synthetic-results.json",
+        "calibration/src-001/replay/tests/evidence/005-typecheck.json",
+        "calibration/src-001/replay/tests/evidence/006-suite.json",
+        "calibration/src-001/replay/tests/evidence/006-synthetic-results.json",
+        "calibration/src-001/replay/tests/evidence/007-typecheck.json",
+        "calibration/src-001/replay/tests/evidence/008-suite.json",
+        "calibration/src-001/replay/tests/evidence/008-synthetic-results.json",
+        "calibration/src-001/replay/tests/evidence/009-opaque-identities.json",
+        "calibration/src-001/replay/tests/evidence/REPAIR-LOG.md",
+        "calibration/src-001/replay/tests/synthetic.ts",
+        "calibration/src-001/replay/tests/test-harness.ts",
+        "calibration/src-001/replay/tests/tsconfig.json",
+        "core.manifest.json"
+      ],
+      "result": "environment failure then unchanged successful retry",
+      "error": "fatal: Unable to create '/home/eileenspectremoon/loa-dev/loa-aleph/.git/index.lock': Read-only file system",
+      "child_exit": "128",
+      "transport_exit": "1",
+      "retry": "same scoped staging and normal commit in permitted host context",
+      "resulting_commit": "483e247936ff0f77e3830dbdef63c01655f12a94"
+    },
+    {
+      "operation": "npm test",
+      "head": "483e247936ff0f77e3830dbdef63c01655f12a94",
+      "result": "sandbox child-process EPERM; unchanged retry separately retained",
+      "evidence": "010-regression-sandbox.json"
+    }
+  ],
+  "source_repairs_for_environment_failures": "none",
+  "authority_amendments": "none",
+  "approval_review_rejections": "none"
+}

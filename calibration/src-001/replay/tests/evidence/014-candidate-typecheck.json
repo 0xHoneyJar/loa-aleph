@@ -1,0 +1,15 @@
+{
+  "command": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "/tmp/SYNTHETIC-src001-retention-candidate/calibration/src-001/replay/tests/tsconfig.json",
+    "--noEmit"
+  ],
+  "base_head": "483e247936ff0f77e3830dbdef63c01655f12a94",
+  "base_tree": "776fe93a408f90b13c18e5d4068305f51b358196",
+  "candidate_test_sha256": "9c947bee1e46adfc1c726bcc8cfee4089c7934ab6545e4e2ee5b5cca2ecabe15",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}
