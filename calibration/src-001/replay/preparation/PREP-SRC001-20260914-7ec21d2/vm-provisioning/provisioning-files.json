@@ -1,0 +1,217 @@
+{
+  "administration_manifest": {
+    "byte_length": 97490,
+    "path": "core.manifest.json",
+    "sha256": "sha256:b37904fc99bb6b000b9580180aa70e53fc4a8cd9933152b8192209b4a929fdcd"
+  },
+  "files": [
+    {
+      "byte_length": 12186,
+      "mode": "0644",
+      "path": "VM-PROVISIONING-RECONCILIATION.md",
+      "sha256": "sha256:b9ef6045dccf69c8f870626fb77601258a5188b5cf576f24b24f731a908e0fc9"
+    },
+    {
+      "byte_length": 3903,
+      "mode": "0644",
+      "path": "evidence/elevated-inventory-raw-bytes.json",
+      "sha256": "sha256:233411ad2a508a1fb934727c1095cd0fff924d59cbd7b8a5cd9eb934b8baa73e"
+    },
+    {
+      "byte_length": 1516,
+      "mode": "0644",
+      "path": "evidence/elevated-inventory.json",
+      "sha256": "sha256:2b97eaa6460592bf67e22717459f5471e6a9bca526b97e471b662bdb6ac7ea3c"
+    },
+    {
+      "byte_length": 7276,
+      "mode": "0644",
+      "path": "evidence/elevation-launch.json",
+      "sha256": "sha256:4093ec5dab01489dfa541953734033246e1e026906249ca31c77dde869a31938"
+    },
+    {
+      "byte_length": 8428,
+      "mode": "0644",
+      "path": "evidence/enablement-launch.json",
+      "sha256": "sha256:04c941097f0149220b677864f6e2e1bba6e676315ffb8a6fc17634fe84416d9e"
+    },
+    {
+      "byte_length": 6108,
+      "mode": "0644",
+      "path": "evidence/facility-details-2.json",
+      "sha256": "sha256:41b96e4af03469786bc38cdff2f00120e296343d04716688a3990a3ca1cc2859"
+    },
+    {
+      "byte_length": 2570,
+      "mode": "0644",
+      "path": "evidence/facility-details.json",
+      "sha256": "sha256:9c588b7bfecee7e4848a0ea11253943a64f0ae2e0d61aaef6102fd2f6e14f70c"
+    },
+    {
+      "byte_length": 2996,
+      "mode": "0644",
+      "path": "evidence/hyperv-enablement-command.json",
+      "sha256": "sha256:071cd5afe7822ad1ca3d7489f35e737cd49741c42037b53be4bbaf9f8509d048"
+    },
+    {
+      "byte_length": 50397,
+      "mode": "0644",
+      "path": "evidence/hyperv-enablement-dism-log.json",
+      "sha256": "sha256:4cefd39d2230558890815c0df76bee774e198fe7fcc12d905d002cf802f72e64"
+    },
+    {
+      "byte_length": 34335,
+      "mode": "0644",
+      "path": "evidence/hyperv-enablement-raw-bytes.json",
+      "sha256": "sha256:ff815b7f09274d2ad471897ce20855eed90fbd0934418edc99bcc39d9a61205d"
+    },
+    {
+      "byte_length": 13016,
+      "mode": "0644",
+      "path": "evidence/hyperv-enablement.json",
+      "sha256": "sha256:57552b923007dfe5df86eb85200db8c4085308d500d884939e5b104495260979"
+    },
+    {
+      "byte_length": 5601,
+      "mode": "0644",
+      "path": "evidence/initial-custody-verification.json",
+      "sha256": "sha256:c2af58684b0ffd37b5f60355b1e84b0cdf479bf3c4792f6c637e0602dd0edbbc"
+    },
+    {
+      "byte_length": 3140,
+      "mode": "0644",
+      "path": "evidence/initial-gate.json",
+      "sha256": "sha256:5cd959f8a316a5f341ad51e79fdcd56201595438c430edd529f971613ffe731c"
+    },
+    {
+      "byte_length": 99666,
+      "mode": "0644",
+      "path": "evidence/initial-staged-diff-failure.json",
+      "sha256": "sha256:df6b8301318bb50b7ceefb269112820d25bfc18ee1e4d1dadfcb73a8993f867c"
+    },
+    {
+      "byte_length": 393,
+      "mode": "0644",
+      "path": "evidence/microsoft-install-hyper-v-source.json",
+      "sha256": "sha256:a88c0f92cf7e5ec020fed9417ba96c3990504fc5c8b1ea91522252df0d23eae7"
+    },
+    {
+      "byte_length": 33292,
+      "mode": "0644",
+      "path": "evidence/preserved-custodian-inventory.json",
+      "sha256": "sha256:0c9ce299afb145a590c86d0aff5134a3fd6aef83dad6dfeb64055dd317e209a9"
+    },
+    {
+      "byte_length": 1020,
+      "mode": "0644",
+      "path": "evidence/storage-format-reconciliation.json",
+      "sha256": "sha256:f5d2f59a5007f036c90e0f0d63f5fa6cc3ad042b4945db5d4d0853596e4f186c"
+    },
+    {
+      "byte_length": 2896,
+      "mode": "0644",
+      "path": "evidence/windows-final-readonly.json",
+      "sha256": "sha256:4bdcbd5e946ab64db988074f52b2d8e3dd1964ecb13f3fd887cb9d33770e8179"
+    },
+    {
+      "byte_length": 2472,
+      "mode": "0644",
+      "path": "facility-selection.json",
+      "sha256": "sha256:055c17e72d4f531beace957f0937d33fa159cf3b76b3133e6949f7e442b2c119"
+    },
+    {
+      "byte_length": 2341,
+      "mode": "0644",
+      "path": "findings-preserved.json",
+      "sha256": "sha256:549d559df5f99f186bb64216bba4f7ebf9a1e89f1288c04542b7b1bffaa875e4"
+    },
+    {
+      "byte_length": 3758,
+      "mode": "0644",
+      "path": "host-mutations.json",
+      "sha256": "sha256:569fbccae13062dfea7b22cc2b6d1214f0e43d4d05858615a73ed1bde742b13f"
+    },
+    {
+      "byte_length": 628,
+      "mode": "0644",
+      "path": "image-identity.json",
+      "sha256": "sha256:8f5272f4488b52116ed247fde7eddfaed73254548cb519862ac97ba33377bc80"
+    },
+    {
+      "byte_length": 2348,
+      "mode": "0644",
+      "path": "input-transfer.json",
+      "sha256": "sha256:dc902f26cfde9bb16d6f3162a8768f930d397640200da96f60566726ac0463a6"
+    },
+    {
+      "byte_length": 3573,
+      "mode": "0644",
+      "path": "negative-access-probes.json",
+      "sha256": "sha256:b880f6000f6c19e4efde445623057310740870a84367da733b12bf4358f96f19"
+    },
+    {
+      "byte_length": 1235,
+      "mode": "0644",
+      "path": "network-policy.json",
+      "sha256": "sha256:075ac5ea7f0788706beca13d9da755f12ec73892aab179f8217e07501ba40d76"
+    },
+    {
+      "byte_length": 1257,
+      "mode": "0644",
+      "path": "offline-installation.json",
+      "sha256": "sha256:0b9e304f4539a964169a66c4c23f3c9a32dbbb96882e819bc1e84e229bbff4ae"
+    },
+    {
+      "byte_length": 1546,
+      "mode": "0644",
+      "path": "operation-boundary.json",
+      "sha256": "sha256:fd001b5f67de39d67090e2d5356560ad049b6cf0a580a0f68a9eb15d69b9f1ca"
+    },
+    {
+      "byte_length": 1516,
+      "mode": "0644",
+      "path": "pre-attempt-environment.json",
+      "sha256": "sha256:c83fbcd1932f0a4fcb451732ebe252a21139e738926a622d14565f99189031f4"
+    },
+    {
+      "byte_length": 1124,
+      "mode": "0644",
+      "path": "provisioning-authority-binding.json",
+      "sha256": "sha256:9680ee92051b67233b9d419a1cb3bea3df94ecad31d007cffcd1855845e62dd2"
+    },
+    {
+      "byte_length": 2343,
+      "mode": "0644",
+      "path": "provisioning-current-state.json",
+      "sha256": "sha256:e2262b4ce306eaa17e9e22b92ef9a322f0fcef0028bdf613ffe6dd2dd6deeba6"
+    },
+    {
+      "byte_length": 2036,
+      "mode": "0644",
+      "path": "release-transfer.json",
+      "sha256": "sha256:c05954eabf2a0b702c676a9ed2179ab60459b126cc67e98a5d41d9a9e7ebbabb"
+    },
+    {
+      "byte_length": 3008,
+      "mode": "0644",
+      "path": "verification-plan.json",
+      "sha256": "sha256:d71bf02498443bfe9684dd4120529a0ea0e1175f93a9f8839ced70da6008367a"
+    },
+    {
+      "byte_length": 1840,
+      "mode": "0644",
+      "path": "visibility-enforcement.json",
+      "sha256": "sha256:c071a79e528087884d72b37ee26fd8c42dada96d0310750bd880e19d39104560"
+    },
+    {
+      "byte_length": 629,
+      "mode": "0644",
+      "path": "vm-identity.json",
+      "sha256": "sha256:1e42bb26648ffe4b23ff648361b5367bb25afb4b62321f904b1e64b02f4fed5c"
+    }
+  ],
+  "format": "src001-pre-attempt-provisioning-file-inventory/v1",
+  "inventory_and_manifest_rules": "Every regular file in this directory except this inventory appears exactly once here; every file including this inventory appears once as repository_administration.",
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "self_excluded": "provisioning-files.json is bound by its containing Git tree; no recursive self digest."
+}
