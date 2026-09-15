@@ -1,0 +1,1 @@
+{"argv":["git","checkout","--detach","c949ea5f39daef42d22ca2e4111164d63dffcbf1"],"cwd":"/tmp/src001-custodian-continuation-20260915/build-B","exit":"0","stderr":"HEAD is now at c949ea5 Merge pull request #54 from 0xHoneyJar/agent/slice-08-duplicate-overlap-implementation-20260913\n","stdout":""}

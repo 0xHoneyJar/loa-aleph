@@ -371,3 +371,133 @@ not begun. Fresh independent preparation audit remains required before
 consideration of any execution authority.
 
 BLIND SRC-001 REPLAY PREPARATION BLOCKED — NO REPLAY EXECUTION AUTHORIZED
+
+
+---
+
+## Custodian continuation after the independent blocker audit
+
+This appended section is the CURRENT CUSTODIAN CONTINUATION. All preceding
+21617 bytes are the exact HISTORICAL FIRST STOP reconciliation, SHA-256
+`sha256:56d375b37cc13d63194a2b734fa78cb524c20c9faf96830fd38533b913d5d828`. No preceding sentence is rewritten. Its initial non-completion
+statements, zero exported inputs, old inventory/repeatability and final-head
+references describe the original preparation, not the current custodian state.
+The original `input-prerequisites.json`, `release-prerequisites.json`, discovery,
+operation, compatibility, verification and deferred attempt records remain
+byte-identical historical evidence. `custodian-current-state.json` is the
+current workstream status; `preparation-files.json` is the mutable current
+inventory. Historical verification receipts are not proof of the new tree.
+
+Chronology:
+
+1. Initial producer preparation used the persisted human authority at
+   `7ec21d24d900ee6938b26778033210fb339da975`.
+2. Early isolation discovery established an absent adopted VM boundary.
+3. The original producer stopped too broadly, omitting input export and A/B
+   release reproduction. This mistake remains in the retained history.
+4. The independent audit was supplied externally for
+   `8236b9f35c38cdd604b2389b42589f27755cdade..d2e9a882945c3a3b28edc18e32021eb0368c2449`.
+   `INDEPENDENT-BLOCKER-AUDIT-RESPONSE.md` attributes its verdict and limitations;
+   it is not the independent audit artifact.
+5. This custodian continuation began at that exact HEAD/tree under the SAME
+   preparation authority. It creates no execution or provisioning authority.
+6. Input export is now EXPORTED_AND_CUSTODY_VERIFIED: both opaque container
+   identities, all 211 central-directory entries and corresponding local
+   metadata were checked; exactly four approved members were streamed. All
+   adopted byte lengths/hashes match. No unapproved or answer member was
+   opened or exported. The ordinary descriptor is 74008
+   bytes, `sha256:377c7f94fcbea750fb8680cb26aed2d5da3cd6f5258fd7615199102f7d4b7ba8`. It validates through pinned Core
+   and reproduces exactly using the other checkout. Text is the only semantic
+   source; PDF is opaque same-source upstream capture; normalized criteria are
+   a criteria boundary; original criteria remain provenance only outside
+   semantic inputs. No source/criteria/PDF normalization occurred.
+7. Release reproduction is now AB_REPRODUCED_AND_CUSTODY_VERIFIED. Two
+   independent clean full-history clones at `c949ea5f39daef42d22ca2e4111164d63dffcbf1`,
+   tree `8ced176e50da0d05070b164cfe725752df947d3f`, used separate caches,
+   dependency installations, temporary directories and generated outputs.
+   Locked installs passed offline from integrity-verified local cache content;
+   registry reachability was not needed or probed. Both canonical package
+   pipelines passed. All complete artifact reports and required raw bytes are
+   equal, including 1,255 bundle files, three release files, 42 runtime files
+   and 646 dependency files. Actual checkout HEAD is separately retained from
+   selected provenance `0ff5443dd587bb287ae6bdf62985294e6d8dc19a`, whose tree is
+   `8ced176e50da0d05070b164cfe725752df947d3f`; raw commit-object and ancestry
+   reopening are retained. Bundle `sha256:e83ab57e971f2d508fe2b42139cd122b9fd70b9b309574efd10307ff6795c909` and archive
+   `sha256:4bd8d27648ad1480601a0d4d31653297581ed354c95c0ab978fabb2d2ce3537c`
+   identify the reproduced generic release. No pre-merge receipt substituted
+   for either new build. Complete original locks, package locks, toolchain,
+   dependency closure, both inventories and exact comparison are retained in
+   `release-preparation-receipt.json` and its evidence references.
+8. EXECUTOR STILL BLOCKED: `BLOCKED_PREPARATION_ISOLATION` independently
+   blocks executor/image/volume creation, actual mounts/denied roots, probes,
+   network/visibility enforcement, offline executor installation, fresh-session
+   proof, environment-manifest attempt instance, attestation and execution.
+   No VM or infrastructure work occurred. Input/release success does not
+   weaken this blocker or complete the entire replay preparation.
+
+PA-01: PRODUCER_REMEDIATED_NOT_INDEPENDENTLY_CLOSED. Both incorrectly omitted
+custodian workstreams were completed under existing authority. PA-02:
+PRODUCER_REMEDIATED_NOT_INDEPENDENTLY_CLOSED. Current state gives each its own
+measured result and retains isolation as an independent executor blocker.
+Fresh independent audit is required to assess these producer dispositions.
+
+PA-03 (final-head receipt outside Git), PA-04 (constant rather than instrumented
+counters), and PA-05 (prior harness audit lacks repository-reopenable identity)
+remain LATER-NONBLOCKING. Every F-03/F-04/F-05, Slice finding and all eight
+harness observations above retain their exact status and strength. No repair,
+closure, sanction, acceptance, production, golden or v1 inference is made.
+
+The two verified content-addressed stores are:
+
+- input custody: `/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/replay-preparation/PREP-SRC001-20260914-7ec21d2/sha256-f93e1665d25e1929fc1c7e5bf0908138b5a800372ef9ce2ee466e950c1cdf363`;
+- release custody: `/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/replay-preparation/PREP-SRC001-20260914-7ec21d2/sha256-81173115520bcc6d3bd6ad80d6561392b28e2e330651f946f2901b67f0c284e1`.
+
+Custody content manifests bind all bytes; exclusive creation and read-only
+modes protect against routine accidental changes. The owner can change
+permissions; this does not prove immutable filesystem or executor isolation.
+The release wrapper's `custody-content.json` is preparation metadata. Only the
+three exact canonical release files enter private release verification; no
+executor installation or transfer occurred.
+
+Four approved input exports and four independent approved verification reads
+occurred before final-head verification. Final verification reopens those four
+approved members once more, recorded separately. Approved extraction is not
+answer-member access. Genuine attestation/capability/provider/native worker/
+SRC-001 start/resume/validate/replay ID/run ID/attempt ID/semantic replay/
+reference comparison/mapping/scoring/F-03 repair/intent-fidelity counts remain
+zero within this producer operation accounting. VM/executor creation and
+infrastructure mutation counts are zero. These are bounded producer records,
+not host-wide instrumented counters; synthetic regression mechanics are
+explicitly separate. No PR or merge occurred; only this same preparation
+branch is authorized for normal commit/push.
+
+Preserved failed attempts: initial npm config double-loading `/dev/null`;
+sandbox runtime `spawnSync EPERM`; initial verifier invocation at the output
+parent instead of emitted release directory. Recorder arguments/environment
+were corrected, and unchanged canonical commands passed in the permitted
+context. No dependency, Core, runtime, packager or harness bytes were repaired.
+All original failures and both later successes remain in command evidence.
+
+Stable records isolate invocation clocks and temporary paths in fixed observed
+receipts. Re-running record generation from those receipts and the historical
+reconciliation reproduces bytes. Descriptor regeneration independently yields
+identical bytes. All repository administration files use explicit `0644`,
+directories `0755`, and umask `0022`; custody modes are explicitly recorded.
+
+Final-head validation must bind the containing normal commit and exact tree
+outside Git: diff hygiene, Core boundary, runtime drift, protocol verification,
+harness typecheck/suite, deterministic repetition, full `npm test`, preparation
+inventory/path closure, protected refs/stash/worktree preservation, and fresh
+input/release validation. The final report supplies that receipt identity;
+it cannot be truthfully embedded in its own containing commit. Producer
+validation does not independently close PA-01 or PA-02.
+
+The next full fresh-audit range is
+`8236b9f35c38cdd604b2389b42589f27755cdade..<containing continuation commit>`;
+its exact final SHA/tree must be resolved from Git and the final-head receipt.
+The continuation-only range begins at
+`d2e9a882945c3a3b28edc18e32021eb0368c2449`. Audit includes original chronology,
+this response, current custody/reproduction evidence, and external final-head
+verification. No historical audit identity is invented.
+
+BLIND SRC-001 CUSTODIAN PREPARATION COMPLETE — EXECUTOR ISOLATION STILL BLOCKED — FRESH INDEPENDENT AUDIT REQUIRED
