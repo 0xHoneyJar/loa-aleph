@@ -1,0 +1,47 @@
+{
+  "channel_socket_inventory": [],
+  "claim_limit": "Policy requirements are listed only for resumption; no concrete guest enforcement exists and no cognitive blindness is claimed.",
+  "closed_reference_nonvisibility": "No reference transfer or answer-member access occurred; actual guest denial proof NOT_RUN because no guest exists.",
+  "credential_absence": "NOT_TESTED_NO_EXECUTOR; no credentials copied",
+  "developer_repository_nonvisibility": "No repository or .git transfer occurred; actual guest denial proof NOT_RUN because no guest exists.",
+  "effective_allowed_roots": [],
+  "enforcement_result": "NOT_TESTED_NO_EXECUTOR",
+  "execution_user": null,
+  "format": "src001-pre-attempt-visibility-enforcement/v1",
+  "future_logical_roots": [
+    "/replay/inputs/",
+    "/replay/release/",
+    "/replay/loa/",
+    "/replay/recorder/",
+    "/replay/evidence/"
+  ],
+  "future_roots_are_enforced": false,
+  "future_worker_roots": [
+    "/worker read-only sealed bundle",
+    "/tmp ephemeral",
+    "/home/worker ephemeral"
+  ],
+  "image_identity": null,
+  "installed_release_identity": null,
+  "mount_inventory": [],
+  "network_record": "network-policy.json",
+  "parent_blocker": "BLOCKED_PREPARATION_ISOLATION",
+  "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+  "probe_record": "negative-access-probes.json",
+  "prohibited_session_markers": [
+    "CODEX_SESSION_ID",
+    "CODEX_THREAD_ID",
+    "Codex/Claude/ChatGPT conversation state",
+    "developer memory and prompt caches",
+    "shell history",
+    "SSH_AUTH_SOCK",
+    "provider credentials"
+  ],
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "session_isolation": "NOT_TESTED_NO_EXECUTOR",
+  "status": "NOT_ESTABLISHED_BLOCKED_VM_FACILITY",
+  "transferred_input_identity": null,
+  "vm_identity": null,
+  "volume_identity": null,
+  "writable_path_inventory": []
+}

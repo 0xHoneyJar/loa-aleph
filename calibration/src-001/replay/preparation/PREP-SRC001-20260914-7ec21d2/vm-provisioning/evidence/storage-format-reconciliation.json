@@ -1,0 +1,22 @@
+{
+  "reason": "git diff --check rejected raw Windows receipt CRLF; raw bytes preserved losslessly rather than normalized away.",
+  "rows": [
+    {
+      "readability_projection": "elevated-inventory.json",
+      "raw_receipt": "elevated-inventory-raw-bytes.json",
+      "raw_byte_sha256": "sha256:fe0b113c723340fe335bf1cdcc02cb1590c65fda149609c0cc4aac2cea9c54d2",
+      "projection_sha256": "sha256:2b97eaa6460592bf67e22717459f5471e6a9bca526b97e471b662bdb6ac7ea3c",
+      "parsed_value_equal": true,
+      "projection_is_raw_bytes": false
+    },
+    {
+      "readability_projection": "hyperv-enablement.json",
+      "raw_receipt": "hyperv-enablement-raw-bytes.json",
+      "raw_byte_sha256": "sha256:b2c6e4a170db907d321ac2e2a939643b888fefc484c71d7357b0aff790a70715",
+      "projection_sha256": "sha256:57552b923007dfe5df86eb85200db8c4085308d500d884939e5b104495260979",
+      "parsed_value_equal": true,
+      "projection_is_raw_bytes": false
+    }
+  ],
+  "original_failure_receipt": "initial-staged-diff-failure.json"
+}

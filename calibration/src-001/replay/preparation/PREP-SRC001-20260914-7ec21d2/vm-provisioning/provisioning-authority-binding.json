@@ -1,0 +1,20 @@
+{
+  "PA-01": "CLOSED_BY_FRESH_INDEPENDENT_AUDIT",
+  "PA-02": "CLOSED_BY_FRESH_INDEPENDENT_AUDIT",
+  "audit_basis": "Human-supplied fresh independent audit result in provisioning instruction; no separate audit artifact identity supplied.",
+  "authority_blob": "914bc28483131a049269d59cb95b46fec139dcaa",
+  "authority_commit": "7a772f03492d5f76ccb238b69883f5a83c295695",
+  "authority_tree": "c25e265eec5f247c05fc7ffa316f55dd43fb68f5",
+  "execution_authorized": false,
+  "format": "src001-pre-attempt-vm-authority-binding/v1",
+  "independent_audit_result": "CUSTODIAN_PREPARATION_AUDIT_PASS",
+  "main_commit": "8236b9f35c38cdd604b2389b42589f27755cdade",
+  "main_tree": "72075f93bc9fcb3c76f4480bc612693211efd240",
+  "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "record_is_attempt_scoped": false,
+  "release_source_commit": "c949ea5f39daef42d22ca2e4111164d63dffcbf1",
+  "release_source_tree": "8ced176e50da0d05070b164cfe725752df947d3f",
+  "starting_commit": "0d9b36d65c7131c0173f3f978177cc7ac5912021",
+  "starting_tree": "50fd287a36db641c1d0f03fc8af735bc44416902"
+}

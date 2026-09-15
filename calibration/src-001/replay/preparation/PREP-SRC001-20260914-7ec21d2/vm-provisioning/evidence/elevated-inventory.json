@@ -1,0 +1,65 @@
+{
+  "administrator": true,
+  "features": [
+    {
+      "FeatureName": "Microsoft-Windows-Subsystem-Linux",
+      "State": 2
+    },
+    {
+      "FeatureName": "HypervisorPlatform",
+      "State": 0
+    },
+    {
+      "FeatureName": "VirtualMachinePlatform",
+      "State": 2
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-All",
+      "State": 0
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V",
+      "State": 0
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Tools-All",
+      "State": 0
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Management-PowerShell",
+      "State": 0
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Hypervisor",
+      "State": 0
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Services",
+      "State": 0
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Management-Clients",
+      "State": 0
+    }
+  ],
+  "finished_utc": "2026-09-15T16:46:35.0370809Z",
+  "hcsdiag_exit": 0,
+  "hcsdiag_output": [
+    "9F6C0AF1-DBF7-4732-A19D-424D475D3758\r\n    VM,                       \tRunning, 9F6C0AF1-DBF7-4732-A19D-424D475D3758, WSL\r\n\r\n"
+  ],
+  "hyperv_directories": [
+    {
+      "entries": [],
+      "exists": true,
+      "path": "C:\\ProgramData\\Microsoft\\Windows\\Hyper-V"
+    },
+    {
+      "exists": false,
+      "path": "C:\\Users\\Public\\Documents\\Hyper-V"
+    }
+  ],
+  "registered_vms_error": "Invalid namespace ",
+  "scope": "READ_ONLY_ELEVATED_VM_INVENTORY",
+  "status": "READ_ONLY_INVENTORY_COMPLETE",
+  "utc": "2026-09-15T16:46:33.2730793Z"
+}

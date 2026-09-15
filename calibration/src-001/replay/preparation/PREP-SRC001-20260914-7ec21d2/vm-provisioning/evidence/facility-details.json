@@ -1,0 +1,12 @@
+{
+  "started_utc": "2026-09-15T16:45:01.288526+00:00",
+  "finished_utc": "2026-09-15T16:45:02.275380+00:00",
+  "script": "\n$ProgressPreference = 'SilentlyContinue'\n$ErrorActionPreference = 'Stop'\n$r = [ordered]@{}\n$r.utc = [DateTime]::UtcNow.ToString('o')\n$r.features = @(Get-CimInstance Win32_OptionalFeature | Where-Object { $_.Name -match 'Hyper-V|HypervisorPlatform|VirtualMachinePlatform|Subsystem-Linux' } | Select-Object Name,InstallState)\n$r.hyperv_registry = @('HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization','HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService') | ForEach-Object { [ordered]@{ path=$_; exists=(Test-Path -LiteralPath $_) } }\n$r.vm_configuration_dirs = @('C:\\ProgramData\\Microsoft\\Windows\\Hyper-V','C:\\Users\\Public\\Documents\\Hyper-V','C:\\Users\\Eileen\\VirtualBox VMs','C:\\Users\\Eileen\\Documents\\Virtual Machines') | ForEach-Object { [ordered]@{ path=$_; exists=(Test-Path -LiteralPath $_); children= if(Test-Path -LiteralPath $_) { @(Get-ChildItem -Force -LiteralPath $_ | Select-Object Name,Mode) } else { @() } } }\n$r | ConvertTo-Json -Depth 8\n& C:\\Windows\\System32\\hcsdiag.exe list\nWrite-Output \"HCSDIAG_EXIT=$LASTEXITCODE\"\n& C:\\Windows\\System32\\wsl.exe --list --verbose\nWrite-Output \"WSL_LIST_EXIT=$LASTEXITCODE\"\n",
+  "script_sha256": "a85f5cfe8bac7acaa7b407685c3564bb3d9c76d62b4c3db398cb6b84898c8937",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "#< CLIXML\r\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><S S=\"Error\">Get-ChildItem : Access to the path 'C:\\ProgramData\\Microsoft\\Windows\\Hyper-V' is denied._x000D__x000A_</S><S S=\"Error\">At line:8 char:308_x000D__x000A_</S><S S=\"Error\">+ ... ath -LiteralPath $_) { @(Get-ChildItem -Force -LiteralPath $_ | Selec ..._x000D__x000A_</S><S S=\"Error\">+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~_x000D__x000A_</S><S S=\"Error\">    + CategoryInfo          : PermissionDenied: (C:\\ProgramData\\Microsoft\\Windows\\Hyper-V:String) [Get-ChildItem], Una _x000D__x000A_</S><S S=\"Error\">   uthorizedAccessException_x000D__x000A_</S><S S=\"Error\">    + FullyQualifiedErrorId : DirUnauthorizedAccessError,Microsoft.PowerShell.Commands.GetChildItemCommand_x000D__x000A_</S><S S=\"Error\"> _x000D__x000A_</S></Objs>",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "c2949654875f838a374975c00361ed3c13078374bfc200d57f7c5cabefcc6600",
+  "scope": "READ_ONLY_WINDOWS_FACILITY_DISCOVERY"
+}

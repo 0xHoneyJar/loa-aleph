@@ -1,0 +1,30 @@
+{
+  "adapter_ref": "b9e2db742a087b8ae659ec39e476ed5e240cfa1f",
+  "attempts_directory_present": false,
+  "authority_and_custodian_records_unchanged": true,
+  "initial_branch": "agent/src-001-blind-replay-preparation-20260914",
+  "initial_head": "0d9b36d65c7131c0173f3f978177cc7ac5912021",
+  "initial_repository": "https://github.com/0xHoneyJar/loa-aleph.git",
+  "initial_status_basis": "Read-only tool capture before authority record creation.",
+  "initial_status_porcelain": "",
+  "initial_tree": "50fd287a36db641c1d0f03fc8af735bc44416902",
+  "new_host_infrastructure_mutations_before_gate": 0,
+  "no_src001_executor_basis": "Elevated HCS inventory lists only existing WSL VM; protected Hyper-V directory empty, conventional alternate VM stores absent, Hyper-V namespace unavailable with role disabled; no executor preparation record. Not a universal forensic absence assertion.",
+  "operation_history_basis": "Unchanged custodian-operation-boundary.json plus human-supplied independent audit, and this provisioning command history. Not instrumented host-wide counters.",
+  "original_authority_blob": "b9235f1bf02999b9630ed1b11da5941db1ee42a8",
+  "prior_nonadmin_inventory_failure": "Protected Hyper-V directory access denied; elevated read-only inventory succeeded.",
+  "prior_sandbox_windows_probe_failure": "UtilBindVsockAnyPort: socket failed 1; read-only retry outside sandbox succeeded.",
+  "record_generation_first_try": "Stopped on sandbox DNS before any record was written; only empty vm-provisioning/evidence directories created. No infrastructure mutation.",
+  "remote_reverified_before_infrastructure": {
+    "capture_basis": "Tool result before this record; nested sandbox DNS failure retained separately.",
+    "command": "git ls-remote --heads origin main agent/src-001-blind-replay-preparation-20260914",
+    "exit": 0,
+    "main": "8236b9f35c38cdd604b2389b42589f27755cdade",
+    "preparation_branch": "0d9b36d65c7131c0173f3f978177cc7ac5912021"
+  },
+  "result": "PASS_WITH_EXPLICIT_OBSERVATION_SCOPE",
+  "retained_nonreplay_probe": "RUN-RETAINED-SLICE7-PROBE contains only empty control/; unchanged.",
+  "stash": "e5b49e873d8a03fcd0d1b3bc65fc7c80cb8b6ce8 stash@{0} On agent/loa-adapter-release: preserve agent/loa-adapter-release before Slice 6",
+  "utc": "2026-09-15T16:48:50.395915+00:00",
+  "worktrees": "worktree /home/eileenspectremoon/loa-dev/loa-aleph\nHEAD 7a772f03492d5f76ccb238b69883f5a83c295695\nbranch refs/heads/agent/src-001-blind-replay-preparation-20260914\n\nworktree /tmp/loa-aleph-s5a2-final-17e1d1a.lkyTtl\nHEAD 17e1d1acda17a38d72214af5022b8145220f96d8\ndetached\nprunable gitdir file points to non-existent location\n\nworktree /tmp/loa-aleph-s5a2-repair-20260908.EoH8Ki\nHEAD 17e1d1acda17a38d72214af5022b8145220f96d8\ndetached\nprunable gitdir file points to non-existent location\n\nworktree /tmp/loa-aleph-s7-retained-adoption-094a7ce\nHEAD 094a7ce3220631c8d4ee4c179e79b9b4529b6681\ndetached\nprunable gitdir file points to non-existent location\n\nworktree /tmp/slice6-pre16-authority\nHEAD e45a1d9b1cafc5ef3b6a1fb46a61a8a395d45770\ndetached\nprunable gitdir file points to non-existent location"
+}

@@ -1,0 +1,59 @@
+{
+  "acceptance": "NOT_YET_ESTABLISHED; configuration, guest image, VM and enforcement gates cannot be claimed before operational verification.",
+  "alternative_available_tools": {
+    "VBoxManage": false,
+    "cloud-hypervisor": false,
+    "dev_kvm": false,
+    "firecracker": false,
+    "multipass": false,
+    "qemu-system-x86_64": false,
+    "virsh": false,
+    "virt-install": false,
+    "vmrun": false
+  },
+  "before_after_evidence": "host-mutations.json",
+  "candidate": "Microsoft Hyper-V full VM role",
+  "component_enablement": "COMMAND_SUCCEEDED_RESTART_REQUIRED",
+  "facility_operationally_accepted": false,
+  "format": "src001-pre-attempt-vm-facility-selection/v1",
+  "host_os": {
+    "architecture": "64-bit",
+    "build": "19045",
+    "caption": "Microsoft Windows 10 Pro",
+    "version": "10.0.19045"
+  },
+  "hypervisor_present": true,
+  "legitimate_elevation": "Normal Windows UAC, elevated read-only probe reports administrator true.",
+  "prior_executor_inventory": "Only existing WSL HCS VM; protected Hyper-V directory empty.",
+  "prior_hyperv_management_available": false,
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "rejected_substitutions": [
+    "current WSL distro",
+    "fresh ordinary WSL distro",
+    "Docker",
+    "Docker Desktop container",
+    "bubblewrap",
+    "chroot",
+    "namespace-only or host-process sandbox"
+  ],
+  "remaining_gate": "Windows restart required; vmms unavailable; no guest or outer isolation established.",
+  "required_controls": [
+    "separate guest kernel",
+    "fresh guest identity and dedicated volume",
+    "no shared developer/host filesystem",
+    "no drive, home, Git or reference sharing",
+    "no container or management socket exposed to guest",
+    "no SSH agent forwarding",
+    "no inherited developer agent session",
+    "controlled NIC and disconnected final pre-execution network until exact provider policy is known",
+    "bounded media transfer without shared folders",
+    "guest mount and writable-root inventory",
+    "synthetic denied-path probes",
+    "pinned authoritative base image",
+    "mechanical recorder evidence"
+  ],
+  "selected_candidate": "Microsoft Hyper-V full VM role",
+  "selection_reason": "Use Windows host hypervisor facility already present; add only full-VM hypervisor/service and PowerShell management components. No substitute outer boundary.",
+  "source": "evidence/microsoft-install-hyper-v-source.json",
+  "status": "BLOCKED_PREPARATION_VM_FACILITY"
+}

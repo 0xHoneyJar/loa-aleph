@@ -1,0 +1,16 @@
+{
+  "acquisition_utc": null,
+  "byte_length": null,
+  "checksum_verification": "NOT_RUN",
+  "distribution_version": null,
+  "format": "src001-pre-attempt-image-preparation/v1",
+  "immutable_image_pinned": false,
+  "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "publisher_checksum": null,
+  "reason": "The selected full VM facility requires a host restart; provisioning stops without downloading an image or using a substitute boundary.",
+  "sha256": null,
+  "signature_verification": "NOT_RUN",
+  "source_url": null,
+  "status": "NOT_ACQUIRED_BLOCKED_VM_FACILITY"
+}

@@ -1,0 +1,74 @@
+{
+  "additional_closure": [
+    "all provisioning files registered exactly once as repository_administration",
+    "changed paths limited to new authority, vm-provisioning administration and core.manifest.json administration entries",
+    "all original preparation/custodian files equal retained starting bytes",
+    "original preparation authority blob unchanged",
+    "all manifest content except repository_administration unchanged",
+    "Core/checker/adapters/runtime-js/packaging/harness/protocol/schemas/public-command/run-format trees unchanged",
+    "no attempts directory and retained empty Slice7 probe unchanged",
+    "custody identities and every member rehashed without reference archive access",
+    "protected adapter/stash/worktree registrations unchanged",
+    "remote branch equals final HEAD after normal push; GitHub main exact pin"
+  ],
+  "commands": [
+    [
+      "git",
+      "diff",
+      "--check",
+      "0d9b36d65c7131c0173f3f978177cc7ac5912021",
+      "HEAD"
+    ],
+    [
+      "node",
+      "scripts/validate-core-boundary.ts",
+      "--json"
+    ],
+    [
+      "npm",
+      "run",
+      "runtime:check"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+      "verify-protocol"
+    ],
+    [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "calibration/src-001/replay/tests/tsconfig.json",
+      "--noEmit"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/tests/test-harness.ts",
+      "--report",
+      "<new synthetic report A>"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/tests/test-harness.ts",
+      "--report",
+      "<new synthetic report B>"
+    ],
+    [
+      "npm",
+      "test"
+    ]
+  ],
+  "execution_time": "After the final producer reconciliation commit, at exact final HEAD/tree. Results retained outside Git to avoid self-reference.",
+  "final_receipt_store": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/replay-preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/VM-PREP-SRC001-20260915-7a772f0/final-head-<final-commit>/",
+  "format": "src001-final-head-nonreplay-verification-plan/v1",
+  "no_assertion_of_future_pass": true,
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "repeatability": [
+    "exact repeated Core-boundary report",
+    "exact repeated runtime-drift output",
+    "exact repeated protocol report",
+    "byte-identical two synthetic harness report files"
+  ],
+  "results_state_at_record_creation": "NOT_RUN_AT_FINAL_HEAD_YET",
+  "test_safety": "Static source inspection confirms injected fake host spawn and fixture capabilities; package/runtime tests use local temporary packages. No host:attest target, genuine attestation CLI, provider CLI, native SRC-001 runner, or reference archive operation is in this plan. Test environment drops provider/session credentials; synthetic fixture IDs and simulated returns are not real replay IDs or F-03 repairs."
+}

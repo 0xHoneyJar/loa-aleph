@@ -1,0 +1,47 @@
+{
+  "F-03": "OPEN / MUST PRESERVE; accepted-worker-return to production orchestrator/LedgerWriter canonical mutation reachability unproven",
+  "F-04": "OPEN / MUST PRESERVE",
+  "F-05": "OPEN / MUST PRESERVE; bounded by F-03",
+  "PA-01": "CLOSED_BY_FRESH_INDEPENDENT_AUDIT",
+  "PA-02": "CLOSED_BY_FRESH_INDEPENDENT_AUDIT",
+  "PA-03": "LATER-NONBLOCKING",
+  "PA-04": "LATER-NONBLOCKING",
+  "PA-05": "LATER-NONBLOCKING",
+  "additional_audit_observations": [
+    {
+      "finding": "packaging/README.md documents run format 1.5.0-provisional versus actual 1.8.0-provisional",
+      "status": "LATER-NONBLOCKING; pre-existing; untouched"
+    },
+    {
+      "finding": "Local main/origin/main stale at c949ea5f; live GitHub main 8236b9f governs",
+      "status": "LATER-NONBLOCKING; stale local refs retained and not used as authority"
+    }
+  ],
+  "audit_attribution": "Supplied by human in provisioning instruction; producer does not independently close findings.",
+  "carried_slice_findings": {
+    "A4-07": "Existing strength retained",
+    "A7-04/A7-05/A7-08": "MUST PRESERVE",
+    "A8-01/A8-02/A8-03/A8-04": "MUST PRESERVE",
+    "A8-05/A8-06/A8-07/A8-08": "LATER-NONBLOCKING",
+    "S5A4-02/S5A4-03/S5A2-03/S5-A-03": "DEFERRED",
+    "Slice6 A-01/A-02/A-04/A-05": "Retained",
+    "Slice6 A-03": "Closed observation",
+    "Slice6 A-06": "Accepted observation"
+  },
+  "eight_harness_observations": [
+    "protocol namespace basename not mechanically rebound to design SHA",
+    "encoded canaries share inventory-equality sub-rule",
+    "REPAIR-LOG indexes only through evidence 015",
+    "some former producer-local modes differed from Git modes",
+    "historical receipt 018 report not independently reproducible from former uncommitted tree",
+    "H-M14 fixture write umask-sensitive",
+    "deterministic FAIL stacks may contain absolute paths",
+    "zero-operation counters are constants, not instrumented measurements"
+  ],
+  "eight_harness_observations_status": "LATER-NONBLOCKING; all preserved",
+  "format": "src001-provisioning-carried-findings/v1",
+  "independent_audit_result": "CUSTODIAN_PREPARATION_AUDIT_PASS",
+  "other_governing_findings": "All original strength and qualifiers preserved; no closure or repair inferred.",
+  "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0"
+}

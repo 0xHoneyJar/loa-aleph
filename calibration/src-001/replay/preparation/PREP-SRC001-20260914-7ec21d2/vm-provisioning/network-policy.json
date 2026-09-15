@@ -1,0 +1,16 @@
+{
+  "forbidden_route_tests": "NOT_RUN",
+  "format": "src001-pre-attempt-network-preparation/v1",
+  "future_provider_endpoint_allowlist": "DEFERRED_TO_FUTURE_EXACT_PROVIDER_CONFIGURATION; no addresses invented",
+  "future_requirement": "Adopted outer provider-only rule excludes repository, reference object storage, general browsing, local metadata and other forbidden routes. Must be enforced before execution. No current enforcement claim.",
+  "guest_network_boundary": "NOT_ESTABLISHED",
+  "guest_provisioning_network": "NOT_CREATED",
+  "guest_provisioning_network_teardown": "NOT_APPLICABLE_NO_GUEST_NETWORK",
+  "guest_routes_dns_gateways_interfaces_firewall": null,
+  "host_network_changes": "No explicit host network commands; before/after adapter inventory identical.",
+  "host_provisioning_traffic": "Windows optional feature enablement used -LimitAccess. Administrative traffic was GitHub ref reads and official Microsoft documentation. No image/package acquisition or provider/model endpoint traffic.",
+  "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+  "provider_model_connectivity": "NOT_TESTED_NOT_AUTHORIZED",
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "status": "NOT_ESTABLISHED_BLOCKED_VM_FACILITY"
+}
