@@ -1,0 +1,27 @@
+{
+  "command": [
+    "curl",
+    "--fail",
+    "--show-error",
+    "--silent",
+    "--location",
+    "--max-time",
+    "600",
+    "--proto",
+    "=https",
+    "--output",
+    "/tmp/src001-postrestart-continuation-20260916/image-source/ubuntu-24.04-minimal-cloudimg-amd64.img",
+    "--write-out",
+    "%{url_effective}\n%{size_download}\n",
+    "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/ubuntu-24.04-minimal-cloudimg-amd64.img"
+  ],
+  "cwd": null,
+  "started_at_utc": "2026-09-16T16:04:47.372808+00:00",
+  "finished_at_utc": "2026-09-16T16:06:16.815632+00:00",
+  "exit_code": 0,
+  "stdout": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/ubuntu-24.04-minimal-cloudimg-amd64.img\n264372224\n",
+  "stderr": "",
+  "byte_length": 264372224,
+  "sha256": "46b0dbaffa6950a7da5ff2dc5ed34c46084610b3b6d1fae8f1ec2d7e953984a3",
+  "publisher_checksum_match": true
+}

@@ -1,0 +1,6 @@
+{
+  "command": "$r=[ordered]@{utc=[DateTime]::UtcNow.ToString('o')}; $c=New-Object Net.Sockets.TcpClient;try{$a=$c.BeginConnect('172.29.16.101',22,$null,$null);$ok=$a.AsyncWaitHandle.WaitOne(5000);if($ok){$c.EndConnect($a)};$r.tcp22_connected=$c.Connected}catch{$r.error=$_.Exception.Message}finally{$c.Close()};$r.neighbor=@(Get-NetNeighbor -IPAddress 172.29.16.101 -ErrorAction SilentlyContinue | Select-Object IPAddress,LinkLayerAddress,State,InterfaceIndex);$r |ConvertTo-Json -Depth 5",
+  "exit_code": 0,
+  "stdout": "{\n    \"utc\":  \"2026-09-16T16:12:17.9063739Z\",\n    \"tcp22_connected\":  false,\n    \"neighbor\":  [\n                     {\n                         \"IPAddress\":  \"172.29.16.101\",\n                         \"LinkLayerAddress\":  \"00-00-00-00-00-00\",\n                         \"State\":  1,\n                         \"InterfaceIndex\":  40\n                     }\n                 ]\n}\n",
+  "stderr": ""
+}

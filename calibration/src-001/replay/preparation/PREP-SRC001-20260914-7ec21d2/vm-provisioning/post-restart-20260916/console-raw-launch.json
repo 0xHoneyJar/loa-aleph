@@ -1,0 +1,7 @@
+{
+  "script": "$ErrorActionPreference='Stop';$r=[ordered]@{utc=[DateTime]::UtcNow.ToString('o');vm_id='d5913cd7-aa99-4695-96b7-0d0135bad386'};try{$vm=Get-CimInstance -Namespace root/virtualization/v2 -Class Msvm_ComputerSystem -Filter \"Name='D5913CD7-AA99-4695-96B7-0D0135BAD386'\";$settings=@(Get-CimAssociatedInstance -InputObject $vm -ResultClassName Msvm_VirtualSystemSettingData|Where-Object {$_.VirtualSystemType -eq 'Microsoft:Hyper-V:System:Realized'})[0];$svc=Get-CimInstance -Namespace root/virtualization/v2 -Class Msvm_VirtualSystemManagementService;$img=Invoke-CimMethod -InputObject $svc -MethodName GetVirtualSystemThumbnailImage -Arguments @{TargetSystem=$settings;WidthPixels=[uint16]1024;HeightPixels=[uint16]768};$r.return_value=$img.ReturnValue;$r.bytes=$img.ImageData.Length;$r.width=1024;$r.height=768;if($img.ReturnValue -ne 0){throw 'Thumbnail method returned failure'};[IO.File]::WriteAllBytes('C:\\Users\\Public\\src001-vm-console-raw-20260916.bin',[byte[]]$img.ImageData);$r.result='PASS'}catch{$r.result='ERROR';$r.error=$_.Exception.Message};$r|ConvertTo-Json|Set-Content 'C:\\Users\\Public\\src001-vm-console-raw-receipt-20260916.json' -Encoding UTF8",
+  "outer": "$p=Start-Process -FilePath 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -Verb RunAs -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File','\\\\wsl.localhost\\Ubuntu\\tmp\\src001-postrestart-continuation-20260916\\console-raw.ps1') -Wait -PassThru; $p.ExitCode",
+  "exit_code": 0,
+  "stdout": "0\n",
+  "stderr": ""
+}

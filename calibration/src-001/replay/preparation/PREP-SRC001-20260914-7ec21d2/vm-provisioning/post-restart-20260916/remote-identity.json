@@ -1,0 +1,14 @@
+{
+  "command": [
+    "git",
+    "ls-remote",
+    "origin",
+    "refs/heads/main",
+    "refs/heads/agent/src-001-blind-replay-preparation-20260914"
+  ],
+  "started_at_utc": "2026-09-16T15:57:32.140240+00:00",
+  "completed_at_utc": "2026-09-16T15:57:32.941801+00:00",
+  "exit_code": 0,
+  "stdout": "da7bb0c1f90170f50f1790833555e328342bbb03\trefs/heads/agent/src-001-blind-replay-preparation-20260914\n8236b9f35c38cdd604b2389b42589f27755cdade\trefs/heads/main\n",
+  "stderr": ""
+}

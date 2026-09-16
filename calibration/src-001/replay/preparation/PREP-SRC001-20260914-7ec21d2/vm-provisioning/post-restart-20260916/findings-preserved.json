@@ -1,0 +1,14 @@
+{
+  "format": "src001-post-restart-findings-preservation/v1",
+  "F-03": "OPEN / MUST PRESERVE",
+  "F-04": "OPEN / MUST PRESERVE",
+  "F-05": "OPEN / MUST PRESERVE; bounded by F-03",
+  "PA-01": "CLOSED by fresh independent custodian audit supplied by human",
+  "PA-02": "CLOSED by fresh independent custodian audit supplied by human",
+  "PA-03": "LATER-NONBLOCKING",
+  "PA-04": "LATER-NONBLOCKING",
+  "PA-05": "LATER-NONBLOCKING",
+  "all_previous_harness_and_slice_findings": "Preserved byte-for-byte in ../findings-preserved.json and unchanged original preparation records",
+  "retained_findings_sha256": "sha256:549d559df5f99f186bb64216bba4f7ebf9a1e89f1288c04542b7b1bffaa875e4",
+  "isolation_finding": "OPEN_NOT_REMEDIATED; no producer or independent closure"
+}

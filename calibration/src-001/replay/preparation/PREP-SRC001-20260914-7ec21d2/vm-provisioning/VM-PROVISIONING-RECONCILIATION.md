@@ -221,3 +221,22 @@ restart and fresh mechanical facility checks are prerequisites for resuming
 provisioning. They do not grant attestation or replay execution authority.
 
 BLIND SRC-001 EXECUTOR ISOLATION PREPARATION BLOCKED — NO ATTESTATION OR REPLAY EXECUTION AUTHORIZED
+
+
+## Post-restart continuation recorded 2026-09-16
+
+The pre-existing text above is the preserved historical pre-restart record.
+Current continuation: `post-restart-20260916/POST-RESTART-RECONCILIATION.md`.
+Windows boot `2026-09-16T10:18:36.5291700Z` followed enablement; the separate
+restart-authority commit is `f8ec99faed3d816f2ba82b069d78e2179f409997`.
+Repository, custody and operational Hyper-V gates passed. One fresh VM and
+VHDX were created from the signed Ubuntu Minimal 24.04 build 20260905 image.
+The guest kernel panicked before mounting root. The VM is retained Off,
+NIC disconnected, seed DVD device absent. No custody transfer, installation,
+isolation proof, attestation or replay occurred.
+Current strongest state: `BLOCKED_PREPARATION_VM_PROVISIONING`.
+The original `provisioning-files.json` remains a historical inventory, not a
+current-hash assertion for the deliberately appended ledger/reconciliation.
+Use `post-restart-20260916/continuation-files.json` for current inventory closure.
+
+BLIND SRC-001 EXECUTOR ISOLATION PREPARATION BLOCKED — NO ATTESTATION OR REPLAY EXECUTION AUTHORIZED

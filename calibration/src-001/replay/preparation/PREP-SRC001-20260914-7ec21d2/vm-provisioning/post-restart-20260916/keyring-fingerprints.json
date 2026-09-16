@@ -1,0 +1,15 @@
+{
+  "command": [
+    "gpg",
+    "--homedir",
+    "/tmp/src001-postrestart-continuation-20260916/gpg-home",
+    "--no-default-keyring",
+    "--keyring",
+    "/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg",
+    "--with-colons",
+    "--fingerprint"
+  ],
+  "exit_code": 0,
+  "stdout": "tru::1:1789574669:0:3:1:5\npub:-:4096:1:1A5D6C4C7DB87C81:1253058869:::-:::scSC::::::23::0:\nfpr:::::::::D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81:\nuid:-::::1253059109::67BF62AAD4C9A52B6C68869D6D8C0EAF7E98CCE1::UEC Image Automatic Signing Key <cdimage@ubuntu.com>::::::::::0:\npub:-:4096:1:7FF3F408476CF100:1351381969:::-:::scSC::::::23::0:\nfpr:::::::::4A3CE3CD565D7EB5C810E2B97FF3F408476CF100:\nuid:-::::1351381969::88D0EA9FB7815207FC4FD1D041BD87D3A5815EF6::Ubuntu Cloud Image Builder (Canonical Internal Cloud Image Builder) <ubuntu-cloudbuilder-noreply@canonical.com>::::::::::0:\n",
+  "stderr": "gpg: /tmp/src001-postrestart-continuation-20260916/gpg-home/trustdb.gpg: trustdb created\n"
+}

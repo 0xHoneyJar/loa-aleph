@@ -1,0 +1,70 @@
+{
+  "format": "src001-post-restart-final-head-verification/v1",
+  "state_at_commit": "NOT_RUN_AT_FINAL_HEAD_YET",
+  "execution": "After the final continuation evidence commit. Bind all results to exact HEAD/tree in an external final-head receipt. Do not add a verification commit afterward.",
+  "commands": [
+    [
+      "git",
+      "diff",
+      "--check",
+      "0d9b36d65c7131c0173f3f978177cc7ac5912021",
+      "HEAD"
+    ],
+    [
+      "node",
+      "scripts/validate-core-boundary.ts",
+      "--json"
+    ],
+    [
+      "npm",
+      "run",
+      "runtime:check"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+      "verify-protocol"
+    ],
+    [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "calibration/src-001/replay/tests/tsconfig.json",
+      "--noEmit"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/tests/test-harness.ts",
+      "--report",
+      "<new synthetic report A>"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/tests/test-harness.ts",
+      "--report",
+      "<new synthetic report B>"
+    ],
+    [
+      "npm",
+      "test"
+    ]
+  ],
+  "repeatability": [
+    "Core-boundary stdout bytes",
+    "runtime drift stdout bytes",
+    "protocol stdout bytes",
+    "harness report file bytes"
+  ],
+  "closure": [
+    "Current provisioning inventory and manifest exactly once",
+    "Changed paths limited to restart authority, post-restart evidence, append-only ledger/reconciliation, administration manifest",
+    "All other starting tracked bytes unchanged",
+    "103 custodian files unchanged",
+    "Generic payload and executable source unchanged",
+    "Adapter branch/stash/all other local branches/four retained worktree registrations unchanged",
+    "Custody source file identities and inventories unchanged",
+    "No attempts or SRC-001 execution IDs created",
+    "Live GitHub main exact; ordinary preparation branch push only; no PR or merge"
+  ],
+  "external_receipt_root": "/home/eileenspectremoon/loa-dev/aleph-calibration/SRC-001/replay-preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/VM-PREP-SRC001-20260915-7a772f0/final-head-<commit>/"
+}

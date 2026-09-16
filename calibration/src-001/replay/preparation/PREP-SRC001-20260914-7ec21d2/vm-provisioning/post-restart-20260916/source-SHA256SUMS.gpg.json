@@ -1,0 +1,6 @@
+{
+  "url": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/SHA256SUMS.gpg",
+  "exit_code": 0,
+  "stdout": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/SHA256SUMS.gpg\n833\n",
+  "stderr": ""
+}

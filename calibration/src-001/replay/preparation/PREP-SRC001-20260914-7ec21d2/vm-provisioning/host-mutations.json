@@ -2,7 +2,7 @@
   "administrative_side_effects": "Read-only PowerShell module initialization, ordinary Windows servicing logs, and task evidence files; no image store, virtual switch, VM, volume, guest installation, credential, host firewall or explicit network change.",
   "authority_commit": "7a772f03492d5f76ccb238b69883f5a83c295695",
   "format": "src001-pre-attempt-host-infrastructure-mutations/v1",
-  "operation_count": 1,
+  "operation_count": 11,
   "operations": [
     {
       "actual_feature_changes": [
@@ -69,10 +69,215 @@
       "status": "COMMAND_SUCCEEDED",
       "target": "Windows online optional-feature servicing",
       "vmms_present_after": false
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "EXTERNAL_USER_CONTROLLED_RESTART_OBSERVED",
+      "actor": "External human operator; not Astra",
+      "restart_initiation_utc": null,
+      "observed_boot_time_utc": "2026-09-16T10:18:36.5291700Z",
+      "prior_enablement_finished_utc": "2026-09-15T16:49:47.3831086Z",
+      "post_boot_facility_result": "PASS",
+      "post_boot_features": [
+        {
+          "FeatureName": "Microsoft-Windows-Subsystem-Linux",
+          "State": "Enabled"
+        },
+        {
+          "FeatureName": "HypervisorPlatform",
+          "State": "Disabled"
+        },
+        {
+          "FeatureName": "VirtualMachinePlatform",
+          "State": "Enabled"
+        },
+        {
+          "FeatureName": "Microsoft-Hyper-V-All",
+          "State": "Enabled"
+        },
+        {
+          "FeatureName": "Microsoft-Hyper-V",
+          "State": "Enabled"
+        },
+        {
+          "FeatureName": "Microsoft-Hyper-V-Tools-All",
+          "State": "Enabled"
+        },
+        {
+          "FeatureName": "Microsoft-Hyper-V-Management-PowerShell",
+          "State": "Enabled"
+        },
+        {
+          "FeatureName": "Microsoft-Hyper-V-Hypervisor",
+          "State": "Enabled"
+        },
+        {
+          "FeatureName": "Microsoft-Hyper-V-Services",
+          "State": "Enabled"
+        },
+        {
+          "FeatureName": "Microsoft-Hyper-V-Management-Clients",
+          "State": "Enabled"
+        }
+      ],
+      "vmms": "Running / Auto",
+      "management_cmdlets": "Get-VM/Get-VMHost/Get-VMSwitch operational; New-VM/Get-VHD resolved at read-only gate and succeeded during authorized provisioning",
+      "evidence": "post-restart-20260916/windows-elevated-result-normalized.json",
+      "rollback": "Restart cannot be undone; no new restart authorized or scheduled"
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "CREATE_FRESH_VHDX_AND_PRIVATE_SEED",
+      "actor": "Producer",
+      "started_utc": "2026-09-16T16:08:16.686029+00:00",
+      "finished_utc": "2026-09-16T16:08:25.060794+00:00",
+      "target": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0",
+      "privilege": "Existing Windows drive write access from permitted WSL task process; no global install",
+      "result": "PASS",
+      "evidence": "post-restart-20260916/volume-and-seed-creation.json",
+      "rollback": "Retained for audit; no deletion performed",
+      "restart_needed": false
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "RESIZE_FRESH_VHDX_TO_16_GIB",
+      "utc": "2026-09-16T16:10:22.3193229Z",
+      "result": "PASS",
+      "actor": "Producer",
+      "privilege": "Windows administrator via ordinary UAC",
+      "evidence": "post-restart-20260916/vm-creation-launch.json",
+      "target_vm": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "restart_needed": false,
+      "rollback": "Task VM retained; final containment powers it off, disconnects NIC and removes seed DVD. No unrelated resources changed."
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "CREATE_ONE_FRESH_VM",
+      "utc": "2026-09-16T16:10:23.1526492Z",
+      "result": "PASS",
+      "vm_id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "actor": "Producer",
+      "privilege": "Windows administrator via ordinary UAC",
+      "evidence": "post-restart-20260916/vm-creation-launch.json",
+      "target_vm": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "restart_needed": false,
+      "rollback": "Task VM retained; final containment powers it off, disconnects NIC and removes seed DVD. No unrelated resources changed."
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "CONFIGURE_GUEST_BOUNDARY_AND_ATTACH_PRIVATE_SEED",
+      "utc": "2026-09-16T16:10:23.5698037Z",
+      "result": "PASS",
+      "actor": "Producer",
+      "privilege": "Windows administrator via ordinary UAC",
+      "evidence": "post-restart-20260916/vm-creation-launch.json",
+      "target_vm": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "restart_needed": false,
+      "rollback": "Task VM retained; final containment powers it off, disconnects NIC and removes seed DVD. No unrelated resources changed."
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "BOOT_FRESH_GUEST_FOR_PROVISIONING",
+      "utc": "2026-09-16T16:10:32.4423746Z",
+      "result": "PASS",
+      "actor": "Producer",
+      "privilege": "Windows administrator via ordinary UAC",
+      "evidence": "post-restart-20260916/vm-creation-launch.json",
+      "target_vm": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "restart_needed": false,
+      "rollback": "Task VM retained; final containment powers it off, disconnects NIC and removes seed DVD. No unrelated resources changed."
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "POWER_OFF_KERNEL_PANIC_VM",
+      "utc": "2026-09-16T16:18:05.6473724Z",
+      "result": "PASS",
+      "actor": "Producer",
+      "privilege": "Windows administrator via ordinary UAC",
+      "evidence": "post-restart-20260916/failed-vm-containment-launch.json",
+      "target_vm": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "restart_needed": false
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "DISCONNECT_PROVISIONING_NIC",
+      "utc": "2026-09-16T16:19:50.6580882Z",
+      "result": "PASS",
+      "actor": "Producer",
+      "privilege": "Windows administrator via ordinary UAC",
+      "evidence": "post-restart-20260916/failed-vm-containment-retry-launch.json",
+      "target_vm": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "restart_needed": false
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "EJECT_PRIVATE_PROVISIONING_SEED",
+      "utc": "2026-09-16T16:19:50.7360868Z",
+      "result": "PASS",
+      "actor": "Producer",
+      "privilege": "Windows administrator via ordinary UAC",
+      "evidence": "post-restart-20260916/failed-vm-containment-retry-launch.json",
+      "target_vm": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "restart_needed": false
+    },
+    {
+      "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+      "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+      "restart_authority_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+      "agent_initiated_restart": false,
+      "operation": "REMOVE_PROVISIONING_DVD_DEVICE",
+      "actor": "Producer",
+      "started_utc": "2026-09-16T16:21:06.8335823Z",
+      "finished_utc": "2026-09-16T16:21:07.5195819Z",
+      "result": "PASS",
+      "target_vm": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "evidence": "post-restart-20260916/final-containment-launch.json",
+      "restart_needed": false,
+      "privilege": "Windows administrator via ordinary UAC"
     }
   ],
   "other_host_infrastructure_mutations": [],
   "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
   "required_external_action": "User-controlled Windows restart at an appropriate time, then fresh read-only facility and pinned repository/custody verification. No automatic restart or substitute boundary.",
-  "stop_reason": "Windows reports restart required and VMMS absent; operational full VM facility cannot be verified without restarting the shared workstation."
+  "stop_reason": "Windows reports restart required and VMMS absent; operational full VM facility cannot be verified without restarting the shared workstation.",
+  "post_restart_continuation": {
+    "historical_fields": "Original stop_reason, required_external_action and administrative_side_effects above describe the pre-restart checkpoint and are preserved unchanged. This appended continuation supplies current state.",
+    "historical_ledger_sha256": "sha256:569fbccae13062dfea7b22cc2b6d1214f0e43d4d05858615a73ed1bde742b13f",
+    "historical_ledger_blob": "c9608f741b8025af3d881799b5585aa10707b53a",
+    "current_state": "BLOCKED_PREPARATION_VM_PROVISIONING",
+    "current_host_facility": "OPERATIONAL",
+    "current_vm_containment": "OFF_NIC_DISCONNECTED_DVD_ABSENT",
+    "post_restart_agent_infrastructure_groups": 9,
+    "external_user_controlled_boot_observed": 1,
+    "recorded_failed_observations": "post-restart-20260916/observation-failures.json",
+    "no_fallback": true,
+    "no_replay_authority": true
+  }
 }

@@ -1,0 +1,6 @@
+{
+  "url": "https://documentation.ubuntu.com/public-images/public-images-how-to/verify-cloud-image-checksums/",
+  "exit_code": 22,
+  "stdout": "https://ubuntu.com/docs/public-images/public-images-how-to/verify-cloud-image-checksums/\n0\n",
+  "stderr": "curl: (22) The requested URL returned error: 404\n"
+}

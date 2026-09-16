@@ -1,0 +1,31 @@
+{
+  "command": [
+    "ssh",
+    "-F",
+    "/dev/null",
+    "-i",
+    "/tmp/src001-postrestart-continuation-20260916/guest-keys/provisioner",
+    "-o",
+    "IdentityAgent=none",
+    "-o",
+    "IdentitiesOnly=yes",
+    "-o",
+    "ForwardAgent=no",
+    "-o",
+    "ClearAllForwardings=yes",
+    "-o",
+    "StrictHostKeyChecking=yes",
+    "-o",
+    "UserKnownHostsFile=/tmp/src001-postrestart-continuation-20260916/guest-keys/known_hosts",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "provisioner@172.29.16.101",
+    "id; uname -a; cat /etc/os-release; cloud-init status --long; findmnt -n -o TARGET,SOURCE,FSTYPE,OPTIONS; ip -json address; ip -json route"
+  ],
+  "utc": "2026-09-16T16:11:34.723432+00:00",
+  "exit_code": 255,
+  "stdout": "",
+  "stderr": "ssh: connect to host 172.29.16.101 port 22: Connection timed out\n"
+}

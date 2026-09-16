@@ -1,0 +1,14 @@
+{
+  "command": [
+    "apt-get",
+    "download",
+    "qemu-utils=1:8.2.2+ds-0ubuntu1.18",
+    "genisoimage=9:1.1.11-3.5"
+  ],
+  "cwd": "/tmp/src001-postrestart-continuation-20260916/host-tools",
+  "started_at_utc": "2026-09-16T16:04:47.373349+00:00",
+  "finished_at_utc": "2026-09-16T16:04:49.606389+00:00",
+  "exit_code": 0,
+  "stdout": "Get:1 http://archive.ubuntu.com/ubuntu noble/main amd64 genisoimage amd64 9:1.1.11-3.5 [378 kB]\nGet:2 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-utils amd64 1:8.2.2+ds-0ubuntu1.18 [2221 kB]\nFetched 2599 kB in 2s (1354 kB/s)\n",
+  "stderr": ""
+}

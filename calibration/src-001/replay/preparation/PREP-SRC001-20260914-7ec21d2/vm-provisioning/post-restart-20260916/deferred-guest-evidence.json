@@ -1,0 +1,32 @@
+{
+  "result": "NOT_ESTABLISHED_BLOCKED_VM_PROVISIONING",
+  "mount_inventory": "NOT_RUN",
+  "writable_path_inventory": "NOT_RUN",
+  "channel_socket_inventory": "NOT_RUN",
+  "environment_session_inventory": "NOT_RUN",
+  "installed_release_inventory": [],
+  "installed_release_inventory_status": "NOT_INSTALLED",
+  "network_interfaces_routes_dns_gateways_firewall": "NOT_INVENTORIED_IN_GUEST",
+  "provisioning_network": {
+    "switch": "Default Switch",
+    "switch_id": "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444",
+    "host_ipv4": "172.29.16.1/20",
+    "seed_requested_guest_ipv4": "172.29.16.101/20",
+    "seed_requested_gateway_dns": "172.29.16.1",
+    "guest_address_realized": "NOT_OBSERVED",
+    "traffic": "Host image and package downloads, read-only GitHub refs, local guest TCP/SSH connection attempts; no successful guest session or guest package setup",
+    "teardown": "VM Off; NIC disconnected; seed DVD device removed"
+  },
+  "final_pre_execution_network": "NOT_ESTABLISHED_IN_GUEST; host-side containment is enforced, but is not guest firewall/routes verification or future provider-only configuration",
+  "provider_connectivity": "NOT_TESTED_NOT_AUTHORIZED",
+  "visibility": "NOT_ESTABLISHED",
+  "developer_nonvisibility": "No host repository/.git transferred; guest denial proof NOT_RUN",
+  "reference_nonvisibility": "No reference/answer archive accessed or transferred; guest denial proof NOT_RUN",
+  "session_isolation": "NOT_VERIFIED_IN_GUEST; no successful SSH session, agent forwarding disabled in attempted SSH command",
+  "provider_credential_absence": "No provider credentials transferred; guest absence inventory NOT_RUN",
+  "cognitive_blindness_claimed": false,
+  "original_criteria": "Retained host provenance only; no input custody transferred",
+  "attempts_directory_created": false,
+  "s0_created": false,
+  "execution_mode_attempt_record_created": false
+}

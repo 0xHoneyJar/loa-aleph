@@ -1,0 +1,20 @@
+{
+  "scope": "CONTAIN_FAILED_FRESH_VM_NO_CUSTODY_TRANSFER",
+  "started_at_utc": "2026-09-16T16:18:05.1403767Z",
+  "operations": [
+    {
+      "operation": "POWER_OFF_KERNEL_PANIC_VM",
+      "utc": "2026-09-16T16:18:05.6473724Z",
+      "result": "PASS"
+    }
+  ],
+  "before": {
+    "Id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+    "Name": "SRC001-PREP-7a772f0",
+    "State": "Running",
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\vm\\SRC001-PREP-7a772f0"
+  },
+  "result": "CONTAINMENT_ERROR",
+  "error": "Parameter cannot be processed because the parameter name 'VM' is ambiguous. Possible matches include: -VMNetworkAdapter -VMName -Name.",
+  "finished_at_utc": "2026-09-16T16:18:05.6708763Z"
+}

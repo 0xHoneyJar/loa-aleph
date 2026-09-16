@@ -1,0 +1,65 @@
+{
+  "scope": "Preparation tooling and observation failures; none upgraded to guest success",
+  "rows": [
+    {
+      "operation": "First sandbox Windows boot query",
+      "result": "ERROR",
+      "exit_code": 1,
+      "stderr": "<3>WSL (21 - ) ERROR: UtilBindVsockAnyPort:309: socket failed 1",
+      "basis": "Transcribed from retained tool response before successful permitted retry"
+    },
+    {
+      "operation": "Non-administrator Hyper-V feature and VM inspection",
+      "result": "ACCESS_DENIED",
+      "receipt": "windows-readonly-initial.json"
+    },
+    {
+      "operation": "First elevated encoded-command inventory",
+      "result": "NO_RECEIPT_RETURNED",
+      "receipt": "windows-elevation-launch.json",
+      "cause": "UNDETERMINED; file-based retry succeeded"
+    },
+    {
+      "operation": "Official verification documentation locator",
+      "result": "HTTP_404",
+      "receipt": "source-verify-doc.json",
+      "effect": "No dependence on this missing page; installed distribution cloud signing keyring and detached signature verified"
+    },
+    {
+      "operation": "Temporary converter first launch",
+      "result": "MISSING_LIBRARY",
+      "receipt": "temporary-tools-extraction.json",
+      "resolution": "Two dependencies extracted locally; no global package installation"
+    },
+    {
+      "operation": "Guest SSH and host TCP reachability",
+      "result": "FAIL",
+      "receipts": [
+        "guest-first-connection.json",
+        "windows-guest-reachability.json"
+      ]
+    },
+    {
+      "operation": "First VM-only thumbnail bitmap conversion",
+      "result": "CHILD_EXIT_-1073741819",
+      "receipt": "console-observation-launch.json",
+      "scope": "Observer process failure; subsequent CIM raw-byte capture succeeded"
+    },
+    {
+      "operation": "Pillow import for local framebuffer rendering",
+      "result": "ModuleNotFoundError: No module named PIL",
+      "resolution": "Bounded standard-library RGB565/PNG decoding; no dependency installed"
+    },
+    {
+      "operation": "First failed-VM containment",
+      "result": "PARTIAL_POWERED_OFF_THEN_CMDLET_PARAMETER_ERROR",
+      "receipt": "failed-vm-containment-result.json"
+    },
+    {
+      "operation": "Containment retry DVD snapshot",
+      "result": "CACHED_OR_STALE_DVD_PATH_IN_SNAPSHOT",
+      "receipt": "failed-vm-containment-retry-result.json",
+      "resolution": "Fresh VMName query later observed null media; own DVD device then removed and absence asserted in final-containment-result.json"
+    }
+  ]
+}

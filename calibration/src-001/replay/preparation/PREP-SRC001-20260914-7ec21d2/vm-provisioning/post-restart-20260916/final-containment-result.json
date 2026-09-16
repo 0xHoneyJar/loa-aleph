@@ -1,0 +1,41 @@
+{
+  "started_at_utc": "2026-09-16T16:21:06.8335823Z",
+  "vm_id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+  "before_dvd": [
+    {
+      "Path": null,
+      "ControllerNumber": 0,
+      "ControllerLocation": 1
+    }
+  ],
+  "after_dvd": [],
+  "network": [
+    {
+      "Id": "Microsoft:D5913CD7-AA99-4695-96B7-0D0135BAD386\\3EA36DE1-C841-4CAA-860D-CC0A0463F24C",
+      "MacAddress": "00155D32E600",
+      "SwitchId": null,
+      "SwitchName": null,
+      "Connected": false
+    }
+  ],
+  "vm": {
+    "Id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+    "Name": "SRC001-PREP-7a772f0",
+    "State": "Off",
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\vm\\SRC001-PREP-7a772f0"
+  },
+  "services": [
+    {
+      "Name": "vmcompute",
+      "Status": "Running",
+      "StartType": "Manual"
+    },
+    {
+      "Name": "vmms",
+      "Status": "Running",
+      "StartType": "Automatic"
+    }
+  ],
+  "result": "PASS_OFF_NIC_DISCONNECTED_DVD_DEVICE_ABSENT",
+  "finished_at_utc": "2026-09-16T16:21:07.5195819Z"
+}

@@ -1,0 +1,10 @@
+{
+  "raw_path": "/mnt/c/Users/Public/src001-vm-console-raw-20260916.bin",
+  "raw_bytes": 1572868,
+  "raw_sha256": "071bf5321060a0deac6bd467281f02876e4e079ad6a85ca327bdec6e8c07eb62",
+  "octet_string_prefix_hex": "00180004",
+  "pixel_format": "RGB565 little-endian after 4-byte octet-string prefix",
+  "png_sha256": "d1bf630c2eade9030464c736dc6f831b5dfa0e23ab34e6bb48fa033d1d845f22",
+  "prior_failure": "Native bitmap copy included 4-byte octet-string prefix; child exited -1073741819. No VM mutation.",
+  "python_pillow_unavailable": true
+}

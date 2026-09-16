@@ -1,0 +1,20 @@
+{
+  "command": [
+    "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+    "compare",
+    "-f",
+    "qcow2",
+    "-F",
+    "vhdx",
+    "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/images/ubuntu-24.04-minimal-cloudimg-amd64-20260905.img",
+    "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/vm/executor.vhdx"
+  ],
+  "utc": "2026-09-16T16:09:26.335769+00:00",
+  "exit_code": 0,
+  "stdout": "Images are identical.\n",
+  "stderr": "",
+  "retained_image": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/images/ubuntu-24.04-minimal-cloudimg-amd64-20260905.img",
+  "retained_image_sha256": "46b0dbaffa6950a7da5ff2dc5ed34c46084610b3b6d1fae8f1ec2d7e953984a3",
+  "vhdx_before_resize_sha256": "48c44f145b4da1d8626274b35c18355e1346637acae63d501b4ad1f8312f881b",
+  "vhdx_before_resize_bytes": 931135488
+}

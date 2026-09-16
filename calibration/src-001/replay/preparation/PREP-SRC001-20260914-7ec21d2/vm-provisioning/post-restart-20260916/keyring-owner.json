@@ -1,0 +1,10 @@
+{
+  "command": [
+    "dpkg-query",
+    "-S",
+    "/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg"
+  ],
+  "exit_code": 0,
+  "stdout": "ubuntu-keyring: /usr/share/keyrings/ubuntu-cloudimage-keyring.gpg\n",
+  "stderr": ""
+}

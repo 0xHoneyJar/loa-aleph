@@ -1,0 +1,176 @@
+{
+  "utc": "2026-09-16T16:12:49.1753751Z",
+  "vm": {
+    "Id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+    "Name": "SRC001-PREP-7a772f0",
+    "State": "Running",
+    "Status": "Operating normally",
+    "CPUUsage": 6,
+    "MemoryAssigned": 2147483648,
+    "UptimeSeconds": 135.814
+  },
+  "firmware": {
+    "SecureBoot": "On",
+    "SecureBootTemplate": "MicrosoftUEFICertificateAuthority"
+  },
+  "integration": [
+    {
+      "Name": "Guest Service Interface",
+      "Enabled": false,
+      "PrimaryStatusDescription": "OK",
+      "SecondaryStatusDescription": null
+    },
+    {
+      "Name": "Heartbeat",
+      "Enabled": true,
+      "PrimaryStatusDescription": "No Contact",
+      "SecondaryStatusDescription": null
+    },
+    {
+      "Name": "Key-Value Pair Exchange",
+      "Enabled": false,
+      "PrimaryStatusDescription": "OK",
+      "SecondaryStatusDescription": null
+    },
+    {
+      "Name": "Shutdown",
+      "Enabled": true,
+      "PrimaryStatusDescription": "No Contact",
+      "SecondaryStatusDescription": null
+    },
+    {
+      "Name": "Time Synchronization",
+      "Enabled": false,
+      "PrimaryStatusDescription": "OK",
+      "SecondaryStatusDescription": null
+    },
+    {
+      "Name": "VSS",
+      "Enabled": false,
+      "PrimaryStatusDescription": "OK",
+      "SecondaryStatusDescription": null
+    }
+  ],
+  "network": [
+    {
+      "Id": "Microsoft:D5913CD7-AA99-4695-96B7-0D0135BAD386\\3EA36DE1-C841-4CAA-860D-CC0A0463F24C",
+      "MacAddress": "00155D32E600",
+      "SwitchId": "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444",
+      "SwitchName": "Default Switch",
+      "IPAddresses": [],
+      "Connected": true
+    }
+  ],
+  "serial": [
+    {
+      "Name": "COM 1",
+      "Path": "",
+      "Number": null
+    },
+    {
+      "Name": "COM 2",
+      "Path": "",
+      "Number": null
+    }
+  ],
+  "video": [
+    {
+      "SystemName": "D5913CD7-AA99-4695-96B7-0D0135BAD386",
+      "CurrentHorizontalResolution": 1024,
+      "CurrentVerticalResolution": 768
+    }
+  ],
+  "thumbnail_method": [
+    {
+      "Name": "HeightPixels",
+      "CimType": 4,
+      "Qualifiers": [
+        {
+          "Name": "ID",
+          "Value": 2,
+          "CimType": 7,
+          "Flags": "DisableOverride, ToSubclass"
+        },
+        {
+          "Name": "In",
+          "Value": true,
+          "CimType": 1,
+          "Flags": "DisableOverride, ToSubclass"
+        },
+        {
+          "Name": "Units",
+          "Value": "Pixels",
+          "CimType": 14,
+          "Flags": "EnableOverride, ToSubclass"
+        }
+      ]
+    },
+    {
+      "Name": "TargetSystem",
+      "CimType": 15,
+      "Qualifiers": [
+        {
+          "Name": "ID",
+          "Value": 0,
+          "CimType": 7,
+          "Flags": "DisableOverride, ToSubclass"
+        },
+        {
+          "Name": "In",
+          "Value": true,
+          "CimType": 1,
+          "Flags": "DisableOverride, ToSubclass"
+        }
+      ]
+    },
+    {
+      "Name": "WidthPixels",
+      "CimType": 4,
+      "Qualifiers": [
+        {
+          "Name": "ID",
+          "Value": 1,
+          "CimType": 7,
+          "Flags": "DisableOverride, ToSubclass"
+        },
+        {
+          "Name": "In",
+          "Value": true,
+          "CimType": 1,
+          "Flags": "DisableOverride, ToSubclass"
+        },
+        {
+          "Name": "Units",
+          "Value": "Pixels",
+          "CimType": 14,
+          "Flags": "EnableOverride, ToSubclass"
+        }
+      ]
+    },
+    {
+      "Name": "ImageData",
+      "CimType": 18,
+      "Qualifiers": [
+        {
+          "Name": "ID",
+          "Value": 3,
+          "CimType": 7,
+          "Flags": "DisableOverride, ToSubclass"
+        },
+        {
+          "Name": "OctetString",
+          "Value": true,
+          "CimType": 1,
+          "Flags": "DisableOverride, ToSubclass"
+        },
+        {
+          "Name": "Out",
+          "Value": true,
+          "CimType": 1,
+          "Flags": "DisableOverride, ToSubclass"
+        }
+      ]
+    }
+  ],
+  "result": "PASS"
+}

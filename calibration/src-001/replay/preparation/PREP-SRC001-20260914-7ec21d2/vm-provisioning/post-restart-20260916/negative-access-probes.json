@@ -1,0 +1,112 @@
+{
+  "format": "src001-pre-attempt-negative-access-probes/v1",
+  "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+  "probe_count_executed": 0,
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "real_answer_content_used": false,
+  "rows": [
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "synthetic forbidden host path",
+      "proposition": "Future executor cannot access synthetic forbidden host path",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "developer repository host path",
+      "proposition": "Future executor cannot access developer repository host path",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "closed-reference custody host path",
+      "proposition": "Future executor cannot access closed-reference custody host path",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "host user-home path",
+      "proposition": "Future executor cannot access host user-home path",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "host-drive path including /mnt/c",
+      "proposition": "Future executor cannot access host-drive path including /mnt/c",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "host-management socket",
+      "proposition": "Future executor cannot access host-management socket",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "Docker socket",
+      "proposition": "Future executor cannot access Docker socket",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "unapproved network destination",
+      "proposition": "Future executor cannot access unapproved network destination",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "unapproved mount",
+      "proposition": "Future executor cannot access unapproved mount",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    },
+    {
+      "actual_exit": null,
+      "command": null,
+      "expected": "DENIED_OR_ABSENT",
+      "family": "forbidden environment/session marker",
+      "proposition": "Future executor cannot access forbidden environment/session marker",
+      "result": "NOT_RUN_GUEST_BOOT_FAILED",
+      "stderr_sha256": null,
+      "stdout_sha256": null
+    }
+  ],
+  "status": "NOT_RUN_BLOCKED_VM_PROVISIONING",
+  "synthetic_canaries_created": 0,
+  "reason": "Guest root filesystem did not mount; no execution user available."
+}

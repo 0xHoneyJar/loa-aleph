@@ -1,0 +1,99 @@
+{
+  "result": "CREATED_BUT_GUEST_BOOT_FAILED",
+  "vm": {
+    "Id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+    "Name": "SRC001-PREP-7a772f0",
+    "State": "Off",
+    "Generation": 2,
+    "Version": "9.0",
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\vm\\SRC001-PREP-7a772f0",
+    "ProcessorCount": 2,
+    "MemoryStartup": 2147483648,
+    "DynamicMemoryEnabled": false,
+    "AutomaticStartAction": "Nothing",
+    "AutomaticStopAction": "ShutDown",
+    "CheckpointType": "Disabled",
+    "AutomaticCheckpointsEnabled": false
+  },
+  "firmware": {
+    "SecureBoot": "On",
+    "SecureBootTemplate": "MicrosoftUEFICertificateAuthority",
+    "BootOrder": {
+      "value": [
+        {
+          "BootType": 3,
+          "Description": "Ubuntu",
+          "FirmwarePath": "HD(15,GPT,9606BC98-2904-4577-9584-A8310313A04C,0x2800,0x35000)/\\EFI\\ubuntu\\shimx64.efi"
+        },
+        {
+          "BootType": 1,
+          "Description": "EFI SCSI Device",
+          "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,D96361BAA104294DB60572E2FFB1DC7F79BFC36C2F0C4448A992C86A2A2FA1A1)/Scsi(0,0)"
+        },
+        {
+          "BootType": 2,
+          "Description": "EFI Network",
+          "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,635161F83EDFC546913FF2D2F965ED0ED2237F92958E1E4D8D6FD946B75C153C)/MAC(000000000000)/MessagingPath(0000000000000000000000000000000000000000000000)"
+        },
+        {
+          "BootType": 1,
+          "Description": "EFI SCSI Device",
+          "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,D96361BAA104294DB60572E2FFB1DC7F79BFC36C2F0C4448A992C86A2A2FA1A1)/Scsi(0,1)"
+        }
+      ],
+      "Count": 4
+    }
+  },
+  "network": [
+    {
+      "Id": "Microsoft:D5913CD7-AA99-4695-96B7-0D0135BAD386\\3EA36DE1-C841-4CAA-860D-CC0A0463F24C",
+      "MacAddress": "00155D32E600",
+      "SwitchId": null,
+      "SwitchName": null,
+      "Connected": false
+    }
+  ],
+  "dvd_devices": [],
+  "integration": [
+    {
+      "Name": "Guest Service Interface",
+      "Enabled": false
+    },
+    {
+      "Name": "Heartbeat",
+      "Enabled": true
+    },
+    {
+      "Name": "Key-Value Pair Exchange",
+      "Enabled": false
+    },
+    {
+      "Name": "Shutdown",
+      "Enabled": true
+    },
+    {
+      "Name": "Time Synchronization",
+      "Enabled": false
+    },
+    {
+      "Name": "VSS",
+      "Enabled": false
+    }
+  ],
+  "vhd": {
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\vm\\executor.vhdx",
+    "VhdFormat": "VHDX",
+    "VhdType": "Dynamic",
+    "FileSize": 931135488,
+    "Size": 17179869184,
+    "DiskIdentifier": "28DF27FB-300D-7947-BA55-44BCE3ABF0CD",
+    "ParentPath": "",
+    "Attached": false
+  },
+  "vhd_shutdown_sha256": "sha256:5905c60cbc24b769af5dff0d79c21093ad523e652a6e8012c8b051b777bfefbb",
+  "base_relationship": "Fresh dynamic VHDX converted from signed minimal QCOW2. Virtual sectors compared identical before resize; grown from 3758096384 to 17179869184 bytes. No parent VHD. Image immutable; guest disk changed through provisioning boot.",
+  "kernel_os_user": "Operational guest OS/kernel/user NOT_ESTABLISHED. Linux kernel console reached panic before root mount; no uname or user inventory obtained. Image manifest versions are provenance only.",
+  "execution_user_seed": "executor UID 1001 requested in private NoCloud seed; NOT_CONFIRMED_CREATED",
+  "private_seed": "New guest-only SSH host/provisioner credentials, no provider/developer keys; no private material committed; DVD device removed",
+  "state": "Off"
+}

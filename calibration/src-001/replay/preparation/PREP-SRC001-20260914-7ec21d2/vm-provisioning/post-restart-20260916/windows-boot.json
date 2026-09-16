@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    "$ErrorActionPreference='Stop'; $os=Get-CimInstance Win32_OperatingSystem; $cs=Get-CimInstance Win32_ComputerSystem; [pscustomobject]@{ObservedAtUtc=(Get-Date).ToUniversalTime().ToString('o');LastBootUpTimeUtc=$os.LastBootUpTime.ToUniversalTime().ToString('o');Caption=$os.Caption;Version=$os.Version;BuildNumber=$os.BuildNumber;OSArchitecture=$os.OSArchitecture;HypervisorPresent=$cs.HypervisorPresent} | ConvertTo-Json -Depth 5; & wsl.exe --status; & wsl.exe --list --verbose"
+  ],
+  "started_at_utc": "2026-09-16T15:57:32.139980+00:00",
+  "completed_at_utc": "2026-09-16T15:57:33.073004+00:00",
+  "exit_code": 0,
+  "stdout": "{\r\n    \"ObservedAtUtc\":  \"2026-09-16T15:57:32.8968213Z\",\r\n    \"LastBootUpTimeUtc\":  \"2026-09-16T10:18:36.5291700Z\",\r\n    \"Caption\":  \"Microsoft Windows 10 Pro\",\r\n    \"Version\":  \"10.0.19045\",\r\n    \"BuildNumber\":  \"19045\",\r\n    \"OSArchitecture\":  \"64-bit\",\r\n    \"HypervisorPresent\":  true\r\n}\r\nDefault Distribution: Ubuntu\r\nDefault Version: 2\r\n  NAME              STATE           VERSION\r\n* Ubuntu            Running         2\r\n  docker-desktop    Stopped         2\r\n",
+  "stderr": ""
+}

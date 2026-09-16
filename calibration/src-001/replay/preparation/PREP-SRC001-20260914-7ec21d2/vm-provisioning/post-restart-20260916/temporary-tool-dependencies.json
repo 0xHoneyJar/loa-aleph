@@ -1,0 +1,28 @@
+[
+  {
+    "command": [
+      "apt-get",
+      "download",
+      "liburing2=2.5-1build1",
+      "libaio1t64=0.3.113-6build1.1"
+    ],
+    "exit_code": 0,
+    "stdout": "Get:1 http://archive.ubuntu.com/ubuntu noble/main amd64 liburing2 amd64 2.5-1build1 [21.1 kB]\nGet:2 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libaio1t64 amd64 0.3.113-6build1.1 [7210 B]\nFetched 28.3 kB in 1s (48.7 kB/s)\n",
+    "stderr": ""
+  },
+  {
+    "file": "liburing2_2.5-1build1_amd64.deb",
+    "sha256": "c2aef62accee92a06263c3ad4ef46132c13e409b54296c44792a20491830a7b0",
+    "bytes": 21092
+  },
+  {
+    "file": "libaio1t64_0.3.113-6build1.1_amd64.deb",
+    "sha256": "433212b33e26d424605c01cec1de33b63f2cc12870987b4cb7b3625baba66a19",
+    "bytes": 7210
+  },
+  {
+    "exit_code": 0,
+    "stdout": "qemu-img version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)\nCopyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers\n",
+    "stderr": ""
+  }
+]

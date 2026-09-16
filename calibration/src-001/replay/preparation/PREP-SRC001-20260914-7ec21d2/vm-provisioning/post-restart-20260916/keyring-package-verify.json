@@ -1,0 +1,10 @@
+{
+  "command": [
+    "dpkg",
+    "--verify",
+    "ubuntu-keyring"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

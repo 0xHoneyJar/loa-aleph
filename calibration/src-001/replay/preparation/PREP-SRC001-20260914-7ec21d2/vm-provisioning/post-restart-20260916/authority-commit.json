@@ -1,0 +1,7 @@
+{
+  "commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+  "tree": "4899ec15eda3b16716817989e36663fc5c61554d",
+  "authority_blob": "c9ddc68f2e7970ddaddb386dd8d072d13a558d03",
+  "parent": "da7bb0c1f90170f50f1790833555e328342bbb03",
+  "remote_before_commit": "da7bb0c1f90170f50f1790833555e328342bbb03\trefs/heads/agent/src-001-blind-replay-preparation-20260914\n8236b9f35c38cdd604b2389b42589f27755cdade\trefs/heads/main\n"
+}

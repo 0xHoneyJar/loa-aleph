@@ -1,0 +1,78 @@
+{
+  "administrative_side_effects": "Read-only PowerShell module initialization, ordinary Windows servicing logs, and task evidence files; no image store, virtual switch, VM, volume, guest installation, credential, host firewall or explicit network change.",
+  "authority_commit": "7a772f03492d5f76ccb238b69883f5a83c295695",
+  "format": "src001-pre-attempt-host-infrastructure-mutations/v1",
+  "operation_count": 1,
+  "operations": [
+    {
+      "actual_feature_changes": [
+        {
+          "after": "Enabled",
+          "before": "Disabled",
+          "feature": "Microsoft-Hyper-V-All"
+        },
+        {
+          "after": "Enabled",
+          "before": "Disabled",
+          "feature": "Microsoft-Hyper-V"
+        },
+        {
+          "after": "Enabled",
+          "before": "Disabled",
+          "feature": "Microsoft-Hyper-V-Tools-All"
+        },
+        {
+          "after": "Enabled",
+          "before": "Disabled",
+          "feature": "Microsoft-Hyper-V-Management-PowerShell"
+        },
+        {
+          "after": "Enabled",
+          "before": "Disabled",
+          "feature": "Microsoft-Hyper-V-Hypervisor"
+        },
+        {
+          "after": "Enabled",
+          "before": "Disabled",
+          "feature": "Microsoft-Hyper-V-Services"
+        },
+        {
+          "after": "Enabled",
+          "before": "Disabled",
+          "feature": "Microsoft-Hyper-V-Management-Clients"
+        }
+      ],
+      "before_after_receipt": "evidence/hyperv-enablement.json",
+      "command": "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Hypervisor,Microsoft-Hyper-V-Services,Microsoft-Hyper-V-Management-PowerShell -All -NoRestart -LimitAccess -LogPath <task DISM log>",
+      "dependency_effect": "-All enabled parent/dependent Hyper-V feature family including Management-Clients; all actual feature changes listed. This was not merely a PowerShell module install.",
+      "dism_log": "evidence/hyperv-enablement-dism-log.json",
+      "exact_script": "evidence/hyperv-enablement-command.json",
+      "existing_virtual_machine_platform": "Enabled before and after",
+      "existing_wsl_feature": "Enabled before and after",
+      "exit": 0,
+      "finished_utc": "2026-09-15T16:49:47.3831086Z",
+      "hypervisor_platform": "Disabled before and after",
+      "launch_receipt": "evidence/enablement-launch.json",
+      "network_adapter_inventory_equal": true,
+      "operation": "ENABLE_MINIMAL_HYPERV_FACILITY_COMPONENTS",
+      "privilege": "Windows administrator through ordinary UAC elevation",
+      "reboot_performed": false,
+      "requested_features": [
+        "Microsoft-Hyper-V-Hypervisor",
+        "Microsoft-Hyper-V-Services",
+        "Microsoft-Hyper-V-Management-PowerShell"
+      ],
+      "restart_needed": true,
+      "rollback": "No rollback performed. Prior states are retained. Disabling newly enabled Hyper-V components is a separate disruptive operation requiring impact review and may require reboot; do not disable WSL or VirtualMachinePlatform.",
+      "servicing_network": "-LimitAccess; no Windows Update download requested",
+      "started_utc": "2026-09-15T16:49:28.1706610Z",
+      "status": "COMMAND_SUCCEEDED",
+      "target": "Windows online optional-feature servicing",
+      "vmms_present_after": false
+    }
+  ],
+  "other_host_infrastructure_mutations": [],
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "required_external_action": "User-controlled Windows restart at an appropriate time, then fresh read-only facility and pinned repository/custody verification. No automatic restart or substitute boundary.",
+  "stop_reason": "Windows reports restart required and VMMS absent; operational full VM facility cannot be verified without restarting the shared workstation."
+}

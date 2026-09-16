@@ -1,0 +1,28 @@
+[
+  {
+    "file": "genisoimage_9%3a1.1.11-3.5_amd64.deb",
+    "sha256": "cfa9f63d8208a3e1b2c228357707f607e2b402334262d6f591abc44a429bb217",
+    "bytes": 377720,
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "file": "qemu-utils_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb",
+    "sha256": "10695e57937d8a1d0ec6d017a6770d02353ec0c9500e4a36928230b2d39026c5",
+    "bytes": 2220842,
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "tool": "qemu-img",
+    "exit_code": 127,
+    "stdout": "",
+    "stderr": "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img: error while loading shared libraries: liburing.so.2: cannot open shared object file: No such file or directory\n"
+  },
+  {
+    "tool": "genisoimage",
+    "exit_code": 0,
+    "stdout": "genisoimage 1.1.11 (Linux)\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,498 @@
+{
+  "format": "src001-current-provisioning-inventory/v1",
+  "source_checkpoint": "da7bb0c1f90170f50f1790833555e328342bbb03",
+  "scope": "All current vm-provisioning files except this self-referential inventory; inventory itself bound by final Git blob and external exact-head receipt",
+  "files": [
+    {
+      "path": "VM-PROVISIONING-RECONCILIATION.md",
+      "byte_length": 13296,
+      "sha256": "sha256:42a3e931949e03cf38e3d5f34af3afb1bf6174033d41357f2641cb88ff820858"
+    },
+    {
+      "path": "evidence/elevated-inventory-raw-bytes.json",
+      "byte_length": 3903,
+      "sha256": "sha256:233411ad2a508a1fb934727c1095cd0fff924d59cbd7b8a5cd9eb934b8baa73e"
+    },
+    {
+      "path": "evidence/elevated-inventory.json",
+      "byte_length": 1516,
+      "sha256": "sha256:2b97eaa6460592bf67e22717459f5471e6a9bca526b97e471b662bdb6ac7ea3c"
+    },
+    {
+      "path": "evidence/elevation-launch.json",
+      "byte_length": 7276,
+      "sha256": "sha256:4093ec5dab01489dfa541953734033246e1e026906249ca31c77dde869a31938"
+    },
+    {
+      "path": "evidence/enablement-launch.json",
+      "byte_length": 8428,
+      "sha256": "sha256:04c941097f0149220b677864f6e2e1bba6e676315ffb8a6fc17634fe84416d9e"
+    },
+    {
+      "path": "evidence/facility-details-2.json",
+      "byte_length": 6108,
+      "sha256": "sha256:41b96e4af03469786bc38cdff2f00120e296343d04716688a3990a3ca1cc2859"
+    },
+    {
+      "path": "evidence/facility-details.json",
+      "byte_length": 2570,
+      "sha256": "sha256:9c588b7bfecee7e4848a0ea11253943a64f0ae2e0d61aaef6102fd2f6e14f70c"
+    },
+    {
+      "path": "evidence/hyperv-enablement-command.json",
+      "byte_length": 2996,
+      "sha256": "sha256:071cd5afe7822ad1ca3d7489f35e737cd49741c42037b53be4bbaf9f8509d048"
+    },
+    {
+      "path": "evidence/hyperv-enablement-dism-log.json",
+      "byte_length": 50397,
+      "sha256": "sha256:4cefd39d2230558890815c0df76bee774e198fe7fcc12d905d002cf802f72e64"
+    },
+    {
+      "path": "evidence/hyperv-enablement-raw-bytes.json",
+      "byte_length": 34335,
+      "sha256": "sha256:ff815b7f09274d2ad471897ce20855eed90fbd0934418edc99bcc39d9a61205d"
+    },
+    {
+      "path": "evidence/hyperv-enablement.json",
+      "byte_length": 13016,
+      "sha256": "sha256:57552b923007dfe5df86eb85200db8c4085308d500d884939e5b104495260979"
+    },
+    {
+      "path": "evidence/initial-custody-verification.json",
+      "byte_length": 5601,
+      "sha256": "sha256:c2af58684b0ffd37b5f60355b1e84b0cdf479bf3c4792f6c637e0602dd0edbbc"
+    },
+    {
+      "path": "evidence/initial-gate.json",
+      "byte_length": 3140,
+      "sha256": "sha256:5cd959f8a316a5f341ad51e79fdcd56201595438c430edd529f971613ffe731c"
+    },
+    {
+      "path": "evidence/initial-staged-diff-failure.json",
+      "byte_length": 99666,
+      "sha256": "sha256:df6b8301318bb50b7ceefb269112820d25bfc18ee1e4d1dadfcb73a8993f867c"
+    },
+    {
+      "path": "evidence/microsoft-install-hyper-v-source.json",
+      "byte_length": 393,
+      "sha256": "sha256:a88c0f92cf7e5ec020fed9417ba96c3990504fc5c8b1ea91522252df0d23eae7"
+    },
+    {
+      "path": "evidence/preserved-custodian-inventory.json",
+      "byte_length": 33292,
+      "sha256": "sha256:0c9ce299afb145a590c86d0aff5134a3fd6aef83dad6dfeb64055dd317e209a9"
+    },
+    {
+      "path": "evidence/storage-format-reconciliation.json",
+      "byte_length": 1020,
+      "sha256": "sha256:f5d2f59a5007f036c90e0f0d63f5fa6cc3ad042b4945db5d4d0853596e4f186c"
+    },
+    {
+      "path": "evidence/windows-final-readonly.json",
+      "byte_length": 2896,
+      "sha256": "sha256:4bdcbd5e946ab64db988074f52b2d8e3dd1964ecb13f3fd887cb9d33770e8179"
+    },
+    {
+      "path": "facility-selection.json",
+      "byte_length": 2472,
+      "sha256": "sha256:055c17e72d4f531beace957f0937d33fa159cf3b76b3133e6949f7e442b2c119"
+    },
+    {
+      "path": "findings-preserved.json",
+      "byte_length": 2341,
+      "sha256": "sha256:549d559df5f99f186bb64216bba4f7ebf9a1e89f1288c04542b7b1bffaa875e4"
+    },
+    {
+      "path": "host-mutations.json",
+      "byte_length": 13118,
+      "sha256": "sha256:dbcb8fbf7c54f59a746539d1c9729cef675481d96f5acb91038c4a87e7fe3b5a"
+    },
+    {
+      "path": "image-identity.json",
+      "byte_length": 628,
+      "sha256": "sha256:8f5272f4488b52116ed247fde7eddfaed73254548cb519862ac97ba33377bc80"
+    },
+    {
+      "path": "input-transfer.json",
+      "byte_length": 2348,
+      "sha256": "sha256:dc902f26cfde9bb16d6f3162a8768f930d397640200da96f60566726ac0463a6"
+    },
+    {
+      "path": "negative-access-probes.json",
+      "byte_length": 3573,
+      "sha256": "sha256:b880f6000f6c19e4efde445623057310740870a84367da733b12bf4358f96f19"
+    },
+    {
+      "path": "network-policy.json",
+      "byte_length": 1235,
+      "sha256": "sha256:075ac5ea7f0788706beca13d9da755f12ec73892aab179f8217e07501ba40d76"
+    },
+    {
+      "path": "offline-installation.json",
+      "byte_length": 1257,
+      "sha256": "sha256:0b9e304f4539a964169a66c4c23f3c9a32dbbb96882e819bc1e84e229bbff4ae"
+    },
+    {
+      "path": "operation-boundary.json",
+      "byte_length": 1546,
+      "sha256": "sha256:fd001b5f67de39d67090e2d5356560ad049b6cf0a580a0f68a9eb15d69b9f1ca"
+    },
+    {
+      "path": "post-restart-20260916/POST-RESTART-RECONCILIATION.md",
+      "byte_length": 17372,
+      "sha256": "sha256:3f35c16e0802a4ce48635260851fd6388dceeacf4f50d585b8c27a0e6e25e53f"
+    },
+    {
+      "path": "post-restart-20260916/authority-commit.json",
+      "byte_length": 424,
+      "sha256": "sha256:8c00ea4d8d6d94a0c267449506ec97f24b17ea533dc9ca594310b6b23ce10740"
+    },
+    {
+      "path": "post-restart-20260916/authority-core.json",
+      "byte_length": 5100,
+      "sha256": "sha256:e829bd44b51728d6ce4f02d64907ed1914dc43bf4763aaa41e6164322d48178b"
+    },
+    {
+      "path": "post-restart-20260916/authority-diff.json",
+      "byte_length": 110,
+      "sha256": "sha256:90d9a77eaf08533cefcb4a0655490051e2f04adc9164a49690c802fb7a0d40ca"
+    },
+    {
+      "path": "post-restart-20260916/boot-inspection-launch.json",
+      "byte_length": 1795,
+      "sha256": "sha256:620f5e3d806c0d8b4f8c35bcd588f60a96afb038afe41ee6c0285413659614f2"
+    },
+    {
+      "path": "post-restart-20260916/console-decoding.json",
+      "byte_length": 540,
+      "sha256": "sha256:08a310d8d40c9df26ac29f58169ea887716f48a990b49a43c3d1bda4556a407e"
+    },
+    {
+      "path": "post-restart-20260916/console-observation-launch.json",
+      "byte_length": 1817,
+      "sha256": "sha256:bbe05b6a70ba191d4b7da00b5f7c3586a1feb681b87f24e6423b7ac86e46008a"
+    },
+    {
+      "path": "post-restart-20260916/console-raw-launch.json",
+      "byte_length": 1561,
+      "sha256": "sha256:ed185eab4fbe9a132c49522cee2f58e6fa4738c5b3d5372d6134f810ceabaae3"
+    },
+    {
+      "path": "post-restart-20260916/console-raw-result.json",
+      "byte_length": 190,
+      "sha256": "sha256:346338d9223ce267c9ccb03923b22a622be02bba7871f58372a3c557a4071182"
+    },
+    {
+      "path": "post-restart-20260916/current-state.json",
+      "byte_length": 2196,
+      "sha256": "sha256:cfffa37c91f8f3c1278bb154b77cf1e47cc50e25b8c26c1caa2f0bc3089dc7d9"
+    },
+    {
+      "path": "post-restart-20260916/custodian-preservation.json",
+      "byte_length": 35616,
+      "sha256": "sha256:f77bcaf482416226800856c50ea1691cc9cd8f0cd43564bc04a18e40e8d3b70e"
+    },
+    {
+      "path": "post-restart-20260916/custody-gate.json",
+      "byte_length": 5768,
+      "sha256": "sha256:2019ac4fe5964fc791e67b4cebd81105703487ea6aa1e8a5e17432cc004147aa"
+    },
+    {
+      "path": "post-restart-20260916/custody-transfer-and-installation.json",
+      "byte_length": 1343,
+      "sha256": "sha256:30ef4da0b876a17f826d439b29ec350759223e80a9303b088232fc58552c3299"
+    },
+    {
+      "path": "post-restart-20260916/deferred-guest-evidence.json",
+      "byte_length": 1882,
+      "sha256": "sha256:01bbd1c11a2aaf342a115e10a7175798ab4f57355cd651d6aa35640991ad9305"
+    },
+    {
+      "path": "post-restart-20260916/facility-current-state.json",
+      "byte_length": 4176,
+      "sha256": "sha256:19e05f2491684d2b9e3566410eb7a6d02d55dda54cdbf5c6c00cc9dfdc9c4005"
+    },
+    {
+      "path": "post-restart-20260916/failed-vm-containment-launch.json",
+      "byte_length": 3172,
+      "sha256": "sha256:550862d1a47d7783600ec5dff538c3d2a14990dd0558cee270afecd95e963103"
+    },
+    {
+      "path": "post-restart-20260916/failed-vm-containment-result.json",
+      "byte_length": 723,
+      "sha256": "sha256:dc1c2a1de5f23d3eaee31f8bc068841f6213366e3f9057b41d1984485d670c4b"
+    },
+    {
+      "path": "post-restart-20260916/failed-vm-containment-retry-launch.json",
+      "byte_length": 3238,
+      "sha256": "sha256:c71261e3dff91a79563cba60d705a033147fb69b548fe965be27d940fd8d57dd"
+    },
+    {
+      "path": "post-restart-20260916/failed-vm-containment-retry-result.json",
+      "byte_length": 4606,
+      "sha256": "sha256:2b523e85bbbf3d37b1950f47d59a8d799b70b23dc14a7e5a1e73ca8539356b56"
+    },
+    {
+      "path": "post-restart-20260916/final-containment-launch.json",
+      "byte_length": 1679,
+      "sha256": "sha256:4ec5b636ef1406217a616c0d5d65ff791b259841b46cb9c15e00c7f97f1cfb35"
+    },
+    {
+      "path": "post-restart-20260916/final-containment-result.json",
+      "byte_length": 1018,
+      "sha256": "sha256:d5bf16fc29cf1312466e37ae37b035ae4c8a0b9e1b899732d9d76de4024d0f2b"
+    },
+    {
+      "path": "post-restart-20260916/findings-preserved.json",
+      "byte_length": 762,
+      "sha256": "sha256:859d48dcc4fb716200028daeaaf26f290fc32e8cc712be35f99fd31e5bbf7a27"
+    },
+    {
+      "path": "post-restart-20260916/guest-boot-console.png",
+      "byte_length": 36511,
+      "sha256": "sha256:d1bf630c2eade9030464c736dc6f831b5dfa0e23ab34e6bb48fa033d1d845f22"
+    },
+    {
+      "path": "post-restart-20260916/guest-first-connection.json",
+      "byte_length": 847,
+      "sha256": "sha256:d83c6fad52a9eeb51c47fcd2c667a3c9a9bf4e6ce2938c70d631767d98cc0674"
+    },
+    {
+      "path": "post-restart-20260916/image-acquisition.json",
+      "byte_length": 910,
+      "sha256": "sha256:0b1fdf9abaf3c2fbe1b8030ec5c9e0eff48e267b65dd94d9cf917111b9c4c6da"
+    },
+    {
+      "path": "post-restart-20260916/image-identity.json",
+      "byte_length": 2187,
+      "sha256": "sha256:9380d26a4986d244279547e3f5c9f93892b7542529ecbb15df57ea54050b1698"
+    },
+    {
+      "path": "post-restart-20260916/keyring-fingerprints.json",
+      "byte_length": 980,
+      "sha256": "sha256:dc52e6802c19b3a47774db893d2d55187a8d401ca348d9ec4e49f8b5bd689ab0"
+    },
+    {
+      "path": "post-restart-20260916/keyring-owner.json",
+      "byte_length": 224,
+      "sha256": "sha256:519e7109ebcc16315a86426c56f131df7b5ae6c3869a96c0aa8b4d6aed11abbd"
+    },
+    {
+      "path": "post-restart-20260916/keyring-package-verify.json",
+      "byte_length": 122,
+      "sha256": "sha256:69e52a76f4b90cbcfde6794ff616df3d46f6941d52f222c7a2d611ddf5d1a850"
+    },
+    {
+      "path": "post-restart-20260916/negative-access-probes.json",
+      "byte_length": 3718,
+      "sha256": "sha256:147913000bb4c09a6a812fa0374c91f51303c4988fb37daa0317ea59e5c42cb8"
+    },
+    {
+      "path": "post-restart-20260916/observation-failures.json",
+      "byte_length": 2524,
+      "sha256": "sha256:afb8cf45af38102b6f4d674efc0316bf9f6abeb10f0d0171370f034e51895a89"
+    },
+    {
+      "path": "post-restart-20260916/operation-boundary.json",
+      "byte_length": 2061,
+      "sha256": "sha256:c6adeeb0b755334fc59b0665948b193797293e502894c96d592fab26ddd36ef8"
+    },
+    {
+      "path": "post-restart-20260916/pre-restart-host-mutations.json",
+      "byte_length": 3758,
+      "sha256": "sha256:569fbccae13062dfea7b22cc2b6d1214f0e43d4d05858615a73ed1bde742b13f"
+    },
+    {
+      "path": "post-restart-20260916/provisioning-switch-addresses.json",
+      "byte_length": 1636,
+      "sha256": "sha256:3d86fd401586b0f2c72bd1d61310e0d5a92a887512fc99f06badaaf86a804879"
+    },
+    {
+      "path": "post-restart-20260916/publisher-signature.json",
+      "byte_length": 1013,
+      "sha256": "sha256:12a4c7063c27009439fa5ee64bb563d0913a6e1677e5e0019fda3878aa43a404"
+    },
+    {
+      "path": "post-restart-20260916/publisher-verification-material.json",
+      "byte_length": 16981,
+      "sha256": "sha256:9df6dc48e12e84635885edc60a9cf1e8a6184f05ee7aa39715065447075c5faa"
+    },
+    {
+      "path": "post-restart-20260916/remote-identity.json",
+      "byte_length": 478,
+      "sha256": "sha256:4f390852026f6f570a35312da3fc47305bf69468dad54b21be3ba218446091d6"
+    },
+    {
+      "path": "post-restart-20260916/repository-gate.json",
+      "byte_length": 6342,
+      "sha256": "sha256:a81768dadb1d7e89a12fd219ea0de81bf4a07b2ba93864ac9e3c9dc5eeb4c68d"
+    },
+    {
+      "path": "post-restart-20260916/source-SHA256SUMS.gpg.json",
+      "byte_length": 245,
+      "sha256": "sha256:fa865e8d2250abab4df375f8b9453f8ff9c64b8c022f39b24606de585d050cb2"
+    },
+    {
+      "path": "post-restart-20260916/source-SHA256SUMS.json",
+      "byte_length": 238,
+      "sha256": "sha256:f1b2ef04727d2d38148e84511ef631c7bdc6e28fccc8e74442dda70df77d0625"
+    },
+    {
+      "path": "post-restart-20260916/source-image-manifest.json",
+      "byte_length": 306,
+      "sha256": "sha256:86798c811b72a8348e5dccb29cb5da832603c3c3f19f3b26e813d0fb0e796d27"
+    },
+    {
+      "path": "post-restart-20260916/source-verify-doc.json",
+      "byte_length": 307,
+      "sha256": "sha256:9ad7de6cfadbf6fc4459d82b0381855149fa43dc950e4677620e40b5162658af"
+    },
+    {
+      "path": "post-restart-20260916/temporary-tool-dependencies.json",
+      "byte_length": 946,
+      "sha256": "sha256:a9c089f2475624fd68be9491f9cad4584093f35a1709847bb2feedb94cbbf5de"
+    },
+    {
+      "path": "post-restart-20260916/temporary-tools-download.json",
+      "byte_length": 605,
+      "sha256": "sha256:fd31bf972ac1b6494527e2840ebf7db921c4c7ce7b2d8dd2e80fc3557425400d"
+    },
+    {
+      "path": "post-restart-20260916/temporary-tools-extraction.json",
+      "byte_length": 821,
+      "sha256": "sha256:5f493e0b2989879789595ef7bed7ac65d264ccf9770c0386454d7af8ea613854"
+    },
+    {
+      "path": "post-restart-20260916/ubuntu-cloud-image-verification.json",
+      "byte_length": 16853,
+      "sha256": "sha256:931e9200e6ad37f11de9f576e30cd22b8e25fc76969d845aead5348c84dba5ac"
+    },
+    {
+      "path": "post-restart-20260916/ubuntu-minimal-current-files.json",
+      "byte_length": 9433,
+      "sha256": "sha256:673f7fbb3e285903129623b54eaf791ebe62ae3a225cbd33145f875bcc1b48bb"
+    },
+    {
+      "path": "post-restart-20260916/ubuntu-minimal-release-index.json",
+      "byte_length": 15567,
+      "sha256": "sha256:6ead72ea86de4c02fc710137e429b940c024fb1f28e0f261504d21fa35bd8d40"
+    },
+    {
+      "path": "post-restart-20260916/verification-plan.json",
+      "byte_length": 2242,
+      "sha256": "sha256:9e2a2e29c3e5ced5a1df1d4d69530187a78197035e51a2fbb79dd66ab033a750"
+    },
+    {
+      "path": "post-restart-20260916/vm-boot-inspection.json",
+      "byte_length": 3984,
+      "sha256": "sha256:692f3f73b782a8d2d94d284b0c820c6de4993bcfcd9408847e0272fcafbd9dfe"
+    },
+    {
+      "path": "post-restart-20260916/vm-creation-launch.json",
+      "byte_length": 5354,
+      "sha256": "sha256:f7306020f1953e6ff23c276e4134eeeb7947ab954165f9db4c2b3caec8444e53"
+    },
+    {
+      "path": "post-restart-20260916/vm-creation-result.json",
+      "byte_length": 167385,
+      "sha256": "sha256:6f035cce0629c8ba2d34060db7563e94988317a7cfc4d3ba5c19ec9958112db4"
+    },
+    {
+      "path": "post-restart-20260916/vm-current-identity.json",
+      "byte_length": 3602,
+      "sha256": "sha256:bf80899b848e93e1d6ca2fd1894398048fc18b5b4e4d21ea7817846b5c3fd0c5"
+    },
+    {
+      "path": "post-restart-20260916/volume-and-seed-creation.json",
+      "byte_length": 5543,
+      "sha256": "sha256:10c18138ef68bcf3253b4bc959392cb018d086c04a7c4fa4b16466cf9785b681"
+    },
+    {
+      "path": "post-restart-20260916/volume-base-equivalence.json",
+      "byte_length": 869,
+      "sha256": "sha256:b2f00f87711ae823a3b661a4fcd9924335a3b4f7c4942404ea4740cf70df6222"
+    },
+    {
+      "path": "post-restart-20260916/windows-boot.json",
+      "byte_length": 1315,
+      "sha256": "sha256:7f6b06dd21aeb35fd32f7521a088c5bff26a4791f22b8a38cce8518416abb94e"
+    },
+    {
+      "path": "post-restart-20260916/windows-elevated-result-normalized.json",
+      "byte_length": 9464,
+      "sha256": "sha256:50baa0b2a17682dda92fbc9c8534d11b47fde12285a4e486a2d9e42461b9dc32"
+    },
+    {
+      "path": "post-restart-20260916/windows-elevation-launch.json",
+      "byte_length": 12487,
+      "sha256": "sha256:3076052eb160bb9b89496333390961854f311bd3a7940030859503b7c1c7aac6"
+    },
+    {
+      "path": "post-restart-20260916/windows-elevation-retry.json",
+      "byte_length": 4019,
+      "sha256": "sha256:7cd77de8b5391d8287ec9fbf9bea2c7e4618cd3e131a2f6974a7bc361582c2c8"
+    },
+    {
+      "path": "post-restart-20260916/windows-guest-reachability.json",
+      "byte_length": 946,
+      "sha256": "sha256:2ecb0f217e0ac41dd134d3a42d88c79c7ac6aa21d35c0a38318e57dea1b62608"
+    },
+    {
+      "path": "post-restart-20260916/windows-readonly-initial.json",
+      "byte_length": 9252,
+      "sha256": "sha256:5a14865be4d4ac7e00339b475b82381a78a24293dbbbab61386816b268bca448"
+    },
+    {
+      "path": "pre-attempt-environment.json",
+      "byte_length": 1516,
+      "sha256": "sha256:c83fbcd1932f0a4fcb451732ebe252a21139e738926a622d14565f99189031f4"
+    },
+    {
+      "path": "provisioning-authority-binding.json",
+      "byte_length": 1124,
+      "sha256": "sha256:9680ee92051b67233b9d419a1cb3bea3df94ecad31d007cffcd1855845e62dd2"
+    },
+    {
+      "path": "provisioning-current-state.json",
+      "byte_length": 2343,
+      "sha256": "sha256:e2262b4ce306eaa17e9e22b92ef9a322f0fcef0028bdf613ffe6dd2dd6deeba6"
+    },
+    {
+      "path": "provisioning-files.json",
+      "byte_length": 7454,
+      "sha256": "sha256:6ae5331456fb498c534cdb8d3ed764ea997a1f21c95e33abe943697fda421bed"
+    },
+    {
+      "path": "release-transfer.json",
+      "byte_length": 2036,
+      "sha256": "sha256:c05954eabf2a0b702c676a9ed2179ab60459b126cc67e98a5d41d9a9e7ebbabb"
+    },
+    {
+      "path": "verification-plan.json",
+      "byte_length": 3008,
+      "sha256": "sha256:d71bf02498443bfe9684dd4120529a0ea0e1175f93a9f8839ced70da6008367a"
+    },
+    {
+      "path": "visibility-enforcement.json",
+      "byte_length": 1840,
+      "sha256": "sha256:c071a79e528087884d72b37ee26fd8c42dada96d0310750bd880e19d39104560"
+    },
+    {
+      "path": "vm-identity.json",
+      "byte_length": 629,
+      "sha256": "sha256:1e42bb26648ffe4b23ff648361b5367bb25afb4b62321f904b1e64b02f4fed5c"
+    }
+  ],
+  "administration_manifest": {
+    "path": "core.manifest.json",
+    "byte_length": 106453,
+    "sha256": "sha256:6c31b230519ff9df583a8162dfc6318bf249ae7b00cdc83d4bd6d749f94371ad"
+  },
+  "deliberately_appended_historical_paths": [
+    "host-mutations.json",
+    "VM-PROVISIONING-RECONCILIATION.md"
+  ],
+  "historical_file_preservation": "All other files from the starting checkpoint unchanged; verified at final head",
+  "images_disks_private_keys_in_git": false
+}

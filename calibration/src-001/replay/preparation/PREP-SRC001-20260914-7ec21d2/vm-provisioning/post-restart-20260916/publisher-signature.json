@@ -1,0 +1,16 @@
+{
+  "command": [
+    "gpgv",
+    "--homedir",
+    "/tmp/src001-postrestart-continuation-20260916/gpg-home",
+    "--status-fd",
+    "1",
+    "--keyring",
+    "/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg",
+    "/tmp/src001-postrestart-continuation-20260916/image-source/SHA256SUMS.gpg",
+    "/tmp/src001-postrestart-continuation-20260916/image-source/SHA256SUMS"
+  ],
+  "exit_code": 0,
+  "stdout": "[GNUPG:] NEWSIG\n[GNUPG:] KEY_CONSIDERED D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81 0\n[GNUPG:] SIG_ID 6X2wYEJNoxtYrDXh+BgwB7IUc5k 2026-09-05 1788620671\n[GNUPG:] GOODSIG 1A5D6C4C7DB87C81 UEC Image Automatic Signing Key <cdimage@ubuntu.com>\n[GNUPG:] VALIDSIG D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81 2026-09-05 1788620671 0 4 0 1 10 00 D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81\n",
+  "stderr": "gpgv: Signature made Sat Sep  5 17:04:31 2026 CEST\ngpgv:                using RSA key D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81\ngpgv: Good signature from \"UEC Image Automatic Signing Key <cdimage@ubuntu.com>\"\n"
+}

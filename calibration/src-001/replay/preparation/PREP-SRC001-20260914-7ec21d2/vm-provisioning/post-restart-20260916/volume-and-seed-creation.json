@@ -1,0 +1,80 @@
+{
+  "storage_root": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0",
+  "volume": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/vm/executor.vhdx",
+  "seed_iso": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/images/provisioning-seed.iso",
+  "seed_sha256": "1a0c64d0dd8ab525310168ca193767efda81a34859c66e4a4207603da6cf01e5",
+  "seed_bytes": 376832,
+  "commands": [
+    {
+      "command": [
+        "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+        "info",
+        "--output=json",
+        "/tmp/src001-postrestart-continuation-20260916/image-source/ubuntu-24.04-minimal-cloudimg-amd64.img"
+      ],
+      "started_at_utc": "2026-09-16T16:08:16.686029+00:00",
+      "finished_at_utc": "2026-09-16T16:08:16.691750+00:00",
+      "exit_code": 0,
+      "stdout": "{\n    \"children\": [\n        {\n            \"name\": \"file\",\n            \"info\": {\n                \"children\": [\n                ],\n                \"virtual-size\": 264372224,\n                \"filename\": \"/tmp/src001-postrestart-continuation-20260916/image-source/ubuntu-24.04-minimal-cloudimg-amd64.img\",\n                \"format\": \"file\",\n                \"actual-size\": 264372224,\n                \"format-specific\": {\n                    \"type\": \"file\",\n                    \"data\": {\n                    }\n                },\n                \"dirty-flag\": false\n            }\n        }\n    ],\n    \"virtual-size\": 3758096384,\n    \"filename\": \"/tmp/src001-postrestart-continuation-20260916/image-source/ubuntu-24.04-minimal-cloudimg-amd64.img\",\n    \"cluster-size\": 65536,\n    \"format\": \"qcow2\",\n    \"actual-size\": 264372224,\n    \"format-specific\": {\n        \"type\": \"qcow2\",\n        \"data\": {\n            \"compat\": \"1.1\",\n            \"compression-type\": \"zlib\",\n            \"lazy-refcounts\": false,\n            \"refcount-bits\": 16,\n            \"corrupt\": false,\n            \"extended-l2\": false\n        }\n    },\n    \"dirty-flag\": false\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+        "convert",
+        "-f",
+        "qcow2",
+        "-O",
+        "vhdx",
+        "-o",
+        "subformat=dynamic",
+        "-S",
+        "4096",
+        "/tmp/src001-postrestart-continuation-20260916/image-source/ubuntu-24.04-minimal-cloudimg-amd64.img",
+        "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/vm/executor.vhdx"
+      ],
+      "started_at_utc": "2026-09-16T16:08:16.691963+00:00",
+      "finished_at_utc": "2026-09-16T16:08:24.919729+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+        "info",
+        "--output=json",
+        "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/vm/executor.vhdx"
+      ],
+      "started_at_utc": "2026-09-16T16:08:24.920029+00:00",
+      "finished_at_utc": "2026-09-16T16:08:24.939151+00:00",
+      "exit_code": 0,
+      "stdout": "{\n    \"children\": [\n        {\n            \"name\": \"file\",\n            \"info\": {\n                \"children\": [\n                ],\n                \"virtual-size\": 931135488,\n                \"filename\": \"/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/vm/executor.vhdx\",\n                \"format\": \"file\",\n                \"actual-size\": 931135488,\n                \"format-specific\": {\n                    \"type\": \"file\",\n                    \"data\": {\n                    }\n                },\n                \"dirty-flag\": false\n            }\n        }\n    ],\n    \"virtual-size\": 3758096384,\n    \"filename\": \"/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/vm/executor.vhdx\",\n    \"cluster-size\": 16777216,\n    \"format\": \"vhdx\",\n    \"actual-size\": 931135488,\n    \"dirty-flag\": false\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/genisoimage",
+        "-output",
+        "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/images/provisioning-seed.iso",
+        "-volid",
+        "cidata",
+        "-joliet",
+        "-rock",
+        "/tmp/src001-postrestart-continuation-20260916/seed-private/user-data",
+        "/tmp/src001-postrestart-continuation-20260916/seed-private/meta-data",
+        "/tmp/src001-postrestart-continuation-20260916/seed-private/network-config"
+      ],
+      "started_at_utc": "2026-09-16T16:08:24.939456+00:00",
+      "finished_at_utc": "2026-09-16T16:08:25.060794+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "I: -input-charset not specified, using utf-8 (detected in locale settings)\nTotal translation table size: 0\nTotal rockridge attributes bytes: 417\nTotal directory bytes: 0\nPath table size(bytes): 10\nMax brk space used 0\n184 extents written (0 MB)\n"
+    }
+  ],
+  "ssh_authority": "Fresh provisioning-only key; no developer SSH identity or agent forwarding. Private keys and seed not committed.",
+  "ssh_public_fingerprints": {
+    "provisioner": "256 SHA256:1wPRni5qiAGOuZZnuMYQJw6a/Hzm+AzbaZHZ0UPUEnQ VM-PREP-SRC001-20260915-7a772f0-provisioner (ED25519)",
+    "guest-host": "256 SHA256:sKvNHw2tm3Pl+T+SWr2RAHZZBMqW1kgYGM5nZged04E VM-PREP-SRC001-20260915-7a772f0-guest-host (ED25519)"
+  }
+}

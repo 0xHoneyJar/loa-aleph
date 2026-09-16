@@ -1,0 +1,332 @@
+{
+  "scope": "READ_ONLY_POST_RESTART_HYPERV_GATE",
+  "started_at_utc": "2026-09-16T16:00:35.3879480Z",
+  "administrator": true,
+  "boot": {
+    "LastBootUpTimeUtc": "2026-09-16T10:18:36.5291700Z",
+    "Caption": "Microsoft Windows 10 Pro",
+    "Version": "10.0.19045",
+    "BuildNumber": "19045",
+    "OSArchitecture": "64-bit",
+    "HypervisorPresent": true
+  },
+  "features": [
+    {
+      "FeatureName": "Microsoft-Windows-Subsystem-Linux",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "HypervisorPlatform",
+      "State": "Disabled"
+    },
+    {
+      "FeatureName": "VirtualMachinePlatform",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-All",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Tools-All",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Management-PowerShell",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Hypervisor",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Services",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-Management-Clients",
+      "State": "Enabled"
+    }
+  ],
+  "services": [
+    {
+      "Name": "vmcompute",
+      "State": "Running",
+      "StartMode": "Manual",
+      "StartName": "LocalSystem",
+      "PathName": "C:\\Windows\\system32\\vmcompute.exe"
+    },
+    {
+      "Name": "vmms",
+      "State": "Running",
+      "StartMode": "Auto",
+      "StartName": "LocalSystem",
+      "PathName": "C:\\Windows\\system32\\vmms.exe"
+    }
+  ],
+  "module": [
+    {
+      "Name": "Hyper-V",
+      "Version": "2.0.0.0",
+      "Path": "C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules\\Hyper-V\\2.0.0.0\\Hyper-V.psd1"
+    },
+    {
+      "Name": "Hyper-V",
+      "Version": "1.1",
+      "Path": "C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules\\Hyper-V\\1.1\\Hyper-V.psd1"
+    }
+  ],
+  "commands": [
+    {
+      "Name": "Get-VM",
+      "Source": "Hyper-V",
+      "Version": "2.0.0.0"
+    },
+    {
+      "Name": "New-VM",
+      "Source": "Hyper-V",
+      "Version": "2.0.0.0"
+    },
+    {
+      "Name": "Get-VHD",
+      "Source": "Hyper-V",
+      "Version": "2.0.0.0"
+    },
+    {
+      "Name": "Get-VMHost",
+      "Source": "Hyper-V",
+      "Version": "2.0.0.0"
+    },
+    {
+      "Name": "Get-VMSwitch",
+      "Source": "Hyper-V",
+      "Version": "2.0.0.0"
+    }
+  ],
+  "host": {
+    "Name": "DESKTOP-F2SON4Q",
+    "LogicalProcessorCount": 16,
+    "MemoryCapacity": 34268889088,
+    "VirtualHardDiskPath": "C:\\ProgramData\\Microsoft\\Windows\\Virtual Hard Disks",
+    "VirtualMachinePath": "C:\\ProgramData\\Microsoft\\Windows\\Hyper-V",
+    "EnableEnhancedSessionMode": true,
+    "VirtualMachineMigrationEnabled": false,
+    "MaximumVirtualMachineMigrations": 2,
+    "MaximumStorageMigrations": 2,
+    "MacAddressMinimum": "00155D32E600",
+    "MacAddressMaximum": "00155D32E6FF",
+    "NumaSpanningEnabled": true
+  },
+  "vms": [],
+  "switches": [
+    {
+      "Id": "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444",
+      "Name": "Default Switch",
+      "SwitchType": 1,
+      "NetAdapterInterfaceDescription": null,
+      "AllowManagementOS": true,
+      "DefaultFlowMinimumBandwidthWeight": 0
+    },
+    {
+      "Id": "91a928b4-1cdd-4d04-ba29-1c8b255a0d53",
+      "Name": "WSL",
+      "SwitchType": 1,
+      "NetAdapterInterfaceDescription": null,
+      "AllowManagementOS": true,
+      "DefaultFlowMinimumBandwidthWeight": 0
+    }
+  ],
+  "vhds": [],
+  "get_vhd_note": "Cmdlet resolved; existing VM disk paths inspected only if present. No VHD created by this read-only gate.",
+  "new_vm_note": "Cmdlet resolved only; New-VM not invoked before authority commit and gate acceptance.",
+  "virtualization_namespace": [
+    {
+      "Name": "DESKTOP-F2SON4Q",
+      "ElementName": "DESKTOP-F2SON4Q",
+      "Caption": "Hosting Computer System",
+      "EnabledState": 2
+    }
+  ],
+  "host_disks": [
+    {
+      "DeviceID": "C:",
+      "FileSystem": "NTFS",
+      "Size": 499427872768,
+      "FreeSpace": 86330003456
+    },
+    {
+      "DeviceID": "D:",
+      "FileSystem": "NTFS",
+      "Size": 500105736192,
+      "FreeSpace": 439022518272
+    },
+    {
+      "DeviceID": "G:",
+      "FileSystem": "NTFS",
+      "Size": 1000186310656,
+      "FreeSpace": 774865977344
+    }
+  ],
+  "net_adapters": [
+    {
+      "Name": "vSwitch (Default Switch)",
+      "InterfaceGuid": "{F67A7425-74E5-462A-8E14-C59C532D6784}",
+      "InterfaceDescription": "Hyper-V Virtual Switch Extension Adapter",
+      "Status": "Up",
+      "ifIndex": 38
+    },
+    {
+      "Name": "Local Area Connection* 9",
+      "InterfaceGuid": "{F6537A33-3852-4001-B155-D0AF40446766}",
+      "InterfaceDescription": "WAN Miniport (Network Monitor)",
+      "Status": "Up",
+      "ifIndex": 21
+    },
+    {
+      "Name": "Local Area Connection* 5",
+      "InterfaceGuid": "{F1EC7F27-9BBF-470A-A6C5-D975A45C0D5C}",
+      "InterfaceDescription": "WAN Miniport (PPTP)",
+      "Status": "Disconnected",
+      "ifIndex": 20
+    },
+    {
+      "Name": "Local Area Connection* 3",
+      "InterfaceGuid": "{EA1593F1-A801-428C-B408-53C55F631404}",
+      "InterfaceDescription": "WAN Miniport (IKEv2)",
+      "Status": "Disconnected",
+      "ifIndex": 19
+    },
+    {
+      "Name": "Wi-Fi",
+      "InterfaceGuid": "{E6FF64E2-FED7-4678-BE4D-21623D5A86C5}",
+      "InterfaceDescription": "Intel(R) Wireless-AC 9260 160MHz",
+      "Status": "Up",
+      "ifIndex": 18
+    },
+    {
+      "Name": "Local Area Connection* 6",
+      "InterfaceGuid": "{CC895EC3-8BB7-420D-8BB8-1C201FBAD961}",
+      "InterfaceDescription": "WAN Miniport (PPPOE)",
+      "Status": "Disconnected",
+      "ifIndex": 17
+    },
+    {
+      "Name": "vSwitch (WSL)",
+      "InterfaceGuid": "{C9C6EF83-15E6-4E0A-9868-8F2FCD9CAEBA}",
+      "InterfaceDescription": "Hyper-V Virtual Switch Extension Adapter #2",
+      "Status": "Up",
+      "ifIndex": 44
+    },
+    {
+      "Name": "vEthernet (Default Switch)",
+      "InterfaceGuid": "{C798F78F-3A72-41DF-89FC-F316C4F09EB7}",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter",
+      "Status": "Up",
+      "ifIndex": 40
+    },
+    {
+      "Name": "Local Area Connection* 8",
+      "InterfaceGuid": "{BAA5B60F-47D7-45BD-A9D7-DBB9771E2355}",
+      "InterfaceDescription": "WAN Miniport (IPv6)",
+      "Status": "Up",
+      "ifIndex": 16
+    },
+    {
+      "Name": "Bluetooth Network Connection",
+      "InterfaceGuid": "{B3488BE8-51AC-4E45-88C8-95BCE1B46C67}",
+      "InterfaceDescription": "Bluetooth Device (Personal Area Network)",
+      "Status": "Disconnected",
+      "ifIndex": 15
+    },
+    {
+      "Name": "Ethernet",
+      "InterfaceGuid": "{A02C18CD-F706-49D5-9F15-237E9DF83637}",
+      "InterfaceDescription": "Realtek Gaming GbE Family Controller",
+      "Status": "Disconnected",
+      "ifIndex": 14
+    },
+    {
+      "Name": "Teredo Tunneling Pseudo-Interface",
+      "InterfaceGuid": "{93123211-9629-4E04-82F0-EA2E4F221468}",
+      "InterfaceDescription": "",
+      "Status": "Not Present",
+      "ifIndex": 13
+    },
+    {
+      "Name": "Astrill VPN",
+      "InterfaceGuid": "{72E2A4F7-8FBB-40DA-AE0E-B833BB36D0B9}",
+      "InterfaceDescription": "Wintun Userspace Tunnel",
+      "Status": "Disconnected",
+      "ifIndex": 12
+    },
+    {
+      "Name": "Ethernet (Kernel Debugger)",
+      "InterfaceGuid": "{62C3A677-050D-4921-84D2-6350DA7AFDF2}",
+      "InterfaceDescription": "Microsoft Kernel Debug Network Adapter",
+      "Status": "Not Present",
+      "ifIndex": 11
+    },
+    {
+      "Name": "Local Area Connection* 2",
+      "InterfaceGuid": "{5D3018A1-3653-457F-BA55-4F917CD7D11F}",
+      "InterfaceDescription": "WAN Miniport (SSTP)",
+      "Status": "Disconnected",
+      "ifIndex": 10
+    },
+    {
+      "Name": "Local Area Connection* 1",
+      "InterfaceGuid": "{5817EF30-4A61-4DBA-A046-F35DCF7D37EF}",
+      "InterfaceDescription": "Microsoft Wi-Fi Direct Virtual Adapter",
+      "Status": "Disconnected",
+      "ifIndex": 9
+    },
+    {
+      "Name": "Microsoft IP-HTTPS Platform Interface",
+      "InterfaceGuid": "{2EE2C70C-A092-4D88-A654-98C8D7645CD5}",
+      "InterfaceDescription": "",
+      "Status": "Not Present",
+      "ifIndex": 6
+    },
+    {
+      "Name": "Local Area Connection* 7",
+      "InterfaceGuid": "{2AC0D7CC-240F-4156-9A7D-FEA3529578BA}",
+      "InterfaceDescription": "WAN Miniport (IP)",
+      "Status": "Up",
+      "ifIndex": 5
+    },
+    {
+      "Name": "Local Area Connection* 4",
+      "InterfaceGuid": "{20D9A427-2F5F-4D08-87B2-25FB5DBF4E98}",
+      "InterfaceDescription": "WAN Miniport (L2TP)",
+      "Status": "Disconnected",
+      "ifIndex": 4
+    },
+    {
+      "Name": "vEthernet (WSL)",
+      "InterfaceGuid": "{0FAAF24F-C7DF-44FB-BB61-B594E2548034}",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #2",
+      "Status": "Up",
+      "ifIndex": 46
+    },
+    {
+      "Name": "6to4 Adapter",
+      "InterfaceGuid": "{07374750-E68B-490E-9330-9FD785CD71B6}",
+      "InterfaceDescription": "",
+      "Status": "Not Present",
+      "ifIndex": 3
+    },
+    {
+      "Name": "Local Area Connection* 10",
+      "InterfaceGuid": "{071F1192-1DCA-408C-8BC7-B54B1F292A49}",
+      "InterfaceDescription": "Microsoft Wi-Fi Direct Virtual Adapter #2",
+      "Status": "Disconnected",
+      "ifIndex": 2
+    }
+  ],
+  "status": "READ_ONLY_GATE_COMPLETE",
+  "finished_at_utc": "2026-09-16T16:00:40.2962108Z"
+}
