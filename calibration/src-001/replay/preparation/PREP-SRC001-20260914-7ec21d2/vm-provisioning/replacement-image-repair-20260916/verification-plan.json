@@ -1,0 +1,77 @@
+{
+  "additional_closure": [
+    "new authority and repair records only, with exact repository_administration entries",
+    "all 200 starting preparation files and all prior authority blobs unchanged",
+    "candidate and provisioning snapshot inventories unchanged",
+    "complete final repair inventory and no image/VHDX/seed/private keys committed",
+    "manifest fields other than repository_administration unchanged",
+    "generic Core/adapter/runtime/package/protocol/harness/fixtures unchanged from canonical merged main",
+    "no SRC-001 attempt directory and no new real replay/run/attempt state",
+    "both input/release custody inventories, bytes, modes and ownership unchanged",
+    "failed original image and VHDX unchanged; new VHDX unchanged from before start",
+    "protected adapter branch, stash and four detached/prunable worktrees preserved",
+    "same branch normal push and live GitHub main remains exact pin"
+  ],
+  "commands": [
+    [
+      "git",
+      "diff",
+      "--check",
+      "d763299661c5887018b1cf250860e84042bd0cfd",
+      "HEAD"
+    ],
+    [
+      "node",
+      "scripts/validate-core-boundary.ts",
+      "--json"
+    ],
+    [
+      "npm",
+      "run",
+      "runtime:check"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+      "verify-protocol"
+    ],
+    [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "calibration/src-001/replay/tests/tsconfig.json",
+      "--noEmit"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/tests/test-harness.ts",
+      "--report",
+      "<new synthetic report A>"
+    ],
+    [
+      "node",
+      "calibration/src-001/replay/tests/test-harness.ts",
+      "--report",
+      "<new synthetic report B>"
+    ],
+    [
+      "npm",
+      "test"
+    ]
+  ],
+  "execution_time": "After final reconciliation commit, at its exact HEAD/tree; outputs retained outside Git to avoid self-reference.",
+  "final_receipt_store": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\final-head-<final-commit>",
+  "format": "src001-replacement-final-head-nonreplay-verification-plan/v1",
+  "no_assertion_of_future_pass": true,
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "repeatability": [
+    "exact repeated Core-boundary report",
+    "exact repeated runtime-drift output",
+    "exact repeated protocol report",
+    "byte-identical two synthetic harness report files"
+  ],
+  "results_state_at_record_creation": "NOT_RUN_AT_FINAL_HEAD_YET",
+  "test_safety": "Static source inspection confirms injected fake host spawn and fixture capabilities; package/runtime tests use local temporary packages. No host:attest target, genuine attestation CLI, provider CLI, native SRC-001 runner, or reference archive operation is in this plan. Test environment drops provider/session credentials; synthetic fixture IDs and simulated returns are not real replay IDs or F-03 repairs.",
+  "repair_administration_id": "IMAGE-REPAIR-SRC001-20260916-fda0a0b",
+  "status_at_commit": "NOT_RUN_AT_FINAL_HEAD_YET"
+}
