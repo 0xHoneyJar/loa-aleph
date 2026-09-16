@@ -1,0 +1,333 @@
+{
+  "format": "src001-replacement-initial-verification-receipts/v1",
+  "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+  "tree": "416fd9e26c72b111d3905ab540c0f644612d2fbc",
+  "observed_at_utc": "2026-09-16T21:20:02.382897+00:00",
+  "summary": {
+    "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+    "tree": "416fd9e26c72b111d3905ab540c0f644612d2fbc",
+    "commands": [
+      {
+        "name": "01-diff",
+        "command": [
+          "git",
+          "diff",
+          "--check",
+          "d763299661c5887018b1cf250860e84042bd0cfd",
+          "HEAD"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:05.775947+00:00",
+        "finished_at_utc": "2026-09-16T20:39:05.788788+00:00",
+        "exit_code": 2,
+        "stdout_path": "01-diff.stdout",
+        "stderr_path": "01-diff.stderr",
+        "stdout_sha256": "a69a038a4dddfd82b13d4c9e9f81f12c819e36a928db8dc64bb49aa7d673bfc5",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "02-core-a",
+        "command": [
+          "node",
+          "scripts/validate-core-boundary.ts",
+          "--json"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:05.789187+00:00",
+        "finished_at_utc": "2026-09-16T20:39:06.163923+00:00",
+        "exit_code": 0,
+        "stdout_path": "02-core-a.stdout",
+        "stderr_path": "02-core-a.stderr",
+        "stdout_sha256": "d1ea38c0313f7917488043c0d57054ad8bbff3d9f6b78dc02ff76734813a94cf",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "03-runtime-a",
+        "command": [
+          "npm",
+          "run",
+          "runtime:check"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:06.164327+00:00",
+        "finished_at_utc": "2026-09-16T20:39:06.837123+00:00",
+        "exit_code": 0,
+        "stdout_path": "03-runtime-a.stdout",
+        "stderr_path": "03-runtime-a.stderr",
+        "stdout_sha256": "20f0ef45ed8098a92b41ea1b439c936d3744e420ff421223faf33661a0fe2738",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "04-protocol-a",
+        "command": [
+          "node",
+          "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+          "verify-protocol"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:06.837512+00:00",
+        "finished_at_utc": "2026-09-16T20:39:07.031997+00:00",
+        "exit_code": 0,
+        "stdout_path": "04-protocol-a.stdout",
+        "stderr_path": "04-protocol-a.stderr",
+        "stdout_sha256": "eb0adf8ac2e025e2f3f752f6acb4320c010b2f447369c367f967606dcc456ea6",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "05-harness-typecheck",
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "-p",
+          "calibration/src-001/replay/tests/tsconfig.json",
+          "--noEmit"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:07.032288+00:00",
+        "finished_at_utc": "2026-09-16T20:39:07.357027+00:00",
+        "exit_code": 0,
+        "stdout_path": "05-harness-typecheck.stdout",
+        "stderr_path": "05-harness-typecheck.stderr",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "06-harness-a",
+        "command": [
+          "node",
+          "calibration/src-001/replay/tests/test-harness.ts",
+          "--report",
+          "/tmp/src001-replacement-image-gate-20260916/final-head-38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4/SYNTHETIC-harness-a.json"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:07.357433+00:00",
+        "finished_at_utc": "2026-09-16T20:39:17.089824+00:00",
+        "exit_code": 1,
+        "stdout_path": "06-harness-a.stdout",
+        "stderr_path": "06-harness-a.stderr",
+        "stdout_sha256": "bd7a5985bd58608b6e82606b615ed2134ca02c9938baccef6355e070f8154227",
+        "stderr_sha256": "528fc44ccd3f2a9dffca25dde95e58d917195373d17fd38ab32bc3fdbe607204"
+      },
+      {
+        "name": "07-core-b",
+        "command": [
+          "node",
+          "scripts/validate-core-boundary.ts",
+          "--json"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:17.090181+00:00",
+        "finished_at_utc": "2026-09-16T20:39:17.423415+00:00",
+        "exit_code": 0,
+        "stdout_path": "07-core-b.stdout",
+        "stderr_path": "07-core-b.stderr",
+        "stdout_sha256": "d1ea38c0313f7917488043c0d57054ad8bbff3d9f6b78dc02ff76734813a94cf",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "08-runtime-b",
+        "command": [
+          "npm",
+          "run",
+          "runtime:check"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:17.423735+00:00",
+        "finished_at_utc": "2026-09-16T20:39:17.961564+00:00",
+        "exit_code": 0,
+        "stdout_path": "08-runtime-b.stdout",
+        "stderr_path": "08-runtime-b.stderr",
+        "stdout_sha256": "20f0ef45ed8098a92b41ea1b439c936d3744e420ff421223faf33661a0fe2738",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "09-protocol-b",
+        "command": [
+          "node",
+          "calibration/src-001/replay/protocol/sha256-52e1f1bae4cbf91dbaf9699b69bad5885e37ce503db7fcb16ea2fe32a0e10ed8/src/cli.ts",
+          "verify-protocol"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:17.961934+00:00",
+        "finished_at_utc": "2026-09-16T20:39:18.160145+00:00",
+        "exit_code": 0,
+        "stdout_path": "09-protocol-b.stdout",
+        "stderr_path": "09-protocol-b.stderr",
+        "stdout_sha256": "eb0adf8ac2e025e2f3f752f6acb4320c010b2f447369c367f967606dcc456ea6",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "10-harness-b",
+        "command": [
+          "node",
+          "calibration/src-001/replay/tests/test-harness.ts",
+          "--report",
+          "/tmp/src001-replacement-image-gate-20260916/final-head-38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4/SYNTHETIC-harness-b.json"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:18.160436+00:00",
+        "finished_at_utc": "2026-09-16T20:39:28.406310+00:00",
+        "exit_code": 1,
+        "stdout_path": "10-harness-b.stdout",
+        "stderr_path": "10-harness-b.stderr",
+        "stdout_sha256": "bd7a5985bd58608b6e82606b615ed2134ca02c9938baccef6355e070f8154227",
+        "stderr_sha256": "528fc44ccd3f2a9dffca25dde95e58d917195373d17fd38ab32bc3fdbe607204"
+      },
+      {
+        "name": "11-full-npm-test",
+        "command": [
+          "npm",
+          "test"
+        ],
+        "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+        "started_at_utc": "2026-09-16T20:39:05.776186+00:00",
+        "finished_at_utc": "2026-09-16T21:19:51.760230+00:00",
+        "exit_code": 0,
+        "stdout_path": "11-full-npm-test.stdout",
+        "stderr_path": "11-full-npm-test.stderr",
+        "stdout_sha256": "269ea924f761e110dd05fa669b1f8cf38998d622c0fd64efe174b9a9effc2761",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "repeatability": [
+      {
+        "surface": "Core",
+        "a": "02-core-a.stdout",
+        "b": "07-core-b.stdout",
+        "byte_identical": true
+      },
+      {
+        "surface": "Runtime",
+        "a": "03-runtime-a.stdout",
+        "b": "08-runtime-b.stdout",
+        "byte_identical": true
+      },
+      {
+        "surface": "Protocol",
+        "a": "04-protocol-a.stdout",
+        "b": "09-protocol-b.stdout",
+        "byte_identical": true
+      },
+      {
+        "surface": "Synthetic harness",
+        "a": "SYNTHETIC-harness-a.json",
+        "b": "SYNTHETIC-harness-b.json",
+        "byte_identical": false
+      }
+    ],
+    "all_commands_pass": false,
+    "all_repeatability_pass": false,
+    "completed_at_utc": "2026-09-16T21:19:51.764885+00:00"
+  },
+  "selected_receipts": [
+    {
+      "name": "01-diff",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "d763299661c5887018b1cf250860e84042bd0cfd",
+        "HEAD"
+      ],
+      "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+      "started_at_utc": "2026-09-16T20:39:05.775947+00:00",
+      "finished_at_utc": "2026-09-16T20:39:05.788788+00:00",
+      "exit_code": 2,
+      "stdout_path": "01-diff.stdout",
+      "stderr_path": "01-diff.stderr",
+      "stdout_sha256": "a69a038a4dddfd82b13d4c9e9f81f12c819e36a928db8dc64bb49aa7d673bfc5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_text": "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers:1: trailing whitespace.\n+HTTP/1.1 200 OK\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers:2: trailing whitespace.\n+Date: Wed, 16 Sep 2026 19:59:18 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers:3: trailing whitespace.\n+Server: Apache/2.4.29 (Ubuntu)\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers:4: trailing whitespace.\n+Vary: Accept-Encoding\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers:5: trailing whitespace.\n+Transfer-Encoding: chunked\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers:6: trailing whitespace.\n+Content-Type: text/html;charset=UTF-8\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers:7: trailing whitespace.\n+\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers:7: new blank line at EOF.\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.html:59: trailing whitespace.\n+<img src=\"../../../../cdicons/folder.png\" alt=\"[DIR]\" width=\"22\" height=\"22\"> <a href=\"docs/\">docs/</a>                   2020-10-09 17:36    -   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.html:65: trailing whitespace.\n+<img src=\"../../../../cdicons/folder.png\" alt=\"[DIR]\" width=\"22\" height=\"22\"> <a href=\"oci/\">oci/</a>                    2024-06-06 08:15    -   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.html:66: trailing whitespace.\n+<img src=\"../../../../cdicons/folder.png\" alt=\"[DIR]\" width=\"22\" height=\"22\"> <a href=\"questing/\">questing/</a>               2026-07-06 17:08    -   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.html:70: trailing whitespace.\n+<img src=\"../../../../cdicons/folder.png\" alt=\"[DIR]\" width=\"22\" height=\"22\"> <a href=\"stonking/\">stonking/</a>               2026-09-11 19:08    -   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.html:73: trailing whitespace.\n+<img src=\"../../../../cdicons/folder.png\" alt=\"[DIR]\" width=\"22\" height=\"22\"> <a href=\"wsl/\">wsl/</a>                    2025-03-27 18:43    -   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.html:166: new blank line at EOF.\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:1: trailing whitespace.\n+HTTP/2 301 \r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:2: trailing whitespace.\n+date: Wed, 16 Sep 2026 19:59:20 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:3: trailing whitespace.\n+content-type: text/html; charset=utf-8\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:4: trailing whitespace.\n+content-length: 0\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:5: trailing whitespace.\n+location: https://ubuntu.com/cloud/public-cloud/docs/all-clouds-explanation/cloud-image-variants/\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:6: trailing whitespace.\n+set-cookie: __cf_bm=w9S9wGVVFwKDTes8SxQ90pn3HgrQA5Q9DHtx3BveJGA-1789588758.5995386-1.0.1.1-vLTNoO0rWhJGu4g6x76cBvW1iHa86eCrOufGXKuFO3uFm0jzPxy9dEkuaSvBXW1yv7ueqBvGXt4xqXVwb.bSuhi3hiizDBCI8xPMTLBE7CxjFVf5PPApqNSUed3O095o; HttpOnly; SameSite=None; Secure; Path=/; Domain=documentation.ubuntu.com; Expires=Wed, 16 Sep 2026 20:29:20 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:7: trailing whitespace.\n+set-cookie: _cfuvid=B4xx1W8WPEl2nZDnCSa8BRyvJNerUZRJ7rFz1Gdllrk-1789588758.5995386-1.0.1.1-mSWsBmBqKgR3FYYhTHi.U_epum70Gw3qyad_6gMchgY; HttpOnly; SameSite=None; Secure; Path=/; Domain=documentation.ubuntu.com\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:8: trailing whitespace.\n+cf-ray: a3c2736d3b30aa07-GVA\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:9: trailing whitespace.\n+cf-cache-status: BYPASS\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:10: trailing whitespace.\n+access-control-allow-origin: *\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:11: trailing whitespace.\n+content-language: en\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:12: trailing whitespace.\n+server: cloudflare\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:13: trailing whitespace.\n+x-served: Proxito-404\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:14: trailing whitespace.\n+vary: Accept-Language\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:15: trailing whitespace.\n+access-control-allow-methods: HEAD, OPTIONS, GET\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:16: trailing whitespace.\n+cdn-cache-control: private\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:17: trailing whitespace.\n+cross-origin-opener-policy: same-origin\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:18: trailing whitespace.\n+referrer-policy: no-referrer-when-downgrade\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:19: trailing whitespace.\n+x-backend: web-i-072d8f9c04b0c0b20\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:20: trailing whitespace.\n+x-content-type-options: nosniff\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:21: trailing whitespace.\n+x-rtd-domain: documentation.ubuntu.com\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:22: trailing whitespace.\n+x-rtd-force-addons: true\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:23: trailing whitespace.\n+x-rtd-project: canonical-ubuntu-documentation-library\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:24: trailing whitespace.\n+x-rtd-project-method: custom_domain\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:25: trailing whitespace.\n+x-rtd-redirect: user\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:26: trailing whitespace.\n+x-rtd-resolver-filename: /public-cloud/all-clouds-explanation/cloud-image-variants/\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:27: trailing whitespace.\n+x-rtd-version: latest\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:28: trailing whitespace.\n+x-rtd-version-method: path\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:29: trailing whitespace.\n+alt-svc: h3=\":443\"; ma=86400\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:30: trailing whitespace.\n+\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:31: trailing whitespace.\n+HTTP/2 404 \r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:32: trailing whitespace.\n+server: nginx/1.14.0 (Ubuntu)\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:33: trailing whitespace.\n+date: Wed, 16 Sep 2026 19:59:21 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:34: trailing whitespace.\n+content-type: text/html; charset=utf-8\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:35: trailing whitespace.\n+cf-ray: a3c27379aecc68ce-BOS\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:36: trailing whitespace.\n+cf-cache-status: BYPASS\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:37: trailing whitespace.\n+access-control-allow-origin: *\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:38: trailing whitespace.\n+set-cookie: _cfuvid=GCady_olioBNPiodo6T3.VVZcKd.NgPtY5aRm1Fp4ZA-1789588760.5927527-1.0.1.1-8TEmP7xSiqqiBCojwwO122h34LBy1WlFp.DCtQFGaPQ; HttpOnly; SameSite=None; Secure; Path=/; Domain=readthedocs-hosted.com\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:39: trailing whitespace.\n+set-cookie: __cf_bm=brxlLaib8YAJxxeQD886d5hDQi5_8M5i9cvdg5M7gJM-1789588760.58538-1.0.1.1-i6bGsUDBb26RngvSSouWqJM92wDdHCfAhOnlTi9hKG_9fr3a8kQJU4KjayAk4_2Gh93OB7ZZEQTlBoXZj9UyYym80hV4ZWgtdxpoEECbhIyt0z9yxaBMK7rAUUgx9v0z; HttpOnly; SameSite=None; Secure; Path=/; Domain=readthedocs-hosted.com; Expires=Wed, 16 Sep 2026 20:29:21 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:40: trailing whitespace.\n+content-language: en\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:41: trailing whitespace.\n+x-served: Proxito-404\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:42: trailing whitespace.\n+strict-transport-security: max-age=31536000; includeSubDomains; preload\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:43: trailing whitespace.\n+vary: Accept-Encoding, Accept-Language, Cookie\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:44: trailing whitespace.\n+access-control-allow-methods: HEAD, OPTIONS, GET\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:45: trailing whitespace.\n+cdn-cache-control: private\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:46: trailing whitespace.\n+cross-origin-opener-policy: same-origin\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:47: trailing whitespace.\n+referrer-policy: no-referrer-when-downgrade\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:48: trailing whitespace.\n+x-backend: web-i-05f5d617817b598b7\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:49: trailing whitespace.\n+x-content-type-options: nosniff\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:50: trailing whitespace.\n+alt-svc: h3=\":443\"; ma=86400\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:51: trailing whitespace.\n+set-cookie: session=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; SameSite=Lax; HttpOnly; Secure\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:52: trailing whitespace.\n+\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers:52: new blank line at EOF.\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers:1: trailing whitespace.\n+HTTP/1.1 200 OK\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers:2: trailing whitespace.\n+Date: Wed, 16 Sep 2026 19:59:18 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers:3: trailing whitespace.\n+Server: Apache/2.4.29 (Ubuntu)\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers:4: trailing whitespace.\n+Vary: Accept-Encoding\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers:5: trailing whitespace.\n+Transfer-Encoding: chunked\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers:6: trailing whitespace.\n+Content-Type: text/html;charset=UTF-8\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers:7: trailing whitespace.\n+\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers:7: new blank line at EOF.\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.html:57: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.html:59: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.html:66: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.html:68: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers:1: trailing whitespace.\n+HTTP/1.1 200 OK\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers:2: trailing whitespace.\n+Date: Wed, 16 Sep 2026 19:59:18 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers:3: trailing whitespace.\n+Server: Apache/2.4.29 (Ubuntu)\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers:4: trailing whitespace.\n+Vary: Accept-Encoding\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers:5: trailing whitespace.\n+Transfer-Encoding: chunked\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers:6: trailing whitespace.\n+Content-Type: text/html;charset=UTF-8\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers:7: trailing whitespace.\n+\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers:7: new blank line at EOF.\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.html:47: trailing whitespace.\n+<pre><img src=\"/icons/blank.gif\" alt=\"Icon \" width=\"22\" height=\"22\"> <a href=\"?C=N;O=D\">Name</a>                    <a href=\"?C=M;O=A\">Last modified</a>      <a href=\"?C=S;O=A\">Size</a>  <a href=\"?C=D;O=A\">Description</a><hr><img src=\"/icons/back.gif\" alt=\"[PARENTDIR]\" width=\"22\" height=\"22\"> <a href=\"/releases/\">Parent Directory</a>                             -   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers:1: trailing whitespace.\n+HTTP/1.1 200 OK\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers:2: trailing whitespace.\n+Date: Wed, 16 Sep 2026 19:59:18 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers:3: trailing whitespace.\n+Server: Apache/2.4.29 (Ubuntu)\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers:4: trailing whitespace.\n+Vary: Accept-Encoding\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers:5: trailing whitespace.\n+Transfer-Encoding: chunked\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers:6: trailing whitespace.\n+Content-Type: text/html;charset=UTF-8\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers:7: trailing whitespace.\n+\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers:7: new blank line at EOF.\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:57: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:59: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:66: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:68: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:69: trailing whitespace.\n+</pre><pre><img src=\"/icons/blank.gif\" alt=\"Icon \" width=\"22\" height=\"22\"> <a href=\"?C=N;O=D\">Name</a>                                                                         <a href=\"?C=M;O=A\">Last modified</a>      <a href=\"?C=S;O=A\">Size</a>  <a href=\"?C=D;O=A\">Description</a><hr><img src=\"/icons/back.gif\" alt=\"[PARENTDIR]\" width=\"22\" height=\"22\"> <a href=\"/noble/\">Parent Directory</a>                                                                                  -   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:70: trailing whitespace.\n+<img src=\"/icons/unknown.gif\" alt=\"[   ]\" width=\"22\" height=\"22\"> <a href=\"MD5SUMS\">MD5SUMS</a>                                                                      2026-09-11 22:23  5.1K  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:71: trailing whitespace.\n+<img src=\"/icons/unknown.gif\" alt=\"[   ]\" width=\"22\" height=\"22\"> <a href=\"MD5SUMS.gpg\">MD5SUMS.gpg</a>                                                                  2026-09-11 22:23  833   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:72: trailing whitespace.\n+<img src=\"/icons/unknown.gif\" alt=\"[   ]\" width=\"22\" height=\"22\"> <a href=\"SHA256SUMS\">SHA256SUMS</a>                                                                   2026-09-11 22:23  7.2K  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:73: trailing whitespace.\n+<img src=\"/icons/unknown.gif\" alt=\"[   ]\" width=\"22\" height=\"22\"> <a href=\"SHA256SUMS.gpg\">SHA256SUMS.gpg</a>                                                               2026-09-11 22:23  833   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html:140: trailing whitespace.\n+<img src=\"../../../../cdicons/folder.png\" alt=\"[DIR]\" width=\"22\" height=\"22\"> <a href=\"unpacked/\">unpacked/</a>                                                                    2026-09-11 22:23    -   \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers:1: trailing whitespace.\n+HTTP/1.1 200 OK\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers:2: trailing whitespace.\n+Date: Wed, 16 Sep 2026 19:59:18 GMT\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers:3: trailing whitespace.\n+Server: Apache/2.4.29 (Ubuntu)\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers:4: trailing whitespace.\n+Vary: Accept-Encoding\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers:5: trailing whitespace.\n+Transfer-Encoding: chunked\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers:6: trailing whitespace.\n+Content-Type: text/html;charset=UTF-8\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers:7: trailing whitespace.\n+\r\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers:7: new blank line at EOF.\ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.html:57: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.html:59: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.html:66: trailing whitespace.\n+  \ncalibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.html:68: trailing whitespace.\n+  \n",
+      "stderr_text": ""
+    },
+    {
+      "name": "06-harness-a",
+      "command": [
+        "node",
+        "calibration/src-001/replay/tests/test-harness.ts",
+        "--report",
+        "/tmp/src001-replacement-image-gate-20260916/final-head-38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4/SYNTHETIC-harness-a.json"
+      ],
+      "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+      "started_at_utc": "2026-09-16T20:39:07.357433+00:00",
+      "finished_at_utc": "2026-09-16T20:39:17.089824+00:00",
+      "exit_code": 1,
+      "stdout_path": "06-harness-a.stdout",
+      "stderr_path": "06-harness-a.stderr",
+      "stdout_sha256": "bd7a5985bd58608b6e82606b615ed2134ca02c9938baccef6355e070f8154227",
+      "stderr_sha256": "528fc44ccd3f2a9dffca25dde95e58d917195373d17fd38ab32bc3fdbe607204",
+      "stdout_text": "PASS R01\nPASS R02\nPASS R03\nPASS R04\nPASS R05\nPASS R06\nPASS R07\nPASS R08\nPASS R09\nPASS all closed versioned schemas: positive, unknown key, missing field, duplicate JSON key\nPASS enums, decimal strings, UTF-8, canonical JSON, escaped duplicate keys\nPASS path and ArtifactRef closure\nPASS approved opaque input metadata and bounded imported representation\nPASS event chain append-only, fork/sequence/predecessor/mutation and time independence\nPASS H-F1 inaccessible canary, input plumbing and closure controls\nPASS H-F2 blocked and completed synthetic snapshots with full directories\nPASS H-F3 actual ID renaming, same-ID indeterminacy and many-sided mappings\nPASS H-F4 indeterminate mapping, findings, summaries and denominator\nPASS raw JSON/JSONL/Markdown selectors preserve exact selected bytes\nPASS H-M01\nPASS H-M02\nPASS H-M03\nPASS H-M04\nPASS H-M05\nPASS H-M06\nPASS H-M07\nPASS H-M08\nPASS H-M09\nPASS H-M10\nPASS H-M11\nPASS H-M12\nPASS H-M13\nPASS H-M14\nPASS H-M15\nPASS H-M16\nPASS H-M17\nPASS H-M18\nPASS H-M19\nPASS H-M20\nPASS H-M21\nPASS H-M22\nPASS H-M23\nPASS H-M24\nPASS H-M25\nPASS H-M26\nPASS H-M27\nPASS H-M28\nPASS H-M29\nPASS additional leak encodings, alias, environment, and unknown ingress variants\nPASS freeze path/mode/hidden/quarantine mutations and detached-key rejection\nPASS mapping absent sides and unknown buckets cannot disappear\nPASS CLI refuses replay, provider, release, attestation and reference operations\nPASS synthetic ZIP extraction selects only approved bytes and rejects malicious metadata\nPASS visibility derivation closure, generations, and unapproved roots\nPASS manual conditional reviewer, L3/L2S pass reuse, normalizer pass and no fallback\nPASS comparison output inventory and synthetic audit subject structure\nPASS protocol inventory and unchanged imported Core contract lock\nPASS deterministic repeated R01-R09 reports and independently rebuilt fixture identities\nPASS mutation evidence retains actual synthetic payload bytes without temporary-store dependence\n",
+      "stderr_text": "node:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert(path.startsWith(resolve('calibration/src-001/replay/tests/evidence')+'/') || path.startsWith('/tmp/SYNTHETIC-'))\n\n    at file:///home/eileenspectremoon/loa-dev/loa-aleph/calibration/src-001/replay/tests/test-harness.ts:434:3\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n"
+    },
+    {
+      "name": "10-harness-b",
+      "command": [
+        "node",
+        "calibration/src-001/replay/tests/test-harness.ts",
+        "--report",
+        "/tmp/src001-replacement-image-gate-20260916/final-head-38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4/SYNTHETIC-harness-b.json"
+      ],
+      "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+      "started_at_utc": "2026-09-16T20:39:18.160436+00:00",
+      "finished_at_utc": "2026-09-16T20:39:28.406310+00:00",
+      "exit_code": 1,
+      "stdout_path": "10-harness-b.stdout",
+      "stderr_path": "10-harness-b.stderr",
+      "stdout_sha256": "bd7a5985bd58608b6e82606b615ed2134ca02c9938baccef6355e070f8154227",
+      "stderr_sha256": "528fc44ccd3f2a9dffca25dde95e58d917195373d17fd38ab32bc3fdbe607204",
+      "stdout_text": "PASS R01\nPASS R02\nPASS R03\nPASS R04\nPASS R05\nPASS R06\nPASS R07\nPASS R08\nPASS R09\nPASS all closed versioned schemas: positive, unknown key, missing field, duplicate JSON key\nPASS enums, decimal strings, UTF-8, canonical JSON, escaped duplicate keys\nPASS path and ArtifactRef closure\nPASS approved opaque input metadata and bounded imported representation\nPASS event chain append-only, fork/sequence/predecessor/mutation and time independence\nPASS H-F1 inaccessible canary, input plumbing and closure controls\nPASS H-F2 blocked and completed synthetic snapshots with full directories\nPASS H-F3 actual ID renaming, same-ID indeterminacy and many-sided mappings\nPASS H-F4 indeterminate mapping, findings, summaries and denominator\nPASS raw JSON/JSONL/Markdown selectors preserve exact selected bytes\nPASS H-M01\nPASS H-M02\nPASS H-M03\nPASS H-M04\nPASS H-M05\nPASS H-M06\nPASS H-M07\nPASS H-M08\nPASS H-M09\nPASS H-M10\nPASS H-M11\nPASS H-M12\nPASS H-M13\nPASS H-M14\nPASS H-M15\nPASS H-M16\nPASS H-M17\nPASS H-M18\nPASS H-M19\nPASS H-M20\nPASS H-M21\nPASS H-M22\nPASS H-M23\nPASS H-M24\nPASS H-M25\nPASS H-M26\nPASS H-M27\nPASS H-M28\nPASS H-M29\nPASS additional leak encodings, alias, environment, and unknown ingress variants\nPASS freeze path/mode/hidden/quarantine mutations and detached-key rejection\nPASS mapping absent sides and unknown buckets cannot disappear\nPASS CLI refuses replay, provider, release, attestation and reference operations\nPASS synthetic ZIP extraction selects only approved bytes and rejects malicious metadata\nPASS visibility derivation closure, generations, and unapproved roots\nPASS manual conditional reviewer, L3/L2S pass reuse, normalizer pass and no fallback\nPASS comparison output inventory and synthetic audit subject structure\nPASS protocol inventory and unchanged imported Core contract lock\nPASS deterministic repeated R01-R09 reports and independently rebuilt fixture identities\nPASS mutation evidence retains actual synthetic payload bytes without temporary-store dependence\n",
+      "stderr_text": "node:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert(path.startsWith(resolve('calibration/src-001/replay/tests/evidence')+'/') || path.startsWith('/tmp/SYNTHETIC-'))\n\n    at file:///home/eileenspectremoon/loa-dev/loa-aleph/calibration/src-001/replay/tests/test-harness.ts:434:3\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n"
+    },
+    {
+      "command": [
+        "node",
+        "calibration/src-001/replay/tests/test-harness.ts",
+        "--report",
+        "/tmp/SYNTHETIC-src001-replacement-38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4-a.json"
+      ],
+      "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+      "started_at_utc": "2026-09-16T20:43:10.369968+00:00",
+      "finished_at_utc": "2026-09-16T20:43:20.354520+00:00",
+      "exit_code": 0,
+      "stdout": "PASS R01\nPASS R02\nPASS R03\nPASS R04\nPASS R05\nPASS R06\nPASS R07\nPASS R08\nPASS R09\nPASS all closed versioned schemas: positive, unknown key, missing field, duplicate JSON key\nPASS enums, decimal strings, UTF-8, canonical JSON, escaped duplicate keys\nPASS path and ArtifactRef closure\nPASS approved opaque input metadata and bounded imported representation\nPASS event chain append-only, fork/sequence/predecessor/mutation and time independence\nPASS H-F1 inaccessible canary, input plumbing and closure controls\nPASS H-F2 blocked and completed synthetic snapshots with full directories\nPASS H-F3 actual ID renaming, same-ID indeterminacy and many-sided mappings\nPASS H-F4 indeterminate mapping, findings, summaries and denominator\nPASS raw JSON/JSONL/Markdown selectors preserve exact selected bytes\nPASS H-M01\nPASS H-M02\nPASS H-M03\nPASS H-M04\nPASS H-M05\nPASS H-M06\nPASS H-M07\nPASS H-M08\nPASS H-M09\nPASS H-M10\nPASS H-M11\nPASS H-M12\nPASS H-M13\nPASS H-M14\nPASS H-M15\nPASS H-M16\nPASS H-M17\nPASS H-M18\nPASS H-M19\nPASS H-M20\nPASS H-M21\nPASS H-M22\nPASS H-M23\nPASS H-M24\nPASS H-M25\nPASS H-M26\nPASS H-M27\nPASS H-M28\nPASS H-M29\nPASS additional leak encodings, alias, environment, and unknown ingress variants\nPASS freeze path/mode/hidden/quarantine mutations and detached-key rejection\nPASS mapping absent sides and unknown buckets cannot disappear\nPASS CLI refuses replay, provider, release, attestation and reference operations\nPASS synthetic ZIP extraction selects only approved bytes and rejects malicious metadata\nPASS visibility derivation closure, generations, and unapproved roots\nPASS manual conditional reviewer, L3/L2S pass reuse, normalizer pass and no fallback\nPASS comparison output inventory and synthetic audit subject structure\nPASS protocol inventory and unchanged imported Core contract lock\nPASS deterministic repeated R01-R09 reports and independently rebuilt fixture identities\nPASS mutation evidence retains actual synthetic payload bytes without temporary-store dependence\nSYNTHETIC TESTS 59/59; MUTATIONS 29/29\n",
+      "stderr": "",
+      "report_sha256": "1b43046741339778f10630a6e32ae6f1fa6bdc6d9a82361fde2485a8cda0dbad",
+      "correction": "Only report destination changed to satisfy existing harness safety guard; source unchanged."
+    },
+    {
+      "command": [
+        "node",
+        "calibration/src-001/replay/tests/test-harness.ts",
+        "--report",
+        "/tmp/SYNTHETIC-src001-replacement-38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4-b.json"
+      ],
+      "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+      "started_at_utc": "2026-09-16T20:43:20.356546+00:00",
+      "finished_at_utc": "2026-09-16T20:43:30.052083+00:00",
+      "exit_code": 0,
+      "stdout": "PASS R01\nPASS R02\nPASS R03\nPASS R04\nPASS R05\nPASS R06\nPASS R07\nPASS R08\nPASS R09\nPASS all closed versioned schemas: positive, unknown key, missing field, duplicate JSON key\nPASS enums, decimal strings, UTF-8, canonical JSON, escaped duplicate keys\nPASS path and ArtifactRef closure\nPASS approved opaque input metadata and bounded imported representation\nPASS event chain append-only, fork/sequence/predecessor/mutation and time independence\nPASS H-F1 inaccessible canary, input plumbing and closure controls\nPASS H-F2 blocked and completed synthetic snapshots with full directories\nPASS H-F3 actual ID renaming, same-ID indeterminacy and many-sided mappings\nPASS H-F4 indeterminate mapping, findings, summaries and denominator\nPASS raw JSON/JSONL/Markdown selectors preserve exact selected bytes\nPASS H-M01\nPASS H-M02\nPASS H-M03\nPASS H-M04\nPASS H-M05\nPASS H-M06\nPASS H-M07\nPASS H-M08\nPASS H-M09\nPASS H-M10\nPASS H-M11\nPASS H-M12\nPASS H-M13\nPASS H-M14\nPASS H-M15\nPASS H-M16\nPASS H-M17\nPASS H-M18\nPASS H-M19\nPASS H-M20\nPASS H-M21\nPASS H-M22\nPASS H-M23\nPASS H-M24\nPASS H-M25\nPASS H-M26\nPASS H-M27\nPASS H-M28\nPASS H-M29\nPASS additional leak encodings, alias, environment, and unknown ingress variants\nPASS freeze path/mode/hidden/quarantine mutations and detached-key rejection\nPASS mapping absent sides and unknown buckets cannot disappear\nPASS CLI refuses replay, provider, release, attestation and reference operations\nPASS synthetic ZIP extraction selects only approved bytes and rejects malicious metadata\nPASS visibility derivation closure, generations, and unapproved roots\nPASS manual conditional reviewer, L3/L2S pass reuse, normalizer pass and no fallback\nPASS comparison output inventory and synthetic audit subject structure\nPASS protocol inventory and unchanged imported Core contract lock\nPASS deterministic repeated R01-R09 reports and independently rebuilt fixture identities\nPASS mutation evidence retains actual synthetic payload bytes without temporary-store dependence\nSYNTHETIC TESTS 59/59; MUTATIONS 29/29\n",
+      "stderr": "",
+      "report_sha256": "1b43046741339778f10630a6e32ae6f1fa6bdc6d9a82361fde2485a8cda0dbad",
+      "correction": "Only report destination changed to satisfy existing harness safety guard; source unchanged."
+    },
+    {
+      "name": "11-full-npm-test",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "head": "38d82e8e8ec3a3a1fe5b89e5506f818522ef64a4",
+      "started_at_utc": "2026-09-16T20:39:05.776186+00:00",
+      "finished_at_utc": "2026-09-16T21:19:51.760230+00:00",
+      "exit_code": 0,
+      "stdout_path": "11-full-npm-test.stdout",
+      "stderr_path": "11-full-npm-test.stderr",
+      "stdout_sha256": "269ea924f761e110dd05fa669b1f8cf38998d622c0fd64efe174b9a9effc2761",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "corrected_harness_report_sha256": "1b43046741339778f10630a6e32ae6f1fa6bdc6d9a82361fde2485a8cda0dbad",
+  "corrected_harness_reports_identical": true,
+  "original_failures_preserved": true,
+  "scope_note": "Full npm test passed. Initial diff failed only on unmodified publisher whitespace. Initial harness invocations passed all groups but rejected the output path; corrected /tmp/SYNTHETIC- report paths passed without source edits. Final successor HEAD must be verified separately."
+}

@@ -1,0 +1,13 @@
+# Preserve exact publisher response bytes and retain textual diffs.
+# Publisher trailing whitespace and EOF blank lines are evidence, not authored prose.
+evidence/discovery/cloud-index.headers -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/cloud-index.html -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/image-format-doc.headers -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/minimal-release-index.headers -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/minimal-release-index.html -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/noble-releases.headers -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/noble-releases.html -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/server-daily-index.headers -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/server-daily-index.html -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/server-release-index.headers -text whitespace=-blank-at-eol,-blank-at-eof
+evidence/discovery/server-release-index.html -text whitespace=-blank-at-eol,-blank-at-eof

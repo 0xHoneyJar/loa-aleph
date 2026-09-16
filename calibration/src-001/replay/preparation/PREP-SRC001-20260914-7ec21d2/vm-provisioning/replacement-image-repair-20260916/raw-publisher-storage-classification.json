@@ -1,0 +1,76 @@
+{
+  "format": "src001-raw-publisher-storage-classification/v1",
+  "scope": "Exact eleven raw Canonical response files only",
+  "files": [
+    {
+      "path": "evidence/discovery/cloud-index.headers",
+      "sha256": "c5e8f8c9cda81ac7f6dff57cd239e32d369ce455ca0a553908fedfd14df07200"
+    },
+    {
+      "path": "evidence/discovery/cloud-index.html",
+      "sha256": "94a92958b8e99cd6b70c4382c30bc2dcdca39bd0445aba1d1290b7de40f5eb0f"
+    },
+    {
+      "path": "evidence/discovery/image-format-doc.headers",
+      "sha256": "c7db9ff7c200256358af4738dc935673fcb9f5594d180184527c60e50803ad44"
+    },
+    {
+      "path": "evidence/discovery/minimal-release-index.headers",
+      "sha256": "c5e8f8c9cda81ac7f6dff57cd239e32d369ce455ca0a553908fedfd14df07200"
+    },
+    {
+      "path": "evidence/discovery/minimal-release-index.html",
+      "sha256": "a5c4621ec32404d0a93824adef32e5cbbe6c024d24578ecca98b12b05a900a45"
+    },
+    {
+      "path": "evidence/discovery/noble-releases.headers",
+      "sha256": "c5e8f8c9cda81ac7f6dff57cd239e32d369ce455ca0a553908fedfd14df07200"
+    },
+    {
+      "path": "evidence/discovery/noble-releases.html",
+      "sha256": "e1e56cdd46184f0b8c86cc7034444dea5633477005d95033e1cbf480a7c560be"
+    },
+    {
+      "path": "evidence/discovery/server-daily-index.headers",
+      "sha256": "c5e8f8c9cda81ac7f6dff57cd239e32d369ce455ca0a553908fedfd14df07200"
+    },
+    {
+      "path": "evidence/discovery/server-daily-index.html",
+      "sha256": "a0352c8a969fa169e3e72add5ea48c17fb095b41a5ff66fff7bd6bef31a6c82e"
+    },
+    {
+      "path": "evidence/discovery/server-release-index.headers",
+      "sha256": "c5e8f8c9cda81ac7f6dff57cd239e32d369ce455ca0a553908fedfd14df07200"
+    },
+    {
+      "path": "evidence/discovery/server-release-index.html",
+      "sha256": "0f30736684adf2e174a5c543fdc2720b598e79746c87b43691d593963befd664"
+    }
+  ],
+  "attributes": "-text whitespace=-blank-at-eol,-blank-at-eof",
+  "textual_diffs_retained": true,
+  "raw_source_bytes_unchanged": true,
+  "code_or_authored_record_whitespace_rules_changed": false,
+  "root_gitattributes_changed": false,
+  "preview": {
+    "scope": "Read-only preview; retain textual diffs and exact bytes of eleven raw publisher HTTP/HTML files; exempt only their publisher-authored trailing whitespace and EOF blank lines",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "exact_raw_files": [
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.headers",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/cloud-index.html",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/image-format-doc.headers",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.headers",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/minimal-release-index.html",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.headers",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/noble-releases.html",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.headers",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-daily-index.html",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.headers",
+      "calibration/src-001/replay/preparation/PREP-SRC001-20260914-7ec21d2/vm-provisioning/replacement-image-repair-20260916/evidence/discovery/server-release-index.html"
+    ],
+    "attributes": "-text whitespace=-blank-at-eol,-blank-at-eof"
+  },
+  "prior_binary_diff_preview_adopted": false
+}
