@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/sbin/modprobe",
+    "--show-depends",
+    "--dirname",
+    "/tmp/src001-replacement-image-gate-20260916/tar-inspection/initramfs-union",
+    "--set-version",
+    "6.8.0-139-generic",
+    "hv_storvsc"
+  ],
+  "exit_code": 0,
+  "stdout": "insmod /tmp/src001-replacement-image-gate-20260916/tar-inspection/initramfs-union/lib/modules/6.8.0-139-generic/kernel/drivers/scsi/scsi_transport_fc.ko.zst \ninsmod /tmp/src001-replacement-image-gate-20260916/tar-inspection/initramfs-union/lib/modules/6.8.0-139-generic/kernel/drivers/hv/hv_vmbus.ko.zst \ninsmod /tmp/src001-replacement-image-gate-20260916/tar-inspection/initramfs-union/lib/modules/6.8.0-139-generic/kernel/drivers/scsi/hv_storvsc.ko.zst \n",
+  "stderr": "",
+  "scope": "STATIC_DEPENDENCY_RESOLUTION_ONLY_NO_MODULE_LOAD"
+}

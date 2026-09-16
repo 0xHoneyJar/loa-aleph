@@ -1,0 +1,26 @@
+{
+  "source": "https://cloud-images.ubuntu.com/releases/noble/",
+  "started_at_utc": "2026-09-16T19:59:18.139220+00:00",
+  "finished_at_utc": "2026-09-16T19:59:18.406240+00:00",
+  "command": [
+    "curl",
+    "--fail",
+    "--show-error",
+    "--silent",
+    "--location",
+    "--proto",
+    "=https",
+    "--max-time",
+    "45",
+    "--dump-header",
+    "/tmp/src001-replacement-image-gate-20260916/discovery/noble-releases.headers",
+    "--output",
+    "/tmp/src001-replacement-image-gate-20260916/discovery/noble-releases.html",
+    "https://cloud-images.ubuntu.com/releases/noble/"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "bytes": 12192,
+  "sha256": "e1e56cdd46184f0b8c86cc7034444dea5633477005d95033e1cbf480a7c560be"
+}

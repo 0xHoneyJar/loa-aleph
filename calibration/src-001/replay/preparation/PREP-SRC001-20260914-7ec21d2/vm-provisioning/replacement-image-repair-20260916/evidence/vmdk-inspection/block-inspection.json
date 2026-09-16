@@ -1,0 +1,73 @@
+[
+  {
+    "command": [
+      "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+      "info",
+      "--output=json",
+      "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.vmdk"
+    ],
+    "started_at_utc": "2026-09-16T20:09:15.621591+00:00",
+    "finished_at_utc": "2026-09-16T20:09:15.627587+00:00",
+    "exit_code": 0,
+    "stdout": "{\n    \"children\": [\n        {\n            \"name\": \"file\",\n            \"info\": {\n                \"children\": [\n                ],\n                \"virtual-size\": 594127360,\n                \"filename\": \"/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.vmdk\",\n                \"format\": \"file\",\n                \"actual-size\": 594132992,\n                \"format-specific\": {\n                    \"type\": \"file\",\n                    \"data\": {\n                    }\n                },\n                \"dirty-flag\": false\n            }\n        }\n    ],\n    \"virtual-size\": 10737418240,\n    \"filename\": \"/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.vmdk\",\n    \"cluster-size\": 65536,\n    \"format\": \"vmdk\",\n    \"actual-size\": 594132992,\n    \"format-specific\": {\n        \"type\": \"vmdk\",\n        \"data\": {\n            \"cid\": 2119925927,\n            \"parent-cid\": 4294967295,\n            \"create-type\": \"streamOptimized\",\n            \"extents\": [\n                {\n                    \"compressed\": true,\n                    \"virtual-size\": 10737418240,\n                    \"filename\": \"/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.vmdk\",\n                    \"cluster-size\": 65536,\n                    \"format\": \"\"\n                }\n            ]\n        }\n    },\n    \"dirty-flag\": false\n}\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+      "convert",
+      "-f",
+      "vmdk",
+      "-O",
+      "raw",
+      "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw"
+    ],
+    "started_at_utc": "2026-09-16T20:09:15.627655+00:00",
+    "finished_at_utc": "2026-09-16T20:09:22.697243+00:00",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+      "compare",
+      "-f",
+      "vmdk",
+      "-F",
+      "raw",
+      "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw"
+    ],
+    "started_at_utc": "2026-09-16T20:09:22.697325+00:00",
+    "finished_at_utc": "2026-09-16T20:09:31.919084+00:00",
+    "exit_code": 0,
+    "stdout": "Images are identical.\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "sgdisk",
+      "-p",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw"
+    ],
+    "started_at_utc": "2026-09-16T20:09:31.919142+00:00",
+    "finished_at_utc": "2026-09-16T20:09:31.925791+00:00",
+    "exit_code": 0,
+    "stdout": "Disk /tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw: 20971520 sectors, 10.0 GiB\nSector size (logical): 512 bytes\nDisk identifier (GUID): 238E5D0C-A829-4693-98A8-B74B4776B028\nPartition table holds up to 128 entries\nMain partition table begins at sector 2 and ends at sector 33\nFirst usable sector is 34, last usable sector is 7339998\nPartitions will be aligned on 2048-sector boundaries\nTotal free space is 4061 sectors (2.0 MiB)\n\nNumber  Start (sector)    End (sector)  Size       Code  Name\n   1         2099200         7339998   2.5 GiB     8300  \n  14            2048           10239   4.0 MiB     EF02  \n  15           10240          227327   106.0 MiB   EF00  \n  16          227328         2097152   913.0 MiB   EA00  \n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "sgdisk",
+      "-v",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw"
+    ],
+    "started_at_utc": "2026-09-16T20:09:31.925839+00:00",
+    "finished_at_utc": "2026-09-16T20:09:31.928710+00:00",
+    "exit_code": 0,
+    "stdout": "\nProblem: The secondary header's self-pointer indicates that it doesn't reside\nat the end of the disk. If you've added a disk to a RAID array, use the 'e'\noption on the experts' menu to adjust the secondary header's and partition\ntable's locations.\n\nWarning: There is a gap between the secondary partition table (ending at sector\n7340030) and the secondary metadata (sector 7340031).\nThis is helpful in some exotic configurations, but is generally ill-advised.\nUsing 'k' on the experts' menu can adjust this gap.\n\nCaution: Partition 1 doesn't end on a 2048-sector boundary. This may\nresult in problems with some disk encryption tools.\n\nCaution: Partition 16 doesn't end on a 2048-sector boundary. This may\nresult in problems with some disk encryption tools.\n\nIdentified 1 problems!\n",
+    "stderr": ""
+  }
+]

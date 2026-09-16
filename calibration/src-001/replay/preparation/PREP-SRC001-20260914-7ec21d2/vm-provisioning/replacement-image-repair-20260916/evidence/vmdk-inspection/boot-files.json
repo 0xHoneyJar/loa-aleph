@@ -1,0 +1,145 @@
+[
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "dump /vmlinuz-6.8.0-139-generic /tmp/src001-replacement-image-gate-20260916/vmdk-inspection/vmlinuz-6.8.0-139-generic",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/partition-16.raw"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n",
+    "extracted_sha256": "0066409132868538bc0c9076f60131025775d5bbd8617df074d059f91b584918",
+    "byte_length": 15059336
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "dump /initrd.img-6.8.0-139-generic /tmp/src001-replacement-image-gate-20260916/vmdk-inspection/initrd.img-6.8.0-139-generic",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/partition-16.raw"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n",
+    "extracted_sha256": "e7732308dee547d2455f6203b664d4ff47da050227fd6f2ad6a331dbff4ec0d2",
+    "byte_length": 30694978
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "dump /config-6.8.0-139-generic /tmp/src001-replacement-image-gate-20260916/vmdk-inspection/config-6.8.0-139-generic",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/partition-16.raw"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n",
+    "extracted_sha256": "a5debe1362156decce8c37181c3bbed212fb6b976a7bce481bb22cadb1dee48d",
+    "byte_length": 287560
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "dump /grub/grub.cfg /tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grub.cfg",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/partition-16.raw"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n",
+    "extracted_sha256": "141550ca846cd178e5e45f567d9febf04f764ec5d8351bb30ca8342fa0e31d62",
+    "byte_length": 6411
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "dump /grub/grubenv /tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grubenv",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/partition-16.raw"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n",
+    "extracted_sha256": "f64122858064885ef0733e42c6a3d2d3fd642671f714db0d974b880c0f087430",
+    "byte_length": 1024
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/mcopy",
+      "-i",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw@@5242880",
+      "::/EFI/BOOT/BOOTX64.EFI",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/BOOTX64.EFI"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "extracted_sha256": "6fe6e1bcbe6cf6baec8e056d40361ca1aa715cc04ddcc2855351de060b84350b",
+    "byte_length": 966664
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/mcopy",
+      "-i",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw@@5242880",
+      "::/EFI/ubuntu/shimx64.efi",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "extracted_sha256": "6fe6e1bcbe6cf6baec8e056d40361ca1aa715cc04ddcc2855351de060b84350b",
+    "byte_length": 966664
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/mcopy",
+      "-i",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw@@5242880",
+      "::/EFI/ubuntu/grubx64.efi",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grubx64.efi"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "extracted_sha256": "a831af01e4fb5e3c9457120e1d08ea13d98a0a47b62728c284b7f502d535965c",
+    "byte_length": 2660232
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/mcopy",
+      "-i",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/publisher-blocks.raw@@5242880",
+      "::/EFI/ubuntu/grub.cfg",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/efi-grub.cfg"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "extracted_sha256": "c3e59acc0e4fb12682146997cf3ca89b7cb3c67a2f0107593783ac3a1624ef07",
+    "byte_length": 112
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "stat /etc/os-release",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/partition-1.raw"
+    ],
+    "exit_code": 0,
+    "stdout": "Inode: 574   Type: symlink    Mode:  0777   Flags: 0x0\nGeneration: 3948440552    Version: 0x00000000:00000003\nUser:     0   Group:     0   Project:     0   Size: 21\nFile ACL: 0\nLinks: 1   Blockcount: 0\nFragment:  Address: 0    Number: 0    Size: 0\n ctime: 0x6aa3fb18:33027d5c -- Fri Sep 11 14:59:04 2026\n atime: 0x6aa3fb2c:b2e68050 -- Fri Sep 11 14:59:24 2026\n mtime: 0x6a9d78d7:00000000 -- Sun Sep  6 16:29:43 2026\ncrtime: 0x6aa3fb18:33027d5c -- Fri Sep 11 14:59:04 2026\nSize of extra inode fields: 32\nInode checksum: 0xfc503968\nFast link dest: \"../usr/lib/os-release\"\n",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n"
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "cat /usr/lib/os-release",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/partition-1.raw"
+    ],
+    "exit_code": 0,
+    "stdout": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n"
+  }
+]

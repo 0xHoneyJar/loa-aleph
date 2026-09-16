@@ -1,0 +1,26 @@
+{
+  "source": "https://documentation.ubuntu.com/public-cloud/all-clouds-explanation/cloud-image-variants/",
+  "started_at_utc": "2026-09-16T19:59:18.141047+00:00",
+  "finished_at_utc": "2026-09-16T19:59:21.048460+00:00",
+  "command": [
+    "curl",
+    "--fail",
+    "--show-error",
+    "--silent",
+    "--location",
+    "--proto",
+    "=https",
+    "--max-time",
+    "45",
+    "--dump-header",
+    "/tmp/src001-replacement-image-gate-20260916/discovery/image-format-doc.headers",
+    "--output",
+    "/tmp/src001-replacement-image-gate-20260916/discovery/image-format-doc.html",
+    "https://documentation.ubuntu.com/public-cloud/all-clouds-explanation/cloud-image-variants/"
+  ],
+  "exit_code": 22,
+  "stdout": "",
+  "stderr": "curl: (22) The requested URL returned error: 404\n",
+  "bytes": null,
+  "sha256": null
+}

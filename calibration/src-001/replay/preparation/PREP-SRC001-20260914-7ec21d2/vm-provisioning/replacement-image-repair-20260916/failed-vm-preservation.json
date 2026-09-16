@@ -1,0 +1,20 @@
+{
+  "format": "src001-failed-vm-preservation/v1",
+  "vm_uuid": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+  "state": "Off",
+  "nic_connected": false,
+  "active_matching_worker_processes": 0,
+  "generation": 2,
+  "secure_boot": "On",
+  "secure_boot_template": "MicrosoftUEFICertificateAuthority",
+  "failed_image_bytes": 264372224,
+  "failed_image_sha256": "46b0dbaffa6950a7da5ff2dc5ed34c46084610b3b6d1fae8f1ec2d7e953984a3",
+  "failed_vhd_bytes": 931135488,
+  "failed_vhd_sha256": "5905c60cbc24b769af5dff0d79c21093ad523e652a6e8012c8b051b777bfefbb",
+  "custody_transfer": "NOT_PERFORMED; unchanged disk hash and historical zero-transfer record; no failed guest session",
+  "provider_credentials_transferred": 0,
+  "replay_execution": 0,
+  "vm_mutations_by_this_repair": 0,
+  "historical_status": "FAILED; root cause later established by supplied independent audit; prior producer UNDETERMINED remains unchanged",
+  "reverification_before_replacement_creation": "REQUIRED"
+}

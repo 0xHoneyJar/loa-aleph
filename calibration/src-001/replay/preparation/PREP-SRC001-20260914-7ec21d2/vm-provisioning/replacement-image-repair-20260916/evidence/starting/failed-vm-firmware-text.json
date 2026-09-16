@@ -1,0 +1,27 @@
+{
+  "scope": "READ_ONLY_FAILED_VM_FIRMWARE_TEXT",
+  "utc": "2026-09-16T19:55:51.1069028Z",
+  "vm_state": "Off",
+  "secure_boot_text": "On",
+  "secure_boot_numeric": 0,
+  "secure_boot_enum_type": "Microsoft.HyperV.PowerShell.OnOffState",
+  "secure_boot_template": "MicrosoftUEFICertificateAuthority",
+  "boot_order": [
+    {
+      "BootType": 3,
+      "Description": "Ubuntu",
+      "FirmwarePath": "HD(15,GPT,9606BC98-2904-4577-9584-A8310313A04C,0x2800,0x35000)/\\EFI\\ubuntu\\shimx64.efi"
+    },
+    {
+      "BootType": 1,
+      "Description": "EFI SCSI Device",
+      "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,D96361BAA104294DB60572E2FFB1DC7F79BFC36C2F0C4448A992C86A2A2FA1A1)/Scsi(0,0)"
+    },
+    {
+      "BootType": 2,
+      "Description": "EFI Network",
+      "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,635161F83EDFC546913FF2D2F965ED0ED2237F92958E1E4D8D6FD946B75C153C)/MAC(000000000000)/MessagingPath(0000000000000000000000000000000000000000000000)"
+    }
+  ],
+  "result": "READ_ONLY_OBSERVATION_COMPLETE"
+}

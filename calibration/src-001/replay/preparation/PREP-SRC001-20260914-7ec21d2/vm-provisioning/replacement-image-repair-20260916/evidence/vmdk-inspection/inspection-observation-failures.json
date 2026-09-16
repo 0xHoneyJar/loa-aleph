@@ -1,0 +1,12 @@
+[
+  {
+    "operation": "debugfs cat /etc/os-release",
+    "result": "short read",
+    "resolution": "debugfs stat established fast symlink; /usr/lib/os-release read successfully; no filesystem repair"
+  },
+  {
+    "operation": "manual PE section-name scan",
+    "result": "No vendor certificate section",
+    "resolution": "objdump resolved COFF long section name; exact .vendor_cert bytes extracted by file offset; no image mutation"
+  }
+]

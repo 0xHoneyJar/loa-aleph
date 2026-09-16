@@ -1,0 +1,24 @@
+{
+  "source": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+  "command": [
+    "curl",
+    "--fail",
+    "--show-error",
+    "--silent",
+    "--location",
+    "--proto",
+    "=https",
+    "--max-time",
+    "900",
+    "--output",
+    "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+    "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.vmdk"
+  ],
+  "started_at_utc": "2026-09-16T20:05:02.905055+00:00",
+  "finished_at_utc": "2026-09-16T20:08:39.243678+00:00",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "byte_length": 594127360,
+  "sha256": "c1655a37ff4141e4f16effb7364a640188cc17ec7dfc869a1283aa724dcd6bc1"
+}

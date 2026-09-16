@@ -1,0 +1,23 @@
+[
+  {
+    "name": "SHA256SUMS",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/SHA256SUMS",
+    "exit_code": 0,
+    "stderr": "",
+    "sha256": "89be81c6f31ffcd63e9df433e868fc2a651475a45aeb993c0dbd2707747b0185"
+  },
+  {
+    "name": "SHA256SUMS.gpg",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/SHA256SUMS.gpg",
+    "exit_code": 0,
+    "stderr": "",
+    "sha256": "6157c3d73e35044f21308b3daea9619e0f44895289911f004b291bfb3541e1b5"
+  },
+  {
+    "name": "ubuntu-24.04-server-cloudimg-amd64.manifest",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.manifest",
+    "exit_code": 0,
+    "stderr": "",
+    "sha256": "6ae2bf581f0e8babf5d6e440e53a243d51a697d975dbffec2742e9cd4564f72f"
+  }
+]

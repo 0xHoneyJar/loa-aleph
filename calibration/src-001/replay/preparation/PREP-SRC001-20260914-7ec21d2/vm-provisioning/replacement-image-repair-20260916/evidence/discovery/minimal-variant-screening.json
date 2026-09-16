@@ -1,0 +1,83 @@
+[
+  {
+    "name": "ubuntu-24.04-minimal-cloudimg-amd64-root.tar.xz",
+    "url": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/ubuntu-24.04-minimal-cloudimg-amd64-root.tar.xz",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:14:22 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Sat, 05 Sep 2026 15:04:23 GMT\nETag: \"706c808-65abdb342ac95\"\nAccept-Ranges: bytes\nContent-Length: 117884936\nContent-Type: application/x-xz\n\n",
+    "stderr": "",
+    "byte_length": 117884936
+  },
+  {
+    "name": "ubuntu-24.04-minimal-cloudimg-amd64.squashfs",
+    "url": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/ubuntu-24.04-minimal-cloudimg-amd64.squashfs",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:14:22 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Sat, 05 Sep 2026 15:04:24 GMT\nETag: \"8806000-65abdb354ae01\"\nAccept-Ranges: bytes\nContent-Length: 142630912\n\n",
+    "stderr": "",
+    "byte_length": 142630912
+  },
+  {
+    "name": "SHA256SUMS",
+    "url": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/SHA256SUMS",
+    "command": [
+      "curl",
+      "--fail",
+      "--silent",
+      "--show-error",
+      "--max-time",
+      "30",
+      "-o",
+      "/tmp/src001-replacement-image-gate-20260916/discovery/minimal-SHA256SUMS",
+      "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/SHA256SUMS"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "name": "SHA256SUMS.gpg",
+    "url": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/SHA256SUMS.gpg",
+    "command": [
+      "curl",
+      "--fail",
+      "--silent",
+      "--show-error",
+      "--max-time",
+      "30",
+      "-o",
+      "/tmp/src001-replacement-image-gate-20260916/discovery/minimal-SHA256SUMS.gpg",
+      "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/SHA256SUMS.gpg"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "name": "ubuntu-24.04-minimal-cloudimg-amd64-root.manifest",
+    "url": "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/ubuntu-24.04-minimal-cloudimg-amd64-root.manifest",
+    "command": [
+      "curl",
+      "--fail",
+      "--silent",
+      "--show-error",
+      "--max-time",
+      "30",
+      "-o",
+      "/tmp/src001-replacement-image-gate-20260916/discovery/minimal-ubuntu-24.04-minimal-cloudimg-amd64-root.manifest",
+      "https://cloud-images.ubuntu.com/minimal/releases/noble/release-20260905/ubuntu-24.04-minimal-cloudimg-amd64-root.manifest"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "command": [
+      "gpgv",
+      "--status-fd",
+      "1",
+      "--keyring",
+      "/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg",
+      "/tmp/src001-replacement-image-gate-20260916/discovery/minimal-SHA256SUMS.gpg",
+      "/tmp/src001-replacement-image-gate-20260916/discovery/minimal-SHA256SUMS"
+    ],
+    "exit_code": 0,
+    "stdout": "[GNUPG:] NEWSIG\n[GNUPG:] KEY_CONSIDERED D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81 0\n[GNUPG:] SIG_ID 6X2wYEJNoxtYrDXh+BgwB7IUc5k 2026-09-05 1788620671\n[GNUPG:] GOODSIG 1A5D6C4C7DB87C81 UEC Image Automatic Signing Key <cdimage@ubuntu.com>\n[GNUPG:] VALIDSIG D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81 2026-09-05 1788620671 0 4 0 1 10 00 D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81\n",
+    "stderr": "gpgv: Signature made Sat Sep  5 17:04:31 2026 CEST\ngpgv:                using RSA key D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81\ngpgv: Good signature from \"UEC Image Automatic Signing Key <cdimage@ubuntu.com>\"\n"
+  }
+]

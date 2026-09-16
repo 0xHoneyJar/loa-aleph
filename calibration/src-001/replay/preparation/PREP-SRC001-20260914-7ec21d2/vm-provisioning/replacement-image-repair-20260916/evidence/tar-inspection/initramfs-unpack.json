@@ -1,0 +1,10 @@
+{
+  "command": [
+    "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/unmkinitramfs",
+    "/tmp/src001-replacement-image-gate-20260916/tar-inspection/initrd.img",
+    "/tmp/src001-replacement-image-gate-20260916/tar-inspection/initramfs-unpacked"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

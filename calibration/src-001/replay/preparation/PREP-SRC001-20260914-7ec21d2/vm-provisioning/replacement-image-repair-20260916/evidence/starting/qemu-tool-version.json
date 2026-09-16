@@ -1,0 +1,10 @@
+{
+  "command": [
+    "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+    "--version"
+  ],
+  "LD_LIBRARY_PATH": "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/lib/x86_64-linux-gnu",
+  "exit_code": 0,
+  "stdout": "qemu-img version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)\nCopyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers\n",
+  "stderr": ""
+}

@@ -1,0 +1,267 @@
+{
+  "case": "B_INITRAMFS_SUPPORT",
+  "kernel": "6.8.0-139-generic",
+  "kernel_config": {
+    "CONFIG_HYPERV": "m",
+    "CONFIG_HYPERV_STORAGE": "m",
+    "CONFIG_SCSI": "y",
+    "CONFIG_BLK_DEV_SD": "y",
+    "CONFIG_EXT4_FS": "y"
+  },
+  "initramfs_sha256": "e7732308dee547d2455f6203b664d4ff47da050227fd6f2ad6a331dbff4ec0d2",
+  "initramfs_bytes": 30694978,
+  "boot_loader_unconditionally_loads_initramfs": true,
+  "required_files": [
+    {
+      "path": "usr/lib/modules/6.8.0-139-generic/kernel/drivers/hv/hv_vmbus.ko.zst",
+      "archives": [
+        "early"
+      ],
+      "bytes": 64518,
+      "sha256": "3ce2a71cbdcf2f0c8ec857628f62afec48d072fa0f9fb235ea8f1065be032a70"
+    },
+    {
+      "path": "usr/lib/modules/6.8.0-139-generic/kernel/drivers/scsi/hv_storvsc.ko.zst",
+      "archives": [
+        "early"
+      ],
+      "bytes": 21346,
+      "sha256": "aeeaddede069c17213882124a9c607352e5ee745449179b99fc970278f3a6721"
+    },
+    {
+      "path": "usr/lib/modules/6.8.0-139-generic/kernel/drivers/scsi/scsi_transport_fc.ko.zst",
+      "archives": [
+        "early"
+      ],
+      "bytes": 39984,
+      "sha256": "b1b53d2d30cbf16c2503d66615fb1e9a63eb2ee779154acdd7d07587268d89f6"
+    },
+    {
+      "path": "usr/lib/modules/6.8.0-139-generic/modules.dep",
+      "archives": [
+        "main"
+      ],
+      "bytes": 24026,
+      "sha256": "ad6778f90d999665556e3b20bb436df0ea05bd8900fc57ade012d916d334f0ae",
+      "relevant_lines": [
+        {
+          "line": 154,
+          "text": "kernel/drivers/scsi/scsi_transport_fc.ko.zst:"
+        },
+        {
+          "line": 164,
+          "text": "kernel/drivers/scsi/qla2xxx/qla2xxx.ko.zst: kernel/drivers/nvme/host/nvme-fc.ko.zst kernel/drivers/nvme/host/nvme-fabrics.ko.zst kernel/drivers/nvme/common/nvme-keyring.ko.zst kernel/drivers/nvme/host/nvme-core.ko.zst kernel/drivers/nvme/common/nvme-auth.ko.zst kernel/drivers/scsi/scsi_transport_fc.ko.zst"
+        },
+        {
+          "line": 165,
+          "text": "kernel/drivers/scsi/lpfc/lpfc.ko.zst: kernel/drivers/nvme/target/nvmet-fc.ko.zst kernel/drivers/nvme/target/nvmet.ko.zst kernel/drivers/nvme/host/nvme-fc.ko.zst kernel/drivers/nvme/host/nvme-fabrics.ko.zst kernel/drivers/nvme/common/nvme-keyring.ko.zst kernel/drivers/nvme/host/nvme-core.ko.zst kernel/drivers/nvme/common/nvme-auth.ko.zst kernel/drivers/scsi/scsi_transport_fc.ko.zst"
+        },
+        {
+          "line": 169,
+          "text": "kernel/drivers/scsi/hv_storvsc.ko.zst: kernel/drivers/hv/hv_vmbus.ko.zst kernel/drivers/scsi/scsi_transport_fc.ko.zst"
+        },
+        {
+          "line": 234,
+          "text": "kernel/drivers/net/hyperv/hv_netvsc.ko.zst: kernel/drivers/hv/hv_vmbus.ko.zst"
+        },
+        {
+          "line": 238,
+          "text": "kernel/drivers/message/fusion/mptfc.ko.zst: kernel/drivers/message/fusion/mptscsih.ko.zst kernel/drivers/message/fusion/mptbase.ko.zst kernel/drivers/scsi/scsi_transport_fc.ko.zst"
+        },
+        {
+          "line": 245,
+          "text": "kernel/drivers/input/serio/hyperv-keyboard.ko.zst: kernel/drivers/hv/hv_vmbus.ko.zst"
+        },
+        {
+          "line": 269,
+          "text": "kernel/drivers/hid/hid-hyperv.ko.zst: kernel/drivers/hid/hid.ko.zst kernel/drivers/hv/hv_vmbus.ko.zst"
+        },
+        {
+          "line": 271,
+          "text": "kernel/drivers/hv/hv_vmbus.ko.zst:"
+        },
+        {
+          "line": 272,
+          "text": "kernel/drivers/hv/hv_utils.ko.zst: kernel/drivers/hv/hv_vmbus.ko.zst"
+        }
+      ]
+    },
+    {
+      "path": "usr/lib/modules/6.8.0-139-generic/modules.alias",
+      "archives": [
+        "main"
+      ],
+      "bytes": 110859,
+      "sha256": "a16e66914fd1a6f96bfd81841154f49ae7830777c105b06a5d9564f312d6d996",
+      "relevant_lines": [
+        {
+          "line": 711,
+          "text": "alias vmbus:4acc9b2f6900f34ab76b6fd0be528cda hv_storvsc"
+        },
+        {
+          "line": 712,
+          "text": "alias vmbus:32264132cb86a2449b5c50d1417354f5 hv_storvsc"
+        },
+        {
+          "line": 713,
+          "text": "alias vmbus:d96361baa104294db60572e2ffb1dc7f hv_storvsc"
+        },
+        {
+          "line": 2231,
+          "text": "alias of:N*T*Cmicrosoft,vmbusC* hv_vmbus"
+        },
+        {
+          "line": 2232,
+          "text": "alias of:N*T*Cmicrosoft,vmbus hv_vmbus"
+        },
+        {
+          "line": 2233,
+          "text": "alias acpi*:VMBus:* hv_vmbus"
+        },
+        {
+          "line": 2234,
+          "text": "alias acpi*:VMBUS:* hv_vmbus"
+        }
+      ]
+    },
+    {
+      "path": "init",
+      "archives": [
+        "main"
+      ],
+      "bytes": 7682,
+      "sha256": "26f5f5a706dd766158c01c7a9f4c75814a77519e9a4f7489a3cf8cf6312e8aef",
+      "relevant_lines": [
+        {
+          "line": 264,
+          "text": "run_scripts /scripts/init-top"
+        },
+        {
+          "line": 269,
+          "text": "load_modules"
+        },
+        {
+          "line": 289,
+          "text": "maybe_break mountroot"
+        },
+        {
+          "line": 292,
+          "text": "mountroot"
+        }
+      ]
+    },
+    {
+      "path": "scripts/init-top/udev",
+      "archives": [
+        "main"
+      ],
+      "bytes": 572,
+      "sha256": "5893d2c4c9426b2d6166586cb5bd1852be8fa22ba2984b9e1b2ca15f8b9cca5f",
+      "relevant_lines": [
+        {
+          "line": 24,
+          "text": "SYSTEMD_LOG_LEVEL=$log_level /usr/lib/systemd/systemd-udevd --daemon --resolve-names=never"
+        },
+        {
+          "line": 26,
+          "text": "udevadm trigger --type=subsystems --action=add"
+        },
+        {
+          "line": 27,
+          "text": "udevadm trigger --type=devices --action=add"
+        },
+        {
+          "line": 28,
+          "text": "udevadm settle || true"
+        }
+      ]
+    },
+    {
+      "path": "scripts/local",
+      "archives": [
+        "main"
+      ],
+      "bytes": 8002,
+      "sha256": "9a839a12d83a6ee4b9a8d527bfabd6d4f16792377d9336009943d3ebd82f197e",
+      "relevant_lines": [
+        {
+          "line": 45,
+          "text": "local_device_setup()"
+        },
+        {
+          "line": 189,
+          "text": "local_mount_root()"
+        },
+        {
+          "line": 195,
+          "text": "\tlocal_device_setup \"${ROOT}\" \"root file system\""
+        },
+        {
+          "line": 219,
+          "text": "\tmountroot_status=\"$?\""
+        },
+        {
+          "line": 221,
+          "text": "\t\tif [ \"$mountroot_status\" != 0 ]; then"
+        },
+        {
+          "line": 232,
+          "text": "(filesystem = ${FSTYPE}, error code = $mountroot_status)"
+        },
+        {
+          "line": 275,
+          "text": "\tlocal_device_setup \"$MNT_FSNAME\" \"$1 file system\""
+        },
+        {
+          "line": 296,
+          "text": "mountroot()"
+        },
+        {
+          "line": 298,
+          "text": "\tlocal_mount_root"
+        }
+      ]
+    },
+    {
+      "path": "usr/lib/udev/rules.d/80-drivers.rules",
+      "archives": [
+        "main"
+      ],
+      "bytes": 600,
+      "sha256": "0941cea0be8d3564556b5787a87cf55971fd3e46e19c56ad68a4205e8ad3a560",
+      "relevant_lines": [
+        {
+          "line": 5,
+          "text": "ENV{MODALIAS}==\"?*\", RUN{builtin}+=\"kmod load\""
+        },
+        {
+          "line": 6,
+          "text": "SUBSYSTEM==\"tifm\", ENV{TIFM_CARD_TYPE}==\"SD\", RUN{builtin}+=\"kmod load tifm_sd\""
+        },
+        {
+          "line": 7,
+          "text": "SUBSYSTEM==\"tifm\", ENV{TIFM_CARD_TYPE}==\"MS\", RUN{builtin}+=\"kmod load tifm_ms\""
+        },
+        {
+          "line": 8,
+          "text": "SUBSYSTEM==\"memstick\", RUN{builtin}+=\"kmod load ms_block mspro_block\""
+        },
+        {
+          "line": 9,
+          "text": "SUBSYSTEM==\"i2o\", RUN{builtin}+=\"kmod load i2o_block\""
+        },
+        {
+          "line": 10,
+          "text": "SUBSYSTEM==\"module\", KERNEL==\"parport_pc\", RUN{builtin}+=\"kmod load ppdev\""
+        },
+        {
+          "line": 11,
+          "text": "KERNEL==\"mtd*ro\", ENV{MTD_FTL}==\"smartmedia\", RUN{builtin}+=\"kmod load sm_ftl\""
+        }
+      ]
+    }
+  ],
+  "dependency_resolution": "hyperv-dependency-resolution.json",
+  "mechanism": "Kernel unpacks early plus main cpio into its initial root. init runs udev at line 264 before mountroot at line 292. udev enumerates subsystem/device add events and 80-drivers.rules loads modalias modules; ACPI VMBUS aliases load hv_vmbus, matching VMBus SCSI aliases load hv_storvsc with scsi_transport_fc. All modules and indexes are in initramfs; ext4 and SCSI disk base support are built in. No post-root cloud-init dependency.",
+  "result": "PASS_STATIC_EARLY_HYPERV_STORAGE"
+}

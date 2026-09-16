@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    "$ErrorActionPreference='Stop';try{$p=Start-Process -FilePath 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -Verb RunAs -ArgumentList @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File','\\\\wsl.localhost\\Ubuntu\\tmp\\src001-replacement-image-gate-20260916\\failed-vm-readonly.ps1') -Wait -PassThru;[ordered]@{launched=$true;exit_code=$p.ExitCode;process_id=$p.Id;utc=[DateTime]::UtcNow.ToString('o')}|ConvertTo-Json -Compress}catch{[ordered]@{launched=$false;error=$_.Exception.Message}|ConvertTo-Json -Compress;exit 1}"
+  ],
+  "exit_code": 0,
+  "stdout": "{\"launched\":true,\"exit_code\":0,\"process_id\":22700,\"utc\":\"2026-09-16T19:54:10.2783059Z\"}\n",
+  "stderr": ""
+}

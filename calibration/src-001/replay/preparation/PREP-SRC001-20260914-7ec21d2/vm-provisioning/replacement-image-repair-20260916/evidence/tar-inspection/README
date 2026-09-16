@@ -1,0 +1,5 @@
+The following artifacts are contained in this tarball:
+
+* noble-server-cloudimg-amd64.img
+  - this is a raw ext4 partition containing a full cloud image
+    installation

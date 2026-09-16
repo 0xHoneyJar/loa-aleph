@@ -1,0 +1,26 @@
+{
+  "source": "https://cloud-images.ubuntu.com/minimal/releases/noble/release/",
+  "started_at_utc": "2026-09-16T19:59:18.138162+00:00",
+  "finished_at_utc": "2026-09-16T19:59:18.288407+00:00",
+  "command": [
+    "curl",
+    "--fail",
+    "--show-error",
+    "--silent",
+    "--location",
+    "--proto",
+    "=https",
+    "--max-time",
+    "45",
+    "--dump-header",
+    "/tmp/src001-replacement-image-gate-20260916/discovery/minimal-release-index.headers",
+    "--output",
+    "/tmp/src001-replacement-image-gate-20260916/discovery/minimal-release-index.html",
+    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "bytes": 8840,
+  "sha256": "a5c4621ec32404d0a93824adef32e5cbbe6c024d24578ecca98b12b05a900a45"
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "command": [
+      "dpkg",
+      "--verify",
+      "ubuntu-keyring"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "dpkg",
+      "--verify",
+      "e2fsprogs"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "dpkg",
+      "--verify",
+      "gdisk"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

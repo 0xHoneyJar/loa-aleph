@@ -1,0 +1,192 @@
+[
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/sbverify",
+      "--list",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi"
+    ],
+    "exit_code": 0,
+    "stdout": "signature 1\nimage signature issuers:\n - /C=US/ST=Washington/L=Redmond/O=Microsoft Corporation/CN=Microsoft Corporation UEFI CA 2011\nimage signature certificates:\n - subject: /C=US/ST=Washington/L=Redmond/O=Microsoft Corporation/CN=Microsoft Windows UEFI Driver Publisher\n   issuer:  /C=US/ST=Washington/L=Redmond/O=Microsoft Corporation/CN=Microsoft Corporation UEFI CA 2011\n - subject: /C=US/ST=Washington/L=Redmond/O=Microsoft Corporation/CN=Microsoft Corporation UEFI CA 2011\n   issuer:  /C=US/ST=Washington/L=Redmond/O=Microsoft Corporation/CN=Microsoft Corporation Third Party Marketplace Root\n",
+    "stderr": "warning: data remaining[840592 vs 966664]: gaps between PE/COFF sections?\n"
+  },
+  {
+    "command": [
+      "openssl",
+      "pkcs7",
+      "-inform",
+      "DER",
+      "-in",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi.p7",
+      "-print_certs",
+      "-out",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi.certificates.pem"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "openssl",
+      "x509",
+      "-in",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi.cert-0.pem",
+      "-noout",
+      "-subject",
+      "-issuer",
+      "-fingerprint",
+      "-sha256",
+      "-dates"
+    ],
+    "exit_code": 0,
+    "stdout": "subject=C = US, ST = Washington, L = Redmond, O = Microsoft Corporation, CN = Microsoft Windows UEFI Driver Publisher\nissuer=C = US, ST = Washington, L = Redmond, O = Microsoft Corporation, CN = Microsoft Corporation UEFI CA 2011\nsha256 Fingerprint=C8:D2:B5:B0:88:7F:B4:70:43:82:79:D5:32:50:E8:C1:B0:53:09:3E:6C:85:D5:BB:F4:99:8E:AB:28:31:94:3F\nnotBefore=Oct 19 19:53:24 2023 GMT\nnotAfter=Oct 16 19:53:24 2024 GMT\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/sbverify",
+      "--cert",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi.cert-0.pem",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi"
+    ],
+    "exit_code": 0,
+    "stdout": "Signature verification OK\n",
+    "stderr": "warning: data remaining[840592 vs 966664]: gaps between PE/COFF sections?\n"
+  },
+  {
+    "command": [
+      "openssl",
+      "x509",
+      "-in",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi.cert-1.pem",
+      "-noout",
+      "-subject",
+      "-issuer",
+      "-fingerprint",
+      "-sha256",
+      "-dates"
+    ],
+    "exit_code": 0,
+    "stdout": "subject=C = US, ST = Washington, L = Redmond, O = Microsoft Corporation, CN = Microsoft Corporation UEFI CA 2011\nissuer=C = US, ST = Washington, L = Redmond, O = Microsoft Corporation, CN = Microsoft Corporation Third Party Marketplace Root\nsha256 Fingerprint=48:E9:9B:99:1F:57:FC:52:F7:61:49:59:9B:FF:0A:58:C4:71:54:22:9B:9F:8D:60:3A:C4:0D:35:00:24:85:07\nnotBefore=Jun 27 21:22:45 2011 GMT\nnotAfter=Jun 27 21:32:45 2026 GMT\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/sbverify",
+      "--cert",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi.cert-1.pem",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/shimx64.efi"
+    ],
+    "exit_code": 0,
+    "stdout": "Signature verification OK\n",
+    "stderr": "warning: data remaining[840592 vs 966664]: gaps between PE/COFF sections?\n"
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/sbverify",
+      "--list",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grubx64.efi"
+    ],
+    "exit_code": 0,
+    "stdout": "signature 1\nimage signature issuers:\n - /C=GB/ST=Isle of Man/L=Douglas/O=Canonical Ltd./CN=Canonical Ltd. Master Certificate Authority\nimage signature certificates:\n - subject: /C=GB/ST=Isle of Man/O=Canonical Ltd./OU=Secure Boot/CN=Canonical Ltd. Secure Boot Signing (2022 v1)\n   issuer:  /C=GB/ST=Isle of Man/L=Douglas/O=Canonical Ltd./CN=Canonical Ltd. Master Certificate Authority\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "openssl",
+      "pkcs7",
+      "-inform",
+      "DER",
+      "-in",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grubx64.efi.p7",
+      "-print_certs",
+      "-out",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grubx64.efi.certificates.pem"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "openssl",
+      "x509",
+      "-in",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grubx64.efi.cert-0.pem",
+      "-noout",
+      "-subject",
+      "-issuer",
+      "-fingerprint",
+      "-sha256",
+      "-dates"
+    ],
+    "exit_code": 0,
+    "stdout": "subject=C = GB, ST = Isle of Man, O = Canonical Ltd., OU = Secure Boot, CN = Canonical Ltd. Secure Boot Signing (2022 v1)\nissuer=C = GB, ST = Isle of Man, L = Douglas, O = Canonical Ltd., CN = Canonical Ltd. Master Certificate Authority\nsha256 Fingerprint=99:6B:CC:F3:FC:F8:C2:89:DC:53:4D:41:2D:3F:3D:E7:C7:9A:F2:F1:A8:FA:B8:C2:FB:0D:94:AB:4A:23:79:77\nnotBefore=Nov  3 14:05:30 2022 GMT\nnotAfter=Nov  1 14:05:30 2052 GMT\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/sbverify",
+      "--cert",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grubx64.efi.cert-0.pem",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/grubx64.efi"
+    ],
+    "exit_code": 0,
+    "stdout": "Signature verification OK\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/sbverify",
+      "--list",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/vmlinuz-6.8.0-139-generic"
+    ],
+    "exit_code": 0,
+    "stdout": "signature 1\nimage signature issuers:\n - /C=GB/ST=Isle of Man/L=Douglas/O=Canonical Ltd./CN=Canonical Ltd. Master Certificate Authority\nimage signature certificates:\n - subject: /C=GB/ST=Isle of Man/O=Canonical Ltd./OU=Secure Boot/CN=Canonical Ltd. Secure Boot Signing (2022 v1)\n   issuer:  /C=GB/ST=Isle of Man/L=Douglas/O=Canonical Ltd./CN=Canonical Ltd. Master Certificate Authority\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "openssl",
+      "pkcs7",
+      "-inform",
+      "DER",
+      "-in",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/vmlinuz-6.8.0-139-generic.p7",
+      "-print_certs",
+      "-out",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/vmlinuz-6.8.0-139-generic.certificates.pem"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "openssl",
+      "x509",
+      "-in",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/vmlinuz-6.8.0-139-generic.cert-0.pem",
+      "-noout",
+      "-subject",
+      "-issuer",
+      "-fingerprint",
+      "-sha256",
+      "-dates"
+    ],
+    "exit_code": 0,
+    "stdout": "subject=C = GB, ST = Isle of Man, O = Canonical Ltd., OU = Secure Boot, CN = Canonical Ltd. Secure Boot Signing (2022 v1)\nissuer=C = GB, ST = Isle of Man, L = Douglas, O = Canonical Ltd., CN = Canonical Ltd. Master Certificate Authority\nsha256 Fingerprint=99:6B:CC:F3:FC:F8:C2:89:DC:53:4D:41:2D:3F:3D:E7:C7:9A:F2:F1:A8:FA:B8:C2:FB:0D:94:AB:4A:23:79:77\nnotBefore=Nov  3 14:05:30 2022 GMT\nnotAfter=Nov  1 14:05:30 2052 GMT\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/sbverify",
+      "--cert",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/vmlinuz-6.8.0-139-generic.cert-0.pem",
+      "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/vmlinuz-6.8.0-139-generic"
+    ],
+    "exit_code": 0,
+    "stdout": "Signature verification OK\n",
+    "stderr": ""
+  }
+]

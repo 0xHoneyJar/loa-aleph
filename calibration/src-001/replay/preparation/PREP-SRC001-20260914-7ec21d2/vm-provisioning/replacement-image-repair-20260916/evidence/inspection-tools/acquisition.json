@@ -1,0 +1,74 @@
+[
+  {
+    "package": "initramfs-tools-core",
+    "version": "0.142ubuntu25.8",
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/i/initramfs-tools/initramfs-tools-core_0.142ubuntu25.8_all.deb",
+    "path": "/tmp/src001-replacement-image-gate-20260916/inspection-tools/initramfs-tools-core_0.142ubuntu25.8_all.deb",
+    "expected_sha256": "1a26fed5136ae049e5abc33995ac362f7af26bd7470e6a49c596474da0c3e1b8",
+    "sha256": "1a26fed5136ae049e5abc33995ac362f7af26bd7470e6a49c596474da0c3e1b8",
+    "byte_length": 50458,
+    "verified": true,
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "package": "initramfs-tools-bin",
+    "version": "0.142ubuntu25.8",
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/i/initramfs-tools/initramfs-tools-bin_0.142ubuntu25.8_amd64.deb",
+    "path": "/tmp/src001-replacement-image-gate-20260916/inspection-tools/initramfs-tools-bin_0.142ubuntu25.8_amd64.deb",
+    "expected_sha256": "556a5afcb16ec4ec36b0bb0f0df6af6eef9a95141b7cca6740d4344cd24a4f0e",
+    "sha256": "556a5afcb16ec4ec36b0bb0f0df6af6eef9a95141b7cca6740d4344cd24a4f0e",
+    "byte_length": 21560,
+    "verified": true,
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "package": "cpio",
+    "version": "2.15+dfsg-1ubuntu2.1",
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/cpio/cpio_2.15+dfsg-1ubuntu2.1_amd64.deb",
+    "path": "/tmp/src001-replacement-image-gate-20260916/inspection-tools/cpio_2.15+dfsg-1ubuntu2.1_amd64.deb",
+    "expected_sha256": "fbac731755302d218d785b4c391530e7773527f553e24946f9580636a47641b2",
+    "sha256": "fbac731755302d218d785b4c391530e7773527f553e24946f9580636a47641b2",
+    "byte_length": 83108,
+    "verified": true,
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "package": "zstd",
+    "version": "1.5.5+dfsg2-2build1.1",
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/libz/libzstd/zstd_1.5.5+dfsg2-2build1.1_amd64.deb",
+    "path": "/tmp/src001-replacement-image-gate-20260916/inspection-tools/zstd_1.5.5+dfsg2-2build1.1_amd64.deb",
+    "expected_sha256": "d7667f83e3a2caeaaecaca464d542ee6ccf537259a479622796c84afc96d6032",
+    "sha256": "d7667f83e3a2caeaaecaca464d542ee6ccf537259a479622796c84afc96d6032",
+    "byte_length": 644020,
+    "verified": true,
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "package": "kmod",
+    "version": "31+20240202-2ubuntu7.2",
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/k/kmod/kmod_31+20240202-2ubuntu7.2_amd64.deb",
+    "path": "/tmp/src001-replacement-image-gate-20260916/inspection-tools/kmod_31+20240202-2ubuntu7.2_amd64.deb",
+    "expected_sha256": "687693dfad23c96570d96a1c7cc1b8709d31a93f82ac765a11b2bd9130f1dfae",
+    "sha256": "687693dfad23c96570d96a1c7cc1b8709d31a93f82ac765a11b2bd9130f1dfae",
+    "byte_length": 101742,
+    "verified": true,
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "package": "sbsigntool",
+    "version": "0.9.4-3.1ubuntu7",
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/s/sbsigntool/sbsigntool_0.9.4-3.1ubuntu7_amd64.deb",
+    "path": "/tmp/src001-replacement-image-gate-20260916/inspection-tools/sbsigntool_0.9.4-3.1ubuntu7_amd64.deb",
+    "expected_sha256": "ae14776b92b5ae136c1a122086eadedd2110075319df4f54632fba717c85c35f",
+    "sha256": "ae14776b92b5ae136c1a122086eadedd2110075319df4f54632fba717c85c35f",
+    "byte_length": 52398,
+    "verified": true,
+    "exit_code": 0,
+    "stderr": ""
+  }
+]

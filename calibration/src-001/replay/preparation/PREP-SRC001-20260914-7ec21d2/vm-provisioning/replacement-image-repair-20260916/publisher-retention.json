@@ -1,0 +1,52 @@
+[
+  {
+    "source": "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+    "destination": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/publisher/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+    "bytes": 594127360,
+    "sha256": "c1655a37ff4141e4f16effb7364a640188cc17ec7dfc869a1283aa724dcd6bc1",
+    "source_equals_retained": true,
+    "started_at_utc": "2026-09-16T20:13:29.517613+00:00",
+    "finished_at_utc": "2026-09-16T20:13:39.105727+00:00",
+    "operation": "copy exact publisher bytes to new repair custody directory; no old artifact overwritten"
+  },
+  {
+    "source": "/tmp/src001-replacement-image-gate-20260916/candidates/SHA256SUMS",
+    "destination": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/publisher/SHA256SUMS",
+    "bytes": 7843,
+    "sha256": "89be81c6f31ffcd63e9df433e868fc2a651475a45aeb993c0dbd2707747b0185",
+    "source_equals_retained": true,
+    "started_at_utc": "2026-09-16T20:13:39.107578+00:00",
+    "finished_at_utc": "2026-09-16T20:13:39.123587+00:00",
+    "operation": "copy exact publisher bytes to new repair custody directory; no old artifact overwritten"
+  },
+  {
+    "source": "/tmp/src001-replacement-image-gate-20260916/candidates/SHA256SUMS.gpg",
+    "destination": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/publisher/SHA256SUMS.gpg",
+    "bytes": 833,
+    "sha256": "6157c3d73e35044f21308b3daea9619e0f44895289911f004b291bfb3541e1b5",
+    "source_equals_retained": true,
+    "started_at_utc": "2026-09-16T20:13:39.123924+00:00",
+    "finished_at_utc": "2026-09-16T20:13:39.139271+00:00",
+    "operation": "copy exact publisher bytes to new repair custody directory; no old artifact overwritten"
+  },
+  {
+    "source": "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.manifest",
+    "destination": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/publisher/ubuntu-24.04-server-cloudimg-amd64.manifest",
+    "bytes": 21250,
+    "sha256": "6ae2bf581f0e8babf5d6e440e53a243d51a697d975dbffec2742e9cd4564f72f",
+    "source_equals_retained": true,
+    "started_at_utc": "2026-09-16T20:13:39.139681+00:00",
+    "finished_at_utc": "2026-09-16T20:13:39.156479+00:00",
+    "operation": "copy exact publisher bytes to new repair custody directory; no old artifact overwritten"
+  },
+  {
+    "source": "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.tar.gz",
+    "destination": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/rejected/ubuntu-24.04-server-cloudimg-amd64.tar.gz",
+    "bytes": 545430339,
+    "sha256": "42fc6c6f3d5965e1c2e230704938a76e9d0d932b4ebb8ea5c2cb26a9992bd96f",
+    "source_equals_retained": true,
+    "started_at_utc": "2026-09-16T20:13:39.482632+00:00",
+    "finished_at_utc": "2026-09-16T20:13:48.798687+00:00",
+    "operation": "copy exact publisher bytes to new repair custody directory; no old artifact overwritten"
+  }
+]

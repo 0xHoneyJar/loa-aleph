@@ -1,0 +1,15 @@
+{
+  "format": "src001-replacement-image-repair-authority-binding/v1",
+  "preparation_id": "PREP-SRC001-20260914-7ec21d2",
+  "provisioning_id": "VM-PREP-SRC001-20260915-7a772f0",
+  "repair_administration_id": "IMAGE-REPAIR-SRC001-20260916-fda0a0b",
+  "authority_commit": "fda0a0b9803d1d96a0aee5c6899d7ba7bd1f9220",
+  "authority_tree": "309c3b878e624c52f7752e66b058e379e34717aa",
+  "authority_blob": "7af701fb719fe769842ea43e1226999426077480",
+  "authority_path": "calibration/src-001/core-design-basis/AUTHORIZED-blind-src-001-replay-replacement-image-repair-20260916.md",
+  "parent": "d763299661c5887018b1cf250860e84042bd0cfd",
+  "starting_tree": "856a931f871e67871cc1d7d80f602803aea5c682",
+  "authority_sha256": "d599c3ad3569eb50b95d97c3d3528b83f1852064dd234695e070c9395e8c5b0f",
+  "classification": "repository_administration",
+  "is_execution_identity": false
+}

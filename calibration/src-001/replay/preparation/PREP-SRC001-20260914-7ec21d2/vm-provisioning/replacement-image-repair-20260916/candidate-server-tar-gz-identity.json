@@ -1,0 +1,56 @@
+{
+  "candidate": {
+    "candidate_id": "server-tar-gz",
+    "publisher": "Canonical",
+    "build": "20260911",
+    "ubuntu_release": "24.04 LTS Noble",
+    "architecture": "amd64",
+    "filename": "ubuntu-24.04-server-cloudimg-amd64.tar.gz",
+    "source": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.tar.gz",
+    "byte_length": 545430339,
+    "publisher_sha256": "42fc6c6f3d5965e1c2e230704938a76e9d0d932b4ebb8ea5c2cb26a9992bd96f",
+    "disposition": "REJECTED_NO_UEFI",
+    "reason": "Authenticated archive contains exactly README plus an unpartitioned raw ext4 filesystem. No GPT/ESP. Real initramfs present, but creating UEFI layout would manufacture a base.",
+    "consideration_level": "downloaded, checksum verified, full archive and filesystem inspected",
+    "new_image_download": true
+  },
+  "archive_verified": true,
+  "members": [
+    {
+      "name": "noble-server-cloudimg-amd64.img",
+      "size": 1978662912,
+      "type": "0",
+      "mode": "0o644",
+      "linkname": "",
+      "first_4096_sha256": "b3a49c06aa0e8d5be71494b563b5476d1785bd9b6a14e9d4d7db2cc0f8efd8f9",
+      "magic_first16": "00000000000000000000000000000000",
+      "sector512_magic": "0000000000000000",
+      "ext4_magic": "53ef"
+    },
+    {
+      "name": "README",
+      "size": 170,
+      "type": "0",
+      "mode": "0o644",
+      "linkname": "",
+      "first_4096_sha256": "3831e25760d21938ab5c399e964a6abff7dadb58c826d304409a8abe88cab94e",
+      "magic_first16": "54686520666f6c6c6f77696e67206172",
+      "sector512_magic": "",
+      "ext4_magic": ""
+    }
+  ],
+  "format": "gzip tar with one unpartitioned ext4 partition plus Canonical README",
+  "virtual_filesystem_bytes": 1978662912,
+  "root_selector": "LABEL=cloudimg-rootfs",
+  "filesystem_uuid": "174b1571-974b-4244-a32d-17dc42cc646b",
+  "kernel": "6.8.0-139-generic",
+  "initramfs_sha256": "e7732308dee547d2455f6203b664d4ff47da050227fd6f2ad6a331dbff4ec0d2",
+  "initramfs_bytes": 30694978,
+  "early_storage_modules_inspected": true,
+  "gpt": "ABSENT",
+  "esp": "ABSENT",
+  "uefi_boot_support": "ABSENT",
+  "secure_boot_chain": "NO_BOOTABLE_ESP_CHAIN",
+  "disposition": "REJECTED_NO_UEFI",
+  "base_modification": false
+}

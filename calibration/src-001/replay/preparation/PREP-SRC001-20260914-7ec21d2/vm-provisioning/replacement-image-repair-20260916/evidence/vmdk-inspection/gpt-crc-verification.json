@@ -1,0 +1,20 @@
+[
+  {
+    "header_lba": 1,
+    "signature": "EFI PART",
+    "current_lba": 1,
+    "alternate_lba": 7340031,
+    "header_crc_valid": true,
+    "table_crc_valid": true,
+    "table_sha256": "fc47b9f396c7901feb0a055c603694973fd247b009eb6433baa874a034154e41"
+  },
+  {
+    "header_lba": 7340031,
+    "signature": "EFI PART",
+    "current_lba": 7340031,
+    "alternate_lba": 1,
+    "header_crc_valid": true,
+    "table_crc_valid": true,
+    "table_sha256": "fc47b9f396c7901feb0a055c603694973fd247b009eb6433baa874a034154e41"
+  }
+]

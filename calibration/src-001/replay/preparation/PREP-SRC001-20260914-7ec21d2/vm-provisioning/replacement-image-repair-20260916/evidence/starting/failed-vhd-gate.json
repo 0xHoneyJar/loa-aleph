@@ -1,0 +1,7 @@
+{
+  "path": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/vm/executor.vhdx",
+  "bytes": 931135488,
+  "sha256": "5905c60cbc24b769af5dff0d79c21093ad523e652a6e8012c8b051b777bfefbb",
+  "expected_sha256": "5905c60cbc24b769af5dff0d79c21093ad523e652a6e8012c8b051b777bfefbb",
+  "matches": true
+}

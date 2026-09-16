@@ -1,0 +1,22 @@
+[
+  {
+    "file": "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64.manifest",
+    "sha256": "6ae2bf581f0e8babf5d6e440e53a243d51a697d975dbffec2742e9cd4564f72f",
+    "signed_checksum_match": true
+  },
+  {
+    "file": "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64-azure.vhd.manifest",
+    "sha256": "0be7ee9891e2f559e5b252c7a3325283ba7b944db7a5a5dc29e066d4b7e3419f",
+    "signed_checksum_match": true
+  },
+  {
+    "file": "/tmp/src001-replacement-image-gate-20260916/candidates/ubuntu-24.04-server-cloudimg-amd64-root.manifest",
+    "sha256": "4c63a7fa83c5492c77c382c1226fec64d4c419fbd20d3455cc0dbd4d4a4411c8",
+    "signed_checksum_match": true
+  },
+  {
+    "file": "/tmp/src001-replacement-image-gate-20260916/discovery/minimal-ubuntu-24.04-minimal-cloudimg-amd64-root.manifest",
+    "sha256": "0e1270bfd87cb80d9046caaf127b035b1a75f149189f5a428a3b8c4faa780d0e",
+    "signed_checksum_match": true
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "command": [
+    "/tmp/src001-replacement-image-gate-20260916/inspection-tools/extracted/usr/bin/unmkinitramfs",
+    "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/initrd.img-6.8.0-139-generic",
+    "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/initramfs-unpacked"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

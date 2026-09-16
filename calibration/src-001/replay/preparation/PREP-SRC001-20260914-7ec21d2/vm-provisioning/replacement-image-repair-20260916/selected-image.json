@@ -1,0 +1,81 @@
+{
+  "format": "src001-replacement-selected-image/v1",
+  "repair_administration_id": "IMAGE-REPAIR-SRC001-20260916-fda0a0b",
+  "status": "SELECTED_STATIC_PRE_USE_GATE_PASS",
+  "selected_at_utc": "2026-09-16T20:15:52.643896+00:00",
+  "publisher": "Canonical / Ubuntu",
+  "source_index": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/",
+  "source": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+  "build": "20260911",
+  "ubuntu_release": "24.04 LTS Noble",
+  "observed_os_release": "Ubuntu 24.04.5 LTS",
+  "architecture": "amd64",
+  "image_class": "Ubuntu Server cloud publisher disk, VMDK streamOptimized",
+  "filename": "ubuntu-24.04-server-cloudimg-amd64.vmdk",
+  "byte_length": 594127360,
+  "sha256": "sha256:c1655a37ff4141e4f16effb7364a640188cc17ec7dfc869a1283aa724dcd6bc1",
+  "virtual_size_bytes": 10737418240,
+  "publisher_verification": {
+    "checksum_sha256": "89be81c6f31ffcd63e9df433e868fc2a651475a45aeb993c0dbd2707747b0185",
+    "signature_sha256": "6157c3d73e35044f21308b3daea9619e0f44895289911f004b291bfb3541e1b5",
+    "key_fingerprint": "D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81",
+    "result": "gpgv exit 0, GOODSIG and VALIDSIG; artifact exact length and SHA-256 equal signed checksum; ubuntu-keyring package integrity verified"
+  },
+  "retained_publisher_path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\publisher\\ubuntu-24.04-server-cloudimg-amd64.vmdk",
+  "kernel": {
+    "flavour": "generic",
+    "version": "6.8.0-139-generic",
+    "package": "linux-image-6.8.0-139-generic",
+    "package_version": "6.8.0-139.139",
+    "path_in_boot_partition": "/vmlinuz-6.8.0-139-generic",
+    "bytes": 15059336,
+    "sha256": "0066409132868538bc0c9076f60131025775d5bbd8617df074d059f91b584918"
+  },
+  "initramfs": {
+    "path_in_boot_partition": "/initrd.img-6.8.0-139-generic",
+    "bytes": 30694978,
+    "sha256": "e7732308dee547d2455f6203b664d4ff47da050227fd6f2ad6a331dbff4ec0d2",
+    "inspection": "genuine early plus main cpio unpacked; exact modules, dependencies, aliases and udev loading before mountroot verified",
+    "proof_record": "candidate-server-vmdk-kernel-initramfs.json"
+  },
+  "root_selector": {
+    "kernel_argument": "root=LABEL=cloudimg-rootfs",
+    "partition": 1,
+    "filesystem": "ext4",
+    "label": "cloudimg-rootfs",
+    "uuid": "9a3e62be-4b82-4a7a-8f47-0b25d728fa3a",
+    "partuuid": "0e241dd3-d552-415c-9e4f-0b538173131d",
+    "boot_partition": 16,
+    "boot_uuid": "47e87460-6f19-41ce-8fb0-5e896fcb3673",
+    "efi_grub_search_resolves": true,
+    "default_boot_entry": "0; grubenv has no saved override; explicit initrd directive",
+    "depends_on_post_root_cloud_init": false
+  },
+  "gpt": {
+    "primary_and_backup_header_and_table_crc": "PASS",
+    "table_copies_equal": true,
+    "publisher_padding_observation": "VMDK virtual capacity is 10 GiB, while backup GPT remains at LBA 7340031. sgdisk reports backup not at end. Both existing GPT headers/tables validate, every partition is within the declared usable range, root and boot selectors resolve. No GPT fix or image repair performed or required by these static selectors.",
+    "topology_record": "evidence/vmdk-inspection/partition-topology.json"
+  },
+  "uefi_secure_boot": {
+    "esp_partition": 15,
+    "esp_partuuid": "8d06df08-f231-47c6-91d9-a7a030574dee",
+    "esp_uuid": "B303-7D7B",
+    "fallback_bootx64_equals_shim": true,
+    "shim_sha256": "6fe6e1bcbe6cf6baec8e056d40361ca1aa715cc04ddcc2855351de060b84350b",
+    "grub_sha256": "a831af01e4fb5e3c9457120e1d08ea13d98a0a47b62728c284b7f502d535965c",
+    "shim_signer": "Microsoft Windows UEFI Driver Publisher",
+    "shim_issuer": "Microsoft Corporation UEFI CA 2011",
+    "template": "MicrosoftUEFICertificateAuthority",
+    "grub_kernel_signer": "Canonical Ltd. Secure Boot Signing (2022 v1)",
+    "embedded_shim_trust": "Canonical Ltd. Master Certificate Authority extracted from actual shim .vendor_cert; verifies GRUB/kernel leaf and signatures",
+    "signature_verification": "sbverify and openssl verification PASS; raw warning and certificate-validity outputs retained",
+    "claim_limit": "Static signed-chain compatibility established; actual firmware acceptance is a mandatory subsequent first-boot gate, not claimed here"
+  },
+  "selection_rationale": "Smallest qualifying artifact among the current released Canonical Ubuntu 24.04 amd64 products screened in candidate-matrix.json. All smaller products are unbootable root-only payloads or the audited Minimal early-storage failure. OVA, Azure VHD tar and QCOW2 are larger.",
+  "publisher_artifact_modified": false,
+  "mounted_read_write": false,
+  "custom_base_manufactured": false,
+  "replacement_vm_created_at_selection": false,
+  "attestation_or_replay_authority": false
+}

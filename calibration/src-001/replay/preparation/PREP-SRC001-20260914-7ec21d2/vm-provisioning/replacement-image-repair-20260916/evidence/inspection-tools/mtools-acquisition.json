@@ -1,0 +1,12 @@
+{
+  "package": "mtools",
+  "version": "4.0.43-1build1",
+  "url": "https://archive.ubuntu.com/ubuntu/pool/main/m/mtools/mtools_4.0.43-1build1_amd64.deb",
+  "path": "/tmp/src001-replacement-image-gate-20260916/inspection-tools/mtools_4.0.43-1build1_amd64.deb",
+  "expected_sha256": "deb50411c17b001c2400dd8a0146f39d12070a2fe5e92d734b1c6d0e73119262",
+  "sha256": "deb50411c17b001c2400dd8a0146f39d12070a2fe5e92d734b1c6d0e73119262",
+  "byte_length": 196676,
+  "verified": true,
+  "exit_code": 0,
+  "stderr": ""
+}

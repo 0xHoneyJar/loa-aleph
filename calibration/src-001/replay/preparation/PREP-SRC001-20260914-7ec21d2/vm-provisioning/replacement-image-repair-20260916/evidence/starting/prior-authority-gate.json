@@ -1,0 +1,65 @@
+[
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-blind-src-001-replay-harness-implementation-20260914.md",
+    "creation_commit": "b13e5ef20647e9f892da9c4fd213db7585da7ac3",
+    "original_blob": "4a1375742984878fc7ab19e6bdbfe6c6768a2fbd",
+    "current_blob": "4a1375742984878fc7ab19e6bdbfe6c6768a2fbd",
+    "unchanged": true
+  },
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-blind-src-001-replay-harness-implementation-reconciliation-path-clarification-20260914.md",
+    "creation_commit": "06bebc0be95b61e2f8c73004c61138c281f3826d",
+    "original_blob": "50bf4714027426849ae527a188731d73085611ca",
+    "current_blob": "50bf4714027426849ae527a188731d73085611ca",
+    "unchanged": true
+  },
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-blind-src-001-replay-hyperv-restart-continuation-20260915.md",
+    "creation_commit": "f8ec99faed3d816f2ba82b069d78e2179f409997",
+    "original_blob": "c9ddc68f2e7970ddaddb386dd8d072d13a558d03",
+    "current_blob": "c9ddc68f2e7970ddaddb386dd8d072d13a558d03",
+    "unchanged": true
+  },
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-blind-src-001-replay-preparation-20260914.md",
+    "creation_commit": "7ec21d24d900ee6938b26778033210fb339da975",
+    "original_blob": "b9235f1bf02999b9630ed1b11da5941db1ee42a8",
+    "current_blob": "b9235f1bf02999b9630ed1b11da5941db1ee42a8",
+    "unchanged": true
+  },
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-blind-src-001-replay-vm-provisioning-20260915.md",
+    "creation_commit": "7a772f03492d5f76ccb238b69883f5a83c295695",
+    "original_blob": "914bc28483131a049269d59cb95b46fec139dcaa",
+    "current_blob": "914bc28483131a049269d59cb95b46fec139dcaa",
+    "unchanged": true
+  },
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-slice-5-implementation-20260903.md",
+    "creation_commit": "125fe1f626356045a6a169103fabc4bf03d25b40",
+    "original_blob": "fff19bd10a29f2baf74f9a4c28da0587f3295364",
+    "current_blob": "fff19bd10a29f2baf74f9a4c28da0587f3295364",
+    "unchanged": true
+  },
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-slice-6-implementation-20260911.md",
+    "creation_commit": "1a8fcdecb4e554e116828166dc5e806851d9e499",
+    "original_blob": "8d0d4e39e56f81bbf006e8994010601ee3c715c9",
+    "current_blob": "8d0d4e39e56f81bbf006e8994010601ee3c715c9",
+    "unchanged": true
+  },
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-slice-7-implementation-20260912.md",
+    "creation_commit": "61bed05bcd19a2c03e8a45f181b0d34c16eb78bb",
+    "original_blob": "cb5153ea7e8218bb287e5616d852848e563e18f9",
+    "current_blob": "cb5153ea7e8218bb287e5616d852848e563e18f9",
+    "unchanged": true
+  },
+  {
+    "path": "calibration/src-001/core-design-basis/AUTHORIZED-slice-8-implementation-20260913.md",
+    "creation_commit": "c913fb2667539e34baa616ada2e50415f0c36291",
+    "original_blob": "e4ec9c94e5e3c3801f8b219949dd35ddb97dcf3d",
+    "current_blob": "e4ec9c94e5e3c3801f8b219949dd35ddb97dcf3d",
+    "unchanged": true
+  }
+]

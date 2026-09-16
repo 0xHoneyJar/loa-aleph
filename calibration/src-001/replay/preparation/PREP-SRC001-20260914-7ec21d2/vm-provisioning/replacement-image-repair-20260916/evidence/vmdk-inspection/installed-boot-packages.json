@@ -1,0 +1,67 @@
+{
+  "command": [
+    "debugfs",
+    "-R",
+    "dump /var/lib/dpkg/status /tmp/src001-replacement-image-gate-20260916/vmdk-inspection/dpkg-status",
+    "/tmp/src001-replacement-image-gate-20260916/vmdk-inspection/partition-1.raw"
+  ],
+  "exit_code": 0,
+  "stderr": "debugfs 1.47.0 (5-Feb-2023)\n",
+  "source_file_sha256": "eb4fcbb8f264b0e601ef4f79c92195d6dfb7b3a4cd07f25425fed92affae48d5",
+  "packages": [
+    {
+      "Package": "grub-efi-amd64-bin",
+      "Version": "2.12-1ubuntu7.3",
+      "Architecture": "amd64",
+      "Status": "install ok installed"
+    },
+    {
+      "Package": "grub-efi-amd64-signed",
+      "Version": "1.202.5+2.12-1ubuntu7.3",
+      "Architecture": "amd64",
+      "Status": "install ok installed"
+    },
+    {
+      "Package": "initramfs-tools",
+      "Version": "0.142ubuntu25.8",
+      "Architecture": "all",
+      "Status": "install ok installed"
+    },
+    {
+      "Package": "initramfs-tools-bin",
+      "Version": "0.142ubuntu25.8",
+      "Architecture": "amd64",
+      "Status": "install ok installed"
+    },
+    {
+      "Package": "initramfs-tools-core",
+      "Version": "0.142ubuntu25.8",
+      "Architecture": "all",
+      "Status": "install ok installed"
+    },
+    {
+      "Package": "linux-image-6.8.0-139-generic",
+      "Version": "6.8.0-139.139",
+      "Architecture": "amd64",
+      "Status": "install ok installed"
+    },
+    {
+      "Package": "linux-image-virtual",
+      "Version": "6.8.0-139.139",
+      "Architecture": "amd64",
+      "Status": "install ok installed"
+    },
+    {
+      "Package": "linux-modules-6.8.0-139-generic",
+      "Version": "6.8.0-139.139",
+      "Architecture": "amd64",
+      "Status": "install ok installed"
+    },
+    {
+      "Package": "shim-signed",
+      "Version": "1.58+15.8-0ubuntu1",
+      "Architecture": "amd64",
+      "Status": "install ok installed"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+HTTP/2 301 
+date: Wed, 16 Sep 2026 19:59:20 GMT
+content-type: text/html; charset=utf-8
+content-length: 0
+location: https://ubuntu.com/cloud/public-cloud/docs/all-clouds-explanation/cloud-image-variants/
+set-cookie: __cf_bm=w9S9wGVVFwKDTes8SxQ90pn3HgrQA5Q9DHtx3BveJGA-1789588758.5995386-1.0.1.1-vLTNoO0rWhJGu4g6x76cBvW1iHa86eCrOufGXKuFO3uFm0jzPxy9dEkuaSvBXW1yv7ueqBvGXt4xqXVwb.bSuhi3hiizDBCI8xPMTLBE7CxjFVf5PPApqNSUed3O095o; HttpOnly; SameSite=None; Secure; Path=/; Domain=documentation.ubuntu.com; Expires=Wed, 16 Sep 2026 20:29:20 GMT
+set-cookie: _cfuvid=B4xx1W8WPEl2nZDnCSa8BRyvJNerUZRJ7rFz1Gdllrk-1789588758.5995386-1.0.1.1-mSWsBmBqKgR3FYYhTHi.U_epum70Gw3qyad_6gMchgY; HttpOnly; SameSite=None; Secure; Path=/; Domain=documentation.ubuntu.com
+cf-ray: a3c2736d3b30aa07-GVA
+cf-cache-status: BYPASS
+access-control-allow-origin: *
+content-language: en
+server: cloudflare
+x-served: Proxito-404
+vary: Accept-Language
+access-control-allow-methods: HEAD, OPTIONS, GET
+cdn-cache-control: private
+cross-origin-opener-policy: same-origin
+referrer-policy: no-referrer-when-downgrade
+x-backend: web-i-072d8f9c04b0c0b20
+x-content-type-options: nosniff
+x-rtd-domain: documentation.ubuntu.com
+x-rtd-force-addons: true
+x-rtd-project: canonical-ubuntu-documentation-library
+x-rtd-project-method: custom_domain
+x-rtd-redirect: user
+x-rtd-resolver-filename: /public-cloud/all-clouds-explanation/cloud-image-variants/
+x-rtd-version: latest
+x-rtd-version-method: path
+alt-svc: h3=":443"; ma=86400
+
+HTTP/2 404 
+server: nginx/1.14.0 (Ubuntu)
+date: Wed, 16 Sep 2026 19:59:21 GMT
+content-type: text/html; charset=utf-8
+cf-ray: a3c27379aecc68ce-BOS
+cf-cache-status: BYPASS
+access-control-allow-origin: *
+set-cookie: _cfuvid=GCady_olioBNPiodo6T3.VVZcKd.NgPtY5aRm1Fp4ZA-1789588760.5927527-1.0.1.1-8TEmP7xSiqqiBCojwwO122h34LBy1WlFp.DCtQFGaPQ; HttpOnly; SameSite=None; Secure; Path=/; Domain=readthedocs-hosted.com
+set-cookie: __cf_bm=brxlLaib8YAJxxeQD886d5hDQi5_8M5i9cvdg5M7gJM-1789588760.58538-1.0.1.1-i6bGsUDBb26RngvSSouWqJM92wDdHCfAhOnlTi9hKG_9fr3a8kQJU4KjayAk4_2Gh93OB7ZZEQTlBoXZj9UyYym80hV4ZWgtdxpoEECbhIyt0z9yxaBMK7rAUUgx9v0z; HttpOnly; SameSite=None; Secure; Path=/; Domain=readthedocs-hosted.com; Expires=Wed, 16 Sep 2026 20:29:21 GMT
+content-language: en
+x-served: Proxito-404
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+vary: Accept-Encoding, Accept-Language, Cookie
+access-control-allow-methods: HEAD, OPTIONS, GET
+cdn-cache-control: private
+cross-origin-opener-policy: same-origin
+referrer-policy: no-referrer-when-downgrade
+x-backend: web-i-05f5d617817b598b7
+x-content-type-options: nosniff
+alt-svc: h3=":443"; ma=86400
+set-cookie: session=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; SameSite=Lax; HttpOnly; Secure
+

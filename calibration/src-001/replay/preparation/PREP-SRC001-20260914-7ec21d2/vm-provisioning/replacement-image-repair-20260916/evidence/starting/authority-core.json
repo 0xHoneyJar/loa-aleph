@@ -1,0 +1,121 @@
+{
+  "result": "PASS",
+  "checks": [
+    {
+      "id": "CB1",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(core manifest): core manifest format and required fields are valid"
+    },
+    {
+      "id": "CB2",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(inventory classification): 1085 tracked and nonignored untracked files have exactly one classification"
+    },
+    {
+      "id": "CB3",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(Core completeness and class boundaries): doctrine, contracts, fixtures, goldens, checkers, and manual binding remain in Core"
+    },
+    {
+      "id": "CB4",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(checker and typed manifest references): checker and typed boundary references resolve to classified paths"
+    },
+    {
+      "id": "CB5",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(adapter manifest shape): adapter manifests and protocol schema are structurally valid"
+    },
+    {
+      "id": "CB6",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(adapter lifecycle honesty): lifecycle labels, capabilities, entrypoints, installation, profiles, and evidence agree"
+    },
+    {
+      "id": "CB7",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(adapter ownership and Core non-override): adapters own only their host paths and cannot override or duplicate Core"
+    },
+    {
+      "id": "CB8",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(foreign-adapter exclusion): selected-adapter payloads, typed dependencies, and bundle inventories exclude foreign adapters"
+    },
+    {
+      "id": "CB10",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(Core-owned procedural authority semantics): Loa delegates structured material-impact authority eligibility to the Core helper"
+    },
+    {
+      "id": "CB9",
+      "scope": "CORE-BOUNDARY",
+      "status": "PASS",
+      "message": "(bundle digests and Core equality): all bundle targets share Core digest sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c"
+    }
+  ],
+  "inventory": {
+    "total": 1085,
+    "core": 600,
+    "adapters": {
+      "hermes": 1,
+      "loa": 52
+    },
+    "packaging": 8,
+    "repositoryAdministration": 424
+  },
+  "digests": {
+    "algorithm": "sha256-path-file-digest-v1",
+    "core": "sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c",
+    "checker": "sha256:214c0ed2448f9200242cbba7ec6f71f454b24a1818ee090aa593911368f2496e",
+    "manualExecutionBinding": "sha256:81c536d14dca524a7dea0a1ab0cf263cde985079f7c75e37e5d633ded65c7715",
+    "adapters": {
+      "loa": "sha256:fa38c4556f80afdd8227e5e4e0e3f37af2d8d33ead5f3669f6f3a51e5cf6916f",
+      "hermes": "sha256:4335e08f14ac5836857ad288eb80cef9b2d3e4bc46b725a99966147baed9188c"
+    },
+    "bundles": {
+      "aleph-for-loa": {
+        "adapterId": "loa",
+        "coreDigest": "sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c",
+        "adapterDigest": "sha256:fa38c4556f80afdd8227e5e4e0e3f37af2d8d33ead5f3669f6f3a51e5cf6916f",
+        "payloadDigest": "sha256:276addb59829cd4735293c34e0fc1877cdcd221b3d01fd7bf6c758838c9e6572",
+        "lockProjectionDigest": "sha256:71a9b04124d117853922e948edae5c85019a330a337a1ecf89b6ca8f9071e963",
+        "bundleDigest": "sha256:e83ab57e971f2d508fe2b42139cd122b9fd70b9b309574efd10307ff6795c909"
+      },
+      "aleph-for-hermes": {
+        "adapterId": "hermes",
+        "coreDigest": "sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c",
+        "adapterDigest": "sha256:4335e08f14ac5836857ad288eb80cef9b2d3e4bc46b725a99966147baed9188c",
+        "payloadDigest": "sha256:c938cc7566e8d7ada5ce23beab924317226940a654733c9f6ab961dd801f7795",
+        "lockProjectionDigest": "sha256:23681d4d19e3ff4895aa79c58a034c6288580047692a5451fdfcb39bea1f5363",
+        "bundleDigest": "sha256:c1b1006916ab2fd5cd93ea2127fd60f3009ff09ea5001be0ce68e27a2047fdb6"
+      }
+    }
+  },
+  "adapters": [
+    {
+      "id": "hermes",
+      "lifecycle": "planned",
+      "fullModeClaimed": false,
+      "preflight": "NOT-READY",
+      "preflightReasons": [
+        "adapter lifecycle is planned; no runnable entrypoint or installation exists"
+      ]
+    },
+    {
+      "id": "loa",
+      "lifecycle": "implemented",
+      "fullModeClaimed": true,
+      "preflight": "READY",
+      "preflightReasons": []
+    }
+  ]
+}

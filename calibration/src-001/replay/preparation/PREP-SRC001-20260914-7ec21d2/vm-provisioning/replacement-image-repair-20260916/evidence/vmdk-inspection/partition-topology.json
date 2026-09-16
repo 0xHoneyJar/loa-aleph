@@ -1,0 +1,42 @@
+[
+  {
+    "partition": 1,
+    "type_guid": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+    "partuuid": "0e241dd3-d552-415c-9e4f-0b538173131d",
+    "start_lba": 2099200,
+    "end_lba": 7339998,
+    "offset_bytes": 1074790400,
+    "length_bytes": 2683289088,
+    "name": ""
+  },
+  {
+    "partition": 14,
+    "type_guid": "21686148-6449-6e6f-744e-656564454649",
+    "partuuid": "1e77cb92-a607-4763-b169-f73a4baee50e",
+    "start_lba": 2048,
+    "end_lba": 10239,
+    "offset_bytes": 1048576,
+    "length_bytes": 4194304,
+    "name": ""
+  },
+  {
+    "partition": 15,
+    "type_guid": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+    "partuuid": "8d06df08-f231-47c6-91d9-a7a030574dee",
+    "start_lba": 10240,
+    "end_lba": 227327,
+    "offset_bytes": 5242880,
+    "length_bytes": 111149056,
+    "name": ""
+  },
+  {
+    "partition": 16,
+    "type_guid": "bc13c2ff-59e6-4262-a352-b275fd6f7172",
+    "partuuid": "2704ee17-22c1-4dd4-88f1-0136b579fde3",
+    "start_lba": 227328,
+    "end_lba": 2097152,
+    "offset_bytes": 116391936,
+    "length_bytes": 957350400,
+    "name": ""
+  }
+]

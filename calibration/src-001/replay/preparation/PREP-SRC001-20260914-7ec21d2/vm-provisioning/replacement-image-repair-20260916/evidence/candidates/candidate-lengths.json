@@ -1,0 +1,58 @@
+[
+  {
+    "name": "ubuntu-24.04-server-cloudimg-amd64-root.tar.xz",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64-root.tar.xz",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:00:59 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Fri, 11 Sep 2026 22:31:16 GMT\nETag: \"da9d42c-65b3ca47cc3ff\"\nAccept-Ranges: bytes\nContent-Length: 229233708\nContent-Type: application/x-xz\n\n",
+    "stderr": "",
+    "byte_length": 229233708
+  },
+  {
+    "name": "ubuntu-24.04-server-cloudimg-amd64.squashfs",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.squashfs",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:00:59 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Fri, 11 Sep 2026 22:31:20 GMT\nETag: \"10aaa000-65b3ca4bf6ab2\"\nAccept-Ranges: bytes\nContent-Length: 279617536\n\n",
+    "stderr": "",
+    "byte_length": 279617536
+  },
+  {
+    "name": "ubuntu-24.04-server-cloudimg-amd64.tar.gz",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.tar.gz",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:00:59 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Fri, 11 Sep 2026 22:31:22 GMT\nETag: \"20829b43-65b3ca4dbfb48\"\nAccept-Ranges: bytes\nContent-Length: 545430339\nContent-Type: application/x-gzip\n\n",
+    "stderr": "",
+    "byte_length": 545430339
+  },
+  {
+    "name": "ubuntu-24.04-server-cloudimg-amd64.vmdk",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:00:59 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Fri, 11 Sep 2026 22:31:23 GMT\nETag: \"2369aa00-65b3ca4eea896\"\nAccept-Ranges: bytes\nContent-Length: 594127360\n\n",
+    "stderr": "",
+    "byte_length": 594127360
+  },
+  {
+    "name": "ubuntu-24.04-server-cloudimg-amd64.ova",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.ova",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:00:59 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Fri, 11 Sep 2026 22:31:19 GMT\nETag: \"2369f000-65b3ca4b0e3e7\"\nAccept-Ranges: bytes\nContent-Length: 594145280\n\n",
+    "stderr": "",
+    "byte_length": 594145280
+  },
+  {
+    "name": "ubuntu-24.04-server-cloudimg-amd64-azure.vhd.tar.gz",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64-azure.vhd.tar.gz",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:00:59 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Fri, 11 Sep 2026 22:31:15 GMT\nETag: \"24056c45-65b3ca471d716\"\nAccept-Ranges: bytes\nContent-Length: 604335173\nContent-Type: application/x-gzip\n\n",
+    "stderr": "",
+    "byte_length": 604335173
+  },
+  {
+    "name": "ubuntu-24.04-server-cloudimg-amd64.img",
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release-20260911/ubuntu-24.04-server-cloudimg-amd64.img",
+    "exit_code": 0,
+    "headers": "HTTP/1.1 200 OK\nDate: Wed, 16 Sep 2026 20:00:59 GMT\nServer: Apache/2.4.29 (Ubuntu)\nLast-Modified: Fri, 11 Sep 2026 22:31:17 GMT\nETag: \"2544aa00-65b3ca493f590\"\nAccept-Ranges: bytes\nContent-Length: 625256960\nContent-Type: application/octet-stream\n\n",
+    "stderr": "",
+    "byte_length": 625256960
+  }
+]

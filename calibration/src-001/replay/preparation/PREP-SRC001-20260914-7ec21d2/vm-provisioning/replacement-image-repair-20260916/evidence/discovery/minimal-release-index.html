@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+ "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+ <head>
+   <title>Ubuntu Minimal 24.04 LTS (Noble Numbat) release [20260905]</title>
+  <!-- Main style sheets for CSS2 capable browsers -->
+  <style type="text/css" media="screen">
+  @import url('https://cloud-images.ubuntu.com/include/style.css');
+  pre { background: none; }
+  body { margin: 2em; }
+  table {
+     margin: 0.5em 0;
+     border-collapse: collapse;
+  }
+  td {
+     padding: 0.25em;
+     border: 1pt solid #C1B496; /* ubuntu dark tan */
+  }
+  td p {
+     margin: 0;
+     padding: 0;
+  }
+  </style>
+ </head>
+ <body><div id="pageWrapper">
+
+<div id="header"><a href="http://www.ubuntu.com/"></a></div>
+
+<div id="main">
+
+<h1>Ubuntu Minimal 24.04 LTS (Noble Numbat) release [20260905]</h1>
+
+<p>The Ubuntu Minimal Cloud image can be run on your personal
+<a class="http" href="http://www.ubuntu.com/business/cloud/overview">Ubuntu
+Cloud</a>, or on <a class="http" href="http://www.ubuntu.com/cloud/public-cloud">public clouds that provide Ubuntu Certified Images.</a></p>
+
+<p><h3>To find a listing of our public images on supported Clouds, please use the Cloud Image Locator:</h3></p>
+<ul>
+	<li><a class="http" href="https://cloud-images.ubuntu.com/locator/">Released Image locator</a>
+	<li><a class="http" href="https://cloud-images.ubuntu.com/locator/daily/">Daily Image Locator</a>
+</ul>
+<p>
+Cloud image specific bugs should be filed in the <a class="http" href="https://bugs.launchpad.net/cloud-images/+filebug">cloud-images</a> project on Launchpad.net.
+</p>
+
+<h2>Launching Ubuntu Minimal</h2>
+<h3>KVM</h3>
+<p>
+When launching the download image from KVM, you will need to specify the virtio network driver.
+</p>
+<h3>LXD</h3>
+<p>
+First add the new Ubuntu Minimal  images simplestreams endpoint:
+</p>
+
+<pre>
+  
+    lxc remote add --protocol simplestreams ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/
+  
+</pre>
+
+<p>
+Launch the noble image:
+</p>
+<pre>
+  
+    lxc launch ubuntu-minimal:noble
+  
+</pre><pre><img src="/icons/blank.gif" alt="Icon " width="22" height="22"> <a href="?C=N;O=D">Name</a>                                                                               <a href="?C=M;O=A">Last modified</a>      <a href="?C=S;O=A">Size</a>  <a href="?C=D;O=A">Description</a><hr><img src="/icons/back.gif" alt="[PARENTDIR]" width="22" height="22"> <a href="/minimal/releases/noble/">Parent Directory</a>                                                                                        -   Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="MD5SUMS">MD5SUMS</a>                                                                            2026-09-05 15:04  1.6K  Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="MD5SUMS.gpg">MD5SUMS.gpg</a>                                                                        2026-09-05 15:04  833   Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="SHA256SUMS">SHA256SUMS</a>                                                                         2026-09-05 15:04  2.1K  Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="SHA256SUMS.gpg">SHA256SUMS.gpg</a>                                                                     2026-09-05 15:04  833   Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64-lxd.tar.xz">ubuntu-24.04-minimal-cloudimg-amd64-lxd.tar.xz</a>                                     2026-09-05 15:04  416   Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/text.gif" alt="[TXT]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64-root.manifest">ubuntu-24.04-minimal-cloudimg-amd64-root.manifest</a>                                  2026-09-05 15:04  8.3K  Package manifest file
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64-root.tar.xz">ubuntu-24.04-minimal-cloudimg-amd64-root.tar.xz</a>                                    2026-09-05 15:04  112M  Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64.daily.20260903.20260905.image_changelog.json">ubuntu-24.04-minimal-cloudimg-amd64.daily.20260903.20260905.image_changelog.json</a>   2026-09-05 15:04  151K  Image Changelog
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64.img">ubuntu-24.04-minimal-cloudimg-amd64.img</a>                                            2026-09-05 15:04  252M  QCow2 UEFI/GPT Bootable disk image
+<img src="/icons/text.gif" alt="[TXT]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64.manifest">ubuntu-24.04-minimal-cloudimg-amd64.manifest</a>                                       2026-09-05 15:04  8.9K  Package manifest file
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64.release.20260826.20260905.image_changelog.json">ubuntu-24.04-minimal-cloudimg-amd64.release.20260826.20260905.image_changelog.json</a> 2026-09-05 15:04  361K  Image Changelog
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64.squashfs">ubuntu-24.04-minimal-cloudimg-amd64.squashfs</a>                                       2026-09-05 15:04  136M  Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/text.gif" alt="[TXT]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-amd64.squashfs.manifest">ubuntu-24.04-minimal-cloudimg-amd64.squashfs.manifest</a>                              2026-09-05 15:04  8.3K  Package manifest file
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64-lxd.tar.xz">ubuntu-24.04-minimal-cloudimg-arm64-lxd.tar.xz</a>                                     2026-09-05 15:04  412   Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/text.gif" alt="[TXT]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64-root.manifest">ubuntu-24.04-minimal-cloudimg-arm64-root.manifest</a>                                  2026-09-05 15:04  8.1K  Package manifest file
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64-root.tar.xz">ubuntu-24.04-minimal-cloudimg-arm64-root.tar.xz</a>                                    2026-09-05 15:04   78M  Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64.daily.20260903.20260905.image_changelog.json">ubuntu-24.04-minimal-cloudimg-arm64.daily.20260903.20260905.image_changelog.json</a>   2026-09-05 15:04  151K  Image Changelog
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64.img">ubuntu-24.04-minimal-cloudimg-arm64.img</a>                                            2026-09-05 15:04  219M  QCow2 UEFI/GPT Bootable disk image
+<img src="/icons/text.gif" alt="[TXT]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64.manifest">ubuntu-24.04-minimal-cloudimg-arm64.manifest</a>                                       2026-09-05 15:04  8.6K  Package manifest file
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64.release.20260826.20260905.image_changelog.json">ubuntu-24.04-minimal-cloudimg-arm64.release.20260826.20260905.image_changelog.json</a> 2026-09-05 15:04  2.7M  Image Changelog
+<img src="/icons/unknown.gif" alt="[   ]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64.squashfs">ubuntu-24.04-minimal-cloudimg-arm64.squashfs</a>                                       2026-09-05 15:04   98M  Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<img src="/icons/text.gif" alt="[TXT]" width="22" height="22"> <a href="ubuntu-24.04-minimal-cloudimg-arm64.squashfs.manifest">ubuntu-24.04-minimal-cloudimg-arm64.squashfs.manifest</a>                              2026-09-05 15:04  8.1K  Package manifest file
+<img src="../../../../cdicons/folder.png" alt="[DIR]" width="22" height="22"> <a href="unpacked/">unpacked/</a>                                                                          2026-09-05 15:04    -   Ubuntu Minimal 24.04 LTS (Noble Numbat) released builds
+<hr></pre>
+</div></div></body></html>

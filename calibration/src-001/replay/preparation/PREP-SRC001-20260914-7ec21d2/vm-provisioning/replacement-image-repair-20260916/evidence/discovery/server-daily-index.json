@@ -1,0 +1,26 @@
+{
+  "source": "https://cloud-images.ubuntu.com/noble/current/",
+  "started_at_utc": "2026-09-16T19:59:18.138483+00:00",
+  "finished_at_utc": "2026-09-16T19:59:18.348411+00:00",
+  "command": [
+    "curl",
+    "--fail",
+    "--show-error",
+    "--silent",
+    "--location",
+    "--proto",
+    "=https",
+    "--max-time",
+    "45",
+    "--dump-header",
+    "/tmp/src001-replacement-image-gate-20260916/discovery/server-daily-index.headers",
+    "--output",
+    "/tmp/src001-replacement-image-gate-20260916/discovery/server-daily-index.html",
+    "https://cloud-images.ubuntu.com/noble/current/"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "bytes": 20524,
+  "sha256": "a0352c8a969fa169e3e72add5ea48c17fb095b41a5ff66fff7bd6bef31a6c82e"
+}

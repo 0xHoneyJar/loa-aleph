@@ -1,0 +1,54 @@
+[
+  {
+    "command": [
+      "file",
+      "/tmp/src001-replacement-image-gate-20260916/tar-inspection/publisher-ext4.img"
+    ],
+    "exit_code": 0,
+    "stdout": "/tmp/src001-replacement-image-gate-20260916/tar-inspection/publisher-ext4.img: Linux rev 1.0 ext4 filesystem data, UUID=174b1571-974b-4244-a32d-17dc42cc646b, volume name \"cloudimg-rootfs\" (extents) (64bit) (large files) (huge files)\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "blkid",
+      "-p",
+      "/tmp/src001-replacement-image-gate-20260916/tar-inspection/publisher-ext4.img"
+    ],
+    "exit_code": 0,
+    "stdout": "/tmp/src001-replacement-image-gate-20260916/tar-inspection/publisher-ext4.img: LABEL=\"cloudimg-rootfs\" UUID=\"174b1571-974b-4244-a32d-17dc42cc646b\" VERSION=\"1.0\" FSBLOCKSIZE=\"4096\" BLOCK_SIZE=\"4096\" FSLASTBLOCK=\"483072\" FSSIZE=\"1978662912\" TYPE=\"ext4\" USAGE=\"filesystem\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "ls -l /boot",
+      "/tmp/src001-replacement-image-gate-20260916/tar-inspection/publisher-ext4.img"
+    ],
+    "exit_code": 0,
+    "stdout": "  16114   40755 (2)      0      0    4096 11-Sep-2026 14:58 .\n      2   40755 (2)      0      0    4096 11-Sep-2026 14:58 ..\n     13  100600 (1)      0      0   9135527  1-Aug-2026 04:25 System.map-6.8.0-139-generic\n     14  100644 (1)      0      0   287560  1-Aug-2026 04:25 config-6.8.0-139-generic\n     15  100600 (1)      0      0   15059336  1-Aug-2026 04:26 vmlinuz-6.8.0-139-generic\n     16  120777 (7)      0      0      25 11-Sep-2026 14:58 vmlinuz.old\n     17  120777 (7)      0      0      28 11-Sep-2026 14:58 initrd.img.old\n     18  120777 (7)      0      0      25 11-Sep-2026 14:58 vmlinuz\n     19  120777 (7)      0      0      28 11-Sep-2026 14:58 initrd.img\n     20  100644 (1)      0      0   30694978 11-Sep-2026 14:58 initrd.img-6.8.0-139-generic\n     21   40755 (2)      0      0    4096 11-Sep-2026 14:58 grub\n\n",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n"
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "cat /etc/fstab",
+      "/tmp/src001-replacement-image-gate-20260916/tar-inspection/publisher-ext4.img"
+    ],
+    "exit_code": 0,
+    "stdout": "LABEL=cloudimg-rootfs\t/\t ext4\tdiscard,commit=30,errors=remount-ro\t0 1\n",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n"
+  },
+  {
+    "command": [
+      "debugfs",
+      "-R",
+      "ls -l /boot/efi",
+      "/tmp/src001-replacement-image-gate-20260916/tar-inspection/publisher-ext4.img"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "debugfs 1.47.0 (5-Feb-2023)\n/boot/efi: File not found by ext2_lookup \n"
+  }
+]

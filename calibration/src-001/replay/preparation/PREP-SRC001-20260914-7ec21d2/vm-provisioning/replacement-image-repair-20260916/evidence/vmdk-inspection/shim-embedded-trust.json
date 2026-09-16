@@ -1,0 +1,9 @@
+[
+  {
+    "section_offset": 707584,
+    "certificate_offset": 16,
+    "length": 1080,
+    "sha256": "ed1fe72cb9ca31c9af5b757afcd733323d675825032e6ced7fe1ae9eb767998c",
+    "subject_issuer": "subject=C = GB, ST = Isle of Man, L = Douglas, O = Canonical Ltd., CN = Canonical Ltd. Master Certificate Authority\nissuer=C = GB, ST = Isle of Man, L = Douglas, O = Canonical Ltd., CN = Canonical Ltd. Master Certificate Authority\n"
+  }
+]

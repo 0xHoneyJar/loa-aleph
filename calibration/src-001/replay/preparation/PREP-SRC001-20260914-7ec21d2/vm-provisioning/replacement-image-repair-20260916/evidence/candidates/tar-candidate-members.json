@@ -1,0 +1,24 @@
+[
+  {
+    "name": "noble-server-cloudimg-amd64.img",
+    "size": 1978662912,
+    "type": "0",
+    "mode": "0o644",
+    "linkname": "",
+    "first_4096_sha256": "b3a49c06aa0e8d5be71494b563b5476d1785bd9b6a14e9d4d7db2cc0f8efd8f9",
+    "magic_first16": "00000000000000000000000000000000",
+    "sector512_magic": "0000000000000000",
+    "ext4_magic": "53ef"
+  },
+  {
+    "name": "README",
+    "size": 170,
+    "type": "0",
+    "mode": "0o644",
+    "linkname": "",
+    "first_4096_sha256": "3831e25760d21938ab5c399e964a6abff7dadb58c826d304409a8abe88cab94e",
+    "magic_first16": "54686520666f6c6c6f77696e67206172",
+    "sector512_magic": "",
+    "ext4_magic": ""
+  }
+]
