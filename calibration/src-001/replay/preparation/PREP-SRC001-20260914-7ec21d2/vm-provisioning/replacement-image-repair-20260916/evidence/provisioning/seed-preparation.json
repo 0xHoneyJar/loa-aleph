@@ -1,0 +1,88 @@
+{
+  "format": "src001-replacement-provisioning-seed-preparation/v1",
+  "cloud_init_instance_id_is_administrative": true,
+  "replay_run_attempt_id_created": false,
+  "seed_directory": "/tmp/src001-replacement-image-gate-20260916/provisioning-private/seed",
+  "files": [
+    {
+      "name": "meta-data",
+      "bytes": 115,
+      "sha256": "71c118d62ff632b4716aabd18372d01176050a07d02e64a5d594852a16ada235"
+    },
+    {
+      "name": "network-config",
+      "bytes": 439,
+      "sha256": "2370619228bbc4c9a6d9123e860b6e03161a91b922e914007f3ba5b20c5f1f5d"
+    },
+    {
+      "name": "user-data",
+      "bytes": 2035,
+      "sha256": "c6e7b0e09aea004a826348bf310e7ec2896267172d60c208ff29048c4d02fe0d"
+    }
+  ],
+  "guest_ip": "172.29.31.250",
+  "network": {
+    "version": 2,
+    "ethernets": {
+      "prep0": {
+        "match": {
+          "driver": "hv_netvsc"
+        },
+        "set-name": "prep0",
+        "dhcp4": false,
+        "dhcp6": false,
+        "addresses": [
+          "172.29.31.250/20"
+        ],
+        "routes": [
+          {
+            "to": "default",
+            "via": "172.29.16.1"
+          }
+        ],
+        "nameservers": {
+          "addresses": [
+            "172.29.16.1"
+          ]
+        }
+      }
+    }
+  },
+  "accounts": [
+    {
+      "name": "provisioner",
+      "uid": 1000,
+      "password_locked": true,
+      "sudo": [
+        "ALL=(ALL) NOPASSWD:ALL"
+      ]
+    },
+    {
+      "name": "executor",
+      "uid": 1001,
+      "password_locked": true,
+      "sudo": []
+    }
+  ],
+  "fresh_ssh_identities": [
+    {
+      "identity": "provisioner",
+      "fingerprint": "256 SHA256:zp8gYnXvpgRKLx4T2Kf1qMZCuwRLeQ9Y3PCxtVEs8Vc IMAGE-REPAIR-SRC001-20260916-fda0a0b-provisioner (ED25519)",
+      "private_key_mode": "0o600"
+    },
+    {
+      "identity": "guest-host",
+      "fingerprint": "256 SHA256:NCXKA1vuzvst516cTV6jQLWp5Qf32HVFwGORKqT0G90 IMAGE-REPAIR-SRC001-20260916-fda0a0b-guest-host (ED25519)",
+      "private_key_mode": "0o600"
+    }
+  ],
+  "ssh_agent_forwarding": false,
+  "personal_credentials": false,
+  "provider_credentials": false,
+  "reference_material": false,
+  "semantic_input": false,
+  "release_payload": false,
+  "package_install_requested": false,
+  "image_modification": false,
+  "private_seed_publication": "Private SSH host key and provisioner private key are not committed or displayed; seed ISO contains only new guest host key, public provisioner key and mechanical configuration."
+}

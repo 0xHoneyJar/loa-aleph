@@ -1,0 +1,18 @@
+{
+  "format": "src001-replacement-visibility-enforcement/v1",
+  "status": "NOT_ESTABLISHED_BLOCKED_VM_PROVISIONING",
+  "allowed_roots_enforced": null,
+  "denied_roots_proven": null,
+  "mount_closure": "NOT_RUN",
+  "writable_root_closure": "NOT_RUN",
+  "channel_closure": "NOT_RUN",
+  "session_closure": "NOT_RUN",
+  "guest_network_closure": "NOT_RUN",
+  "host_containment": "PASS_BOTH_OFF_BOTH_NICS_DISCONNECTED",
+  "negative_probe_receipts": "negative-access-probes.json; all ten NOT_RUN",
+  "closed_reference_archive_transferred": false,
+  "closed_reference_answer_members_opened": 0,
+  "enforced_guest_visibility_proven": false,
+  "policy_prose_is_not_evidence": true,
+  "cognitive_blindness_claim": false
+}

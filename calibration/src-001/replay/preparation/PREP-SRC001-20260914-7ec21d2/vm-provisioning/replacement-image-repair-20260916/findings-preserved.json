@@ -1,0 +1,17 @@
+{
+  "format": "src001-replacement-findings-preservation/v1",
+  "F-03": "OPEN / MUST PRESERVE",
+  "F-04": "OPEN / MUST PRESERVE",
+  "F-05": "OPEN / MUST PRESERVE; bounded by F-03",
+  "PA-01": "CLOSED by prior supplied independent custodian audit",
+  "PA-02": "CLOSED by prior supplied independent custodian audit",
+  "PA-03": "LATER-NONBLOCKING",
+  "PA-04": "LATER-NONBLOCKING",
+  "PA-05": "LATER-NONBLOCKING",
+  "all_slice_and_harness_findings": "UNCHANGED",
+  "prior_vm_boot_audit": "VM_BOOT_BLOCKER_AUDIT_PASS",
+  "prior_audit_root_cause": "ROOT_CAUSE_ESTABLISHED_IMAGE_INITRAMFS_HYPERV_STORAGE",
+  "historical_producer_root_cause": "UNDETERMINED retained byte-for-byte at d763299",
+  "isolation_finding": "OPEN_NOT_REMEDIATED",
+  "independent_repair_closure": false
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    "$ErrorActionPreference='Stop';$p=Start-Process -FilePath 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -Verb RunAs -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File','\\\\wsl.localhost\\Ubuntu\\tmp\\src001-replacement-image-gate-20260916\\provisioning\\contain-failed-replacement.ps1') -Wait -PassThru;$p.ExitCode"
+  ],
+  "exit_code": 0,
+  "stdout": "0\n",
+  "stderr": ""
+}

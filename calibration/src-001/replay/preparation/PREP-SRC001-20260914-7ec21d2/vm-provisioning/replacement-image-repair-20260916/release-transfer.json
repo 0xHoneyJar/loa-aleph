@@ -1,0 +1,21 @@
+{
+  "format": "src001-replacement-release-transfer/v1",
+  "status": "NOT_PERFORMED",
+  "reason": "Replacement Start-VM was rejected for host memory allocation before kernel, root mount, userspace or provisioner session; no further repair fallback authorized.",
+  "release_custody_sha256": "sha256:81173115520bcc6d3bd6ad80d6561392b28e2e330651f946f2901b67f0c284e1",
+  "canonical_release_file_count": 3,
+  "custody_wrapper_is_payload": false,
+  "archive_bytes": 8126590,
+  "archive_sha256": "sha256:4bd8d27648ad1480601a0d4d31653297581ed354c95c0ab978fabb2d2ce3537c",
+  "expected_digests": {
+    "adapter": "sha256:fa38c4556f80afdd8227e5e4e0e3f37af2d8d33ead5f3669f6f3a51e5cf6916f",
+    "bundle": "sha256:e83ab57e971f2d508fe2b42139cd122b9fd70b9b309574efd10307ff6795c909",
+    "checker": "sha256:214c0ed2448f9200242cbba7ec6f71f454b24a1818ee090aa593911368f2496e",
+    "core": "sha256:ffec13a039d00a43b9b1e411daf0badd99f65f4bbd54af176146a98779ff124c",
+    "internal_lock": "sha256:71a9b04124d117853922e948edae5c85019a330a337a1ecf89b6ca8f9071e963",
+    "payload": "sha256:276addb59829cd4735293c34e0fc1877cdcd221b3d01fd7bf6c758838c9e6572"
+  },
+  "transferred_bytes": 0,
+  "guest_retained_identities": null,
+  "equality_chain": "NOT_ESTABLISHED_NO_TRANSFER"
+}

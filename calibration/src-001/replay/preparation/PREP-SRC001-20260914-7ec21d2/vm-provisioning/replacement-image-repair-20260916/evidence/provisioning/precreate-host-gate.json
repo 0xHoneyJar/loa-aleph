@@ -1,0 +1,52 @@
+{
+  "scope": "READ_ONLY_BEFORE_SINGLE_REPLACEMENT_CREATION",
+  "started_at_utc": "2026-09-16T20:18:54.6412893Z",
+  "failed_vm": {
+    "Id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+    "Name": "SRC001-PREP-7a772f0",
+    "State": "Off",
+    "Generation": 2,
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\vm\\SRC001-PREP-7a772f0"
+  },
+  "failed_nic": [
+    {
+      "Id": "Microsoft:D5913CD7-AA99-4695-96B7-0D0135BAD386\\3EA36DE1-C841-4CAA-860D-CC0A0463F24C",
+      "SwitchId": null,
+      "SwitchName": null,
+      "Connected": false,
+      "MacAddress": "00155D32E600"
+    }
+  ],
+  "failed_firmware": {
+    "SecureBoot": "On",
+    "SecureBootTemplate": "MicrosoftUEFICertificateAuthority"
+  },
+  "failed_worker_processes": [],
+  "failed_vhd_sha256": "5905c60cbc24b769af5dff0d79c21093ad523e652a6e8012c8b051b777bfefbb",
+  "failed_image_sha256": "46b0dbaffa6950a7da5ff2dc5ed34c46084610b3b6d1fae8f1ec2d7e953984a3",
+  "vms": [
+    {
+      "Id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "Name": "SRC001-PREP-7a772f0",
+      "State": "Off",
+      "Generation": 2,
+      "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\vm\\SRC001-PREP-7a772f0"
+    }
+  ],
+  "switch": {
+    "Id": "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444",
+    "Name": "Default Switch",
+    "SwitchType": "Internal"
+  },
+  "provisioning_host_ip": [
+    {
+      "IPAddress": "172.29.16.1",
+      "PrefixLength": 20,
+      "InterfaceIndex": 40,
+      "InterfaceAlias": "vEthernet (Default Switch)"
+    }
+  ],
+  "host_enhanced_session_capability": true,
+  "result": "PASS_FAILED_VM_PRESERVED_NO_REPLACEMENT_EXISTS",
+  "finished_at_utc": "2026-09-16T20:18:59.5325817Z"
+}

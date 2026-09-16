@@ -1,0 +1,17 @@
+{
+  "format": "src001-replacement-input-transfer/v1",
+  "status": "NOT_PERFORMED",
+  "reason": "Replacement Start-VM was rejected for host memory allocation before kernel, root mount, userspace or provisioner session; no further repair fallback authorized.",
+  "input_custody_sha256": "sha256:f93e1665d25e1929fc1c7e5bf0908138b5a800372ef9ce2ee466e950c1cdf363",
+  "host_custody_preservation": "evidence/provisioning/custody-final-preservation.json",
+  "approved_semantic_files": [
+    "inputs/source/SRC-001-frozen-numbered.txt",
+    "inputs/criteria/SRC-001-extraction-criteria.normalized.md",
+    "inputs/source/SRC-001-declared.pdf",
+    "inputs/source/SRC-001.aleph-representation.json"
+  ],
+  "original_criteria": "PROVENANCE_ONLY_HOST_SIDE_NOT_TRANSFERRED",
+  "transferred_bytes": 0,
+  "guest_retained_identities": null,
+  "equality_chain": "NOT_ESTABLISHED_NO_TRANSFER"
+}

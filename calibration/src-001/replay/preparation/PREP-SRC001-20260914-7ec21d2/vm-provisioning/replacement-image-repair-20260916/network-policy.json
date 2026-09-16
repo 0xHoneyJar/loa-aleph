@@ -1,0 +1,30 @@
+{
+  "format": "src001-replacement-network-preparation/v1",
+  "status": "CONTAINED_OFF_NIC_DISCONNECTED_GUEST_POLICY_NOT_ESTABLISHED",
+  "provisioning_switch": {
+    "id": "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444",
+    "name": "Default Switch",
+    "type": "Internal"
+  },
+  "switch_created_or_modified": false,
+  "configured_seed_address": "172.29.31.250/20",
+  "configured_seed_gateway_dns": "172.29.16.1",
+  "guest_address_route_dns_applied": "NOT_OBSERVED_NO_GUEST_BOOT",
+  "guest_outbound_provisioning_traffic": 0,
+  "final_host_nic": [
+    {
+      "Id": "Microsoft:213FF077-356B-44A0-9032-DF2ED0922B3A\\9F4E3A30-4E82-4C29-9052-FA830F520362",
+      "MacAddress": "000000000000",
+      "SwitchId": null,
+      "SwitchName": null,
+      "Connected": false
+    }
+  ],
+  "final_guest_interfaces": null,
+  "final_guest_routes": null,
+  "final_guest_dns": null,
+  "final_guest_firewall": null,
+  "future_provider_allowlist": "DEFERRED_TO_SEPARATE_EXACT_PROVIDER_CONFIGURATION",
+  "provider_endpoint_connectivity": "NOT_TESTED_NOT_AUTHORIZED",
+  "host_administrative_traffic": "GitHub ref/publication operations; HTTPS Canonical indexes/images/checksums and Ubuntu inspection-tool packages only. No model/provider endpoint contacted."
+}

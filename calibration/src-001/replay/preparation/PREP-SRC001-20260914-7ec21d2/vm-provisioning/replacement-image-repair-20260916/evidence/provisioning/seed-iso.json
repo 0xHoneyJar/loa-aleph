@@ -1,0 +1,48 @@
+{
+  "command": [
+    "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/genisoimage",
+    "-output",
+    "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/vm/provisioning-seed.iso",
+    "-volid",
+    "cidata",
+    "-joliet",
+    "-rock",
+    "/tmp/src001-replacement-image-gate-20260916/provisioning-private/seed/user-data",
+    "/tmp/src001-replacement-image-gate-20260916/provisioning-private/seed/meta-data",
+    "/tmp/src001-replacement-image-gate-20260916/provisioning-private/seed/network-config"
+  ],
+  "started_at_utc": "2026-09-16T20:22:49.869046+00:00",
+  "finished_at_utc": "2026-09-16T20:22:50.024157+00:00",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "I: -input-charset not specified, using utf-8 (detected in locale settings)\nTotal translation table size: 0\nTotal rockridge attributes bytes: 417\nTotal directory bytes: 0\nPath table size(bytes): 10\nMax brk space used 0\n184 extents written (0 MB)\n",
+  "iso_path": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/vm/provisioning-seed.iso",
+  "iso_bytes": 376832,
+  "iso_sha256": "a4986a2504f12d18a8cebe8d3c2726e68b408d9befc30951aaf5c0a2b0c46719",
+  "files": [
+    {
+      "name": "user-data",
+      "bytes": 2035,
+      "sha256": "c6e7b0e09aea004a826348bf310e7ec2896267172d60c208ff29048c4d02fe0d",
+      "exact_source_equality": true,
+      "exit_code": 0
+    },
+    {
+      "name": "meta-data",
+      "bytes": 115,
+      "sha256": "71c118d62ff632b4716aabd18372d01176050a07d02e64a5d594852a16ada235",
+      "exact_source_equality": true,
+      "exit_code": 0
+    },
+    {
+      "name": "network-config",
+      "bytes": 439,
+      "sha256": "2370619228bbc4c9a6d9123e860b6e03161a91b922e914007f3ba5b20c5f1f5d",
+      "exact_source_equality": true,
+      "exit_code": 0
+    }
+  ],
+  "contains_provider_or_reference_material": false,
+  "private_ssh_host_key_present": true,
+  "raw_seed_not_committed": true
+}

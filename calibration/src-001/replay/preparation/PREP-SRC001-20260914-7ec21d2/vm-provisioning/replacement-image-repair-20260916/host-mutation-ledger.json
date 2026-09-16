@@ -1,0 +1,64 @@
+{
+  "format": "src001-replacement-host-mutation-ledger/v1",
+  "entries": [
+    {
+      "order": 1,
+      "category": "administrative_files",
+      "operation": "Canonical discovery, authenticated image acquisition, temporary inspection and tool extraction",
+      "targets": "New /tmp/src001-replacement-image-gate-20260916 subtree; seven Ubuntu packages extracted without global install; two publisher artifacts retained",
+      "receipts": "Candidate evidence snapshot; publisher-retention.json",
+      "guest_image_mutation": false
+    },
+    {
+      "order": 2,
+      "category": "administrative_custody",
+      "operation": "Create dedicated external repair custody and copy five exact publisher/signature files",
+      "targets": "New D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b",
+      "receipts": "publisher-retention.json",
+      "old_artifacts_touched": false
+    },
+    {
+      "order": 3,
+      "category": "infrastructure",
+      "operation": "Convert exact VMDK representation into one new dynamic VHDX; full compare PASS; no resize",
+      "receipts": "evidence/provisioning/volume-base-equivalence.json"
+    },
+    {
+      "order": 4,
+      "category": "preparation_credentials_and_media",
+      "operation": "Create two dedicated SSH keypairs and exact three-file NoCloud seed; create one configuration ISO; no provider/reference/input/release content",
+      "receipts": [
+        "evidence/provisioning/seed-preparation.json",
+        "evidence/provisioning/seed-iso.json"
+      ]
+    },
+    {
+      "order": 5,
+      "category": "infrastructure",
+      "operation": "Create exactly one Generation 2 replacement VM; configure 2 vCPU/fixed 2 GiB, Secure Boot On/MicrosoftUEFICertificateAuthority, SCSI disk, seed DVD, startup/checkpoint policy and restricted integration services",
+      "receipts": [
+        "evidence/provisioning/replacement-creation.json",
+        "evidence/provisioning/executed-command-sources.json"
+      ]
+    },
+    {
+      "order": 6,
+      "category": "failed_infrastructure_request",
+      "operation": "One Start-VM request rejected by Hyper-V host memory allocation; no guest started",
+      "receipts": [
+        "evidence/provisioning/first-boot-start.json",
+        "evidence/provisioning/first-boot-launch.json"
+      ]
+    },
+    {
+      "order": 7,
+      "category": "containment",
+      "operation": "Disconnect only the new replacement NIC; preserve both OFF VMs and all disks, configs and seed artifacts; no memory resize or retry",
+      "receipts": "evidence/provisioning/replacement-final-containment.json"
+    }
+  ],
+  "rollback_or_removal": "No rollback/delete/reboot performed. Both evidence VMs and files retained; do not delete or modify failed artifacts. Further repair requires a separate authority boundary.",
+  "privilege": "Linux user for /tmp and repository work; permitted host-filesystem context for new D: artifact paths; Windows administrator for exact Hyper-V operations; no global package installation.",
+  "reboot_required_or_performed": false,
+  "old_vm_mutation_count": 0
+}

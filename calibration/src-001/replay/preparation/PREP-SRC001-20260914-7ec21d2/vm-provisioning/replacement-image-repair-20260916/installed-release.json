@@ -1,0 +1,14 @@
+{
+  "format": "src001-replacement-installed-release/v1",
+  "status": "NOT_INSTALLED",
+  "reason": "Replacement Start-VM was rejected for host memory allocation before kernel, root mount, userspace or provisioner session; no further repair fallback authorized.",
+  "installed_root": null,
+  "complete_installed_inventory": null,
+  "modes": null,
+  "ownership": null,
+  "executable_paths": null,
+  "node_identity": null,
+  "shell_tools": null,
+  "bundle_lock": null,
+  "expected_release_provenance": "Audited release custody at source c949ea5f39daef42d22ca2e4111164d63dffcbf1; no replacement or regeneration"
+}

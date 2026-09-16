@@ -1,0 +1,12 @@
+[
+  {
+    "operation": "git add and git commit candidate snapshot in sandbox",
+    "result": "fatal: Unable to create .git/index.lock: Read-only file system",
+    "resolution": "same scoped staging and commit completed in permitted escalated context; no reset/amend/force push"
+  },
+  {
+    "operation": "initial git ls-remote in sandbox",
+    "result": "Could not resolve host: github.com",
+    "resolution": "read-only live ref query completed in permitted network context before authority commit"
+  }
+]

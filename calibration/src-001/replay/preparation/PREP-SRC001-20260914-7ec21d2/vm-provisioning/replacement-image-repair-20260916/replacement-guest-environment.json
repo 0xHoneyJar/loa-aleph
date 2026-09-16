@@ -1,0 +1,23 @@
+{
+  "format": "src001-replacement-guest-environment/v1",
+  "status": "NOT_ESTABLISHED_NO_GUEST_BOOT",
+  "reason": "Replacement Start-VM was rejected for host memory allocation before kernel, root mount, userspace or provisioner session; no further repair fallback authorized.",
+  "os_from_publisher_inspection_only": "Ubuntu 24.04.5 LTS, VERSION_ID=24.04",
+  "kernel_from_publisher_inspection_only": "6.8.0-139-generic",
+  "running_os": null,
+  "running_kernel": null,
+  "guest_users": null,
+  "seed_accounts_requested": [
+    {
+      "name": "provisioner",
+      "uid": 1000
+    },
+    {
+      "name": "executor",
+      "uid": 1001
+    }
+  ],
+  "accounts_created": false,
+  "guest_commands": 0,
+  "ssh_sessions": 0
+}

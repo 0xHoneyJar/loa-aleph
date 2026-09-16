@@ -1,0 +1,180 @@
+{
+  "scope": "REPLACEMENT_FAILURE_CONTAINMENT_NO_RETRY",
+  "started_at_utc": "2026-09-16T20:27:24.0929627Z",
+  "vm_id": "213ff077-356b-44a0-9032-df2ed0922b3a",
+  "boot_calls": 0,
+  "old_vm_mutations": 0,
+  "before": {
+    "Id": "213ff077-356b-44a0-9032-df2ed0922b3a",
+    "Name": "SRC001-PREP-REPLACEMENT-fda0a0b",
+    "State": "Off",
+    "Uptime": {
+      "Ticks": 0,
+      "Days": 0,
+      "Hours": 0,
+      "Milliseconds": 0,
+      "Minutes": 0,
+      "Seconds": 0,
+      "TotalDays": 0,
+      "TotalHours": 0,
+      "TotalMilliseconds": 0,
+      "TotalMinutes": 0,
+      "TotalSeconds": 0
+    }
+  },
+  "nic_before": [
+    {
+      "Id": "Microsoft:213FF077-356B-44A0-9032-DF2ED0922B3A\\9F4E3A30-4E82-4C29-9052-FA830F520362",
+      "MacAddress": "000000000000",
+      "SwitchId": "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444",
+      "SwitchName": "Default Switch",
+      "Connected": true
+    }
+  ],
+  "nic_after": [
+    {
+      "Id": "Microsoft:213FF077-356B-44A0-9032-DF2ED0922B3A\\9F4E3A30-4E82-4C29-9052-FA830F520362",
+      "MacAddress": "000000000000",
+      "SwitchId": null,
+      "SwitchName": null,
+      "Connected": false
+    }
+  ],
+  "failed_vm": {
+    "Id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+    "Name": "SRC001-PREP-7a772f0",
+    "State": "Off",
+    "Generation": 2,
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\vm\\SRC001-PREP-7a772f0"
+  },
+  "failed_nic": [
+    {
+      "Id": "Microsoft:D5913CD7-AA99-4695-96B7-0D0135BAD386\\3EA36DE1-C841-4CAA-860D-CC0A0463F24C",
+      "MacAddress": "00155D32E600",
+      "SwitchId": null,
+      "SwitchName": null,
+      "Connected": false
+    }
+  ],
+  "replacement_vm": {
+    "Id": "213ff077-356b-44a0-9032-df2ed0922b3a",
+    "Name": "SRC001-PREP-REPLACEMENT-fda0a0b",
+    "State": "Off",
+    "Generation": 2,
+    "Version": "9.0",
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\SRC001-PREP-REPLACEMENT-fda0a0b",
+    "ProcessorCount": 2,
+    "MemoryStartup": 2147483648,
+    "DynamicMemoryEnabled": false,
+    "Uptime": {
+      "Ticks": 0,
+      "Days": 0,
+      "Hours": 0,
+      "Milliseconds": 0,
+      "Minutes": 0,
+      "Seconds": 0,
+      "TotalDays": 0,
+      "TotalHours": 0,
+      "TotalMilliseconds": 0,
+      "TotalMinutes": 0,
+      "TotalSeconds": 0
+    }
+  },
+  "firmware": {
+    "SecureBoot": "On",
+    "SecureBootTemplate": "MicrosoftUEFICertificateAuthority",
+    "BootOrder": [
+      {
+        "BootType": 1,
+        "Description": "EFI SCSI Device",
+        "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,D96361BAA104294DB60572E2FFB1DC7F2C23DC2DE8BC1D46864E6104B2A7C2B0)/Scsi(0,0)"
+      },
+      {
+        "BootType": 2,
+        "Description": "EFI Network",
+        "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,635161F83EDFC546913FF2D2F965ED0E92CA35B1F9A3884485E44B445FCF3CA6)/MAC(000000000000)/MessagingPath(0000000000000000000000000000000000000000000000)"
+      },
+      {
+        "BootType": 1,
+        "Description": "EFI SCSI Device",
+        "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,D96361BAA104294DB60572E2FFB1DC7F2C23DC2DE8BC1D46864E6104B2A7C2B0)/Scsi(0,1)"
+      }
+    ]
+  },
+  "disks": [
+    {
+      "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\executor.vhdx",
+      "ControllerType": "SCSI",
+      "ControllerNumber": 0,
+      "ControllerLocation": 0
+    }
+  ],
+  "vhd": {
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\executor.vhdx",
+    "Size": 10737418240,
+    "FileSize": 2189426688,
+    "ParentPath": "",
+    "Attached": false,
+    "DiskIdentifier": "C2CE0A08-24FA-0C4D-A3C4-B5091822DD99"
+  },
+  "vhd_sha256": "c334c422fa7ea7b21defd3bebd0d419b3b36bd09785cbd530903f4d9557d90ce",
+  "failed_vhd_sha256": "5905c60cbc24b769af5dff0d79c21093ad523e652a6e8012c8b051b777bfefbb",
+  "failed_image_sha256": "46b0dbaffa6950a7da5ff2dc5ed34c46084610b3b6d1fae8f1ec2d7e953984a3",
+  "worker_processes": [],
+  "vms": [
+    {
+      "Id": "d5913cd7-aa99-4695-96b7-0d0135bad386",
+      "Name": "SRC001-PREP-7a772f0",
+      "State": "Off",
+      "Generation": 2
+    },
+    {
+      "Id": "213ff077-356b-44a0-9032-df2ed0922b3a",
+      "Name": "SRC001-PREP-REPLACEMENT-fda0a0b",
+      "State": "Off",
+      "Generation": 2
+    }
+  ],
+  "host_memory": {
+    "TotalVisibleMemorySize": 33465712,
+    "FreePhysicalMemory": 3066252,
+    "TotalVirtualMemorySize": 46048624,
+    "FreeVirtualMemory": 8783416
+  },
+  "dvd": [
+    {
+      "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\provisioning-seed.iso",
+      "ControllerNumber": 0,
+      "ControllerLocation": 1
+    }
+  ],
+  "integration": [
+    {
+      "Name": "Guest Service Interface",
+      "Enabled": false
+    },
+    {
+      "Name": "Heartbeat",
+      "Enabled": true
+    },
+    {
+      "Name": "Key-Value Pair Exchange",
+      "Enabled": false
+    },
+    {
+      "Name": "Shutdown",
+      "Enabled": true
+    },
+    {
+      "Name": "Time Synchronization",
+      "Enabled": false
+    },
+    {
+      "Name": "VSS",
+      "Enabled": false
+    }
+  ],
+  "retention": "Both VMs/configurations/disks retained. Only replacement NIC disconnected; replacement seed remains attached to OFF VM as evidence. No retry, reboot, memory change, old-VM mutation or image modification.",
+  "result": "PASS_BOTH_OFF_BOTH_NICS_DISCONNECTED_FAILED_ARTIFACTS_UNCHANGED",
+  "finished_at_utc": "2026-09-16T20:27:33.5439660Z"
+}

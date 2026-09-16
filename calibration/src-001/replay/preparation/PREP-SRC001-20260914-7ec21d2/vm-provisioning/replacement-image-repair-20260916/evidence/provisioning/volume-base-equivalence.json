@@ -1,0 +1,68 @@
+{
+  "format": "src001-replacement-volume-base-equivalence/v1",
+  "source": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/publisher/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+  "source_sha256": "c1655a37ff4141e4f16effb7364a640188cc17ec7dfc869a1283aa724dcd6bc1",
+  "destination": "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/vm/executor.vhdx",
+  "destination_bytes_before_boot": 2189426688,
+  "destination_sha256_before_boot": "c334c422fa7ea7b21defd3bebd0d419b3b36bd09785cbd530903f4d9557d90ce",
+  "virtual_size_bytes": 10737418240,
+  "commands": [
+    {
+      "command": [
+        "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+        "convert",
+        "-f",
+        "vmdk",
+        "-O",
+        "vhdx",
+        "-o",
+        "subformat=dynamic",
+        "-S",
+        "4096",
+        "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/publisher/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+        "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/vm/executor.vhdx"
+      ],
+      "started_at_utc": "2026-09-16T20:19:35.070877+00:00",
+      "finished_at_utc": "2026-09-16T20:20:10.133245+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+        "compare",
+        "-f",
+        "vmdk",
+        "-F",
+        "vhdx",
+        "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/publisher/ubuntu-24.04-server-cloudimg-amd64.vmdk",
+        "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/vm/executor.vhdx"
+      ],
+      "started_at_utc": "2026-09-16T20:20:10.133340+00:00",
+      "finished_at_utc": "2026-09-16T20:21:05.332232+00:00",
+      "exit_code": 0,
+      "stdout": "Images are identical.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/src001-postrestart-continuation-20260916/host-tools/extracted/usr/bin/qemu-img",
+        "info",
+        "--output=json",
+        "/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/vm/executor.vhdx"
+      ],
+      "started_at_utc": "2026-09-16T20:21:05.332295+00:00",
+      "finished_at_utc": "2026-09-16T20:21:05.357644+00:00",
+      "exit_code": 0,
+      "stdout": "{\n    \"children\": [\n        {\n            \"name\": \"file\",\n            \"info\": {\n                \"children\": [\n                ],\n                \"virtual-size\": 2189426688,\n                \"filename\": \"/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/vm/executor.vhdx\",\n                \"format\": \"file\",\n                \"actual-size\": 2189426688,\n                \"format-specific\": {\n                    \"type\": \"file\",\n                    \"data\": {\n                    }\n                },\n                \"dirty-flag\": false\n            }\n        }\n    ],\n    \"virtual-size\": 10737418240,\n    \"filename\": \"/mnt/d/LoaAlephPreparation/VM-PREP-SRC001-20260915-7a772f0/replacement-image-repair-20260916-fda0a0b/vm/executor.vhdx\",\n    \"cluster-size\": 16777216,\n    \"format\": \"vhdx\",\n    \"actual-size\": 2189426688,\n    \"dirty-flag\": false\n}\n",
+      "stderr": ""
+    }
+  ],
+  "result": "PASS_EXACT_GUEST_BLOCK_EQUIVALENCE_BEFORE_BOOT",
+  "representation_conversion_only": true,
+  "base_image_modified": false,
+  "offline_guest_filesystem_modifications": 0,
+  "resize_performed": false,
+  "vm_creation_count": 0
+}

@@ -1,0 +1,134 @@
+{
+  "scope": "SINGLE_AUTHORIZED_REPLACEMENT_VM_CREATION_NO_BOOT",
+  "repair_administration_id": "IMAGE-REPAIR-SRC001-20260916-fda0a0b",
+  "started_at_utc": "2026-09-16T20:24:07.9457957Z",
+  "vm_creation_calls": 1,
+  "boot_calls": 0,
+  "mutations": [
+    {
+      "operation": "New-VM",
+      "vm_id": "213ff077-356b-44a0-9032-df2ed0922b3a",
+      "utc": "2026-09-16T20:24:14.6541926Z"
+    },
+    {
+      "operation": "Configure dedicated CPU/RAM/firmware/seed/restricted integration; no old VM mutation",
+      "utc": "2026-09-16T20:24:15.1155876Z"
+    }
+  ],
+  "vm_id": "213ff077-356b-44a0-9032-df2ed0922b3a",
+  "vm": {
+    "Id": "213ff077-356b-44a0-9032-df2ed0922b3a",
+    "Name": "SRC001-PREP-REPLACEMENT-fda0a0b",
+    "State": "Off",
+    "Generation": 2,
+    "Version": "9.0",
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\SRC001-PREP-REPLACEMENT-fda0a0b",
+    "ConfigurationLocation": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\SRC001-PREP-REPLACEMENT-fda0a0b",
+    "ProcessorCount": 2,
+    "MemoryStartup": 2147483648,
+    "DynamicMemoryEnabled": false,
+    "AutomaticStartAction": "Nothing",
+    "AutomaticStopAction": "ShutDown",
+    "CheckpointType": "Disabled",
+    "AutomaticCheckpointsEnabled": false,
+    "EnhancedSessionTransportType": 0
+  },
+  "firmware": {
+    "SecureBoot": "On",
+    "SecureBootTemplate": "MicrosoftUEFICertificateAuthority",
+    "BootOrder": [
+      {
+        "BootType": 1,
+        "Description": "EFI SCSI Device",
+        "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,D96361BAA104294DB60572E2FFB1DC7F2C23DC2DE8BC1D46864E6104B2A7C2B0)/Scsi(0,0)"
+      },
+      {
+        "BootType": 2,
+        "Description": "EFI Network",
+        "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,635161F83EDFC546913FF2D2F965ED0E92CA35B1F9A3884485E44B445FCF3CA6)/MAC(000000000000)/MessagingPath(0000000000000000000000000000000000000000000000)"
+      },
+      {
+        "BootType": 1,
+        "Description": "EFI SCSI Device",
+        "FirmwarePath": "AcpiEx(VMBus,0,0)/VenHw(9B17E5A2-0891-42DD-B653-80B5C22809BA,D96361BAA104294DB60572E2FFB1DC7F2C23DC2DE8BC1D46864E6104B2A7C2B0)/Scsi(0,1)"
+      }
+    ]
+  },
+  "disks": [
+    {
+      "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\executor.vhdx",
+      "ControllerType": "SCSI",
+      "ControllerNumber": 0,
+      "ControllerLocation": 0
+    }
+  ],
+  "vhd": {
+    "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\executor.vhdx",
+    "VhdFormat": "VHDX",
+    "VhdType": "Dynamic",
+    "FileSize": 2189426688,
+    "Size": 10737418240,
+    "LogicalSectorSize": 512,
+    "PhysicalSectorSize": 512,
+    "DiskIdentifier": "C2CE0A08-24FA-0C4D-A3C4-B5091822DD99",
+    "ParentPath": "",
+    "Attached": false
+  },
+  "nic": [
+    {
+      "Id": "Microsoft:213FF077-356B-44A0-9032-DF2ED0922B3A\\9F4E3A30-4E82-4C29-9052-FA830F520362",
+      "Name": "Network Adapter",
+      "MacAddress": "000000000000",
+      "SwitchId": "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444",
+      "SwitchName": "Default Switch",
+      "Connected": true,
+      "DynamicMacAddressEnabled": true
+    }
+  ],
+  "dvd": [
+    {
+      "Path": "D:\\LoaAlephPreparation\\VM-PREP-SRC001-20260915-7a772f0\\replacement-image-repair-20260916-fda0a0b\\vm\\provisioning-seed.iso",
+      "ControllerNumber": 0,
+      "ControllerLocation": 1
+    }
+  ],
+  "integration": [
+    {
+      "Name": "Guest Service Interface",
+      "Enabled": false
+    },
+    {
+      "Name": "Heartbeat",
+      "Enabled": true
+    },
+    {
+      "Name": "Key-Value Pair Exchange",
+      "Enabled": false
+    },
+    {
+      "Name": "Shutdown",
+      "Enabled": true
+    },
+    {
+      "Name": "Time Synchronization",
+      "Enabled": false
+    },
+    {
+      "Name": "VSS",
+      "Enabled": false
+    }
+  ],
+  "com_ports": [
+    {
+      "Name": "COM 1",
+      "Path": ""
+    },
+    {
+      "Name": "COM 2",
+      "Path": ""
+    }
+  ],
+  "no_host_shares": "No share, socket, pipe or enhanced-session transport configured by creation; guest channel inventory remains a later mandatory gate.",
+  "result": "PASS_CREATED_ONE_FRESH_GEN2_VM_OFF_NOT_BOOTED",
+  "finished_at_utc": "2026-09-16T20:24:15.3665295Z"
+}

@@ -1,0 +1,9 @@
+{
+  "scope": "SINGLE_REPLACEMENT_FIRST_BOOT_MECHANICAL_PROVISIONING_ONLY",
+  "vm_id": "213ff077-356b-44a0-9032-df2ed0922b3a",
+  "started_at_utc": "2026-09-16T20:25:39.6055186Z",
+  "boot_calls": 1,
+  "result": "FAIL_STOP",
+  "error": "'SRC001-PREP-REPLACEMENT-fda0a0b' failed to start.\n\nNot enough memory in the system to start the virtual machine SRC001-PREP-REPLACEMENT-fda0a0b.\n\nCould not initialize memory: Not enough memory resources are available to complete this operation. (0x8007000E).\r\n\r\n'SRC001-PREP-REPLACEMENT-fda0a0b' failed to start. (Virtual machine ID 213FF077-356B-44A0-9032-DF2ED0922B3A)\n\nNot enough memory in the system to start the virtual machine SRC001-PREP-REPLACEMENT-fda0a0b with ram size 2048 megabytes. (Virtual machine ID 213FF077-356B-44A0-9032-DF2ED0922B3A)\n\n'SRC001-PREP-REPLACEMENT-fda0a0b' could not initialize memory: Not enough memory resources are available to complete this operation. (0x8007000E). (Virtual machine ID 213FF077-356B-44A0-9032-DF2ED0922B3A)",
+  "finished_at_utc": "2026-09-16T20:25:51.4934405Z"
+}
