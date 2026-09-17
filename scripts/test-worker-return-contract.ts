@@ -119,8 +119,8 @@ function main(): number {
   const results: CaseResult[] = [];
   const contracts = outputContracts();
 
-  runCase(results, 'all twenty-four pinned prompt contracts accept a valid materialization', () => {
-    expect(contracts.length === 24, `expected 24 output contracts, found ${contracts.length}`);
+  runCase(results, 'all twenty-five pinned prompt contracts accept a valid materialization', () => {
+    expect(contracts.length === 25, `expected 25 output contracts, found ${contracts.length}`);
     contracts.forEach((contract, index) => {
       const validation = validateWorkerReturnContract(
         json(isDuplicateOutputContract(contract) ? duplicateMaterialization(contract)

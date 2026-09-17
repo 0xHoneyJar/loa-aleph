@@ -212,6 +212,15 @@ and missing basis. Upholding that record never licenses its proposition.
 **Withheld:** producer rationale/history and identity tuples; prior reviewer verdicts/rationales; full source by default; global inventory; unrelated batches/sources; authority responses/observations; calibration answers; expected dispositions or IDs; recall quotas; downstream narratives.
 
 The fixed task is `Challenge only the attached sealed semantic subject under L2S.`
+
+For a 1.9 `degraded-packet` subject, challenge faithful preservation of its
+source/locus, degradation reason, complete ordered material requirements,
+limitations and indeterminacy. Required material views remain context, never
+exact packet evidence. Do not infer exact source bytes or affirmative
+content, choose a preferred OBJ, create a PKT or CC, or convert degradation
+to exact evidence. The original packet-candidate selector remains one subject;
+`material-only` continues to mean an actual material candidate. The ordinary
+verdict and unresolved-finding rules apply, and L2S does not waive L2F.
 Every 1.7 selector receives review. Retain all assignments and results; any
 refutation blocks admission, and any cannot-determine blocks affirmative use
 and requires a second fresh reviewer of the identical subject. A later upheld

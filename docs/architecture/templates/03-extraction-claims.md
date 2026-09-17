@@ -919,6 +919,56 @@ subject; no fallback model can inherit a verdict.
 | no-claim | `{kind, packet_id, basis}`; `basis` is the existing no-claim proposal text, treated as proposed content to challenge |
 | material-only | `{kind, object_id}`; source-bound existing OBJ, no future CC/PKT identifier |
 
+For cumulative **1.9 `orchestrator-work-transitions` only**, add the closed
+`degraded-packet` variant in this exact order:
+`{kind, source_id, degraded_source_locator, degradation_reason, criterion}`.
+Its `subject_kind` is `degraded-packet`. It selects the original
+`packet-candidate:<index>` with `evidence_state=degraded-non-exact`;
+the producer-binding hash retains that original index and immutable raw
+return. Source identity comes from the return's `source_id`; locator,
+degradation reason and numeric criterion are copied exactly from the selected
+packet candidate. `subject.material_use` directly retains its complete
+MaterialUseInput, in existing key order and with the complete ordered
+`requirements` array. Together these fields are the dedicated binding.
+Requirements are never sorted, dropped, merged or split into subjects.
+No singular OBJ represents this candidate.
+
+This candidate receives exactly one retained subject and completed L2S
+accounting for its own selector. A separate material finding cannot discharge
+it. `material-only` remains reserved for an actual `material-candidate`
+with its singular `object_id`; it is not a degraded-packet fallback.
+The new variant is illegal for retained 1.7/1.8 formats.
+
+A degraded subject has `atomicity=CANNOT_DETERMINE`, empty `packet_basis`,
+anchors, units, contexts, couplings, relation proposals, origin context,
+lineage context, relation context and ambiguity context. Existing unresolved
+findings retain material requirement indexes, limitations and indeterminacy.
+It has no PKT, CC, exact fragment/hash, normalized claim or affirmative
+proposition. Rendered producer text stays in the immutable raw return; it is
+not reconstructed into exact evidence.
+
+The single material view reuses the existing material visibility closure
+over **all** requirements, source-bound limitations, associations, provenance
+and assets. Its `use_subject` has exact ordered fields
+`{format,representation_inventory_hash,producer_binding_hash,source_id,material_use}`,
+with format `aleph-degraded-packet-material-subject/v1`.
+Its material declaration must be canonically byte-equal to
+`subject.material_use`; its producer hash and source must also match.
+`use_subject_digest` hashes that complete object, and the existing review-view
+envelope targets `degraded-packet-material-subject:<digest>`. Its `packets`
+array is empty. This is retained review context, not a representation USE
+receipt. No decorative USE row is created. The context manifest reopens every
+selected material row/asset and existing USE limitation under the existing
+visibility rules. Existing L2F obligations remain separate and unchanged.
+
+L2S may challenge retained source/locus, degradation, complete material
+requirements, limitations, missing context and preservation of indeterminacy
+through the existing field-review contract. It cannot infer exact source
+bytes, choose a preferred OBJ, create PKT/CC authority, or convert degraded
+material into affirmative content. Existing upheld/refuted/cannot-determine
+and unresolved-finding rules apply. Upholding preservation of indeterminacy
+does not grant affirmative admission.
+
 The writer reserves a new CC identity before reviewing its proposed bytes.
 Reservation is not admission, acceptance, or a future answer key. L2S may
 receive that candidate identity because exact write comparison requires it.

@@ -120,6 +120,12 @@ CONSTRAINTS
   policy, an explicit source-local locator, and a nonempty reason; the
   orchestrator must preserve that source binding but must not append the
   candidate as a canonical packet.
+- With 1.9 `orchestrator-work-transitions`, a degraded candidate retains its
+  original `packet-candidate:<index>` and receives one dedicated
+  `degraded-packet` L2S subject. Preserve its complete ordered `material_use`
+  and indeterminate semantics. Do not invent exact anchors, propositions,
+  PKT/CC IDs or synthetic material findings. Multiple OBJ requirements remain
+  together. `material-only` is reserved for actual material candidates.
 - Declare exact evidence only for a locator scheme the pinned checker can
   mechanically reopen. In `aleph-exact-evidence/v1`, that scheme is
   `md-lines`; use the degraded path for an unsupported scheme.

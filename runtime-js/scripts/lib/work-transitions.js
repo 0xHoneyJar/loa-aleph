@@ -6,7 +6,7 @@ import { canonicalJsonBytes } from './bundle-format.js';
 import { hasRunCapability } from './run-model.js';
 import { parseTables } from './markdown.js';
 import { mdLineSpan, sourceFilePath } from './check-helpers.js';
-import { semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown } from './semantic-review.js';
+import { semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown, degradedPacketBinding, semanticProducerBinding, semanticDegradedMaterialViews, buildSemanticSubject, } from './semantic-review.js';
 export const WORK_TRANSITION_CAPABILITY = 'orchestrator-work-transitions';
 export const WORK_STAGE_CONTRACT = 'docs/architecture/04-pipeline-stages-and-dod.md';
 export const CRITERIA_REVIEW_TASK = 'Challenge candidacy agreement and sample adequacy using only the sealed criteria and frozen samples.';
@@ -18,6 +18,20 @@ export const CRITERIA_REVIEW_PATHS = [
     'verification/harness/S1/criteria-review-1.json',
     'verification/harness/S1/criteria-review-2.json',
 ];
+/** Mechanical S2 derivation: one original selector, with no canonical PKT/CC/USE invention. */
+export function deriveS2DegradedSubject(model, accepted, outputIndex, semanticId, reviewerProfile) {
+    assertWork(accepted.role === 'extractor', 'WORK_ACCEPTANCE', 'degraded packet requires its extractor');
+    const binding = degradedPacketBinding(model.manifest.runFormatVersion, accepted.value, outputIndex);
+    const hash = semanticProducerBinding({ call_id: accepted.call_id, context_id: accepted.context_id,
+        raw_return_hash: accepted.raw_digest, output_kind: 'packet-candidate', output_index: outputIndex });
+    return buildSemanticSubject(model, { semantic_id: semanticId, owner_stage: 'S2', subject_kind: 'degraded-packet',
+        review_mode: binding.entry.review_mode, predecessor_semantic_id: 'none', producer_binding_hash: hash,
+        reviewer_profile: reviewerProfile, output_binding: binding.output_binding,
+        origin_unit_refs: binding.entry.origin_unit_refs, origin_context: [], anchors: binding.entry.anchors,
+        semantics: binding.entry.semantics, material_use: binding.material_use,
+        material_views: semanticDegradedMaterialViews(model, binding.output_binding, hash, binding.material_use),
+        lineage_context: [], relation_context: [], ambiguity_context: [] });
+}
 export function workDigest(bytes) {
     return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }

@@ -6,7 +6,11 @@ import { canonicalJsonBytes } from './bundle-format.ts';
 import { hasRunCapability, type RunModel } from './run-model.ts';
 import { parseTables } from './markdown.ts';
 import { mdLineSpan, sourceFilePath } from './check-helpers.ts';
-import { semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown } from './semantic-review.ts';
+import {
+  semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown,
+  degradedPacketBinding, semanticProducerBinding, semanticDegradedMaterialViews, buildSemanticSubject,
+  type SemanticSubject, type SemanticReviewerProfile,
+} from './semantic-review.ts';
 
 export const WORK_TRANSITION_CAPABILITY = 'orchestrator-work-transitions';
 export const WORK_STAGE_CONTRACT = 'docs/architecture/04-pipeline-stages-and-dod.md';
@@ -36,6 +40,21 @@ export interface WorkValue {
   receipt_digest: string;
   simulation: boolean;
   value: WorkerJsonValue;
+}
+/** Mechanical S2 derivation: one original selector, with no canonical PKT/CC/USE invention. */
+export function deriveS2DegradedSubject(model: RunModel, accepted: WorkValue, outputIndex: number,
+  semanticId: string, reviewerProfile: SemanticReviewerProfile): SemanticSubject {
+  assertWork(accepted.role === 'extractor', 'WORK_ACCEPTANCE', 'degraded packet requires its extractor');
+  const binding = degradedPacketBinding(model.manifest!.runFormatVersion, accepted.value, outputIndex);
+  const hash = semanticProducerBinding({ call_id: accepted.call_id, context_id: accepted.context_id,
+    raw_return_hash: accepted.raw_digest, output_kind: 'packet-candidate', output_index: outputIndex });
+  return buildSemanticSubject(model, { semantic_id: semanticId, owner_stage: 'S2', subject_kind: 'degraded-packet',
+    review_mode: binding.entry.review_mode, predecessor_semantic_id: 'none', producer_binding_hash: hash,
+    reviewer_profile: reviewerProfile, output_binding: binding.output_binding,
+    origin_unit_refs: binding.entry.origin_unit_refs, origin_context: [], anchors: binding.entry.anchors,
+    semantics: binding.entry.semantics, material_use: binding.material_use,
+    material_views: semanticDegradedMaterialViews(model, binding.output_binding, hash, binding.material_use),
+    lineage_context: [], relation_context: [], ambiguity_context: [] });
 }
 export interface WorkObligation {
   stage: WorkStage;

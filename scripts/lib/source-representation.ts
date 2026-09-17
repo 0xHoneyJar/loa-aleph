@@ -6,7 +6,7 @@ import { closurePhasesFromText, parseStructuredVerifierRecord } from './internal
 import { envelopeSection, parseTables } from './markdown.ts';
 import { parsePacketBasis, parseRelations, relationReviewSubjectJson } from './relations.ts';
 import { parseStrictJson } from './worker-return-contract.ts';
-import { usesFormalLayoutBindings, type RunModel } from './run-model.ts';
+import { hasRunCapability, usesFormalLayoutBindings, type RunModel } from './run-model.ts';
 
 export const REPRESENTATION_PATH = 'corpus/representations.md';
 export const REPRESENTATION_ASSET_PATH = 'corpus/representation-assets';
@@ -847,7 +847,7 @@ function useSources(model: RunModel, context: RepresentationContext, row: Materi
 export function validateRepresentationUse(model: RunModel, context: RepresentationContext, row: MaterialRow, review = true): void {
   requireMaterial(JSON.stringify(Object.keys(row).sort()) === JSON.stringify([...MATERIAL_HEADERS.uses].sort())
     && Object.values(row).every((v) => typeof v === 'string'), 'FORMAT', rowId(row), 'use', 'exact scalar use fields required');
-  const id = rowId(row), input = useInput(row), inv = context.inventory;
+  const id = rowId(row), input = useInput(row);
   requireMaterial(['PKT', 'CC', 'REL', 'OBJ'].includes(row.subject_kind), 'USE_CLOSURE', id, 'subject_kind', 'unknown subject kind');
   requireMaterial(row.subject_kind === 'PKT' ? row.owner_stage === 'S2' : row.subject_kind === 'REL' ? row.owner_stage === 'S4'
     : row.subject_kind === 'CC' ? ['S3', 'S4'].includes(row.owner_stage) : ['S2', 'S3', 'S4'].includes(row.owner_stage),
@@ -868,6 +868,28 @@ export function validateRepresentationUse(model: RunModel, context: Representati
   }
   requireMaterial(row.subject_kind === 'OBJ' || input.use_state === 'usable',
     'USE_CLOSURE', id, 'use_state', 'CANNOT_DETERMINE candidates require OBJ receipts, not canonical packets/claims/relations');
+  validateUseRequirements(model, context, input, sources, basis, row.subject_kind, row.subject_id, id);
+  requireMaterial(row.review_subject_digest === representationUseDigest(model, context, row),
+    'USE_CLOSURE', id, 'review_subject_digest', 'reviewed immutable subject differs');
+  const requiresReview = ['CC', 'REL'].includes(row.subject_kind) && representationUseNeedsReview(context, input);
+  if (!review) return;
+  requireMaterial(!requiresReview || row.reviewed_by !== 'none', 'USE_CLOSURE', id, 'reviewed_by', 'non-text/asset use requires exact L2F review');
+  if (row.reviewed_by !== 'none') {
+    const path = `verification/harness/${row.reviewed_by}.md`;
+    let verdict;
+    try { verdict = parseStructuredVerifierRecord(readMaterialFile(model.runDir, path), path); } catch {
+      throw new RepresentationError('USE_CLOSURE', id, 'reviewed_by', 'missing/malformed verifier record');
+    }
+    requireMaterial(verdict.target === `representation-use-subject:${row.review_subject_digest}`
+      && verdict.verdict === 'upheld', 'USE_CLOSURE', id, 'reviewed_by', 'exact upheld verdict required');
+    if (requiresReview) requireMaterial(verdict.lens === 'L2F' && verdict.stage === row.owner_stage,
+      'USE_CLOSURE', id, 'reviewed_by', 'L2F stage/charter mismatch');
+  }
+}
+/** Shared declaration rules; degraded subjects have no canonical packet basis. */
+function validateUseRequirements(model: RunModel, context: RepresentationContext, input: MaterialUseInput,
+  sources: string[], basis: string[], kind: string, subjectId: string, id: string): void {
+  const inv = context.inventory;
   for (const ref of input.limitation_refs) {
     const target = find(ref.startsWith('REP-') ? inv.representations : ref.startsWith('OBJ-') ? inv.objects : inv.associations, ref, 'USE_CLOSURE');
     const rep = ref.startsWith('REP-') ? target : find(inv.representations, target.representation_id);
@@ -880,7 +902,7 @@ export function validateRepresentationUse(model: RunModel, context: Representati
     requireMaterial(available || input.use_state === 'CANNOT_DETERMINE', 'UNDECLARED_FEATURE', id, requirement.feature, 'unavailable feature requires CANNOT_DETERMINE');
     for (const bindingId of requirement.binding_ids) {
       const b = find(inv.bindings, bindingId), carrier = context.carriers.get(b.carrier_id)!;
-      if (row.subject_kind !== 'OBJ' && b.byte_role === 'frozen-source-bytes') {
+      if (kind !== 'OBJ' && kind !== 'degraded-packet' && b.byte_role === 'frozen-source-bytes') {
         const spans: Array<readonly [number, number]> = [];
         for (const packetId of basis) for (const fragment of model.exactEvidence.fragments.filter((f) =>
           f.values.packetId === packetId && f.values.sourceId === rep.source_id)) {
@@ -896,8 +918,8 @@ export function validateRepresentationUse(model: RunModel, context: Representati
           && Number(b.end_byte) === carrier.bytes.length;
         requireMaterial(defaultWhole ? spans.length > 0 : intervalCovered(Number(b.start_byte), Number(b.end_byte), spans),
           'USE_CLOSURE', id, 'binding_ids', 'SRC binding outside exact packet-basis union');
-        if (row.subject_kind === 'REL' && !defaultWhole) {
-          const relation = parseRelations(model).rows.find((r) => r.values.relationId === row.subject_id)!.values;
+        if (kind === 'REL' && !defaultWhole) {
+          const relation = parseRelations(model).rows.find((r) => r.values.relationId === subjectId)!.values;
           if (relation.recordState === 'asserted' && relation.targetKind === 'source-locus'
             && relation.targetSourceId === b.carrier_id) {
             const match = /^L([1-9]\d*)-L([1-9]\d*)$/u.exec(relation.targetLocator);
@@ -919,22 +941,6 @@ export function validateRepresentationUse(model: RunModel, context: Representati
         && named.every((o) => objectBindings(context, o).every((b) => b.byte_role === 'frozen-source-bytes'))
         && associated.every((a) => a.state === 'available'), 'FIDELITY', id, 'fidelity_claim', 'capture fidelity preconditions not met');
     }
-  }
-  requireMaterial(row.review_subject_digest === representationUseDigest(model, context, row),
-    'USE_CLOSURE', id, 'review_subject_digest', 'reviewed immutable subject differs');
-  const requiresReview = ['CC', 'REL'].includes(row.subject_kind) && representationUseNeedsReview(context, input);
-  if (!review) return;
-  requireMaterial(!requiresReview || row.reviewed_by !== 'none', 'USE_CLOSURE', id, 'reviewed_by', 'non-text/asset use requires exact L2F review');
-  if (row.reviewed_by !== 'none') {
-    const path = `verification/harness/${row.reviewed_by}.md`;
-    let verdict;
-    try { verdict = parseStructuredVerifierRecord(readMaterialFile(model.runDir, path), path); } catch {
-      throw new RepresentationError('USE_CLOSURE', id, 'reviewed_by', 'missing/malformed verifier record');
-    }
-    requireMaterial(verdict.target === `representation-use-subject:${row.review_subject_digest}`
-      && verdict.verdict === 'upheld', 'USE_CLOSURE', id, 'reviewed_by', 'exact upheld verdict required');
-    if (requiresReview) requireMaterial(verdict.lens === 'L2F' && verdict.stage === row.owner_stage,
-      'USE_CLOSURE', id, 'reviewed_by', 'L2F stage/charter mismatch');
   }
 }
 export function representationLimitations(model: RunModel, context: RepresentationContext): MaterialRow[] {
@@ -1178,6 +1184,27 @@ export function materialFindingRows(model: RunModel, value: unknown, stage: stri
 /** A derived, bounded reviewer view; never a second representation authority. */
 export function representationReviewView(model: RunModel, context: RepresentationContext, row: MaterialRow): string {
   validateRepresentationUse(model, context, row, false);
+  return materialReviewView(model, context, useInput(row), useSources(model, context, row),
+    list(row.basis_packet_ids, rowId(row), 'basis_packet_ids'), JSON.parse(representationUseSubjectJson(model, context, row)),
+    `representation-use-subject:${row.review_subject_digest}`);
+}
+/** One source-bound material view, without an OBJ identity or a synthetic USE row. */
+export function degradedPacketMaterialView(model: RunModel, context: RepresentationContext, sourceId: string,
+  producerBindingHash: string, materialUse: MaterialUseInput): string {
+  requireMaterial(hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions'),
+    'FORMAT', 'degraded-packet', 'run_format', 'orchestrator-work-transitions required');
+  requireMaterial(model.corpus.sources.some((source) => source.values.sourceId === sourceId)
+    && /^sha256:[0-9a-f]{64}$/u.test(producerBindingHash), 'USE_CLOSURE', 'degraded-packet', 'source', 'existing source and producer binding required');
+  const input = validateMaterialUseInput(materialUse);
+  validateUseRequirements(model, context, input, [sourceId], [], 'degraded-packet', '', producerBindingHash);
+  const subject = { format: 'aleph-degraded-packet-material-subject/v1',
+    representation_inventory_hash: context.inventoryHash, producer_binding_hash: producerBindingHash,
+    source_id: sourceId, material_use: input };
+  return materialReviewView(model, context, input, [sourceId], [], subject,
+    `degraded-packet-material-subject:${materialHash(JSON.stringify(subject))}`);
+}
+function materialReviewView(model: RunModel, context: RepresentationContext, input: MaterialUseInput,
+  sources: string[], packetIds: string[], subject: unknown, target: string): string {
   const inv = context.inventory, objects = new Set<string>(), bindings = new Set<string>();
   const associations = new Set<string>();
   const add = (id: string, material: boolean): void => {
@@ -1195,12 +1222,11 @@ export function representationReviewView(model: RunModel, context: Representatio
       list(assoc.target_ids, rowId(assoc), 'target_ids').forEach((ref) => add(ref, true));
     }
   };
-  for (const req of useInput(row).requirements) {
+  for (const req of input.requirements) {
     add(req.object_id, true);
     req.binding_ids.forEach((b) => bindings.add(b));
   }
   const reps = new Set([...objects].map((id) => find(inv.objects, id).representation_id));
-  const packetIds = list(row.basis_packet_ids, rowId(row), 'basis_packet_ids');
   const packets = packetIds.map((id) => ({
     packet_id: id,
     fragments: model.exactEvidence.fragments.filter((f) => f.values.packetId === id).map((f) => {
@@ -1245,8 +1271,8 @@ export function representationReviewView(model: RunModel, context: Representatio
   // show exact bytes for selected bindings and the retained origin/render logs.
   return JSON.stringify({
     format: 'aleph-representation-review-view/v1',
-    target: `representation-use-subject:${row.review_subject_digest}`,
-    subject: JSON.parse(representationUseSubjectJson(model, context, row)),
+    target,
+    subject,
     packets,
     representations: inv.representations.filter((r) => reps.has(rowId(r))),
     objects: inv.objects.filter((o) => objects.has(rowId(o))),
@@ -1259,7 +1285,7 @@ export function representationReviewView(model: RunModel, context: Representatio
       ...(a.role === 'structure-export' && !boundAssets.has(rowId(a)) ? {}
         : { bytes_base64: context.carriers.get(rowId(a))!.bytes.toString('base64') }),
     })),
-    limitations: representationLimitations(model, context).filter((l) => useSources(model, context, row).includes(l.source_id)),
+    limitations: representationLimitations(model, context).filter((l) => sources.includes(l.source_id)),
   });
 }
 export function materialRefusalFlags(flags: readonly string[]): Array<{ id: string; feature: string }> {
