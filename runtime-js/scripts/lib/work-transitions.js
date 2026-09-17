@@ -6,7 +6,10 @@ import { canonicalJsonBytes } from './bundle-format.js';
 import { hasRunCapability } from './run-model.js';
 import { parseTables } from './markdown.js';
 import { mdLineSpan, sourceFilePath } from './check-helpers.js';
-import { semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown, degradedPacketBinding, semanticProducerBinding, semanticDegradedMaterialViews, buildSemanticSubject, } from './semantic-review.js';
+import { semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown, degradedPacketBinding, semanticProducerBinding, semanticDegradedMaterialViews, buildSemanticSubject, semanticProducerSelections, semanticProducerView, semanticProducerViewPaths, semanticProducerTask, semanticJson, validateSemanticReturn, } from './semantic-review.js';
+import { framedExactEvidenceHash, runK2 } from './checks-k2.js';
+import { ResultCollector } from './results.js';
+import { readRepresentationContext, representationUseDigest, representationUsesMarkdown, validateRepresentationRun, planRepresentationUseWrite, } from './source-representation.js';
 export const WORK_TRANSITION_CAPABILITY = 'orchestrator-work-transitions';
 export const WORK_STAGE_CONTRACT = 'docs/architecture/04-pipeline-stages-and-dod.md';
 export const CRITERIA_REVIEW_TASK = 'Challenge candidacy agreement and sample adequacy using only the sealed criteria and frozen samples.';
@@ -115,6 +118,167 @@ function s2Entry(model, now) {
     assertWork(!model.manifest.states.some((row) => row.values.state === 'DISTILLING'), 'WORK_STAGE_ENTRY', 'DISTILLING already entered');
     effects.push(effect(model, 'run-manifest.md', appendRows(required(model, 'run-manifest.md'), '#', [[String(model.manifest.states.length + 1), 'DISTILLING', now, 'orchestrator', 'S1 criteria agreement recorded; bounded extraction begins.']])));
     return effects;
+}
+const S2_PREPARATIONS = 'verification/harness/work-preparations/';
+const S2_CAPTURES = 'verification/harness/work-captures/';
+function nextId(prefix, values) {
+    const max = values.reduce((n, value) => {
+        const match = new RegExp(`^${prefix}-([0-9]+)$`, 'u').exec(value);
+        return Math.max(n, match ? Number(match[1]) : 0);
+    }, 0);
+    assertWork(Number.isSafeInteger(max + 1), 'WORK_IDENTITY', 'ID ordinal overflow');
+    return `${prefix}-${String(max + 1).padStart(4, '0')}`;
+}
+function s2Preparation(model, sourceId) {
+    const cursor = model.sourceWalk.cursors.filter((row) => row.values.sourceId === sourceId).at(-1);
+    assertWork(cursor, 'WORK_PREREQUISITE', 'initial source cursor');
+    const identity = { run_id: model.manifest.runId, bundle_digest: model.manifest.forwardIdentity.bundleDigest,
+        source_id: sourceId, prior_cursor_id: cursor.values.cursorId, source_walk_digest: workDigest(required(model, 'ledgers/source-walk.md')) };
+    return { format: 'aleph-s2-work-preparation/v1', source_id: sourceId, prior_cursor_id: cursor.values.cursorId,
+        call_id: `CALL-F03-${workDigest(workJson(identity)).slice(7)}` };
+}
+function selectS2Work(model) {
+    // Review/accounting precedes another source batch; the capture's finite
+    // original selectors remain the authoritative work set.
+    const captures = model.files.filter((entry) => entry.relativePath.startsWith(S2_CAPTURES));
+    if (captures.length)
+        return { kind: 'halt', code: 'WORK_S2_REVIEW_UNIMPLEMENTED',
+            reason: 'Retained S2 capture requires its semantic/material and gap-review continuation.' };
+    for (const source of model.corpus.sources) {
+        const id = source.values.sourceId, cursor = model.sourceWalk.cursors.filter((row) => row.values.sourceId === id).at(-1);
+        if (!cursor)
+            return { kind: 'local', obligation: obligation('S2', 'S2.primary-walk.initial-cursor', 's2.initial-cursor', id, required(model, 'ledgers/source-walk.md')) };
+        const prepared = model.files.filter((entry) => entry.relativePath.startsWith(S2_PREPARATIONS))
+            .map((entry) => parseStrictJson(entry.text))
+            .find((entry) => entry.source_id === id && entry.prior_cursor_id === cursor.values.cursorId);
+        if (!prepared)
+            return { kind: 'local', obligation: obligation('S2', 'S2.primary-walk.prepare', 's2.prepare-extractor', id, workJson(s2Preparation(model, id))) };
+        const paths = semanticProducerViewPaths(prepared.call_id), view = semanticProducerView(model, 'extractor', 'S2', parseStrictJson(required(model, paths.selections)));
+        assertWork(required(model, paths.view).equals(view.bytes), 'WORK_SUBJECT_CHANGED', paths.view);
+        return { kind: 'worker', obligation: obligation('S2', 'S2.primary-walk.capture', 's2.capture', id, required(model, paths.view)),
+            call: { prepared_call_id: prepared.call_id, role: 'extractor', kind: 'producer', task_line: semanticProducerTask('extractor', 'S2'),
+                allowlist: [paths.view, ...view.assets.map((asset) => asset.path)].sort(), producer_dependency: null, output_selector: 'Role: Extractor (S2)' } };
+    }
+    return { kind: 'halt', code: 'WORK_S2_REVIEW_UNIMPLEMENTED', reason: 'S2 review/exit continuation is incomplete.' };
+}
+function deriveS2Preparation(model, work) {
+    const id = work.obligation.subject_id;
+    if (work.obligation.operation === 's2.initial-cursor') {
+        const source = model.corpus.sources.find((source) => source.values.sourceId === id);
+        const cursorId = nextId('CUR', model.sourceWalk.cursors.map((row) => row.values.cursorId));
+        return [effect(model, 'ledgers/source-walk.md', appendRows(required(model, 'ledgers/source-walk.md'), 'cursor_id', [[cursorId, id, '0', 'none', 'none', 'none', 'none', source.values.contentHash, 'initial']]))];
+    }
+    const prep = s2Preparation(model, id), paths = semanticProducerViewPaths(prep.call_id);
+    const selections = semanticProducerSelections(model, 'extractor', 'S2', { source_id: id });
+    const view = semanticProducerView(model, 'extractor', 'S2', selections);
+    return [effect(model, `${S2_PREPARATIONS}${prep.call_id}.json`, workJson(prep)),
+        effect(model, paths.selections, Buffer.from(semanticJson(selections))), effect(model, paths.view, view.bytes)];
+}
+function deriveS2Capture(model, work, accepted) {
+    assertWork(accepted.call_id === work.call.prepared_call_id, 'WORK_CALL_BINDING', 'prepared extractor identity');
+    const paths = semanticProducerViewPaths(accepted.call_id), projected = semanticProducerView(model, 'extractor', 'S2', parseStrictJson(required(model, paths.selections)));
+    const checked = validateSemanticReturn('extractor', model.manifest.runFormatVersion, accepted.value, projected.context);
+    assertWork(checked.result === 'PASS', 'WORK_RETURN', checked.errors.join('; '));
+    const returned = accepted.value;
+    assertWork(returned.producer_invocation_id === accepted.call_id && returned.source_id === work.obligation.subject_id, 'WORK_CALL_BINDING', 'source/invocation must equal sealed work');
+    const source = model.corpus.sources.find((source) => source.values.sourceId === returned.source_id);
+    const sourcePath = sourceFilePath(model.runDir, source.values.locus);
+    const sourceBytes = readFileSync(sourcePath);
+    const packetIds = model.packets.map((row) => row.values.packetId);
+    const evidenceIds = model.exactEvidence.records.map((row) => row.values.evidenceKey);
+    const fragmentIds = model.exactEvidence.fragments.map((row) => row.values.fragmentKey);
+    const transformIds = model.exactEvidence.transformations.map((row) => row.values.transformKey);
+    const packetRows = [], evidenceRows = [], fragmentRows = [], transformRows = [];
+    const selected = [];
+    for (const candidate of returned.packets) {
+        const evidence = nextId('EVID', evidenceIds);
+        evidenceIds.push(evidence);
+        const ids = [], fragments = [], bytes = [];
+        for (const fragment of candidate.fragments) {
+            const locator = String(fragment.locator), match = /^L([1-9][0-9]*)-L([1-9][0-9]*)$/u.exec(locator);
+            const span = match && mdLineSpan(sourcePath, Number(match[1]), Number(match[2]));
+            assertWork(span?.bytes && span.startByte !== null && span.endByte !== null
+                && span.bytes.toString('base64') === fragment.exact_bytes_base64, 'WORK_EXACT_EVIDENCE', locator);
+            const id = nextId('PKT', packetIds);
+            packetIds.push(id);
+            ids.push(id);
+            bytes.push(span.bytes);
+            const fragmentId = nextId('FRAG', fragmentIds);
+            fragmentIds.push(fragmentId);
+            fragments.push({ packet: id, start: span.startByte, end: span.endByte });
+            packetRows.push([id, source.values.sourceId, locator, workDigest(span.bytes), span.bytes.toString('utf8'), String(candidate.criterion), 'active']);
+            fragmentRows.push([fragmentId, evidence, id, String(fragment.fragment_order), source.values.sourceId, locator,
+                'frozen-source', 'exact-source-bytes', workDigest(span.bytes), span.bytes.toString('base64')]);
+        }
+        const exact = candidate.evidence_state === 'exact';
+        assertWork(exact ? ids.length > 0 : ids.length === 0, 'WORK_EXACT_EVIDENCE', 'candidate evidence cardinality');
+        const hash = exact ? framedExactEvidenceHash(bytes) : 'none';
+        evidenceRows.push([evidence, ids.join(', ') || 'none', String(candidate.evidence_state), String(ids.length),
+            String(candidate.join_policy), hash, exact ? 'none' : source.values.sourceId,
+            exact ? 'none' : String(candidate.degraded_source_locator), exact ? 'none' : String(candidate.degradation_reason)]);
+        const transform = nextId('TRN', transformIds);
+        transformIds.push(transform);
+        transformRows.push([transform, evidence, 'rendered', hash, hash, String(candidate.rendered_text), workDigest(String(candidate.rendered_text))]);
+        selected.push({ ids, evidence, fragments, use: candidate.material_use });
+    }
+    let packets = required(model, 'ledgers/packet-index.md');
+    for (const [i, rows] of [packetRows, evidenceRows, fragmentRows, transformRows].entries())
+        packets = appendRows(packets, PACKET_TABLES[i][0], rows);
+    const walkIds = model.sourceWalk.intervals.map((row) => row.values.walkId), eventIds = model.sourceWalk.events.map((row) => row.values.eventId);
+    const newWalkIds = [], newEventIds = [], walkRows = [], eventRows = [];
+    const indexes = (value, bound) => {
+        assertWork(Array.isArray(value) && value.every((n) => Number.isSafeInteger(n) && Number(n) >= 0 && Number(n) < bound)
+            && new Set(value).size === value.length, 'WORK_SELECTOR', 'existing unique candidate indexes');
+        return value;
+    };
+    for (const interval of returned.walk_intervals) {
+        const id = nextId('WLK', walkIds);
+        walkIds.push(id);
+        newWalkIds.push(id);
+        const chosen = indexes(interval.packet_candidate_indexes, selected.length);
+        assertWork(chosen.every((index) => selected[index].ids.length > 0), 'WORK_ACCOUNTING', 'degraded candidate is not an admitted packet');
+        walkRows.push([id, source.values.sourceId, String(interval.start_byte), String(interval.end_byte), String(interval.outcome),
+            chosen.flatMap((index) => selected[index].ids).join(', ') || 'none', String(interval.criterion_ref), accepted.call_id,
+            String(interval.closure_state), interval.reason === null ? 'none' : String(interval.reason), interval.closure_note === null ? 'none' : String(interval.closure_note)]);
+    }
+    for (const event of returned.extraction_events) {
+        const [index] = indexes([event.packet_candidate_index], selected.length);
+        const matching = selected[index].fragments.filter((f) => Number(event.start_byte) >= f.start && Number(event.end_byte) <= f.end);
+        assertWork(matching.length === 1 && event.origin === 'primary', 'WORK_EVENT_BINDING', 'one selected exact fragment for primary event');
+        const id = nextId('EVT', eventIds);
+        eventIds.push(id);
+        newEventIds.push(id);
+        eventRows.push([id, source.values.sourceId, String(event.start_byte), String(event.end_byte), String(event.shared_position_key),
+            String(event.event_ordinal), matching[0].packet, 'primary', accepted.call_id, 'committed']);
+    }
+    const cursor = returned.next_cursor;
+    const prior = model.sourceWalk.cursors.filter((row) => row.values.sourceId === source.values.sourceId).at(-1);
+    const cursorId = nextId('CUR', model.sourceWalk.cursors.map((row) => row.values.cursorId));
+    const predecessor = (value, ids, fallback) => {
+        if (value === null)
+            return fallback;
+        assertWork(Number.isSafeInteger(value) && Number(value) >= 0 && Number(value) < ids.length, 'WORK_CURSOR', 'predecessor index');
+        return ids[Number(value)];
+    };
+    assertWork(cursor.source_hash === source.values.contentHash && cursor.byte_offset !== null
+        && Number(cursor.byte_offset) >= Number(prior.values.byteOffset)
+        && (Number(cursor.byte_offset) > Number(prior.values.byteOffset) || newEventIds.length > 0), 'WORK_CURSOR', 'frozen source and actual forward progress required');
+    assertWork(returned.walk_exhausted === (Number(cursor.byte_offset) === sourceBytes.length && cursor.shared_position_key === null), 'WORK_CURSOR', 'source exhaustion differs from cursor');
+    let walk = appendRows(required(model, 'ledgers/source-walk.md'), 'walk_id', walkRows);
+    walk = appendRows(walk, 'event_id', eventRows);
+    walk = appendRows(walk, 'cursor_id', [[cursorId, source.values.sourceId, String(cursor.byte_offset),
+            cursor.shared_position_key === null ? 'none' : String(cursor.shared_position_key),
+            cursor.next_event_ordinal === null ? 'none' : String(cursor.next_event_ordinal),
+            predecessor(cursor.predecessor_walk_index, newWalkIds, prior.values.predecessorWalkId),
+            predecessor(cursor.predecessor_event_index, newEventIds, prior.values.predecessorEventId),
+            String(cursor.source_hash), String(cursor.reason)]]);
+    const capture = { format: 'aleph-s2-work-capture/v1', source_id: source.values.sourceId,
+        call_id: accepted.call_id, raw_digest: accepted.raw_digest, selectors: [
+            ...selected.map((entry, index) => ({ output_kind: 'packet-candidate', output_index: index, packet_ids: entry.ids, evidence_key: entry.evidence })),
+            ...returned.material_findings.map((_, index) => ({ output_kind: 'material-candidate', output_index: index, packet_ids: [], evidence_key: null })),
+        ] };
+    return [effect(model, 'ledgers/packet-index.md', packets), effect(model, 'ledgers/source-walk.md', walk),
+        effect(model, `${S2_CAPTURES}${accepted.call_id}.json`, workJson(capture))];
 }
 export function criteriaReviewExemplar() {
     return {

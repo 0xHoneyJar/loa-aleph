@@ -1,0 +1,207 @@
+{
+  "evidence_kind": "synthetic Core transition discriminator; no production/native/model execution",
+  "evidence": [
+    {
+      "version": "1.8.0-provisional",
+      "before": [
+        {
+          "id": "K2.14",
+          "scope": "synthetic temporal walk discriminator",
+          "status": "PASS",
+          "message": "(source walk, gap review, and resume accounting): source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid; semantic recall is not judged"
+        }
+      ],
+      "after": [
+        {
+          "id": "K2.14",
+          "scope": "synthetic temporal walk discriminator",
+          "status": "PASS",
+          "message": "(source walk, gap review, and resume accounting): source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid; semantic recall is not judged"
+        }
+      ],
+      "replace_completion": {
+        "result": "FAIL",
+        "error": "Error: FROZEN_WRITE ledgers/source-walk.md field preimage: subject writes may insert rows but cannot replace retained lines"
+      },
+      "keep_old_completion": {
+        "plan": {
+          "result": "PASS",
+          "writes": 3
+        },
+        "checks": [
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 final_cursor_id is not the last recorded cursor"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 blocked final cursor CUR-0701 is behind committed primary walk WLK-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 blocked final cursor CUR-0701 is behind committed primary event EVT-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 gap_review_ids omit or add GAP-0701"
+          }
+        ]
+      },
+      "append_completion_successor": {
+        "plan": {
+          "result": "PASS",
+          "writes": 3
+        },
+        "checks": [
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 final_cursor_id is not the last recorded cursor"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 blocked final cursor CUR-0701 is behind committed primary walk WLK-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 blocked final cursor CUR-0701 is behind committed primary event EVT-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 gap_review_ids omit or add GAP-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 has more than one final traversal state"
+          }
+        ]
+      },
+      "omit_completion": [
+        {
+          "id": "K2.14",
+          "scope": "synthetic temporal walk discriminator",
+          "status": "FAIL",
+          "message": "(source walk, gap review, and resume accounting): SRC-701 lacks one per-source completion row"
+        }
+      ]
+    },
+    {
+      "version": "1.9.0-provisional",
+      "before": [
+        {
+          "id": "K2.14",
+          "scope": "synthetic temporal walk discriminator",
+          "status": "PASS",
+          "message": "(source walk, gap review, and resume accounting): source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid; semantic recall is not judged"
+        }
+      ],
+      "after": [
+        {
+          "id": "K2.14",
+          "scope": "synthetic temporal walk discriminator",
+          "status": "PASS",
+          "message": "(source walk, gap review, and resume accounting): source walks, shared-position events, next-work cursors, gap reviews, and completion states are structurally valid; semantic recall is not judged"
+        }
+      ],
+      "replace_completion": {
+        "result": "FAIL",
+        "error": "Error: FROZEN_WRITE ledgers/source-walk.md field preimage: subject writes may insert rows but cannot replace retained lines"
+      },
+      "keep_old_completion": {
+        "plan": {
+          "result": "PASS",
+          "writes": 3
+        },
+        "checks": [
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 final_cursor_id is not the last recorded cursor"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 blocked final cursor CUR-0701 is behind committed primary walk WLK-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 blocked final cursor CUR-0701 is behind committed primary event EVT-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 gap_review_ids omit or add GAP-0701"
+          }
+        ]
+      },
+      "append_completion_successor": {
+        "plan": {
+          "result": "PASS",
+          "writes": 3
+        },
+        "checks": [
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 final_cursor_id is not the last recorded cursor"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 blocked final cursor CUR-0701 is behind committed primary walk WLK-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 blocked final cursor CUR-0701 is behind committed primary event EVT-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 gap_review_ids omit or add GAP-0701"
+          },
+          {
+            "id": "K2.14",
+            "scope": "synthetic temporal walk discriminator",
+            "status": "FAIL",
+            "message": "(source walk, gap review, and resume accounting): SRC-701 has more than one final traversal state"
+          }
+        ]
+      },
+      "omit_completion": [
+        {
+          "id": "K2.14",
+          "scope": "synthetic temporal walk discriminator",
+          "status": "FAIL",
+          "message": "(source walk, gap review, and resume accounting): SRC-701 lacks one per-source completion row"
+        }
+      ]
+    }
+  ]
+}
