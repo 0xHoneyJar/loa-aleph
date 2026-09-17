@@ -185,7 +185,7 @@ if (process.argv[2] === '--fixture-worker') {
           writeFileSync(path, exact.toString().replace(pendingRow, pendingRow.replace('| 2 |', '| 9 |')));
           const rejected = command('cli', ['--root', host, '--json', '--allow-fixture-simulation', 'resume', id], 1);
           assert.equal(rejected.result, 'FAIL');
-          assert(rejected.errors.some((error: string) => error.includes('WORK_EFFECT_CHANGED')), JSON.stringify(rejected));
+          assert.deepEqual(rejected.errors, ['WORK_PREREQUISITE_CHANGED: ledgers/source-walk.md']);
           assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(beforeChain!));
           // Controlled attack fixture only: preserve the refusal receipt,
           // then restore the exact snapshot to continue the fault sequence.
@@ -273,6 +273,20 @@ if (process.argv[2] === '--fixture-worker') {
       resumed = cli('resume', id);
       assert(readFileSync(join(run, 'ledgers/semantic-review.md'), 'utf8').includes('| admitted |'));
       console.log('PASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission');
+    }
+    if (process.env.F03_S2_CLOSE === '1') {
+      resumed = cli('resume', id);
+      const gap = resumed.details.work;
+      const request = JSON.parse(readFileSync(join(gap.worker_bundle, 'request.json'), 'utf8'));
+      assert.equal(request.role, 'verifier-l1');
+      runFixture(gap, { verdict: 'upheld', rationale: 'Synthetic coverage challenge found no additional candidate.',
+        attacks_tried: ['Rechecked each frozen source position against the fixture criteria.'],
+        evidence_ids: [], candidate_evidence: [], missing_for_determination: null, flags: [] });
+      resumed = cli('resume', id);
+      assert.equal(resumed.stage, 'S3');
+      assert.equal(loadRun(run).sourceWalk.completions[0].values.completionState, 'complete');
+      assert(existsSync(join(run, 'verification/harness/semantic-stage-seals/S2.json')));
+      console.log('PASS supported CLI fresh fixture L1, complete source projection, S2 seal and S3 entry');
     }
     console.log('PASS supported CLI S2 walk-only capture, process reauthentication, C-02 projection, before-row retention and repeated-resume idempotency');
     console.log('EVIDENCE: fixture-simulated only. No provider/model/native/live execution. F-03 OPEN / MUST PRESERVE.');

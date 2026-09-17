@@ -699,7 +699,7 @@ export function semanticPinnedPrompts(model, stage) {
         return { ...part, digest: materialHash(selectSemanticCorePart(bytes, part.selector)) };
     });
 }
-function canonicalClaimModel(model, output) {
+export function canonicalClaimModel(model, output) {
     if (output.kind !== 'claim')
         return model;
     const existing = model.claims.find((c) => c.values.claimId === output.reserved_claim_id);
@@ -719,7 +719,7 @@ function canonicalClaimModel(model, output) {
 export function semanticClaimCell(text) {
     return parseTables(materialTableMarkdown(['normalized claim'], [{ 'normalized claim': text }]))[0].rows[0].cells[0];
 }
-function useRowFromSubject(value) {
+export function useRowFromSubject(value) {
     requireSemantic(obj(value), 'SEM_SUBJECT', 'material view', 'existing use subject required');
     const fields = ['owner_stage', 'subject_kind', 'subject_id', 'basis_packet_ids', 'requirements', 'use_state', 'fidelity_claim', 'limitation_refs', 'reason', 'established_by'];
     return { use_id: 'USE-0001', ...Object.fromEntries(fields.map((field) => [field,
