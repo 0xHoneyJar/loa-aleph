@@ -20,6 +20,7 @@ export interface SourceWalkProjection {
   after_digest: string;
   after_base64: string;
   completions: CompletionProjection[];
+  event_commitments: Array<{ event_id: string; before_row: string; after_row: string }>;
   prerequisite_hashes: Array<{ path: string; digest: string }>;
 }
 const digest = (bytes: Buffer | string): string => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
@@ -58,12 +59,26 @@ function k214(model: RunModel): string[] {
   runK2(result, model, join(model.runDir, 'control/runtime/bundle'));
   return result.checks.filter((check) => check.id === 'K2.14' && check.status === 'FAIL').map((check) => check.message);
 }
-function retainedHistory(before: RunModel, after: RunModel): void {
-  for (const key of ['intervals', 'events', 'cursors', 'gapReviews'] as const) {
+function retainedHistory(before: RunModel, after: RunModel): SourceWalkProjection['event_commitments'] {
+  for (const key of ['intervals', 'cursors', 'gapReviews'] as const) {
     const prior = before.sourceWalk[key], next = after.sourceWalk[key];
     requireWalk(prior.length <= next.length && prior.every((row, index) => row.raw === next[index].raw),
       `${key} history must remain an exact ordered prefix`);
   }
+  const changes: SourceWalkProjection['event_commitments'] = [];
+  requireWalk(before.sourceWalk.events.length <= after.sourceWalk.events.length, 'event deletion');
+  for (const [index, prior] of before.sourceWalk.events.entries()) {
+    const next = after.sourceWalk.events[index];
+    if (prior.raw === next.raw) continue;
+    requireWalk(prior.values.status === 'pending' && next.values.status === 'committed'
+      && next.raw === committedEventRow(prior.raw), 'event identity/history changed outside pending commitment');
+    const cursor = before.sourceWalk.cursors.filter((entry) => entry.values.sourceId === prior.values.sourceId).at(-1);
+    requireWalk(cursor && cursor.values.sharedPositionKey === prior.values.sharedPositionKey
+      && cursor.values.byteOffset === prior.values.startByte
+      && cursor.values.nextEventOrdinal === prior.values.eventOrdinal, 'current cursor does not expect this pending event');
+    changes.push({ event_id: prior.values.eventId, before_row: prior.raw, after_row: next.raw });
+  }
+  requireWalk(changes.length <= 1, 'one current pending event commitment per transition');
   if (before.sourceWalkDocument) {
     const scaffold = (model: RunModel): string => {
       const dataLines = new Set(model.sourceWalkDocument!.tables.flatMap((table) => table.rows.map((row) => row.line)));
@@ -71,6 +86,12 @@ function retainedHistory(before: RunModel, after: RunModel): void {
     };
     requireWalk(scaffold(before) === scaffold(after), 'source-walk headers and non-row bytes changed');
   }
+  return changes;
+}
+function committedEventRow(pending: string): string {
+  const committed = pending.replace(/\bpending(?=\s*\|\s*$)/u, 'committed');
+  requireWalk(committed !== pending, 'exact pending status cell required');
+  return committed;
 }
 function row(values: readonly string[]): string {
   requireWalk(values.every((value) => !/[|\r\n]/u.test(value)), 'invalid mechanically generated cell');
@@ -91,7 +112,7 @@ export function deriveSourceWalkCompletion(before: RunModel, history: RunModel):
       return source.values.sourceId === next.sourceId && source.values.locus === next.locus
         && source.values.contentHash === next.contentHash && source.values.scheme === next.scheme;
     }), 'frozen source identity changed');
-  retainedHistory(before, history);
+  const event_commitments = retainedHistory(before, history);
   if (before.sourceWalkDocument) {
     const invalid = k214(before);
     requireWalk(invalid.length === 0, `invalid prior source-walk evidence: ${invalid.join('; ')}`);
@@ -172,15 +193,75 @@ export function deriveSourceWalkCompletion(before: RunModel, history: RunModel):
   return {
     format: 'aleph-source-walk-completion-projection/v1',
     before_digest: before.sourceWalkDocument ? digest(before.sourceWalkDocument.text) : null,
-    after_digest: digest(text), after_base64: Buffer.from(text).toString('base64'), completions: projections,
+    after_digest: digest(text), after_base64: Buffer.from(text).toString('base64'), completions: projections, event_commitments,
     prerequisite_hashes: before.files.map((file) => ({ path: file.relativePath, digest: digest(file.text) }))
       .sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path))),
   };
 }
 
+/**
+ * HUMAN C-03: commit only the existing event expected by the current shared
+ * cursor. No destination, replacement row, new event ID or ordinal is input.
+ * The caller must be the authenticated Core work-transition controller.
+ */
+export function derivePendingEventCommitment(before: RunModel, eventId: string): SourceWalkProjection {
+  requireWalk(hasRunCapability(before.manifest?.runFormatVersion || '', 'orchestrator-work-transitions'),
+    '1.9 orchestration identity required');
+  const invalid = k214(before);
+  requireWalk(invalid.length === 0, `invalid commitment prerequisites: ${invalid.join('; ')}`);
+  const matches = before.sourceWalk.events.filter((entry) => entry.values.eventId === eventId);
+  requireWalk(matches.length === 1, 'one retained event identity required');
+  const event = matches[0];
+  // Repeated observations do not create a cursor or a semantic effect.
+  if (event.values.status === 'committed') {
+    const projection = deriveSourceWalkCompletion(before, before);
+    return { ...projection, after_digest: projection.before_digest!,
+      after_base64: Buffer.from(before.sourceWalkDocument!.text).toString('base64'),
+      completions: before.sourceWalk.completions.map((entry) => ({ source_id: entry.values.sourceId,
+        progression: entry.values.completionState === 'complete' ? 'complete-no-op' : 'blocked-no-op',
+        before_row: entry.raw, after_row: entry.raw })) };
+  }
+  requireWalk(event.values.status === 'pending', 'pending event required');
+  const sourceId = event.values.sourceId;
+  const cursor = before.sourceWalk.cursors.filter((entry) => entry.values.sourceId === sourceId).at(-1)!;
+  requireWalk(cursor.values.sharedPositionKey === event.values.sharedPositionKey
+    && cursor.values.byteOffset === event.values.startByte
+    && cursor.values.nextEventOrdinal === event.values.eventOrdinal, 'current cursor does not expect this pending event');
+  const siblings = before.sourceWalk.events.filter((entry) => entry.values.sourceId === sourceId
+    && entry.values.sharedPositionKey === event.values.sharedPositionKey);
+  const next = siblings.find((entry) => Number(entry.values.eventOrdinal) === Number(event.values.eventOrdinal) + 1);
+  requireWalk(!next || next.values.status === 'pending', 'next sibling is not pending');
+  const walk = before.sourceWalk.intervals.find((entry) => entry.values.walkId === cursor.values.predecessorWalkId)!;
+  const source = before.corpus.sources.find((entry) => entry.values.sourceId === sourceId)!;
+  const sourcePath = sourceFilePath(before.runDir, source.values.locus);
+  requireWalk(sourcePath, 'frozen source must reopen');
+  const length = readFileSync(sourcePath).length;
+  const offset = next ? event.values.startByte : walk.values.endByte;
+  const ordinal = Math.max(0, ...before.sourceWalk.cursors.map((entry) => Number(entry.values.cursorId.slice(4)))) + 1;
+  requireWalk(Number.isSafeInteger(ordinal), 'cursor identity overflow');
+  const cursorId = `CUR-${String(ordinal).padStart(4, '0')}`;
+  const nextRow = row([cursorId, sourceId, offset, next ? event.values.sharedPositionKey : 'none',
+    next ? next.values.eventOrdinal : 'none', walk.values.walkId,
+    next || event.values.endByte === offset ? eventId : 'none', source.values.contentHash,
+    next ? 'resumed-shared-position' : Number(offset) === length ? 'source-complete' : 'progress']);
+  const lines = before.sourceWalkDocument!.text.split('\n');
+  const eventLine = lines.indexOf(event.raw);
+  requireWalk(eventLine >= 0 && lines.lastIndexOf(event.raw) === eventLine, 'exact unique pending row required');
+  lines[eventLine] = committedEventRow(event.raw);
+  const table = before.sourceWalk.cursorTable!;
+  lines.splice(table.line + table.rows.length + 1, 0, nextRow);
+  // K2.14 checks exact evidence, ordinal continuity, containment, cursor
+  // eligibility and refusal to jump any other still-pending event.
+  return deriveSourceWalkCompletion(before, projectSourceWalk(before, lines.join('\n')));
+}
+
 /** Validate the narrow replacement inside an existing Core material plan. */
 export function validateSourceWalkCompletionWrite(before: RunModel, after: RunModel): SourceWalkProjection {
   const expected = deriveSourceWalkCompletion(before, after);
+  if (expected.event_commitments.length) {
+    const commitment = derivePendingEventCommitment(before, expected.event_commitments[0].event_id);
+    requireWalk(commitment.after_base64 === expected.after_base64, 'caller-supplied event/cursor after-image differs from Core commitment');
+  }
   requireWalk(Buffer.from(expected.after_base64, 'base64').toString('utf8') === after.sourceWalkDocument?.text,
     'caller-supplied completion row differs from Core derivation');
   return expected;

@@ -156,10 +156,26 @@ Column rules:
   appended in retained review order. The authenticated transaction retains
   the exact prior file/row, work identity, transition digest and checkpoint/
   chain binding. Recovery accepts only its exact before or after image.
-  Primary intervals, events, cursors and fresh gap reviews retain their
-  append-only history; no other table has replacement authority. Predecessor
+  Primary intervals, committed events, cursors and fresh gap reviews retain
+  their history. The only provisional-event exception is C-03 below. Predecessor
   runs retain their pinned semantics. This rule does not weaken K2.14 or
   permit duplicate completion rows.
+- At the same cumulative 1.9 capability boundary, a retained `pending`
+  extraction event is a provisional reservation. Core may advance only its
+  status to `committed`, retaining the same event ID, source, coordinates,
+  shared-position key, ordinal, packet, origin and producer invocation
+  byte-for-byte. A pending or committed no-op is exact; all other edits,
+  reversals, deletions, successor events and duplicate ordinals are refused.
+  The current legal cursor must expect that event and all K2.14 evidence,
+  containment and positional predicates still apply. After commitment the
+  next sibling remains pending at its original ordinal; the cursor stays at
+  the shared byte until the retained sibling set is exhausted. Core derives
+  the next legal cursor from retained walk evidence, without skipping any
+  pending event. The authenticated Architecture-B transaction retains the
+  exact pending before-row and committed after-row with work, checkpoint,
+  chain and Core plan bindings; recovery recognizes only those two states.
+  Workers and callers cannot author the event after-image. This is not a
+  general mutable-event facility and does not change pinned 1.2–1.8 behavior.
 
 ## T3.3 Claim inventory → `runs/<run-id>/ledgers/claim-inventory.md`
 

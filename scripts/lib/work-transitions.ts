@@ -19,7 +19,8 @@ import {
 } from './semantic-review.ts';
 import { framedExactEvidenceHash, runK2, sourceWalkReviewBasisDigest } from './checks-k2.ts';
 import { ResultCollector } from './results.ts';
-import { deriveSourceWalkCompletion, projectSourceWalk, type SourceWalkProjection } from './source-walk-transition.ts';
+import { deriveSourceWalkCompletion, derivePendingEventCommitment, validateSourceWalkCompletionWrite,
+  projectSourceWalk, type SourceWalkProjection } from './source-walk-transition.ts';
 import {
   readRepresentationContext, representationUseDigest, representationUsesMarkdown, validateRepresentationRun,
   planRepresentationUseWrite, type MaterialRow, type MaterialUseInput,
@@ -111,7 +112,7 @@ export interface WorkFileEffect {
 export interface WorkTransition {
   format: 'aleph-core-work-transition/v1';
   obligation: WorkObligation;
-  family: 'stage' | 'inventory' | 'criteria-review' | 'criteria-preparation' | 's2-preparation' | 's2-capture' | 's2-gap-review' | 'semantic';
+  family: 'stage' | 'inventory' | 'criteria-review' | 'criteria-preparation' | 's2-preparation' | 's2-capture' | 's2-event-commitment' | 's2-gap-review' | 'semantic';
   effects: WorkFileEffect[];
   origins: WorkFieldOrigin[];
   next_execution: WorkExecution;
@@ -561,6 +562,17 @@ function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'lo
       reviewer_call_ids: assigned.map((assignment) => assignment.invocation_id) } };
 }
 function selectS2Work(model: RunModel): NextWork {
+  // C-03 consumes one already reserved event before any new worker batch.
+  // Its accepted original producer is reauthenticated by the controller.
+  for (const source of model.corpus.sources) {
+    const cursor = model.sourceWalk.cursors.filter((row) => row.values.sourceId === source.values.sourceId).at(-1);
+    const event = model.sourceWalk.events.find((row) => row.values.sourceId === source.values.sourceId
+      && row.values.status === 'pending' && row.values.sharedPositionKey === cursor?.values.sharedPositionKey
+      && row.values.eventOrdinal === cursor?.values.nextEventOrdinal);
+    if (event) return { kind: 'local', accepted_dependencies: [event.values.producerInvocationId],
+      obligation: obligation('S2', 'S2.primary-walk.event-commitment', 's2.commit-event', event.values.eventId,
+        required(model, 'ledgers/source-walk.md')) };
+  }
   // Review/accounting precedes another source batch; the capture's finite
   // original selectors remain the authoritative work set.
   const captures = s2Captures(model);
@@ -669,15 +681,18 @@ function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
       chosen.flatMap((index) => selected[index].ids).join(', ') || 'none', String(interval.criterion_ref), accepted.call_id,
       String(interval.closure_state), interval.reason === null ? 'none' : String(interval.reason), interval.closure_note === null ? 'none' : String(interval.closure_note)]);
   }
+  const cursor = returned.next_cursor as Record<string, WorkerJsonValue>;
   for (const event of returned.extraction_events as Array<Record<string, WorkerJsonValue>>) {
     const [index] = indexes([event.packet_candidate_index], selected.length);
     const matching = selected[index].fragments.filter((f) => Number(event.start_byte) >= f.start && Number(event.end_byte) <= f.end);
     assertWork(matching.length === 1 && event.origin === 'primary', 'WORK_EVENT_BINDING', 'one selected exact fragment for primary event');
     const id = nextId('EVT', eventIds); eventIds.push(id); newEventIds.push(id);
+    const pending = cursor.shared_position_key !== null
+      && (Number(event.start_byte) > Number(cursor.byte_offset)
+        || event.shared_position_key === cursor.shared_position_key && Number(event.event_ordinal) >= Number(cursor.next_event_ordinal));
     eventRows.push([id, source.values.sourceId, String(event.start_byte), String(event.end_byte), String(event.shared_position_key),
-      String(event.event_ordinal), matching[0].packet, 'primary', accepted.call_id, 'committed']);
+      String(event.event_ordinal), matching[0].packet, 'primary', accepted.call_id, pending ? 'pending' : 'committed']);
   }
-  const cursor = returned.next_cursor as Record<string, WorkerJsonValue>;
   const prior = model.sourceWalk.cursors.filter((row) => row.values.sourceId === source.values.sourceId).at(-1)!;
   const cursorId = gapCandidates ? prior.values.cursorId : nextId('CUR', model.sourceWalk.cursors.map((row) => row.values.cursorId));
   const predecessor = (value: WorkerJsonValue, ids: string[], fallback: string): string => {
@@ -990,6 +1005,18 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
       origins: [{ artifact: CRITERIA_REVIEW_PATHS[index], field: '*', from: { kind: 'accepted', call_id: accepted.call_id, selector: '' } }] };
   }
   assertWork(accepted === null, 'WORK_ACCEPTANCE', 'local transition must not borrow worker authority');
+  if (work.obligation.operation === 's2.commit-event') {
+    const event = model.sourceWalk.events.find((entry) => entry.values.eventId === work.obligation.subject_id)!;
+    const capture = s2Captures(model).find((entry) => entry.call_id === event.values.producerInvocationId);
+    assertWork(capture && work.accepted_dependencies?.length === 1 && work.accepted_dependencies[0] === capture.call_id,
+      'WORK_EVENT_BINDING', 'exact authenticated original producer dependency required');
+    const value = capturedValue(model, capture);
+    const source_completion = derivePendingEventCommitment(model, event.values.eventId);
+    return { ...base, family: 's2-event-commitment', simulation: value.simulation, source_completion,
+      effects: [effect(model, 'ledgers/source-walk.md', Buffer.from(source_completion.after_base64, 'base64'))],
+      origins: [{ artifact: 'ledgers/source-walk.md', field: `event:${event.values.eventId}:status/cursor/completion`,
+        from: { kind: 'rule', rule: 'HUMAN-C03:same-identity-pending-event-commitment' } }] };
+  }
   if (['s2.prepare-gap-target', 's2.prepare-gap-producer'].includes(work.obligation.operation)) {
     const sourceId = work.obligation.subject_id, basis = gapSubject(model, sourceId);
     const targetPath = `${GAP_PRODUCERS}${basis.digest.slice(7)}.json`;
@@ -1060,6 +1087,10 @@ export function validateDerivedWorkTransition(model: RunModel, proposedModel: Ru
   for (const write of transition.effects) {
     assertWork(workDigest(readFileSync(join(proposedModel.runDir, write.path))) === write.after_digest,
       'WORK_PLAN', 'proposed bytes differ from Core derivation');
+  }
+  if (transition.source_completion) {
+    assertWork(workJson(validateSourceWalkCompletionWrite(model, proposedModel)).equals(workJson(transition.source_completion)),
+      'WORK_PLAN', 'source-walk transition differs from Core lifecycle derivation');
   }
   if (!transition.semantic) return;
   const meta = transition.semantic;

@@ -1,5 +1,7 @@
-// C-03 historical reproduction, not an implementation repair. Core snapshots
-// and declared fixture returns only; no native/adapter execution or semantic proof.
+// C-03 discriminator reconciled after HUMAN clarification. The original
+// reproduction remains at eb31b3a, blob 898a11721e2e96adf5bd29cc70f535d824b238c8,
+// with exact output in EVIDENCE-f03-c03-stopped-checkpoint-20260917.json.
+// Core snapshots only; no native execution or semantic proof.
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -47,8 +49,8 @@ const pendingUnchanged=projectSourceWalk(pause,pause.sourceWalkDocument!.text.re
 const noFuture=projectSourceWalk(pause,pause.sourceWalkDocument!.text.replace(pendingEvent+'\n','').replace('| PKT-0701, PKT-0702 |','| PKT-0701 |'));
 const appended=projectSourceWalk(pendingUnchanged,pendingUnchanged.sourceWalkDocument!.text.replace(pendingEvent,pendingEvent+'\n'+pendingEvent.replace('EVT-0702','EVT-0703').replace('| pending |','| committed |')));
 const result={evidence:'Core structural discriminator only; no adapter/native/live execution',validated_return:validated,paused:k(pause),advanced_with_event_replacement:k(after),replacement_rejection:rejected,all_committed_at_pause:k(alreadyCommitted),pending_event_unchanged:k(pendingUnchanged),append_committed_event:k(appended),future_event_absent:k(noFuture),raw:raw};
-assert.equal(validated.result,'PASS');assert(k(pause).every(c=>c.status==='PASS'));assert(k(after).every(c=>c.status==='PASS'));assert.match(rejected,/events history must remain an exact ordered prefix/u);
+assert.equal(validated.result,'PASS');assert(k(pause).every(c=>c.status==='PASS'));assert(k(after).every(c=>c.status==='PASS'));assert.equal(rejected,'');
 for(const caseName of ['all_committed_at_pause','pending_event_unchanged','append_committed_event','future_event_absent'] as const)assert(result[caseName].some(c=>c.status==='FAIL'));
 if (process.argv.includes('--json')) console.log(JSON.stringify(result,null,2));
-else console.log('PASS 8/8 C-03 structural discriminators: bound return and both snapshots pass; required event-row replacement and all tested append-only bypasses fail. Conflict remains unresolved.');
+else console.log('PASS 8/8 clarified C-03 structural discriminators: original paused/advanced snapshots pass and same-identity commitment is now authorized; tested bypasses still fail. Historical conflict evidence retained.');
 rmSync(scratch,{recursive:true,force:true});
