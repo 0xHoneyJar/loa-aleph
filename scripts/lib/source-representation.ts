@@ -7,6 +7,7 @@ import { envelopeSection, parseTables } from './markdown.ts';
 import { parsePacketBasis, parseRelations, relationReviewSubjectJson } from './relations.ts';
 import { parseStrictJson } from './worker-return-contract.ts';
 import { hasRunCapability, usesFormalLayoutBindings, type RunModel } from './run-model.ts';
+import { SOURCE_WALK_PATH, validateSourceWalkCompletionWrite } from './source-walk-transition.ts';
 
 export const REPRESENTATION_PATH = 'corpus/representations.md';
 export const REPRESENTATION_ASSET_PATH = 'corpus/representation-assets';
@@ -1084,8 +1085,16 @@ export function planRepresentationUseWrite(options: {
     const proposed = next.toString('utf8').split('\n');
     let cursor = 0;
     for (const line of proposed) if (line === retained[cursor]) cursor++;
-    requireMaterial(write.before_hash === materialHash(current) && write.after_hash === materialHash(next)
-      && cursor === retained.length, 'FROZEN_WRITE', write.path, 'preimage', 'subject writes may insert rows but cannot replace retained lines');
+    requireMaterial(write.before_hash === materialHash(current) && write.after_hash === materialHash(next),
+      'FROZEN_WRITE', write.path, 'preimage', 'subject write digests differ');
+    if (write.path === SOURCE_WALK_PATH && hasRunCapability(options.model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions')) {
+      requireMaterial(next.toString('utf8') === options.proposedModel.sourceWalkDocument?.text,
+        'FROZEN_WRITE', write.path, 'after-image', 'source-walk proposal differs from exact write');
+      validateSourceWalkCompletionWrite(options.model, options.proposedModel);
+    } else {
+      requireMaterial(cursor === retained.length, 'FROZEN_WRITE', write.path, 'preimage',
+        'subject writes may insert rows but cannot replace retained lines');
+    }
   }
   const after = before.length === 0 ? Buffer.from(representationUsesMarkdown([row]))
     : Buffer.concat([before, Buffer.from(`${before.at(-1) === 10 ? '' : '\n'}${materialTableMarkdown(MATERIAL_HEADERS.uses, [row]).split('\n').slice(2).join('\n')}`)]);

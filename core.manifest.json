@@ -621,7 +621,9 @@
       "docs/fixtures/duplicate-overlap-review/unresolved/verification/harness/semantic-subjects/SEM-0802.json",
       "docs/fixtures/duplicate-overlap-review/unresolved/verification/harness/semantic-subjects/SEM-0803.json",
       "scripts/lib/work-transitions.ts",
-      "runtime-js/scripts/lib/work-transitions.js"
+      "runtime-js/scripts/lib/work-transitions.js",
+      "scripts/lib/source-walk-transition.ts",
+      "runtime-js/scripts/lib/source-walk-transition.js"
     ],
     "adapter": {
       "hermes": [
@@ -682,6 +684,8 @@
         "adapters/loa/tests/test-orchestration-process.ts",
         "adapters/loa/tests/test-f03-degraded-binding-conflict.ts",
         "adapters/loa/tests/test-f03-source-walk-transition-conflict.ts",
+        "adapters/loa/tests/test-f03-source-walk-completion.ts",
+        "adapters/loa/tests/test-f03-shared-position-continuation-conflict.ts",
         "adapters/loa/tests/test-duplicate-review-process.ts",
         "adapters/loa/src/orchestration.ts",
         "runtime-js/adapters/loa/src/orchestration.js"
@@ -1006,7 +1010,9 @@
     "scripts/test-duplicate-review-fixtures.ts",
     "scripts/test-duplicate-review-parity.ts",
     "scripts/lib/work-transitions.ts",
-    "runtime-js/scripts/lib/work-transitions.js"
+    "runtime-js/scripts/lib/work-transitions.js",
+    "scripts/lib/source-walk-transition.ts",
+    "runtime-js/scripts/lib/source-walk-transition.js"
   ],
   "reference_documents": [
     "AGENTS.md",

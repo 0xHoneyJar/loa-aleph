@@ -2095,7 +2095,9 @@ export function semanticProducerViewPaths(callId) {
     return { selections: `control/semantic-producer-context/${callId}.json`,
         view: `verification/harness/semantic-producer-views/${callId}.md` };
 }
-export function semanticProducerTask(role, stage, referentSearch = false) {
+export function semanticProducerTask(role, stage, referentSearch = false, gapReconciliation = false) {
+    if (gapReconciliation)
+        return 'Propose exact packet semantics and material use for only the supplied source positions. Preserve the terminal primary cursor and emit no primary intervals or events.';
     return referentSearch ? 'Search only the one retained expression in the attached frozen source under the existing Slice 5 bounded search rules. Return a revised semantic proposal or finding.'
         : stage === 'S4' ? 'Express only the already-proposed successor in the attached bounded semantic context.'
             : role === 'extractor' ? 'Extract exact packets and structured semantics from only the attached bounded source context.'
@@ -2162,6 +2164,9 @@ function semanticProducerSearch(model, selections) {
  * is delivered. It carries no new semantic fields or authority choices.
  */
 export function semanticProducerView(model, role, stage, selections, retained = false) {
+    return producerView(model, role, stage, selections, retained);
+}
+function producerView(model, role, stage, selections, retained, completionHistory) {
     requireSemantic(hasRunCapability(model.manifest?.runFormatVersion || '', 'semantic-unit-review')
         && (role === 'extractor' ? stage === 'S2' : stage === 'S3' || stage === 'S4'), 'SEM_WINDOW', role, 'legal semantic producer stage required');
     const sourcePaths = new Map(model.corpus.sources.map((s) => {
@@ -2174,13 +2179,15 @@ export function semanticProducerView(model, role, stage, selections, retained = 
     const selected = [];
     const origins = new Map(), lineageFiles = new Set();
     const assets = new Map();
+    let gapSourceId = null;
     let previous = '';
     for (const entry of selections) {
         keys(entry, ['path', 'selector', 'digest', 'purpose'], 'producer context selection');
         const order = `${entry.path}\0${entry.selector}`;
         requireSemantic(Buffer.compare(Buffer.from(previous), Buffer.from(order)) < 0, 'SEM_REFERENCE', entry.path, 'sorted unique exact selections required');
         previous = order;
-        const bytes = semanticSelectedBytes(model, entry);
+        const bytes = entry.path === 'ledgers/source-walk.md' && entry.selector.startsWith('row:Per-source completion:')
+            ? completionHistory?.get(entry.selector) || semanticSelectedBytes(model, entry) : semanticSelectedBytes(model, entry);
         requireSemantic(materialHash(bytes) === entry.digest, 'SEM_SUBJECT', entry.path, 'selected producer context changed');
         if (entry.purpose === 'ambiguity-context') {
             requireSemantic(context.referent_search, 'SEM_ISOLATION', entry.path, 'dedicated search required');
@@ -2205,6 +2212,31 @@ export function semanticProducerView(model, role, stage, selections, retained = 
         }
         else if (entry.path === 'corpus/representations.md') {
             requireSemantic(role === 'extractor' && entry.selector.startsWith('row:'), 'SEM_ISOLATION', entry.path, 'only source-local material rows allowed');
+        }
+        else if (/^verification\/harness\/gap-producer-subjects\/[0-9a-f]{64}\.json$/u.test(entry.path)) {
+            requireSemantic(hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions')
+                && role === 'extractor' && stage === 'S2' && entry.selector === 'json:' && entry.purpose === 'inspection-context'
+                && !context.gap_candidates && !context.referent_search, 'SEM_ISOLATION', entry.path, 'one 1.9 gap producer target required');
+            const target = parseSemanticJson(bytes);
+            keys(target, ['format', 'source_id', 'review_basis_digest', 'review_basis_cursor_id', 'candidates'], 'gap producer target');
+            requireSemantic(target.format === 'aleph-gap-producer-subject/v1' && typeof target.review_basis_digest === 'string'
+                && entry.path === `verification/harness/gap-producer-subjects/${target.review_basis_digest.slice(7)}.json`, 'SEM_REFERENCE', entry.path, 'exact retained gap basis required');
+            const retained = parseSemanticJson(readMaterialFile(model.runDir, `verification/harness/gap-review-returns/${target.review_basis_digest.slice(7)}.json`));
+            requireSemantic(retained.verdict === 'refuted' && retained.source_id === target.source_id
+                && retained.review_basis_digest === target.review_basis_digest && retained.review_basis_cursor_id === target.review_basis_cursor_id
+                && semanticJson(retained.candidate_evidence) === semanticJson(target.candidates)
+                && Array.isArray(target.candidates) && target.candidates.length > 0, 'SEM_REFERENCE', entry.path, 'exact original L1 candidate array required');
+            context.gap_candidates = target.candidates;
+            gapSourceId = String(target.source_id);
+            for (const candidate of context.gap_candidates) {
+                keys(candidate, ['start_byte', 'end_byte', 'source_locator', 'exact_bytes_base64'], 'gap target candidate');
+                const span = sourceSpan(model, String(target.source_id), candidate.source_locator);
+                requireSemantic(span.bytes.toString('base64') === candidate.exact_bytes_base64
+                    && Number.isSafeInteger(candidate.start_byte) && Number.isSafeInteger(candidate.end_byte)
+                    && candidate.start_byte >= span.start && candidate.end_byte <= span.end && candidate.start_byte < candidate.end_byte, 'SEM_EVIDENCE', entry.path, 'exact source position required');
+            }
+            requireSemantic(model.sourceWalk.cursors.some((row) => row.values.cursorId === target.review_basis_cursor_id
+                && row.values.sourceId === target.source_id && row.values.reason === 'source-complete'), 'SEM_REFERENCE', entry.path, 'retained terminal primary cursor required');
         }
         else if (/^verification\/harness\/semantic-subjects\/SEM-\d{4,}\.json$/u.test(entry.path)) {
             requireSemantic(role === 'normalizer' && ['semantic_id', 'owner_stage', 'output_binding', 'anchors', 'semantics', 'material_use', 'material_views']
@@ -2233,6 +2265,7 @@ export function semanticProducerView(model, role, stage, selections, retained = 
         const window = context.source_windows[0], path = [...sourcePaths].find(([, id]) => id === window.source_id)[0];
         requireSemantic(window.start_byte === 0 && window.end_byte === readMaterialFile(model.runDir, path).length, 'SEM_ISOLATION', role, 'extractor requires complete source');
         context.legal_source_ids = [window.source_id];
+        requireSemantic(gapSourceId === null || gapSourceId === window.source_id, 'SEM_ISOLATION', 'gap producer', 'target must belong to the one shown source');
         for (const [entry, text] of selected.filter(([entry]) => ['corpus/manifest.md', 'ledgers/source-walk.md'].includes(entry.path))) {
             const cells = parseSemanticJson(text);
             requireSemantic(cells[entry.path === 'corpus/manifest.md' ? 0 : 1] === window.source_id || entry.path === 'ledgers/source-walk.md' && cells[0] === window.source_id, 'SEM_ISOLATION', entry.path, 'source-local row required');
@@ -2355,6 +2388,8 @@ export function semanticProducerSelections(model, role, stage, options) {
         }
     };
     add('ledgers/extraction-criteria.md', `bytes:0:${readMaterialFile(model.runDir, 'ledgers/extraction-criteria.md').length}`, 'inspection-context');
+    if (options.gap_subject_path)
+        add(options.gap_subject_path, 'json:', 'inspection-context');
     if (options.referent_search) {
         for (const ref of [options.referent_search.request_ref, options.referent_search.working_subject_ref]) {
             const selected = selectedSemanticReference(model, ref);
@@ -2406,12 +2441,52 @@ export function semanticProducerSelections(model, role, stage, options) {
     semanticProducerView(model, role, stage, entries);
     return entries;
 }
+/**
+ * C-02 makes only completion rows replaceable. For retained producer validation
+ * reopen that old row from the exact sealed input, keeping every other selector
+ * tied to current immutable history. This is structural context checking;
+ * orchestration separately reauthenticates native evidence against its full
+ * original validation basis before any historical value can authorize a write.
+ */
+function retainedCompletionSelections(model, callId, selections, attachments) {
+    const path = semanticProducerViewPaths(callId).view, attachment = attachments.find((entry) => entry.path === path);
+    requireSemantic(attachment && attachment.bytes.equals(readMaterialFile(model.runDir, path)), 'SEM_ISOLATION', callId, 'retained producer view differs from its sealed attachment');
+    const blocks = attachment.bytes.toString('utf8').replace(/\n$/u, '').split('\n\n');
+    requireSemantic(blocks.shift() === '# Bounded semantic producer context' && blocks.length === selections.length, 'SEM_ISOLATION', callId, 'retained projection structure differs');
+    const result = new Map();
+    blocks.forEach((block, index) => {
+        const lines = block.split('\n');
+        requireSemantic(lines.length === 2, 'SEM_ISOLATION', callId, 'retained projection entry differs');
+        const entry = parseSemanticJson(lines[0]), value = parseSemanticJson(lines[1]), selected = selections[index];
+        requireSemantic(semanticJson(entry) === semanticJson(selected) && typeof value === 'string'
+            && materialHash(value) === selected.digest, 'SEM_SUBJECT', callId, 'retained selected bytes differ');
+        if (selected.path !== 'ledgers/source-walk.md' || !/^row:Per-source completion:(0|[1-9]\d*)$/u.test(selected.selector))
+            return;
+        const cells = parseSemanticJson(value);
+        requireSemantic(Array.isArray(cells) && cells.length === 8 && cells.every((cell) => typeof cell === 'string'), 'SEM_SUBJECT', callId, 'retained completion row shape');
+        const current = model.sourceWalk.completions[Number(selected.selector.split(':').at(-1))];
+        requireSemantic(current && current.values.sourceId === cells[0] && current.values.sourceHash === cells[1]
+            && current.values.sourceLengthBytes === cells[2] && ['blocked', 'complete'].includes(String(cells[5])), 'SEM_SUBJECT', callId, 'retained completion source identity differs');
+        const prior = model.sourceWalk.cursors.find((row) => row.values.cursorId === cells[3] && row.values.sourceId === cells[0]);
+        const frontier = model.sourceWalk.cursors.find((row) => row.values.cursorId === current.values.finalCursorId);
+        requireSemantic(prior && frontier && Number(prior.values.byteOffset) <= Number(frontier.values.byteOffset), 'SEM_SUBJECT', callId, 'retained completion frontier is not historical');
+        const oldGaps = cells[4] === 'none' ? [] : String(cells[4]).split(',').map((id) => id.trim());
+        const currentGaps = current.values.gapReviewIds === 'none' ? [] : current.values.gapReviewIds.split(',').map((id) => id.trim());
+        requireSemantic(oldGaps.every((id, i) => currentGaps[i] === id), 'SEM_SUBJECT', callId, 'retained gap prefix differs');
+        if (cells[5] === 'complete')
+            requireSemantic(value === semanticSelectedBytes(model, selected).toString('utf8'), 'SEM_SUBJECT', callId, 'completed projection cannot change');
+        result.set(selected.selector, Buffer.from(value));
+    });
+    return result;
+}
 export function validateSemanticProducerDelivery(model, role, stage, callId, task, attachments, retained = false) {
     const paths = semanticProducerViewPaths(callId);
     const selections = parseSemanticJson(readMaterialFile(model.runDir, paths.selections));
-    const view = semanticProducerView(model, role, stage, selections, retained);
+    const history = retained && role === 'extractor' && hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions')
+        ? retainedCompletionSelections(model, callId, selections, attachments) : undefined;
+    const view = producerView(model, role, stage, selections, retained, history);
     const expected = [{ path: paths.view, bytes: view.bytes }, ...view.assets].sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path)));
-    requireSemantic(task === semanticProducerTask(role, stage, !!view.context.referent_search)
+    requireSemantic(task === semanticProducerTask(role, stage, !!view.context.referent_search, !!view.context.gap_candidates)
         && attachments.length === expected.length && attachments.every((a, i) => a.path === expected[i].path && a.bytes.equals(expected[i].bytes)), 'SEM_ISOLATION', callId, 'deliver only the exact Core producer projection');
     return view.context;
 }
@@ -2455,6 +2530,23 @@ export function validateSemanticReturn(role, runFormatVersion, value, context) {
                 requireSemantic(context.source_windows && context.packet_ids && context.origin_unit_refs, 'SEM_ISOLATION', 'producer return', 'full binding requires the Core-projected source windows, packet group and origins');
                 if (role === 'extractor')
                     requireSemantic(context.legal_source_ids.length === 1 && value.source_id === context.legal_source_ids[0], 'SEM_REFERENCE', 'source_id', 'extractor must match its one assigned source');
+                if (context.gap_candidates) {
+                    const cursor = context.model.sourceWalk.cursors.filter((row) => row.values.sourceId === value.source_id).at(-1);
+                    const next = value.next_cursor, packets = value.packets;
+                    requireSemantic(value.walk_intervals.length === 0 && value.extraction_events.length === 0
+                        && value.walk_exhausted === true && next.byte_offset === Number(cursor.values.byteOffset)
+                        && next.source_hash === cursor.values.sourceHash && next.reason === 'source-complete'
+                        && next.shared_position_key === null && next.next_event_ordinal === null
+                        && next.predecessor_walk_index === null && next.predecessor_event_index === null, 'SEM_WINDOW', 'gap producer', 'primary history and terminal cursor are retained, never replayed or replaced');
+                    requireSemantic(packets.length === context.gap_candidates.length
+                        || packets.length === 0 && value.material_findings.length > 0, 'SEM_ACCOUNTING', 'gap producer', 'complete exact target array or material refusal required');
+                    packets.forEach((packet, index) => {
+                        const target = context.gap_candidates[index], fragments = packet.fragments;
+                        requireSemantic(packet.evidence_state === 'exact' && packet.join_policy === 'single-fragment'
+                            && fragments.length === 1 && fragments[0].fragment_order === 1
+                            && fragments[0].locator === target.source_locator && fragments[0].exact_bytes_base64 === target.exact_bytes_base64, 'SEM_EVIDENCE', 'gap producer', 'original exact L1 target order and fragment identity required');
+                    });
+                }
                 if (context.owner_stage === 'S4')
                     requireSemantic(context.successor && value.no_claim_packets.length === 0
                         && value.lineage_proposals.length === 0

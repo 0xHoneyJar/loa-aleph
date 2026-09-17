@@ -929,7 +929,7 @@ function parseCorpus(document: RunDocument | null): CorpusModel {
   };
 }
 
-function parsePackets(document: RunDocument | null): PacketRow[] {
+export function parsePackets(document: RunDocument | null): PacketRow[] {
   if (!document) return [];
   const table = findTable(document.tables, PACKET_DEFINITION_HEADER)
     || findTableByFirstHeader(document.tables, 'packet id');
@@ -938,7 +938,7 @@ function parsePackets(document: RunDocument | null): PacketRow[] {
   ]);
 }
 
-function parseExactEvidence(document: RunDocument | null): ExactEvidenceModel {
+export function parseExactEvidence(document: RunDocument | null): ExactEvidenceModel {
   if (!document) {
     return {
       format: '',
@@ -1022,7 +1022,7 @@ function parseExactEvidence(document: RunDocument | null): ExactEvidenceModel {
   };
 }
 
-function parseSourceWalk(document: RunDocument | null): SourceWalkModel {
+export function parseSourceWalk(document: RunDocument | null): SourceWalkModel {
   if (!document) {
     return {
       format: '',

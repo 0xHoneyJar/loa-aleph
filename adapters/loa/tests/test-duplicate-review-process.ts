@@ -385,9 +385,14 @@ apply('record-review', assignment.review_id, { [DUPLICATE_PATH]: duplicateLedger
   pass('D8-P08', 'Changed member content after assignment refuses the retained old result at actual acceptance without changing the duplicate ledger.');
   const retarget = writableCopy(run, 'result-retarget');
   const returned = { ...result, subject_digest: materialHash('different immutable comparison') };
-  assert.throws(() => validateWorkerReturn({ workerBundleRoot: join(retarget, 'control/worker-bundles', assignment.invocation_id),
-    returnRoot: join(retarget, 'control/worker-returns', assignment.invocation_id), dispatchReceipt: receipt, raw: returned as never }), /DUP_SUBJECT/u);
-  pass('D8-P09', 'Retargeted accepted-result bytes are refused through the sealed worker return path.');
+  const retargetBefore = readFileSync(join(retarget, DUPLICATE_PATH));
+  const refused = validateWorkerReturn({ workerBundleRoot: join(retarget, 'control/worker-bundles', assignment.invocation_id),
+    returnRoot: join(retarget, 'control/worker-returns', assignment.invocation_id), dispatchReceipt: receipt, raw: returned as never });
+  assert.equal(refused.report.result, 'FAIL');
+  assert.equal(refused.validated, null);
+  assert(refused.report.errors.some((error) => error.includes('DUP_SUBJECT')));
+  assert(readFileSync(join(retarget, DUPLICATE_PATH)).equals(retargetBefore));
+  pass('D8-P09', 'Retargeted result explicitly FAILs with DUP_SUBJECT, no validated return and no canonical duplicate mutation.');
   assert.deepEqual(request.allowlist.map((a) => a.run_path), [subjectPath]);
   assert(!readFileSync(join(l3.root, request.allowlist[0].attachment_path)).includes('WITHHELD-CANARY'));
   assert.notEqual(materialHash(comparisonView.bytes), digest);

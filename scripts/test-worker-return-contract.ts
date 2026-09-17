@@ -23,6 +23,33 @@ const PROMPT_FILES = [
   'docs/architecture/prompts/workers-intake-extraction.md',
   'docs/architecture/prompts/workers-judgment.md',
 ] as const;
+const EXPECTED_CONTRACT_IDENTITIES = [
+  'verifier-lenses.md#Common verifier frame (verbatim, after the common preamble)',
+  'verifier-lenses.md#L2S — atomicity, context, and semantic preservation (S2/S3)',
+  'verifier-lenses.md#L3 — duplicate-versus-overlap refutation (1.8)',
+  'verifier-lenses.md#L5 — contradiction discovery (1.8)',
+  'workers-arms-synthesis.md#Role: Adversarial Panel operation (S9a)',
+  'workers-arms-synthesis.md#Role: Convergent Reconciler (S9b — UNVALIDATED SHAPE)',
+  'workers-arms-synthesis.md#Role: Synthesist (S10)',
+  'workers-arms-synthesis.md#Role: Assembler (S11)',
+  'workers-internal-ambiguity.md#Role: Internal Ambiguity Producer (S4-C2)',
+  'workers-internal-ambiguity.md#Role: Fresh Internal Ambiguity Reviewer (S4-C2)',
+  'workers-internal-ambiguity.md#Role: Material-Impact Producer (S4-C2)',
+  'workers-internal-ambiguity.md#Role: Fresh Material-Impact Reviewer (S4-C2)',
+  'workers-intake-extraction.md#Role: Intake Clerk (S0–S1)',
+  'workers-intake-extraction.md#S1 — criteria agreement review',
+  'workers-intake-extraction.md#Role: Extractor (S2)',
+  'workers-intake-extraction.md#Role: Normalizer (S3)',
+  'workers-intake-extraction.md#Role: Merge Judge (S4, global barrier)',
+  'workers-intake-extraction.md#Role: Local Relation Producer (S2 or S3)',
+  'workers-intake-extraction.md#Role: Successor Semantic Normalizer (S4 pre-C1)',
+  'workers-judgment.md#Role: Disposition Judge (S5)',
+  'workers-judgment.md#Role: Evidence-Role Judge (S6)',
+  'workers-judgment.md#Role: Cluster Cartographer (S7)',
+  'workers-judgment.md#Role: Router (S8)',
+  'workers-judgment.md#Merge Judge discovery (1.8)',
+  'workers-judgment.md#Merge Judge comparison (1.8)',
+] as const;
 
 interface CaseResult {
   name: string;
@@ -45,13 +72,14 @@ function runCase(results: CaseResult[], name: string, fn: () => void): void {
   }
 }
 
-function outputContracts(): unknown[] {
-  const contracts: unknown[] = [];
+function outputContracts(): Array<{ identity: string; contract: unknown }> {
+  const contracts: Array<{ identity: string; contract: unknown }> = [];
   const pattern = /\*\*Output contract[^*]*\*\*\s*```json\s*([\s\S]*?)\s*```/gu;
   for (const path of PROMPT_FILES) {
     const markdown = readFileSync(join(REPO_ROOT, path), 'utf8');
     for (const match of markdown.matchAll(pattern)) {
-      contracts.push(JSON.parse(match[1]) as unknown);
+      const heading = [...markdown.slice(0, match.index).matchAll(/^#{2,6} (.+)$/gmu)].at(-1)?.[1];
+      contracts.push({ identity: `${path.split('/').at(-1)}#${heading}`, contract: JSON.parse(match[1]) as unknown });
     }
   }
   return contracts;
@@ -117,10 +145,11 @@ function duplicateMaterialization(contract: unknown): WorkerJsonValue {
 
 function main(): number {
   const results: CaseResult[] = [];
-  const contracts = outputContracts();
+  const discovered = outputContracts(), contracts = discovered.map((entry) => entry.contract);
 
   runCase(results, 'all twenty-five pinned prompt contracts accept a valid materialization', () => {
-    expect(contracts.length === 25, `expected 25 output contracts, found ${contracts.length}`);
+    expect(JSON.stringify(discovered.map((entry) => entry.identity)) === JSON.stringify(EXPECTED_CONTRACT_IDENTITIES),
+      `expected exact 25 contract identities; discovered ${JSON.stringify(discovered.map((entry) => entry.identity))}`);
     contracts.forEach((contract, index) => {
       const validation = validateWorkerReturnContract(
         json(isDuplicateOutputContract(contract) ? duplicateMaterialization(contract)

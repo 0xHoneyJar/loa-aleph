@@ -431,7 +431,7 @@ function parseCorpus(document) {
         ]),
     };
 }
-function parsePackets(document) {
+export function parsePackets(document) {
     if (!document)
         return [];
     const table = findTable(document.tables, PACKET_DEFINITION_HEADER)
@@ -440,7 +440,7 @@ function parsePackets(document) {
         'packetId', 'sourceId', 'locator', 'spanHash', 'quote', 'criterion', 'status',
     ]);
 }
-function parseExactEvidence(document) {
+export function parseExactEvidence(document) {
     if (!document) {
         return {
             format: '',
@@ -523,7 +523,7 @@ function parseExactEvidence(document) {
         transformationTable,
     };
 }
-function parseSourceWalk(document) {
+export function parseSourceWalk(document) {
     if (!document) {
         return {
             format: '',

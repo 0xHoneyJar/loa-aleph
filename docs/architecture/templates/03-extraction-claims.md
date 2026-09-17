@@ -145,6 +145,21 @@ Column rules:
   open or indeterminate gap result. A blocked row's final cursor must be the
   current frontier, not a stale historical checkpoint. This is procedural
   closure only.
+- For cumulative `1.9.0-provisional` with `orchestrator-work-transitions`,
+  **Per-source completion is a current projection**, with exactly one row per
+  source. Core may replace only that row, mechanically deriving both images
+  from the frozen source and retained walk history. Legal progression is
+  absent → blocked, blocked → blocked on justified frontier/gap advancement,
+  blocked → complete when all K2.14 predicates pass, or an exact complete
+  no-op. Complete is terminal. Frozen identity cannot change, cursors cannot
+  regress, and prior gap IDs remain in their relative order with new IDs
+  appended in retained review order. The authenticated transaction retains
+  the exact prior file/row, work identity, transition digest and checkpoint/
+  chain binding. Recovery accepts only its exact before or after image.
+  Primary intervals, events, cursors and fresh gap reviews retain their
+  append-only history; no other table has replacement authority. Predecessor
+  runs retain their pinned semantics. This rule does not weaken K2.14 or
+  permit duplicate completion rows.
 
 ## T3.3 Claim inventory → `runs/<run-id>/ledgers/claim-inventory.md`
 

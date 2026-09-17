@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseStrictJson, type WorkerJsonValue } from './worker-return-contract.ts';
 import { canonicalJsonBytes } from './bundle-format.ts';
-import { hasRunCapability, type RunModel } from './run-model.ts';
-import { parseTables } from './markdown.ts';
+import { hasRunCapability, parsePackets, parseExactEvidence, type RunModel, type RunDocument } from './run-model.ts';
+import { parseTables, parseBulletFields } from './markdown.ts';
 import { mdLineSpan, sourceFilePath } from './check-helpers.ts';
 import {
   semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown,
@@ -12,12 +12,20 @@ import {
   type SemanticSubject, type SemanticReviewerProfile,
   semanticProducerSelections, semanticProducerView, semanticProducerViewPaths, semanticProducerTask, semanticJson,
   validateSemanticReturn,
+  parseSemanticLedger, semanticSubjectPath, semanticAssignmentPath, semanticResultPath, semanticAttachmentPaths,
+  semanticMaterialViews, semanticAdmissionProblems, semanticStageSeal, planSemanticWrite, validateSemanticAcceptedBindings, validateSemanticRun,
+  SEMANTIC_ASSIGNMENT_FORMAT, SEMANTIC_TASK, type SemanticEntry, type SemanticAssignment, type SemanticResult,
+  type SemanticOperation, type SemanticStage,
 } from './semantic-review.ts';
-import { framedExactEvidenceHash, runK2 } from './checks-k2.ts';
+import { framedExactEvidenceHash, runK2, sourceWalkReviewBasisDigest } from './checks-k2.ts';
 import { ResultCollector } from './results.ts';
+import { deriveSourceWalkCompletion, projectSourceWalk, type SourceWalkProjection } from './source-walk-transition.ts';
 import {
   readRepresentationContext, representationUseDigest, representationUsesMarkdown, validateRepresentationRun,
   planRepresentationUseWrite, type MaterialRow, type MaterialUseInput,
+  validateRepresentationUse, REPRESENTATION_USE_PATH,
+  materialFindingRows,
+  selectRepresentationInventory,
 } from './source-representation.ts';
 
 export const WORK_TRANSITION_CAPABILITY = 'orchestrator-work-transitions';
@@ -84,8 +92,8 @@ export interface WorkCall {
 export type NextWork =
   | { kind: 'halt'; code: string; reason: string }
   | { kind: 'proposal'; operation: 'criteria.samples'; input_path: typeof CRITERIA_SAMPLE_INPUT_PATH }
-  | { kind: 'local'; obligation: WorkObligation }
-  | { kind: 'worker'; obligation: WorkObligation; call: WorkCall };
+  | { kind: 'local'; obligation: WorkObligation; accepted_dependencies?: string[] }
+  | { kind: 'worker'; obligation: WorkObligation; call: WorkCall; accepted_dependencies?: string[] };
 
 export interface WorkFieldOrigin {
   artifact: string;
@@ -103,11 +111,14 @@ export interface WorkFileEffect {
 export interface WorkTransition {
   format: 'aleph-core-work-transition/v1';
   obligation: WorkObligation;
-  family: 'stage' | 'inventory' | 'criteria-review' | 'criteria-preparation' | 's2-preparation' | 's2-capture';
+  family: 'stage' | 'inventory' | 'criteria-review' | 'criteria-preparation' | 's2-preparation' | 's2-capture' | 's2-gap-review' | 'semantic';
   effects: WorkFileEffect[];
   origins: WorkFieldOrigin[];
   next_execution: WorkExecution;
   simulation: boolean;
+  source_completion?: SourceWalkProjection;
+  semantic?: { stage: SemanticStage; semantic_id: string; subject_digest: string; operation: SemanticOperation;
+    record_id: string; producer_call_id: string; reviewer_call_ids: string[] };
 }
 export interface CriteriaSample {
   sample_id: string;
@@ -152,6 +163,10 @@ function text(value: unknown, label: string): asserts value is string {
 }
 function file(model: RunModel, path: string): Buffer | null {
   const found = model.files.find((entry) => entry.relativePath === path);
+  if (!found && /^control\/semantic-producer-context\/CALL-F03-[0-9a-f]{64}\.json$/u.test(path)) {
+    const full = join(model.runDir, path);
+    return existsSync(full) ? readFileSync(full) : null;
+  }
   return found ? Buffer.from(found.text, 'utf8') : null;
 }
 function required(model: RunModel, path: string): Buffer {
@@ -192,11 +207,23 @@ const WALK_TABLES = [
   ['gap_review_id', 'source_id', 'producer_invocation_id', 'reviewer_invocation_id', 'review_basis_cursor_id', 'review_basis_digest', 'result', 'candidate_start_byte', 'candidate_end_byte', 'proposed_packet_id', 'reconciliation_event_id', 'status', 'note'],
   ['source_id', 'source_hash', 'source_length_bytes', 'final_cursor_id', 'gap_review_ids', 'completion_state', 'declared_by', 'note'],
 ] as const;
-function s2Entry(model: RunModel, now: string): WorkFileEffect[] {
+function projectedPackets(model: RunModel, bytes: Buffer): RunModel {
+  const path = 'ledgers/packet-index.md', text = bytes.toString('utf8');
+  const document: RunDocument = { path: join(model.runDir, path), relativePath: path, text, lines: text.split('\n'),
+    tables: parseTables(text, path), bullets: parseBulletFields(text) };
+  return { ...model, packetDocument: document, documents: new Map([...model.documents, [path, document]]),
+    packets: parsePackets(document), exactEvidence: parseExactEvidence(document),
+    files: [...model.files.filter((file) => file.relativePath !== path), { path: document.path, relativePath: path, text }] };
+}
+function s2Entry(model: RunModel, now: string): Pick<WorkTransition, 'effects' | 'source_completion'> {
   const packets = '# Packet Index\n\n- exact_evidence_format: aleph-exact-evidence/v1\n\n'
     + PACKET_TABLES.map((headers, index) => `## ${['Packets', 'Exact evidence records', 'Exact fragments', 'Evidence transformations'][index]}\n\n${table(headers, [])}\n`).join('');
-  const walk = '# Source Walk Ledger\n\n- source_walk_format: aleph-source-walk/v1\n- source_position_format: zero-based-utf8-byte-half-open/v1\n\n'
+  let walk = '# Source Walk Ledger\n\n- source_walk_format: aleph-source-walk/v1\n- source_position_format: zero-based-utf8-byte-half-open/v1\n\n'
     + WALK_TABLES.map((headers, index) => `## ${['Primary walk intervals', 'Extraction events', 'Resume cursors', 'Fresh gap reviews', 'Per-source completion'][index]}\n\n${table(headers, [])}\n`).join('');
+  walk = appendRows(Buffer.from(walk), 'cursor_id', model.corpus.sources.map((source, index) =>
+    [`CUR-${String(index + 1).padStart(4, '0')}`, source.values.sourceId, '0', 'none', 'none', 'none', 'none', source.values.contentHash, 'initial'])).toString('utf8');
+  const source_completion = deriveSourceWalkCompletion(model, projectSourceWalk(projectedPackets(model, Buffer.from(packets)), walk));
+  walk = Buffer.from(source_completion.after_base64, 'base64').toString('utf8');
   const files = {
     'ledgers/packet-index.md': packets, 'ledgers/source-walk.md': walk,
     [SEMANTIC_PATH]: semanticLedgerMarkdown(emptySemanticLedger()),
@@ -210,17 +237,133 @@ function s2Entry(model: RunModel, now: string): WorkFileEffect[] {
   assertWork(!model.manifest!.states.some((row) => row.values.state === 'DISTILLING'), 'WORK_STAGE_ENTRY', 'DISTILLING already entered');
   effects.push(effect(model, 'run-manifest.md', appendRows(required(model, 'run-manifest.md'), '#',
     [[String(model.manifest!.states.length + 1), 'DISTILLING', now, 'orchestrator', 'S1 criteria agreement recorded; bounded extraction begins.']])));
-  return effects;
+  return { effects, source_completion };
 }
 const S2_PREPARATIONS = 'verification/harness/work-preparations/';
 const S2_CAPTURES = 'verification/harness/work-captures/';
+const GAP_SUBJECTS = 'verification/harness/gap-review-subjects/';
+const GAP_RETURNS = 'verification/harness/gap-review-returns/';
+const GAP_PRODUCERS = 'verification/harness/gap-producer-subjects/';
+const GAP_RECONCILIATIONS = 'verification/harness/gap-reconciliations/';
+const GAP_TASK = 'Challenge primary recall using only this one frozen source, criteria, walk accounting, exact evidence and source-local material.';
+function gapSubject(model: RunModel, sourceId: string) {
+  const source = model.corpus.sources.find((row) => row.values.sourceId === sourceId)!;
+  const cursor = model.sourceWalk.cursors.filter((row) => row.values.sourceId === sourceId).at(-1)!;
+  const digest = sourceWalkReviewBasisDigest(model, sourceId, cursor.values.cursorId);
+  assertWork(digest && cursor.values.reason === 'source-complete', 'WORK_GAP_BASIS', 'terminal primary cursor required');
+  const ids = model.sourceWalk.events.filter((row) => row.values.sourceId === sourceId && row.values.origin === 'primary')
+    .map((row) => row.values.packetId);
+  const evidence = model.exactEvidence.records.filter((row) => row.values.packetIds.split(',').some((id) => ids.includes(id.trim())));
+  const inventory = selectRepresentationInventory(readRepresentationContext(model).inventory, [sourceId]);
+  const material = { inventory, assets: inventory.assets.map((asset) => ({
+    asset_id: asset.asset_id, content_hash: asset.content_hash,
+    exact_bytes_base64: readFileSync(join(model.runDir, asset.locus)).toString('base64'),
+  })) };
+  const bytes = Buffer.from(semanticJson({
+    format: 'aleph-source-gap-review-subject/v1', source_id: sourceId,
+    source_hash: source.values.contentHash, review_basis_cursor_id: cursor.values.cursorId, review_basis_digest: digest,
+    frozen_source_base64: readFileSync(sourceFilePath(model.runDir, source.values.locus)!).toString('base64'),
+    criteria_base64: required(model, 'ledgers/extraction-criteria.md').toString('base64'),
+    primary_intervals: model.sourceWalk.intervals.filter((row) => row.values.sourceId === sourceId).map(({ values }) => {
+      const { producerInvocationId: _producer, reason: _rationale, closureNote: _note, ...accounting } = values; return accounting;
+    }),
+    primary_events: model.sourceWalk.events.filter((row) => row.values.sourceId === sourceId && row.values.origin === 'primary').map(({ values }) => {
+      const { producerInvocationId: _producer, ...accounting } = values; return accounting;
+    }),
+    packets: model.packets.filter((row) => ids.includes(row.values.packetId)).map((row) => row.values),
+    evidence: evidence.map((row) => row.values),
+    fragments: model.exactEvidence.fragments.filter((row) => ids.includes(row.values.packetId)).map((row) => row.values),
+    transformations: model.exactEvidence.transformations.filter((row) => evidence.some((e) => e.values.evidenceKey === row.values.evidenceKey)).map((row) => row.values),
+    material,
+  }));
+  return { bytes, digest, cursor, path: `${GAP_SUBJECTS}${digest.slice(7)}.json` };
+}
+function selectGapWork(model: RunModel, sourceId: string): NextWork | null {
+  const subject = gapSubject(model, sourceId);
+  const calls = s2Captures(model).filter((capture) => capture.source_id === sourceId).map((capture) => capture.call_id);
+  assertWork(calls.length > 0, 'WORK_GAP_BASIS', 'authenticated primary producer required');
+  const resultPath = `${GAP_RETURNS}${subject.digest.slice(7)}.json`;
+  if (file(model, resultPath)) {
+    const completed = parseStrictJson(required(model, resultPath)) as { verdict: string; call_id: string; candidate_evidence: WorkerJsonValue[] };
+    if (completed.verdict === 'refuted' && !file(model, `${GAP_RECONCILIATIONS}${subject.digest.slice(7)}.json`)) {
+      const targetPath = `${GAP_PRODUCERS}${subject.digest.slice(7)}.json`;
+      if (!file(model, targetPath)) return { kind: 'local', accepted_dependencies: [completed.call_id],
+        obligation: obligation('S2', 'S2.gap-producer.target', 's2.prepare-gap-target', sourceId, required(model, resultPath)) };
+      const callId = `CALL-F03-${workDigest(workJson({ run_id: model.manifest!.runId,
+        operation: 's2.gap-producer', review_basis_digest: subject.digest })).slice(7)}`;
+      const paths = semanticProducerViewPaths(callId);
+      if (!file(model, paths.selections)) return { kind: 'local', accepted_dependencies: [completed.call_id],
+        obligation: obligation('S2', 'S2.gap-producer.prepare', 's2.prepare-gap-producer', sourceId, required(model, targetPath)) };
+      const view = semanticProducerView(model, 'extractor', 'S2',
+        parseStrictJson(required(model, paths.selections)) as SemanticSubject['context_manifest']);
+      assertWork(required(model, paths.view).equals(view.bytes), 'WORK_GAP_BASIS', paths.view);
+      return { kind: 'worker', accepted_dependencies: [completed.call_id],
+        obligation: obligation('S2', 'S2.gap-producer.reconciliation', 's2.reconcile-gap', sourceId, view.bytes),
+        call: { prepared_call_id: callId, role: 'extractor', kind: 'producer', task_line: semanticProducerTask('extractor', 'S2', false, true),
+          allowlist: [paths.view, ...view.assets.map((asset) => asset.path)].sort(), producer_dependency: null,
+          output_selector: 'Role: Extractor (S2)' } };
+    }
+    return model.sourceWalk.completions.find((row) => row.values.sourceId === sourceId)?.values.completionState === 'complete'
+      ? null : { kind: 'halt', code: 'S2_SOURCE_COMPLETION_UNMET', reason: `${sourceId}: retained gap or walk obligations remain unmet.` };
+  }
+  if (!file(model, subject.path)) return { kind: 'local', accepted_dependencies: calls,
+    obligation: obligation('S2', 'S2.gap-review.subject', 's2.prepare-gap-review', sourceId, subject.bytes) };
+  assertWork(required(model, subject.path).equals(subject.bytes), 'WORK_GAP_BASIS', 'sealed review subject changed');
+  return { kind: 'worker', accepted_dependencies: calls,
+    obligation: obligation('S2', 'S2.gap-review', 's2.gap-review', sourceId, subject.bytes),
+    call: { role: 'verifier-l1', kind: 'refuter', task_line: GAP_TASK, allowlist: [subject.path],
+      producer_dependency: calls.at(-1)!, output_selector: 'L1 — coverage (S2 DoD)' } };
+}
+function deriveGapReview(model: RunModel, work: Extract<NextWork, { kind: 'worker' }>, accepted: WorkValue): Pick<WorkTransition, 'effects' | 'source_completion'> {
+  const sourceId = work.obligation.subject_id, subject = gapSubject(model, sourceId);
+  const value = accepted.value;
+  record(value, ['verdict', 'rationale', 'attacks_tried', 'evidence_ids', 'candidate_evidence', 'missing_for_determination', 'flags'], 'L1 return');
+  assertWork(['upheld', 'refuted', 'cannot-determine'].includes(String(value.verdict))
+    && Array.isArray(value.candidate_evidence) && (value.verdict === 'refuted' ? value.candidate_evidence.length > 0 : value.candidate_evidence.length === 0),
+  'WORK_GAP_RETURN', 'verdict/candidate cardinality');
+  text(value.rationale, 'L1 rationale');
+  assertWork(accepted.producer_context_id && accepted.producer_context_id !== accepted.context_id,
+    'WORK_GAP_ISOLATION', 'fresh context differs from the primary producer');
+  const source = model.corpus.sources.find((row) => row.values.sourceId === sourceId)!;
+  const sourcePath = sourceFilePath(model.runDir, source.values.locus)!;
+  for (const candidate of value.candidate_evidence) {
+    record(candidate, ['start_byte', 'end_byte', 'source_locator', 'exact_bytes_base64'], 'L1 candidate');
+    const match = /^L([1-9][0-9]*)-L([1-9][0-9]*)$/u.exec(String(candidate.source_locator));
+    const span = match && mdLineSpan(sourcePath, Number(match[1]), Number(match[2]));
+    assertWork(span?.bytes && span.bytes.toString('base64') === candidate.exact_bytes_base64
+      && Number.isSafeInteger(candidate.start_byte) && Number.isSafeInteger(candidate.end_byte)
+      && Number(candidate.start_byte) >= span.startByte! && Number(candidate.end_byte) <= span.endByte!
+      && Number(candidate.start_byte) < Number(candidate.end_byte), 'WORK_GAP_EVIDENCE', 'exact source-local candidate required');
+  }
+  const retained = effect(model, `${GAP_RETURNS}${subject.digest.slice(7)}.json`, Buffer.from(semanticJson({
+    format: 'aleph-source-gap-review-return/v1', source_id: sourceId, review_basis_digest: subject.digest,
+    review_basis_cursor_id: subject.cursor.values.cursorId, call_id: accepted.call_id, raw_digest: accepted.raw_digest,
+    receipt_digest: accepted.receipt_digest, context_id: accepted.context_id, simulation: accepted.simulation, verdict: value.verdict,
+    candidate_evidence: value.candidate_evidence,
+  })));
+  // A found candidate is retained for its separate producer proposal. L1
+  // supplies neither MaterialUseInput nor atomicity semantics.
+  if (value.verdict === 'refuted') return { effects: [retained] };
+  const id = nextId('GAP', model.sourceWalk.gapReviews.map((row) => row.values.gapReviewId));
+  const primary = model.sourceWalk.intervals.find((row) => row.values.walkId === subject.cursor.values.predecessorWalkId)!;
+  const walk = appendRows(required(model, 'ledgers/source-walk.md'), 'gap_review_id', [[id, sourceId,
+    primary.values.producerInvocationId, accepted.call_id, subject.cursor.values.cursorId, subject.digest,
+    value.verdict === 'upheld' ? 'no-gap-candidate-found' : 'cannot-determine',
+    'none', 'none', 'none', 'none', value.verdict === 'upheld' ? 'closed' : 'blocked', value.rationale]]);
+  const source_completion = deriveSourceWalkCompletion(model, projectSourceWalk(model, walk.toString()));
+  return { source_completion, effects: [retained,
+    effect(model, 'ledgers/source-walk.md', Buffer.from(source_completion.after_base64, 'base64'))] };
+}
 interface S2Preparation {
   format: 'aleph-s2-work-preparation/v1'; source_id: string; prior_cursor_id: string; call_id: string;
 }
 interface S2Capture {
   format: 'aleph-s2-work-capture/v1'; source_id: string; call_id: string; raw_digest: string;
-  selectors: Array<{ output_kind: 'packet-candidate' | 'material-candidate'; output_index: number;
-    packet_ids: string[]; evidence_key: string | null }>;
+  context_id: string; producer_context_id: string | null; receipt_digest: string; simulation: boolean;
+  cursor_id: string;
+  // Control ordinals use decimal strings; raw Core worker indexes stay intact.
+  selectors: Array<{ output_kind: 'packet-candidate' | 'material-candidate'; output_index: string;
+    packet_ids: string[]; evidence_key: string | null; binding_path: string }>;
 }
 function nextId(prefix: string, values: readonly string[]): string {
   const max = values.reduce((n, value) => {
@@ -238,14 +381,200 @@ function s2Preparation(model: RunModel, sourceId: string): S2Preparation {
   return { format: 'aleph-s2-work-preparation/v1', source_id: sourceId, prior_cursor_id: cursor.values.cursorId,
     call_id: `CALL-F03-${workDigest(workJson(identity)).slice(7)}` };
 }
+function s2Captures(model: RunModel): S2Capture[] {
+  return model.files.filter((entry) => entry.relativePath.startsWith(S2_CAPTURES)).map((file) => {
+    const capture = parseStrictJson(file.text);
+    record(capture, ['format', 'source_id', 'call_id', 'raw_digest', 'context_id', 'producer_context_id', 'receipt_digest',
+      'simulation', 'cursor_id', 'selectors'], 'S2 capture');
+    assertWork(capture.format === 'aleph-s2-work-capture/v1' && typeof capture.call_id === 'string'
+      && /^CALL-F03-[0-9a-f]{64}$/u.test(capture.call_id) && file.relativePath === `${S2_CAPTURES}${capture.call_id}.json`
+      && Array.isArray(capture.selectors) && typeof capture.cursor_id === 'string', 'WORK_CAPTURE', file.relativePath);
+    for (const selector of capture.selectors) {
+      record(selector, ['output_kind', 'output_index', 'packet_ids', 'evidence_key', 'binding_path'], 'S2 selector');
+      assertWork(['packet-candidate', 'material-candidate'].includes(String(selector.output_kind))
+        && typeof selector.output_index === 'string' && /^(0|[1-9]\d*)$/u.test(selector.output_index)
+        && selector.binding_path === `control/semantic-producer-bindings/${capture.call_id}/${selector.output_kind}-${selector.output_index}.json`
+        && Array.isArray(selector.packet_ids), 'WORK_CAPTURE', 'original selector binding');
+    }
+    return capture as unknown as S2Capture;
+  }).sort((left, right) => model.sourceWalk.cursors.findIndex((row) => row.values.cursorId === left.cursor_id)
+    - model.sourceWalk.cursors.findIndex((row) => row.values.cursorId === right.cursor_id));
+}
+function capturedValue(model: RunModel, capture: S2Capture): WorkValue {
+  const bytes = readFileSync(join(model.runDir, `control/worker-returns/${capture.call_id}/raw.json`));
+  assertWork(workDigest(bytes) === capture.raw_digest, 'WORK_CAPTURE', 'retained producer bytes changed');
+  return { call_id: capture.call_id, role: 'extractor', context_id: capture.context_id, producer_context_id: capture.producer_context_id,
+    raw_digest: capture.raw_digest, receipt_digest: capture.receipt_digest, simulation: capture.simulation,
+    value: parseStrictJson(bytes, true) as WorkerJsonValue };
+}
+function semanticLedger(model: RunModel) { return parseSemanticLedger(required(model, SEMANTIC_PATH).toString('utf8')); }
+function selectS2SemanticWork(model: RunModel, capture: S2Capture): NextWork | null {
+  const ledger = semanticLedger(model);
+  for (const selector of capture.selectors) {
+    const binding = readFileSync(join(model.runDir, selector.binding_path));
+    const ref = `${selector.binding_path}@${workDigest(binding)}`;
+    const reserved = ledger.subjects.filter((row) => row.producer_receipt_ref === ref);
+    assertWork(reserved.length <= 1, 'WORK_ACCOUNTING', 'one SEM per original selector');
+    if (!reserved.length) return { kind: 'local', accepted_dependencies: [capture.call_id],
+      obligation: obligation('S2', 'S2.L2S.reserve', 'sem.reserve-S2',
+        `${capture.call_id}:${selector.output_kind}:${selector.output_index}`, binding) };
+    const row = reserved[0], subject = JSON.parse(required(model, row.subject_path).toString('utf8')) as SemanticSubject;
+    const assigned = ledger.assignments.filter((assignment) => assignment.semantic_id === row.semantic_id);
+    const completed = ledger.results.filter((result) => result.semantic_id === row.semantic_id);
+    const reviews = completed.map((result) => JSON.parse(required(model, result.result_path).toString('utf8')) as SemanticResult);
+    const calls = assigned.map((entry) => JSON.parse(required(model, entry.assignment_path).toString('utf8')) as SemanticAssignment);
+    if (!assigned.length || assigned.length === 1 && reviews[0]?.verdict === 'cannot-determine') {
+      return { kind: 'local', accepted_dependencies: [capture.call_id, ...calls.filter((call) => completed.some((result) => result.review_id === call.review_id)).map((call) => call.invocation_id)],
+        obligation: obligation('S2', 'S2.L2S.assignment', 'sem.assign', row.semantic_id, required(model, row.subject_path)) };
+    }
+    const pending = calls.find((assignment) => !completed.some((result) => result.review_id === assignment.review_id));
+    if (pending) return { kind: 'worker', accepted_dependencies: [capture.call_id],
+      obligation: obligation('S2', 'S2.L2S.review', 'sem.review', row.semantic_id, required(model, row.subject_path)),
+      call: { prepared_call_id: pending.invocation_id, role: 'verifier-l2s', kind: 'refuter', task_line: SEMANTIC_TASK,
+        allowlist: semanticAttachmentPaths(subject), producer_dependency: capture.call_id,
+        output_selector: 'L2S — atomicity, context, and semantic preservation (S2/S3)' } };
+    if (!ledger.resolutions.some((resolution) => resolution.semantic_id === row.semantic_id)) {
+      if (reviews.every((review) => review.verdict === 'upheld') && subject.review_mode === 'proposal'
+        && semanticAdmissionProblems(subject).length > 0) {
+        return { kind: 'halt', code: 'WORK_SEMANTIC_PROPOSAL_INELIGIBLE',
+          reason: `${row.semantic_id}: ${semanticAdmissionProblems(subject).join('; ')}; no withdrawal or revised semantics inferred.` };
+      }
+      return { kind: 'local', accepted_dependencies: [capture.call_id, ...calls.map((call) => call.invocation_id)],
+        obligation: obligation('S2', 'S2.L2S.resolution', 'sem.resolve', row.semantic_id, required(model, row.subject_path)) };
+    }
+  }
+  return null;
+}
+function semanticReviewer(model: RunModel): SemanticReviewerProfile {
+  const state = parseStrictJson(readFileSync(join(model.runDir, 'control/run-state.json'))) as {
+    identity: { profile: { id: string; digest: string }; models: Record<string, SemanticReviewerProfile['model_identity']> };
+  };
+  return { profile_id: state.identity.profile.id, profile_digest: state.identity.profile.digest, role: 'verifier-l2s',
+    model_identity: state.identity.models['verifier-l2s'] } as SemanticReviewerProfile;
+}
+function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'local' | 'worker' }>,
+  accepted: WorkValue | null): Pick<WorkTransition, 'effects' | 'semantic' | 'simulation'> {
+  const ledger = semanticLedger(model);
+  const operation = work.obligation.operation;
+  let subject: SemanticSubject, capture: S2Capture, producerCall: string;
+  if (operation === 'sem.reserve-S2') {
+    const [callId, kind, index] = work.obligation.subject_id.split(':');
+    capture = s2Captures(model).find((entry) => entry.call_id === callId)!;
+    assertWork(capture, 'WORK_CAPTURE', callId);
+    const selector = capture.selectors.find((entry) => entry.output_kind === kind && entry.output_index === index)!;
+    assertWork(selector, 'WORK_SELECTOR', work.obligation.subject_id);
+    const value = capturedValue(model, capture), returned = value.value as Record<string, WorkerJsonValue>;
+    const entry = (returned.semantic_units as unknown as SemanticEntry[]).find((entry) => entry.output_kind === kind && entry.output_index === Number(index))!;
+    assertWork(entry, 'WORK_ACCOUNTING', 'semantic entry missing');
+    const id = nextId('SEM', ledger.subjects.map((row) => row.semantic_id)), profile = semanticReviewer(model);
+    if (kind === 'packet-candidate' && (returned.packets as Array<Record<string, WorkerJsonValue>>)[Number(index)].evidence_state === 'degraded-non-exact') {
+      subject = deriveS2DegradedSubject(model, value, Number(index), id, profile);
+    } else {
+      const output = kind === 'packet-candidate' ? { kind: 'packet-group' as const, evidence_keys: [selector.evidence_key!], packet_ids: selector.packet_ids }
+        : { kind: 'material-only' as const, object_id: String((returned.material_findings as Array<Record<string, WorkerJsonValue>>)[Number(index)].object_id) };
+      const candidate = ((kind === 'packet-candidate' ? returned.packets : returned.material_findings) as Array<Record<string, WorkerJsonValue>>)[Number(index)];
+      const use = candidate.material_use as unknown as MaterialUseInput, context = readRepresentationContext(model);
+      const uses = output.kind === 'packet-group' ? output.packet_ids.map((id) => context.uses.find((row) => row.subject_kind === 'PKT' && row.subject_id === id)!)
+        : [context.uses.find((row) => row.subject_kind === 'OBJ' && row.subject_id === output.object_id
+          && row.established_by === callId && row.requirements === semanticJson(use.requirements) && row.reason === use.reason)!];
+      assertWork(uses.every(Boolean), 'WORK_MATERIAL', 'exact canonical use context required');
+      subject = buildSemanticSubject(model, { semantic_id: id, owner_stage: 'S2', subject_kind: output.kind,
+        review_mode: entry.review_mode, predecessor_semantic_id: 'none',
+        producer_binding_hash: semanticProducerBinding({ call_id: callId, context_id: capture.context_id, raw_return_hash: capture.raw_digest,
+          output_kind: kind, output_index: Number(index) }), reviewer_profile: profile, output_binding: output,
+        origin_unit_refs: entry.origin_unit_refs, origin_context: [], anchors: entry.anchors, semantics: entry.semantics,
+        material_use: use, material_views: semanticMaterialViews(model, uses), lineage_context: [], relation_context: [], ambiguity_context: [] });
+    }
+    const bytes = Buffer.from(semanticJson(subject)), digest = workDigest(bytes);
+    const binding = readFileSync(join(model.runDir, selector.binding_path));
+    ledger.subjects.push({ semantic_id: id, owner_stage: 'S2', subject_kind: subject.subject_kind, subject_path: semanticSubjectPath(id),
+      subject_digest: digest, predecessor_semantic_id: 'none', producer_receipt_ref: `${selector.binding_path}@${workDigest(binding)}` });
+    return { simulation: capture.simulation, effects: [effect(model, semanticSubjectPath(id), bytes),
+      effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
+    semantic: { stage: 'S2', semantic_id: id, subject_digest: digest, operation: 'reserve-subject', record_id: id,
+      producer_call_id: callId, reviewer_call_ids: [] } };
+  }
+  const row = ledger.subjects.find((row) => row.semantic_id === work.obligation.subject_id)!;
+  assertWork(row, 'WORK_SUBJECT', work.obligation.subject_id);
+  subject = JSON.parse(required(model, row.subject_path).toString('utf8')) as SemanticSubject;
+  const binding = JSON.parse(readFileSync(join(model.runDir, row.producer_receipt_ref.split('@')[0]), 'utf8')) as { call_id: string };
+  producerCall = binding.call_id; capture = s2Captures(model).find((entry) => entry.call_id === producerCall)!;
+  assertWork(capture, 'WORK_CAPTURE', producerCall);
+  const meta = { stage: 'S2' as const, semantic_id: subject.semantic_id, subject_digest: row.subject_digest,
+    producer_call_id: producerCall, reviewer_call_ids: [] as string[] };
+  const assigned = ledger.assignments.filter((row) => row.semantic_id === subject.semantic_id).map((row) =>
+    JSON.parse(required(model, row.assignment_path).toString('utf8')) as SemanticAssignment);
+  if (operation === 'sem.assign') {
+    const id = nextId('VER', ledger.assignments.map((row) => row.review_id));
+    const call = `CALL-F03-${workDigest(workJson({ run_id: model.manifest!.runId, subject_digest: row.subject_digest, round: String(assigned.length + 1) })).slice(7)}`;
+    const state = parseStrictJson(readFileSync(join(model.runDir, 'control/run-state.json'))) as { full_mode: string };
+    const assignment: SemanticAssignment = { format: SEMANTIC_ASSIGNMENT_FORMAT, semantic_id: subject.semantic_id,
+      subject_digest: row.subject_digest, review_id: id, role: 'verifier-l2s', profile_digest: subject.reviewer_profile.profile_digest,
+      invocation_id: call, producer_binding_hash: subject.producer_binding_hash,
+      execution_kind: state.full_mode === 'fixture-simulated' ? 'fixture-simulated' : 'native-dispatch' };
+    const bytes = Buffer.from(semanticJson(assignment));
+    ledger.assignments.push({ review_id: id, semantic_id: subject.semantic_id, assignment_path: semanticAssignmentPath(id), assignment_digest: workDigest(bytes) });
+    return { simulation: capture.simulation, effects: [effect(model, semanticAssignmentPath(id), bytes),
+      effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
+    semantic: { ...meta, operation: 'assign-review', record_id: id } };
+  }
+  if (operation === 'sem.review') {
+    assertWork(accepted && work.kind === 'worker' && accepted.call_id === work.call.prepared_call_id,
+      'WORK_REVIEW_BINDING', 'exact assigned L2S required');
+    const assignment = assigned.find((entry) => entry.invocation_id === accepted.call_id)!;
+    assertWork(assignment && accepted.producer_context_id === capture.context_id && accepted.context_id !== capture.context_id,
+      'WORK_REVIEW_ISOLATION', 'actual producer context');
+    const result = accepted.value as unknown as SemanticResult;
+    const checked = validateSemanticReturn('verifier-l2s', model.manifest!.runFormatVersion, result, {
+      model, subject, owner_stage: 'S2', legal_source_ids: [capture.source_id],
+    });
+    assertWork(checked.result === 'PASS', 'WORK_RETURN', checked.errors.join('; '));
+    const id = assignment.review_id, bytes = Buffer.from(semanticJson(result)), nativePath = `control/worker-returns/${accepted.call_id}/native-dispatch.json`;
+    ledger.results.push({ review_id: id, semantic_id: subject.semantic_id, result_path: semanticResultPath(id), result_digest: workDigest(bytes),
+      execution_kind: assignment.execution_kind, execution_evidence_ref: `${nativePath}@${workDigest(readFileSync(join(model.runDir, nativePath)))}` });
+    const companion = Buffer.from('# Retained L2S review\n\n' + table(['field', 'value'], [
+      ['target', `semantic-review-subject:${row.subject_digest}`], ['lens', 'L2S'], ['stage', 'S2'], ['shown', row.subject_path],
+      ['withheld', 'Producer identity, rationale, prior verdicts and authority records.'], ['verdict', result.verdict],
+      ['consequence', 'Retained worker judgment; all other Core admission predicates remain required.'],
+    ]));
+    return { simulation: capture.simulation || accepted.simulation, effects: [effect(model, semanticResultPath(id), bytes),
+      effect(model, `verification/harness/S2/${id}.md`, companion), effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
+    semantic: { ...meta, operation: 'record-review', record_id: id, reviewer_call_ids: [accepted.call_id] } };
+  }
+  assertWork(operation === 'sem.resolve' && assigned.length > 0, 'WORK_OPERATION', operation);
+  const reviews = assigned.map((assignment) => {
+    const result = ledger.results.find((row) => row.review_id === assignment.review_id);
+    assertWork(result, 'WORK_REVIEW_PENDING', assignment.review_id);
+    return JSON.parse(required(model, result.result_path).toString('utf8')) as SemanticResult;
+  });
+  const allUpheld = reviews.every((review) => review.verdict === 'upheld');
+  const outcome = allUpheld ? subject.review_mode === 'unresolved-record' ? 'unresolved-recorded' : 'admitted' : 'not-admitted';
+  assertWork(!allUpheld || outcome === 'unresolved-recorded' || semanticAdmissionProblems(subject).length === 0,
+    'WORK_SEMANTIC_PROPOSAL_INELIGIBLE', 'no inferred withdrawal or admission');
+  const id = nextId('SMR', ledger.resolutions.map((row) => row.resolution_id));
+  ledger.resolutions.push({ resolution_id: id, semantic_id: subject.semantic_id, outcome,
+    review_ids: semanticJson(assigned.map((assignment) => assignment.review_id)),
+    canonical_refs: semanticJson(outcome === 'admitted' && subject.output_binding.kind === 'packet-group' ? subject.output_binding.packet_ids : []),
+    origin_unit_refs: semanticJson(subject.origin_unit_refs), followup_semantic_ids: '[]' });
+  return { simulation: capture.simulation, effects: [effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
+    semantic: { ...meta, operation: outcome === 'admitted' ? 'admit' : 'resolve', record_id: id,
+      reviewer_call_ids: assigned.map((assignment) => assignment.invocation_id) } };
+}
 function selectS2Work(model: RunModel): NextWork {
   // Review/accounting precedes another source batch; the capture's finite
   // original selectors remain the authoritative work set.
-  const captures = model.files.filter((entry) => entry.relativePath.startsWith(S2_CAPTURES));
-  if (captures.length) return { kind: 'halt', code: 'WORK_S2_REVIEW_UNIMPLEMENTED',
-    reason: 'Retained S2 capture requires its semantic/material and gap-review continuation.' };
+  const captures = s2Captures(model);
+  for (const capture of captures) {
+    const review = selectS2SemanticWork(model, capture);
+    if (review) return review;
+  }
   for (const source of model.corpus.sources) {
     const id = source.values.sourceId, cursor = model.sourceWalk.cursors.filter((row) => row.values.sourceId === id).at(-1);
+    if (cursor?.values.reason === 'source-complete') {
+      const gap = selectGapWork(model, id);
+      if (gap) return gap;
+      continue;
+    }
     if (!cursor) return { kind: 'local', obligation: obligation('S2', 'S2.primary-walk.initial-cursor', 's2.initial-cursor', id,
       required(model, 'ledgers/source-walk.md')) };
     const prepared = model.files.filter((entry) => entry.relativePath.startsWith(S2_PREPARATIONS))
@@ -260,7 +589,9 @@ function selectS2Work(model: RunModel): NextWork {
       call: { prepared_call_id: prepared.call_id, role: 'extractor', kind: 'producer', task_line: semanticProducerTask('extractor', 'S2'),
         allowlist: [paths.view, ...view.assets.map((asset) => asset.path)].sort(), producer_dependency: null, output_selector: 'Role: Extractor (S2)' } };
   }
-  return { kind: 'halt', code: 'WORK_S2_REVIEW_UNIMPLEMENTED', reason: 'S2 review/exit continuation is incomplete.' };
+  validateSemanticRun(model);
+  return { kind: 'local', accepted_dependencies: captures.map((capture) => capture.call_id),
+    obligation: obligation('S2', 'S2.exit', 'stage.seal-S2', model.manifest!.runId, required(model, SEMANTIC_PATH)) };
 }
 function deriveS2Preparation(model: RunModel, work: Extract<NextWork, { kind: 'local' }>): WorkFileEffect[] {
   const id = work.obligation.subject_id;
@@ -276,13 +607,15 @@ function deriveS2Preparation(model: RunModel, work: Extract<NextWork, { kind: 'l
   return [effect(model, `${S2_PREPARATIONS}${prep.call_id}.json`, workJson(prep)),
     effect(model, paths.selections, Buffer.from(semanticJson(selections))), effect(model, paths.view, view.bytes)];
 }
-function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worker' }>, accepted: WorkValue): WorkFileEffect[] {
+function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worker' }>, accepted: WorkValue): Pick<WorkTransition, 'effects' | 'source_completion'> {
   assertWork(accepted.call_id === work.call.prepared_call_id, 'WORK_CALL_BINDING', 'prepared extractor identity');
   const paths = semanticProducerViewPaths(accepted.call_id), projected = semanticProducerView(model, 'extractor', 'S2',
     parseStrictJson(required(model, paths.selections)) as unknown as SemanticSubject['context_manifest']);
   const checked = validateSemanticReturn('extractor', model.manifest!.runFormatVersion, accepted.value, projected.context);
   assertWork(checked.result === 'PASS', 'WORK_RETURN', checked.errors.join('; '));
   const returned = accepted.value as Record<string, WorkerJsonValue>;
+  const gapCandidates = projected.context.gap_candidates;
+  assertWork(Boolean(gapCandidates) === (work.obligation.operation === 's2.reconcile-gap'), 'WORK_GAP_BASIS', 'exact registered capture family required');
   assertWork(returned.producer_invocation_id === accepted.call_id && returned.source_id === work.obligation.subject_id,
     'WORK_CALL_BINDING', 'source/invocation must equal sealed work');
   const source = model.corpus.sources.find((source) => source.values.sourceId === returned.source_id)!;
@@ -311,7 +644,7 @@ function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
     }
     const exact = candidate.evidence_state === 'exact';
     assertWork(exact ? ids.length > 0 : ids.length === 0, 'WORK_EXACT_EVIDENCE', 'candidate evidence cardinality');
-    const hash = exact ? framedExactEvidenceHash(bytes) : 'none';
+    const hash = exact ? `sha256:${framedExactEvidenceHash(bytes)}` : 'none';
     evidenceRows.push([evidence, ids.join(', ') || 'none', String(candidate.evidence_state), String(ids.length),
       String(candidate.join_policy), hash, exact ? 'none' : source.values.sourceId,
       exact ? 'none' : String(candidate.degraded_source_locator), exact ? 'none' : String(candidate.degradation_reason)]);
@@ -346,7 +679,7 @@ function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
   }
   const cursor = returned.next_cursor as Record<string, WorkerJsonValue>;
   const prior = model.sourceWalk.cursors.filter((row) => row.values.sourceId === source.values.sourceId).at(-1)!;
-  const cursorId = nextId('CUR', model.sourceWalk.cursors.map((row) => row.values.cursorId));
+  const cursorId = gapCandidates ? prior.values.cursorId : nextId('CUR', model.sourceWalk.cursors.map((row) => row.values.cursorId));
   const predecessor = (value: WorkerJsonValue, ids: string[], fallback: string): string => {
     if (value === null) return fallback;
     assertWork(Number.isSafeInteger(value) && Number(value) >= 0 && Number(value) < ids.length, 'WORK_CURSOR', 'predecessor index');
@@ -354,25 +687,102 @@ function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
   };
   assertWork(cursor.source_hash === source.values.contentHash && cursor.byte_offset !== null
     && Number(cursor.byte_offset) >= Number(prior.values.byteOffset)
-    && (Number(cursor.byte_offset) > Number(prior.values.byteOffset) || newEventIds.length > 0),
+    && (gapCandidates || Number(cursor.byte_offset) > Number(prior.values.byteOffset) || newEventIds.length > 0),
   'WORK_CURSOR', 'frozen source and actual forward progress required');
   assertWork(returned.walk_exhausted === (Number(cursor.byte_offset) === sourceBytes.length && cursor.shared_position_key === null),
     'WORK_CURSOR', 'source exhaustion differs from cursor');
   let walk = appendRows(required(model, 'ledgers/source-walk.md'), 'walk_id', walkRows);
+  const gapEffects: WorkFileEffect[] = [];
+  if (gapCandidates) {
+    const basis = gapSubject(model, source.values.sourceId);
+    const review = parseStrictJson(required(model, `${GAP_RETURNS}${basis.digest.slice(7)}.json`)) as {
+      call_id: string; verdict: string; raw_digest: string; receipt_digest: string;
+    };
+    const primary = model.sourceWalk.intervals.find((row) => row.values.walkId === prior.values.predecessorWalkId)!;
+    const gaps: string[][] = [], ids = model.sourceWalk.gapReviews.map((row) => row.values.gapReviewId);
+    const positions = model.sourceWalk.events.map((row) => ({ source: row.values.sourceId, start: Number(row.values.startByte),
+      end: Number(row.values.endByte), key: row.values.sharedPositionKey, ordinal: Number(row.values.eventOrdinal) }));
+    for (const [index, candidate] of gapCandidates.entries()) {
+      const id = nextId('GAP', ids); ids.push(id);
+      let packetId = 'none', eventId = 'none';
+      if (selected.length) {
+        assertWork(selected[index].ids.length === 1, 'WORK_GAP_EVIDENCE', 'one exact packet per L1 source-local fragment');
+        packetId = selected[index].ids[0];
+        const same = positions.filter((position) => position.source === source.values.sourceId
+          && position.start === candidate.start_byte && position.end === candidate.end_byte);
+        const key = same[0]?.key || nextId('SP', positions.map((position) => position.key));
+        assertWork(same.every((position) => position.key === key), 'WORK_GAP_EVIDENCE', 'existing shared position is ambiguous');
+        const ordinal = Math.max(0, ...same.map((position) => position.ordinal)) + 1;
+        positions.push({ source: source.values.sourceId, start: candidate.start_byte, end: candidate.end_byte, key, ordinal });
+        eventId = nextId('EVT', eventIds); eventIds.push(eventId);
+        eventRows.push([eventId, source.values.sourceId, String(candidate.start_byte), String(candidate.end_byte), key, String(ordinal),
+          packetId, 'gap-reconciliation', accepted.call_id, 'committed']);
+      }
+      gaps.push([id, source.values.sourceId, primary.values.producerInvocationId, review.call_id, prior.values.cursorId, basis.digest,
+        'gap-candidate-found', String(candidate.start_byte), String(candidate.end_byte), packetId, eventId,
+        selected.length ? 'reconciled' : 'open', selected.length
+          ? 'Retained L1 source position reopened exactly with its separate producer proposal; L2S remains required.'
+          : 'Retained L1 source position remains open after the separate producer returned a material refusal.']);
+    }
+    walk = appendRows(walk, 'gap_review_id', gaps);
+    gapEffects.push(effect(model, `${GAP_RECONCILIATIONS}${basis.digest.slice(7)}.json`, workJson({
+      format: 'aleph-gap-reconciliation/v1', review_call_id: review.call_id, review_raw_digest: review.raw_digest,
+      review_receipt_digest: review.receipt_digest, producer_call_id: accepted.call_id,
+      producer_raw_digest: accepted.raw_digest, producer_receipt_digest: accepted.receipt_digest, gap_ids: ids.slice(model.sourceWalk.gapReviews.length),
+    })));
+  }
   walk = appendRows(walk, 'event_id', eventRows);
-  walk = appendRows(walk, 'cursor_id', [[cursorId, source.values.sourceId, String(cursor.byte_offset),
+  if (!gapCandidates) walk = appendRows(walk, 'cursor_id', [[cursorId, source.values.sourceId, String(cursor.byte_offset),
     cursor.shared_position_key === null ? 'none' : String(cursor.shared_position_key),
     cursor.next_event_ordinal === null ? 'none' : String(cursor.next_event_ordinal),
     predecessor(cursor.predecessor_walk_index, newWalkIds, prior.values.predecessorWalkId),
     predecessor(cursor.predecessor_event_index, newEventIds, prior.values.predecessorEventId),
     String(cursor.source_hash), String(cursor.reason)]]);
   const capture: S2Capture = { format: 'aleph-s2-work-capture/v1', source_id: source.values.sourceId,
-    call_id: accepted.call_id, raw_digest: accepted.raw_digest, selectors: [
-      ...selected.map((entry, index) => ({ output_kind: 'packet-candidate' as const, output_index: index, packet_ids: entry.ids, evidence_key: entry.evidence })),
-      ...(returned.material_findings as unknown[]).map((_, index) => ({ output_kind: 'material-candidate' as const, output_index: index, packet_ids: [], evidence_key: null })),
+    call_id: accepted.call_id, raw_digest: accepted.raw_digest, context_id: accepted.context_id,
+    producer_context_id: accepted.producer_context_id, receipt_digest: accepted.receipt_digest, simulation: accepted.simulation, cursor_id: cursorId, selectors: [
+      ...selected.map((entry, index) => ({ output_kind: 'packet-candidate' as const, output_index: String(index), packet_ids: entry.ids, evidence_key: entry.evidence,
+        binding_path: `control/semantic-producer-bindings/${accepted.call_id}/packet-candidate-${index}.json` })),
+      ...(returned.material_findings as unknown[]).map((_, index) => ({ output_kind: 'material-candidate' as const, output_index: String(index), packet_ids: [], evidence_key: null,
+        binding_path: `control/semantic-producer-bindings/${accepted.call_id}/material-candidate-${index}.json` })),
     ] };
-  return [effect(model, 'ledgers/packet-index.md', packets), effect(model, 'ledgers/source-walk.md', walk),
-    effect(model, `${S2_CAPTURES}${accepted.call_id}.json`, workJson(capture))];
+  const proposedPackets = projectedPackets(model, packets);
+  const source_completion = deriveSourceWalkCompletion(model, projectSourceWalk(proposedPackets, walk.toString('utf8')));
+  walk = Buffer.from(source_completion.after_base64, 'base64');
+  const proposed = projectSourceWalk(proposedPackets, walk.toString('utf8'));
+  const context = validateRepresentationRun(model), uses: MaterialRow[] = [], useIds = context.uses.map((row) => row.use_id);
+  for (const candidate of selected) for (const id of candidate.ids) {
+    const useId = nextId('USE', useIds); useIds.push(useId);
+    const use: MaterialRow = { use_id: useId, owner_stage: 'S2', subject_kind: 'PKT', subject_id: id,
+      basis_packet_ids: semanticJson([id]), requirements: semanticJson(candidate.use.requirements),
+      use_state: candidate.use.use_state, fidelity_claim: candidate.use.fidelity_claim,
+      limitation_refs: semanticJson(candidate.use.limitation_refs), reason: candidate.use.reason,
+      established_by: accepted.call_id, review_subject_digest: '', reviewed_by: 'none' };
+    use.review_subject_digest = representationUseDigest(proposed, context, use);
+    validateRepresentationUse(proposed, context, use);
+    planRepresentationUseWrite({ model, proposedModel: proposed, row: use, stage: 'S2',
+      subjectWrites: [['ledgers/packet-index.md', packets], ['ledgers/source-walk.md', walk]].map(([path, bytes]) => {
+        const p = path as string, b = bytes as Buffer;
+        return { path: p, before_hash: workDigest(required(model, p)), after_base64: b.toString('base64'), after_hash: workDigest(b) };
+      }) });
+    uses.push(use);
+  }
+  for (const use of materialFindingRows(model, accepted.value, 'S2', accepted.call_id)) {
+    use.use_id = nextId('USE', useIds); useIds.push(use.use_id);
+    planRepresentationUseWrite({ model, proposedModel: proposed, row: use, stage: 'S2', subjectWrites: [] });
+    uses.push(use);
+  }
+  const useBytes = uses.length ? appendRows(required(model, REPRESENTATION_USE_PATH), 'use_id',
+    uses.map((use) => ['use_id', 'owner_stage', 'subject_kind', 'subject_id', 'basis_packet_ids', 'requirements', 'use_state',
+      'fidelity_claim', 'limitation_refs', 'reason', 'established_by', 'review_subject_digest', 'reviewed_by'].map((field) => use[field]))) : null;
+  return { source_completion, effects: [effect(model, 'ledgers/packet-index.md', packets), effect(model, 'ledgers/source-walk.md', walk),
+    ...gapEffects,
+    ...useBytes ? [effect(model, REPRESENTATION_USE_PATH, useBytes)] : [],
+    effect(model, `${S2_CAPTURES}${accepted.call_id}.json`, workJson(capture)),
+    ...capture.selectors.map((selector) => effect(model, selector.binding_path, Buffer.from(semanticJson({
+      call_id: accepted.call_id, context_id: accepted.context_id, raw_return_hash: accepted.raw_digest,
+      output_kind: selector.output_kind, output_index: Number(selector.output_index),
+    }))))] };
 }
 export function criteriaReviewExemplar(): WorkerJsonValue {
   return {
@@ -484,6 +894,7 @@ export function selectNextWork(model: RunModel, execution: WorkExecution): NextW
     }
     return { kind: 'local', obligation: obligation('S1', 'S1.criteria-agreement', 'stage.enter-S2', model.manifest!.runId, subjectBytes) };
   }
+  if (execution.stage === 'S2') return selectS2Work(model);
   return { kind: 'halt', code: 'WORK_FRONTIER_UNIMPLEMENTED', reason: `No work family is registered for ${execution.stage}.` };
 }
 
@@ -556,9 +967,18 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
   assertWork(!Number.isNaN(Date.parse(now)), 'WORK_IDENTITY', 'retained operation time');
   const base = { format: 'aleph-core-work-transition/v1' as const, obligation: work.obligation,
     next_execution: { ...execution }, simulation: accepted?.simulation || false };
+  if (work.obligation.operation.startsWith('sem.')) return { ...base, family: 'semantic',
+    ...semanticTransition(model, work, accepted),
+    origins: [{ artifact: SEMANTIC_PATH, field: '*', from: { kind: 'rule', rule: work.obligation.operation } }] };
   if (work.kind === 'worker') {
     assertWork(accepted && accepted.role === work.call.role && accepted.context_id, 'WORK_ACCEPTANCE', 'exact required worker return');
     if (work.obligation.operation === 'inventory.finalize') return { ...base, family: 'inventory', ...intakeEffects(model, accepted, now) };
+    if (['s2.capture', 's2.reconcile-gap'].includes(work.obligation.operation)) return { ...base, family: 's2-capture',
+      ...deriveS2Capture(model, work, accepted), origins: [{ artifact: 'ledgers/packet-index.md', field: 'packets/evidence/walk',
+        from: { kind: 'accepted', call_id: accepted.call_id, selector: '/packets,/walk_intervals,/extraction_events,/next_cursor' } }] };
+    if (work.obligation.operation === 's2.gap-review') return { ...base, family: 's2-gap-review',
+      ...deriveGapReview(model, work, accepted), origins: [{ artifact: 'ledgers/source-walk.md', field: 'gap result and source completion',
+        from: { kind: 'accepted', call_id: accepted.call_id, selector: '/verdict,/rationale,/candidate_evidence' } }] };
     const index = ['criteria.review-1', 'criteria.review-2'].indexOf(work.obligation.operation);
     assertWork(index !== -1 && accepted.producer_context_id && accepted.context_id !== accepted.producer_context_id, 'WORK_REVIEW_ISOLATION', 'criteria review producer/context');
     validateCriteriaReview(accepted.value, parseStrictJson(required(model, CRITERIA_SUBJECT_PATH)) as unknown as CriteriaSubject);
@@ -570,6 +990,52 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
       origins: [{ artifact: CRITERIA_REVIEW_PATHS[index], field: '*', from: { kind: 'accepted', call_id: accepted.call_id, selector: '' } }] };
   }
   assertWork(accepted === null, 'WORK_ACCEPTANCE', 'local transition must not borrow worker authority');
+  if (['s2.prepare-gap-target', 's2.prepare-gap-producer'].includes(work.obligation.operation)) {
+    const sourceId = work.obligation.subject_id, basis = gapSubject(model, sourceId);
+    const targetPath = `${GAP_PRODUCERS}${basis.digest.slice(7)}.json`;
+    let effects: WorkFileEffect[];
+    if (work.obligation.operation === 's2.prepare-gap-target') {
+      const review = parseStrictJson(required(model, `${GAP_RETURNS}${basis.digest.slice(7)}.json`)) as { candidate_evidence: WorkerJsonValue[] };
+      effects = [effect(model, targetPath, Buffer.from(semanticJson({ format: 'aleph-gap-producer-subject/v1', source_id: sourceId,
+        review_basis_digest: basis.digest, review_basis_cursor_id: basis.cursor.values.cursorId, candidates: review.candidate_evidence })))];
+    } else {
+      const callId = `CALL-F03-${workDigest(workJson({ run_id: model.manifest!.runId,
+        operation: 's2.gap-producer', review_basis_digest: basis.digest })).slice(7)}`;
+      const paths = semanticProducerViewPaths(callId);
+      const selections = semanticProducerSelections(model, 'extractor', 'S2', { source_id: sourceId, gap_subject_path: targetPath });
+      const view = semanticProducerView(model, 'extractor', 'S2', selections);
+      effects = [effect(model, paths.selections, Buffer.from(semanticJson(selections))), effect(model, paths.view, view.bytes)];
+    }
+    return { ...base, family: 's2-preparation', effects, origins: [{ artifact: targetPath, field: '*',
+      from: { kind: 'rule', rule: 'T3.7:separate-producer-for-original-L1-source-positions' } }] };
+  }
+  if (work.obligation.operation === 'stage.seal-S2') {
+    const checks = new ResultCollector('S2 closure');
+    runK2(checks, model, join(model.runDir, 'control/runtime/bundle'));
+    const failed = checks.checks.filter((check) => check.id === 'K2.14' && check.status === 'FAIL');
+    assertWork(failed.length === 0 && model.sourceWalk.completions.every((row) => row.values.completionState === 'complete'),
+      'WORK_S2_CLOSURE', failed.map((check) => check.message).join('; '));
+    validateRepresentationRun(model);
+    const sealPath = 'verification/harness/semantic-stage-seals/S2.json';
+    const bytes = Buffer.from(semanticJson(semanticStageSeal(semanticLedger(model), 'S2'))), digest = workDigest(bytes);
+    const log = Buffer.from(`${required(model, 'run-log.md')}\n## ${now} — S2 — exit\n\nsemantic_stage: S2\n`
+      + `semantic_review_seal_ref: ${sealPath}@${digest}\n\nCore source-walk and semantic obligations closed; no recall claim.\n`
+      + `\n## ${now} — S3 — entry\n\nCore-authorized normalization begins.\n`);
+    return { ...base, family: 'semantic', next_execution: { stage: 'S3', stage_status: 'entered', core_state: 'DISTILLING', blocked: false },
+      effects: [effect(model, sealPath, bytes), effect(model, 'run-log.md', log)],
+      semantic: { stage: 'S2', semantic_id: 'none', subject_digest: digest, operation: 'seal', record_id: 'S2',
+        producer_call_id: '', reviewer_call_ids: [] },
+      origins: [{ artifact: sealPath, field: '*', from: { kind: 'rule', rule: 'T3.7:S2-prefix-seal' } }] };
+  }
+  if (work.obligation.operation === 's2.prepare-gap-review') {
+    const subject = gapSubject(model, work.obligation.subject_id);
+    return { ...base, family: 's2-preparation', effects: [effect(model, subject.path, subject.bytes)],
+      origins: [{ artifact: subject.path, field: '*', from: { kind: 'rule', rule: 'L1:one-source-primary-review-basis' } }] };
+  }
+  if (['s2.initial-cursor', 's2.prepare-extractor'].includes(work.obligation.operation)) return {
+    ...base, family: 's2-preparation', effects: deriveS2Preparation(model, work),
+    origins: [{ artifact: 'verification/harness/work-preparations/', field: '*', from: { kind: 'rule', rule: work.obligation.operation } }],
+  };
   if (work.obligation.operation === 'criteria.prepare-samples') {
     const bytes = readFileSync(join(model.runDir, CRITERIA_SAMPLE_INPUT_PATH));
     criteriaSampleProposal(model, Buffer.alloc(0), bytes);
@@ -583,7 +1049,32 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
   const log = Buffer.from(`${required(model, 'run-log.md').toString('utf8')}\n## ${now} — ${execution.stage} — exit\n`
     + `Core obligation ${work.obligation.dod} satisfied by retained evidence.\n\n## ${now} — ${next} — entry\n`
     + 'Deterministic orchestration transition; no semantic or human acceptance asserted.\n');
-  return { ...base, family: 'stage', next_execution: { stage: next, stage_status: 'entered', core_state: next === 'S1' ? 'CORPUS-FROZEN' : 'DISTILLING', blocked: false },
-    effects: [effect(model, 'run-log.md', log), ...next === 'S2' ? s2Entry(model, now) : []],
+  const entry = next === 'S2' ? s2Entry(model, now) : { effects: [] };
+  return { ...base, ...entry, family: 'stage', next_execution: { stage: next, stage_status: 'entered', core_state: next === 'S1' ? 'CORPUS-FROZEN' : 'DISTILLING', blocked: false },
+    effects: [effect(model, 'run-log.md', log), ...entry.effects],
     origins: [{ artifact: 'run-log.md', field: '*', from: { kind: 'rule', rule: work.obligation.operation } }] };
+}
+
+/** Existing Core plan validators remain mandatory for the exact derived bytes. */
+export function validateDerivedWorkTransition(model: RunModel, proposedModel: RunModel, transition: WorkTransition): void {
+  for (const write of transition.effects) {
+    assertWork(workDigest(readFileSync(join(proposedModel.runDir, write.path))) === write.after_digest,
+      'WORK_PLAN', 'proposed bytes differ from Core derivation');
+  }
+  if (!transition.semantic) return;
+  const meta = transition.semantic;
+  planSemanticWrite({ model, proposedModel, stage: meta.stage, semantic_id: meta.semantic_id, subject_digest: meta.subject_digest,
+    operation: meta.operation, record_id: meta.record_id, prerequisite_paths: [],
+    writes: transition.effects.map((write) => ({ path: write.path, before_hash: write.before_digest || workDigest(Buffer.alloc(0)),
+      after_base64: write.after_base64, after_hash: write.after_digest })) });
+  if (meta.operation === 'seal') return;
+  const binding = (callId: string) => {
+    const root = `control/worker-returns/${callId}`;
+    const dispatch = parseStrictJson(readFileSync(join(proposedModel.runDir, root, 'native-dispatch.json'))) as { receipt: { context_id: string } };
+    const request = parseStrictJson(readFileSync(join(proposedModel.runDir, `control/worker-bundles/${callId}/request.json`))) as { role: string };
+    return { call_id: callId, context_id: dispatch.receipt.context_id,
+      raw_return_hash: workDigest(readFileSync(join(proposedModel.runDir, root, 'raw.json'))), role: request.role };
+  };
+  validateSemanticAcceptedBindings(proposedModel, meta.semantic_id, meta.operation,
+    binding(meta.producer_call_id), meta.reviewer_call_ids.map(binding));
 }

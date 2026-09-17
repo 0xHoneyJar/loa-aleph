@@ -6,7 +6,7 @@ import { CORE_STAGES, LOA_LEDGER_RECEIPT_FORMAT, } from './types.js';
 import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, nextDecimal, sha256Digest, stableJson, stableJsonBytes, writeFileAtomic, } from './fs.js';
 import { acquireDurableProcessLock, openHumanAuthorityGate, readRunState, stateCheckpointDigest, writeRunState, updateRunState, } from './run-control.js';
 import { ValidatedWorkerReturn } from './worker-return.js';
-import { deriveAuthenticatedWork, prepareOrchestrationCommit, readOrchestrationCommit, orchestrationCommitPath, recordOrchestrationConsumption, assertRecoveryPrerequisites, } from './orchestration.js';
+import { deriveAuthenticatedWork, prepareOrchestrationCommit, readOrchestrationCommit, orchestrationFixtureFault, withOrchestrationLock, orchestrationCommitPath, recordOrchestrationConsumption, assertRecoveryPrerequisites, } from './orchestration.js';
 import { workJson, workDigest, assertWork } from '../../../scripts/lib/work-transitions.js';
 import { parseStrictJson } from '../../../scripts/lib/worker-return-contract.js';
 import { verifyWorkerBundle } from './worker-bundle.js';
@@ -646,12 +646,18 @@ export class LedgerWriter {
      * The controller holds the orchestration lock before this family lock.
      */
     commitOrchestrationWork(workId) {
+        return withOrchestrationLock(this.runDir, () => this.commitOrchestrationWorkUnlocked(workId), this.clock);
+    }
+    commitOrchestrationWorkUnlocked(workId) {
         const release = acquireLedgerLock(this.runDir, this.clock.now(), false);
         try {
             const recovering = existsSync(join(this.runDir, orchestrationCommitPath(workId)));
             const authenticated = deriveAuthenticatedWork(this.runDir, workId, recovering);
+            const fault = (point) => orchestrationFixtureFault(this.runDir, authenticated.transition.obligation.operation, point);
+            fault('derived');
             const intent = recovering ? readOrchestrationCommit(this.runDir, workId)
                 : prepareOrchestrationCommit(this.runDir, authenticated);
+            fault('commit-intent');
             const plan = authenticated.transition;
             assertWork(intent.format === 'aleph-loa-orchestration-commit/v1' && intent.work_id === workId
                 && intent.work_digest === authenticated.work.digest
@@ -700,6 +706,7 @@ export class LedgerWriter {
                 assertWork(stableJsonBytes(current).equals(stableJsonBytes(stateBefore)), 'WORK_CHECKPOINT_STALE', workId);
                 writeFileAtomic(journalPath, stableJsonBytes(transaction));
             }
+            fault('writer-prepared');
             const state = readRunState(this.runDir);
             assertWork(transaction.state_before.execution.resume.checkpoint_digest === intent.before_checkpoint
                 && stateCheckpointDigest(transaction.state_before) === intent.before_checkpoint
@@ -724,21 +731,28 @@ export class LedgerWriter {
                 const path = join(this.runDir, effect.path), after = Buffer.from(effect.after_base64, 'base64');
                 if (!existsSync(path) || !readFileSync(path).equals(after))
                     writeFileAtomic(path, after);
+                fault(`effect:${effect.path}`);
             }
+            fault('canonical-bytes');
             if (chain !== transaction.chain_after)
                 writeFileAtomic(chainPath, Buffer.from(transaction.chain_after));
+            fault('chain');
             if (state.execution.resume.checkpoint_digest !== transaction.state_after.execution.resume.checkpoint_digest) {
                 writeRunState(this.runDir, transaction.state_after);
             }
+            fault('checkpoint');
             if (transaction.status !== 'committed')
                 writeFileAtomic(journalPath, stableJsonBytes({ ...transaction, status: 'committed' }));
+            fault('journal-committed');
             recordOrchestrationConsumption(this.runDir, workId, transaction.state_after);
+            fault('consumed');
         }
         finally {
             release();
         }
     }
     executeSemanticWrite(options) {
+        this.assertLegacySemanticIngress();
         if (!(options.producer instanceof ValidatedWorkerReturn) || options.reviews.some((r) => !(r instanceof ValidatedWorkerReturn)))
             throw new Error('SEM_ISOLATION semantic writes require accepted transport returns');
         const release = acquireLedgerLock(this.runDir, this.clock.now(), false);
@@ -824,6 +838,7 @@ export class LedgerWriter {
         }
     }
     executeDuplicateWrite(options) {
+        this.assertLegacySemanticIngress();
         if (options.accepted.some((r) => !(r instanceof ValidatedWorkerReturn)))
             throw new Error('DUP_ISOLATION actual accepted returns required');
         const release = acquireLedgerLock(this.runDir, this.clock.now(), false), scratch = mkdtempSync(join(tmpdir(), 'aleph-duplicate-plan-'));
@@ -903,6 +918,11 @@ export class LedgerWriter {
             release();
         }
     }
+    assertLegacySemanticIngress() {
+        if (hasRunCapability(readRunState(this.runDir).identity.run_format_version, 'orchestrator-work-transitions')) {
+            throw new Error('WORK_AUTHENTICATED_TRANSITION_REQUIRED: use the supported resume controller for this run');
+        }
+    }
     assertMaterialWindow(ownerStage) {
         const state = readRunState(this.runDir);
         try {
@@ -921,6 +941,7 @@ export class LedgerWriter {
         }
     }
     append(relativePath, validated, render) {
+        this.assertLegacySemanticIngress();
         assertSafeRelativePath(relativePath, 'canonical run path');
         if (duplicateRequiresWritePlan(loadRun(this.runDir), relativePath))
             throw new Error('DUP_WINDOW duplicate writes require a Core duplicate plan');
@@ -948,6 +969,7 @@ export class LedgerWriter {
         }, validated.simulation !== null, true);
     }
     reserveMaterialUse(validated, row, render) {
+        this.assertLegacySemanticIngress();
         if (!(validated instanceof ValidatedWorkerReturn))
             throw new Error('material reservation requires a validated producer');
         const data = validated.assertAuthenticAndIntact();
@@ -1003,6 +1025,7 @@ export class LedgerWriter {
         }
     }
     appendMaterialUse(validated, row, render, review) {
+        this.assertLegacySemanticIngress();
         if (!(validated instanceof ValidatedWorkerReturn))
             throw new Error('material writes require a validated worker return');
         if (row.subject_kind === 'CC' && semanticRequiresWritePlan(loadRun(this.runDir), 'ledgers/claim-inventory.md')) {
@@ -1106,6 +1129,7 @@ export class LedgerWriter {
         }
     }
     appendMaterialFindings(validated) {
+        this.assertLegacySemanticIngress();
         if (!(validated instanceof ValidatedWorkerReturn))
             throw new Error('material findings require validated retained output');
         const rows = materialFindingRows(loadRun(this.runDir), validated.assertAuthenticAndIntact(), readRunState(this.runDir).execution.stage, `invocation:${validated.callId}`);

@@ -168,7 +168,7 @@ test('M22 Core plan reservation/preimage and changed-key refusal', () => {
 });
 test('M23 cumulative capability and genuine predecessor fixture', () => {
   for (const version of SUPPORTED_RUN_FORMAT_VERSIONS) {
-    assert.equal(hasRunCapability(version, 'semantic-unit-review'), ['1.7.0-provisional', '1.8.0-provisional'].includes(version));
+    assert.equal(hasRunCapability(version, 'semantic-unit-review'), ['1.7.0-provisional', '1.8.0-provisional', '1.9.0-provisional'].includes(version));
   }
   assert(hasRunCapability('1.6.0-provisional', 'formal-layout-bindings'));
   const legacy = join(SEMANTIC_TEST_ROOT, 'docs/fixtures/formal-layout-bindings/positive'); cli(legacy);

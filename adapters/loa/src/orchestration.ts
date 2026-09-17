@@ -2,6 +2,7 @@ import {
   existsSync, readFileSync, mkdirSync, mkdtempSync, rmSync, linkSync, unlinkSync,
   openSync, closeSync, fsyncSync, readdirSync, lstatSync,
   writeFileSync,
+  cpSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
@@ -19,6 +20,7 @@ import {
   selectNextWork, deriveWorkTransition, workDigest, workJson, assertWork,
   WORK_STAGE_CONTRACT, WORK_TRANSITION_CAPABILITY, type NextWork, type WorkExecution,
   type WorkValue, type WorkTransition, CRITERIA_SAMPLE_INPUT_PATH, criteriaSampleProposal,
+  validateDerivedWorkTransition,
 } from '../../../scripts/lib/work-transitions.ts';
 import { assembleWorkerBundle, verifyWorkerBundle, coreBlindPolicyReference } from './worker-bundle.ts';
 import { checkWorkerReturn, type ValidatedWorkerReturn } from './worker-return.ts';
@@ -149,6 +151,11 @@ function readSealed<T extends object>(runDir: string, path: string, keys: readon
   assertWork(typeof digest === 'string' && DIGEST.test(digest) && digest === sha256Digest(stableJsonBytes(body)), 'WORK_RECORD_DIGEST', path);
   return value as unknown as Sealed<T>;
 }
+const WORK_KEYS = ['format', 'work_id', 'identity', 'created_at', 'basis_digest', 'core_stage_contract', 'call'] as const;
+function closedRecord(value: unknown, keys: readonly string[], label: string): asserts value is Record<string, unknown> {
+  assertWork(value !== null && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0'), 'WORK_RECORD', label);
+}
 function workPath(id: string): string {
   assertWork(WORK_ID.test(id), 'WORK_IDENTITY', id);
   return `${ROOT}/work/${id}.json`;
@@ -165,6 +172,13 @@ function execution(state: LoaRunState): WorkExecution {
 }
 export function usesOrchestration(runDir: string): boolean {
   return hasRunCapability(readRunState(runDir).identity.run_format_version, WORK_TRANSITION_CAPABILITY);
+}
+/** Abrupt-exit injection is confined to explicitly tainted fixture runs. */
+export function orchestrationFixtureFault(runDir: string, operation: string, point: string): void {
+  const requested = process.env.ALEPH_FIXTURE_WORK_FAULT;
+  if (!requested) return;
+  assertWork(readRunState(runDir).full_mode === 'fixture-simulated', 'WORK_FIXTURE_ONLY', 'fault injection cannot affect a native run');
+  if (requested === `${operation}:${point}`) process.exit(86);
 }
 export function withOrchestrationLock<T>(runDir: string, action: () => T, clock: Clock = clockDefault): T {
   if (heldLocks.has(runDir)) return action();
@@ -254,8 +268,19 @@ export function assertRecoveryPrerequisites(runDir: string, work: Sealed<Orchest
   }
 }
 export function readOrchestrationWork(runDir: string, id: string): Sealed<OrchestrationWork> {
-  const work = readSealed<OrchestrationWork>(runDir, workPath(id),
-    ['format', 'work_id', 'identity', 'created_at', 'basis_digest', 'core_stage_contract', 'call']);
+  const work = readSealed<OrchestrationWork>(runDir, workPath(id), WORK_KEYS);
+  closedRecord(work.identity, ['run_id', 'pins', 'checkpoint', 'ledger', 'ordinal', 'work', 'dependencies'], 'work identity');
+  closedRecord(work.core_stage_contract, ['path', 'digest'], 'stage contract');
+  assertWork(/^[1-9][0-9]*$/u.test(work.identity.ordinal) && DIGEST.test(work.identity.checkpoint)
+    && !Number.isNaN(Date.parse(work.created_at)) && Array.isArray(work.identity.dependencies), 'WORK_IDENTITY', id);
+  for (const dependency of work.identity.dependencies) {
+    closedRecord(dependency, ['work_id', 'consumption_digest', 'call_id', 'receipt_digest'], 'work dependency');
+    assertWork(WORK_ID.test(dependency.work_id) && CALL_ID.test(dependency.call_id)
+      && DIGEST.test(dependency.consumption_digest) && DIGEST.test(dependency.receipt_digest), 'WORK_DEPENDENCY', id);
+    const parent = readSealed<OrchestrationWork>(runDir, workPath(dependency.work_id), WORK_KEYS);
+    assertWork(BigInt(parent.identity.ordinal) < BigInt(work.identity.ordinal) && parent.call?.call_id === dependency.call_id,
+      'WORK_DEPENDENCY', 'dependency must be an earlier exact call');
+  }
   const state = readRunState(runDir), runtime = verifyRetainedRuntimeIdentity(runDir, state);
   assertWork(work.format === 'aleph-loa-work-item/v1' && work.work_id === id
     && id === `WORK-${sha256Digest(stableJsonBytes(work.identity)).slice(7)}`
@@ -271,6 +296,26 @@ export function readOrchestrationWork(runDir: string, id: string): Sealed<Orches
       && stableJsonBytes(basisState.ledger).equals(stableJsonBytes(work.identity.ledger))
       && basisState.execution.resume.checkpoint_digest === work.identity.checkpoint
       && workJson(selectNextWork(loadRun(root), execution(basisState))).equals(workJson(work.identity.work)), 'WORK_BASIS', 'obligation does not reconstruct');
+    const selected = work.identity.work;
+    const requiredCalls = [...selected.accepted_dependencies || []];
+    let producerContext: string | null = null;
+    if (selected.kind === 'worker' && selected.call.producer_dependency) {
+      const parents = work.identity.dependencies.map((dependency) => readSealed<OrchestrationWork>(runDir, workPath(dependency.work_id), WORK_KEYS));
+      const matches = parents.filter((parent) => parent.call?.call_id === selected.call.producer_dependency
+        || parent.identity.work.obligation.dod === selected.call.producer_dependency);
+      assertWork(matches.length === 1 && matches[0].call, 'WORK_DEPENDENCY', 'exact Core producer dependency required');
+      const receipt = acceptance(runDir, matches[0].call.call_id);
+      const reference = work.identity.dependencies.find((dependency) => dependency.work_id === matches[0].work_id)!;
+      assertWork(receipt.digest === reference.receipt_digest && receipt.work_digest === matches[0].digest,
+        'WORK_DEPENDENCY', 'producer receipt changed');
+      producerContext = receipt.context_id;
+      requiredCalls.unshift(matches[0].call.call_id);
+    }
+    assertWork(stableJsonBytes([...new Set(requiredCalls)]).equals(stableJsonBytes(work.identity.dependencies.map((dependency) => dependency.call_id))),
+      'WORK_DEPENDENCY', 'dependency set differs from Core work');
+    const expectedCall = selected.kind === 'worker' ? deriveWorkCall(runDir, selected, basisState, runtime.bundle.root,
+      id, readBasis(runDir, work.basis_digest), producerContext, root) : null;
+    assertWork(stableJsonBytes(work.call).equals(stableJsonBytes(expectedCall)), 'WORK_CALL_BINDING', 'call tuple differs from exact Core work and basis');
   });
   return work;
 }
@@ -283,9 +328,12 @@ function allWorkIds(runDir: string): string[] {
   });
 }
 function workForCall(runDir: string, callId: string): Sealed<OrchestrationWork> {
-  const found = allWorkIds(runDir).map((id) => readOrchestrationWork(runDir, id)).filter((work) => work.call?.call_id === callId);
+  // Index lookup is not authorization. Reconstruct the unique selected work
+  // below; unrelated historical bases need not be materialized for a lookup.
+  const found = allWorkIds(runDir).map((id) => readSealed<OrchestrationWork>(runDir, workPath(id), WORK_KEYS))
+    .filter((work) => work.call?.call_id === callId);
   assertWork(found.length === 1, 'WORK_CALL_BINDING', callId);
-  return found[0];
+  return readOrchestrationWork(runDir, found[0].work_id);
 }
 export function assertWorkRequest(runDir: string, request: WorkerRequest): Sealed<OrchestrationWork> {
   const work = workForCall(runDir, request.call_id), call = work.call!;
@@ -431,10 +479,25 @@ export function deriveAuthenticatedWork(runDir: string, id: string, recovering =
       && parent.returned.callId === dependency.call_id, 'WORK_DEPENDENCY', id);
   }
   const derived = withBasis(runDir, work.basis_digest, (basis) => {
+    if (work.call) {
+      // The original basis remains sealed. Overlay only this already
+      // reauthenticated call's transport proof in the disposable planning copy.
+      for (const slot of ['worker-bundles', 'worker-returns']) {
+        const path = `control/${slot}/${work.call.call_id}`;
+        cpSync(join(runDir, path), join(basis, path), { recursive: true, force: false, errorOnExist: true });
+      }
+    }
     const beforeState = readRunState(basis), chainPath = join(basis, 'control/ledger-chain.jsonl');
-    return { beforeState, chainBefore: existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '',
-      transition: deriveWorkTransition(loadRun(basis), execution(beforeState),
-        work.identity.work, accepted ? valueOf(accepted.receipt, accepted.returned, work.call!.role) : null, work.created_at) };
+    const model = loadRun(basis);
+    const transition = deriveWorkTransition(model, execution(beforeState),
+      work.identity.work, accepted ? valueOf(accepted.receipt, accepted.returned, work.call!.role) : null, work.created_at);
+    const proposed = mkdtempSync(join(tmpdir(), 'aleph-work-proposed-'));
+    try {
+      cpSync(basis, proposed, { recursive: true });
+      for (const effect of transition.effects) writeFileAtomic(canonicalPath(proposed, effect.path), Buffer.from(effect.after_base64, 'base64'));
+      validateDerivedWorkTransition(model, loadRun(proposed), transition);
+    } finally { rmSync(proposed, { recursive: true, force: true }); }
+    return { beforeState, chainBefore: existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '', transition };
   });
   return { work, ...derived, acceptance: accepted?.receipt || null, returned: accepted?.returned || null };
 }
@@ -465,32 +528,42 @@ export function recordOrchestrationConsumption(runDir: string, id: string, state
     journal_digest: sha256Digest(readStableRegularFile(canonicalPath(runDir, intent.journal)).bytes),
     after_checkpoint: state.execution.resume.checkpoint_digest, after_chain: state.ledger.chain_head });
 }
+function deriveWorkCall(runDir: string, selected: Extract<NextWork, { kind: 'worker' }>, state: LoaRunState,
+  bundleRoot: string, id: string, basis: WorkBasis, producerContext: string | null, sourceRoot = runDir): OrchestrationWork['call'] {
+  const role = selected.call.role as LoaRoleId;
+  const coreRef = coreBlindPolicyReference(verifyAndLoadLoaBundle(bundleRoot), role, selected.obligation.stage as CoreStage, selected.call.task_line);
+  return { call_id: selected.call.prepared_call_id || `CALL-F03-${id.slice(5)}`, role, kind: selected.call.kind,
+    task_line: selected.call.task_line, output_selector: selected.call.output_selector,
+    allowlist: selected.call.allowlist.map((path) => ({ path, digest: sha256Digest(readStableRegularFile(canonicalPath(sourceRoot, path)).bytes) })),
+    withheld: basis.canonical_paths.filter((path) => !selected.call.allowlist.includes(path)).map((selector) => ({ selector, core_ref: coreRef })),
+    producer_context_id: producerContext, downstream_operations: [], model: state.identity.models[role] };
+}
 function createWork(runDir: string, selected: Extract<NextWork, { kind: 'local' | 'worker' }>, clock: Clock): Sealed<OrchestrationWork> {
   const state = readRunState(runDir), runtime = verifyRetainedRuntimeIdentity(runDir, state), previous = allWorkIds(runDir);
   const dependencies: WorkIdentity['dependencies'] = [];
   let producerContext: string | null = null;
+  const parents = previous.map((id) => readOrchestrationWork(runDir, id));
+  const requiredCalls = [...selected.accepted_dependencies || []];
   if (selected.kind === 'worker' && selected.call.producer_dependency) {
-    const parents = previous.map((id) => readOrchestrationWork(runDir, id)).filter((work) => work.identity.work.obligation.dod === selected.call.producer_dependency);
-    assertWork(parents.length === 1, 'WORK_DEPENDENCY', selected.call.producer_dependency);
-    const accepted = reopenAcceptedWorkReturn(runDir, parents[0].work_id), consumed = readConsumption(runDir, parents[0].work_id);
-    dependencies.push({ work_id: parents[0].work_id, consumption_digest: consumed.digest,
-      call_id: accepted.returned.callId, receipt_digest: accepted.receipt.digest });
+    const matches = parents.filter((work) => work.call?.call_id === selected.call.producer_dependency
+      || work.identity.work.obligation.dod === selected.call.producer_dependency);
+    assertWork(matches.length === 1, 'WORK_DEPENDENCY', selected.call.producer_dependency);
+    const accepted = reopenAcceptedWorkReturn(runDir, matches[0].work_id);
+    requiredCalls.unshift(accepted.returned.callId);
     producerContext = accepted.returned.contextId;
+  }
+  for (const callId of new Set(requiredCalls)) {
+    const matches = parents.filter((work) => work.call?.call_id === callId);
+    assertWork(matches.length === 1, 'WORK_DEPENDENCY', callId);
+    const parent = reopenAcceptedWorkReturn(runDir, matches[0].work_id), consumed = readConsumption(runDir, matches[0].work_id);
+    dependencies.push({ work_id: matches[0].work_id, consumption_digest: consumed.digest,
+      call_id: callId, receipt_digest: parent.receipt.digest });
   }
   const identity: WorkIdentity = { run_id: state.run_id, pins: state.identity, checkpoint: state.execution.resume.checkpoint_digest,
     ledger: state.ledger, ordinal: String(previous.length + 1), work: selected, dependencies };
   const id = `WORK-${sha256Digest(stableJsonBytes(identity)).slice(7)}`;
   const basis = captureBasis(runDir);
-  let call: OrchestrationWork['call'] = null;
-  if (selected.kind === 'worker') {
-    const role = selected.call.role as LoaRoleId;
-    const coreRef = coreBlindPolicyReference(verifyAndLoadLoaBundle(runtime.bundle.root), role, selected.obligation.stage as CoreStage, selected.call.task_line);
-    call = { call_id: `CALL-F03-${id.slice(5)}`, role, kind: selected.call.kind, task_line: selected.call.task_line,
-      output_selector: selected.call.output_selector,
-      allowlist: selected.call.allowlist.map((path) => ({ path, digest: sha256Digest(readStableRegularFile(canonicalPath(runDir, path)).bytes) })),
-      withheld: basis.canonical_paths.filter((path) => !selected.call.allowlist.includes(path)).map((selector) => ({ selector, core_ref: coreRef })),
-      producer_context_id: producerContext, downstream_operations: [], model: state.identity.models[role] };
-  }
+  const call = selected.kind === 'worker' ? deriveWorkCall(runDir, selected, state, runtime.bundle.root, id, basis, producerContext) : null;
   return publish<OrchestrationWork>(runDir, workPath(id), { format: 'aleph-loa-work-item/v1', work_id: id, identity,
     created_at: clock.now(), basis_digest: basis.digest, core_stage_contract: { path: WORK_STAGE_CONTRACT,
       digest: verifyAndLoadLoaBundle(runtime.bundle.root).files.get(WORK_STAGE_CONTRACT)!.digest }, call });
@@ -508,7 +581,8 @@ function transportAction(runDir: string, work: Sealed<OrchestrationWork>): Recor
   const action = !existsSync(join(returns, 'invocation.json')) ? 'prepare'
     : existsSync(join(returns, 'native-dispatch.json')) ? 'accept' : 'dispatch';
   return { kind: 'worker', work_id: work.work_id, call_id: call.call_id, action,
-    worker_bundle: bundleRoot, return_root: returns, host_capabilities: runtime.host_receipt.path };
+    worker_bundle: bundleRoot, return_root: returns, host_capabilities: runtime.host_receipt.path,
+    transport_cli: join(runtime.bundle.root, 'runtime-js/adapters/loa/src/worker-dispatch.js') };
 }
 export function resumeOrchestration(runDir: string, clock: Clock = clockDefault): Record<string, JsonValue> {
   return withOrchestrationLock(runDir, () => {

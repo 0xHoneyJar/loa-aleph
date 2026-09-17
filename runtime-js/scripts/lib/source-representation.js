@@ -7,6 +7,7 @@ import { envelopeSection, parseTables } from './markdown.js';
 import { parsePacketBasis, parseRelations, relationReviewSubjectJson } from './relations.js';
 import { parseStrictJson } from './worker-return-contract.js';
 import { hasRunCapability, usesFormalLayoutBindings } from './run-model.js';
+import { SOURCE_WALK_PATH, validateSourceWalkCompletionWrite } from './source-walk-transition.js';
 export const REPRESENTATION_PATH = 'corpus/representations.md';
 export const REPRESENTATION_ASSET_PATH = 'corpus/representation-assets';
 export const REPRESENTATION_USE_PATH = 'ledgers/representation-uses.md';
@@ -1055,8 +1056,14 @@ export function planRepresentationUseWrite(options) {
         for (const line of proposed)
             if (line === retained[cursor])
                 cursor++;
-        requireMaterial(write.before_hash === materialHash(current) && write.after_hash === materialHash(next)
-            && cursor === retained.length, 'FROZEN_WRITE', write.path, 'preimage', 'subject writes may insert rows but cannot replace retained lines');
+        requireMaterial(write.before_hash === materialHash(current) && write.after_hash === materialHash(next), 'FROZEN_WRITE', write.path, 'preimage', 'subject write digests differ');
+        if (write.path === SOURCE_WALK_PATH && hasRunCapability(options.model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions')) {
+            requireMaterial(next.toString('utf8') === options.proposedModel.sourceWalkDocument?.text, 'FROZEN_WRITE', write.path, 'after-image', 'source-walk proposal differs from exact write');
+            validateSourceWalkCompletionWrite(options.model, options.proposedModel);
+        }
+        else {
+            requireMaterial(cursor === retained.length, 'FROZEN_WRITE', write.path, 'preimage', 'subject writes may insert rows but cannot replace retained lines');
+        }
     }
     const after = before.length === 0 ? Buffer.from(representationUsesMarkdown([row]))
         : Buffer.concat([before, Buffer.from(`${before.at(-1) === 10 ? '' : '\n'}${materialTableMarkdown(MATERIAL_HEADERS.uses, [row]).split('\n').slice(2).join('\n')}`)]);
