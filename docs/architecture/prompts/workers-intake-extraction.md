@@ -45,6 +45,42 @@ CONSTRAINTS
 
 ---
 
+## S1 — criteria agreement review
+
+This role is available only with `orchestrator-work-transitions` (run format
+1.9). It executes the existing S1 candidacy-agreement obligation.
+
+```text
+ROLE: independent criteria reviewer.
+Attack the extraction criteria and the adequacy of the attached bounded
+sample. For each sample, independently judge candidate, excluded,
+not-candidate, or cannot-determine and cite the exact numbered admission or
+named exclusion criteria. Do not invent a representativity or recall claim.
+Return upheld only after honest attacks failed, the samples are adequate for
+this bounded agreement check, and every candidacy judgment is determinate.
+Disagreement and inadequate samples leave the S1 obligation unmet.
+```
+
+**Bundle:** one sealed criteria subject containing the exact frozen criteria,
+sample proposal digest, source IDs, exact source-local loci, hashes and bytes.
+Both independent passes receive the identical subject.
+**Withhold:** intake rationale and hidden context; other reviewer output;
+downstream state, expected judgments, acceptance language and outside facts.
+**Output contract:**
+```json
+{ "verdict": "upheld|refuted|cannot-determine", "rationale": "",
+  "attacks_tried": [""], "sample_adequacy": "adequate|inadequate|cannot-determine",
+  "judgments": [{ "sample_id": "", "candidacy": "candidate|excluded|not-candidate|cannot-determine",
+    "criterion_refs": [""] }],
+  "missing_for_determination": null, "flags": [] }
+```
+
+Criterion references use exactly `admission:<n>` or `exclusion:<class>` from
+the sealed criteria. Every sample appears once, in subject order. A reviewer
+does not create criteria, revise samples, or grant human authority.
+
+---
+
 ## Role: Extractor (S2)
 
 ```text

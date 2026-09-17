@@ -68,6 +68,11 @@ const ROLE_SPECS: Partial<Record<LoaRoleId, RoleSpec>> = {
     heading: 'Role: Intake Clerk (S0–S1)',
     stages: ['S0', 'S1'],
   },
+  'criteria-reviewer': {
+    path: 'docs/architecture/prompts/workers-intake-extraction.md',
+    heading: 'S1 — criteria agreement review',
+    stages: ['S1'],
+  },
   extractor: {
     path: 'docs/architecture/prompts/workers-intake-extraction.md',
     heading: 'Role: Extractor (S2)',
@@ -245,6 +250,7 @@ function exactNonemptyContextId(value: unknown): value is string {
 }
 
 const FRESH_REVIEWER_ROLES = new Set<LoaRoleId>([
+  'criteria-reviewer',
   'ambiguity-reviewer',
   'material-impact-reviewer',
 ]);
@@ -357,6 +363,9 @@ function roleParts(
   contract: ReturnType<typeof loadOutputContract>;
   policyPartIndex: number;
 } {
+  if (role === 'criteria-reviewer' && !hasRunCapability(bundle.lock.run_format_version, 'orchestrator-work-transitions')) {
+    throw new Error('criteria reviewer requires the pinned orchestrator-work-transitions capability');
+  }
   const duplicateTask = duplicateTaskForRole(bundle.lock.run_format_version, role, stage, taskLine);
   if (duplicateTask) {
     const requirements = duplicatePromptRequirements(duplicateTask);

@@ -51,6 +51,8 @@ export const INTERNAL_AMBIGUITY_RUN_FORMAT_VERSION = '1.5.0-provisional';
 export const FORMAL_LAYOUT_RUN_FORMAT_VERSION = '1.6.0-provisional';
 export const SEMANTIC_REVIEW_RUN_FORMAT_VERSION = '1.7.0-provisional';
 export const DUPLICATE_REVIEW_RUN_FORMAT_VERSION = '1.8.0-provisional';
+export const ORCHESTRATOR_WORK_RUN_FORMAT_VERSION = '1.9.0-provisional';
+// Activation follows completion of the bounded orchestration implementation.
 export const CURRENT_RUN_FORMAT_VERSION = DUPLICATE_REVIEW_RUN_FORMAT_VERSION;
 export const PACKET_DEFINITION_HEADER = [
   'packet id',
@@ -83,6 +85,7 @@ export const SUPPORTED_RUN_FORMAT_VERSIONS = [
   FORMAL_LAYOUT_RUN_FORMAT_VERSION,
   SEMANTIC_REVIEW_RUN_FORMAT_VERSION,
   DUPLICATE_REVIEW_RUN_FORMAT_VERSION,
+  ORCHESTRATOR_WORK_RUN_FORMAT_VERSION,
 ] as const;
 
 export const RUN_CAPABILITIES = [
@@ -96,6 +99,7 @@ export const RUN_CAPABILITIES = [
   'formal-layout-bindings',
   'semantic-unit-review',
   'duplicate-overlap-review',
+  'orchestrator-work-transitions',
 ] as const;
 
 export type RunCapability = typeof RUN_CAPABILITIES[number];
@@ -139,6 +143,10 @@ const RUN_FORMAT_CAPABILITY_ADDITIONS: ReadonlyArray<{
   {
     version: DUPLICATE_REVIEW_RUN_FORMAT_VERSION,
     additions: ['duplicate-overlap-review'],
+  },
+  {
+    version: ORCHESTRATOR_WORK_RUN_FORMAT_VERSION,
+    additions: ['orchestrator-work-transitions'],
   },
 ];
 

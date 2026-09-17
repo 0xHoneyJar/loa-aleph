@@ -1,0 +1,21 @@
+{
+  "evidence_kind": "fixture-constructed Core contract discriminator; no production/native/live execution",
+  "evidence": [
+    {
+      "version": "1.8.0-provisional",
+      "baseline_material_candidate_subjects": 2,
+      "degraded_return": "PASS",
+      "degraded_return_binding": "checked",
+      "multiple_object_degraded_return": "PASS",
+      "retained_subject_failure": "Error: SEM_SUBJECT material candidate: existing selected OBJ required"
+    },
+    {
+      "version": "1.9.0-provisional",
+      "baseline_material_candidate_subjects": 2,
+      "degraded_return": "PASS",
+      "degraded_return_binding": "checked",
+      "multiple_object_degraded_return": "PASS",
+      "retained_subject_failure": "Error: SEM_SUBJECT material candidate: existing selected OBJ required"
+    }
+  ]
+}

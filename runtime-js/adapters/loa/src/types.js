@@ -50,6 +50,7 @@ export const CORE_RUN_STATES = [
 export const LOA_ROLE_IDS = [
     'orchestrator',
     'intake-clerk',
+    'criteria-reviewer',
     'extractor',
     'normalizer',
     'merge-judge',

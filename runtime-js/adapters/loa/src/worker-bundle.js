@@ -16,6 +16,11 @@ const ROLE_SPECS = {
         heading: 'Role: Intake Clerk (S0–S1)',
         stages: ['S0', 'S1'],
     },
+    'criteria-reviewer': {
+        path: 'docs/architecture/prompts/workers-intake-extraction.md',
+        heading: 'S1 — criteria agreement review',
+        stages: ['S1'],
+    },
     extractor: {
         path: 'docs/architecture/prompts/workers-intake-extraction.md',
         heading: 'Role: Extractor (S2)',
@@ -160,6 +165,7 @@ function exactNonemptyContextId(value) {
         && !/[\u0000-\u001f\u007f]/u.test(value);
 }
 const FRESH_REVIEWER_ROLES = new Set([
+    'criteria-reviewer',
     'ambiguity-reviewer',
     'material-impact-reviewer',
 ]);
@@ -244,6 +250,9 @@ function assertWorkerAttachmentPath(path) {
     }
 }
 function roleParts(bundle, role, stage, taskLine) {
+    if (role === 'criteria-reviewer' && !hasRunCapability(bundle.lock.run_format_version, 'orchestrator-work-transitions')) {
+        throw new Error('criteria reviewer requires the pinned orchestrator-work-transitions capability');
+    }
     const duplicateTask = duplicateTaskForRole(bundle.lock.run_format_version, role, stage, taskLine);
     if (duplicateTask) {
         const requirements = duplicatePromptRequirements(duplicateTask);

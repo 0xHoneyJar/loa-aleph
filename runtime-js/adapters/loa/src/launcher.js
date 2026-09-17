@@ -551,7 +551,52 @@ export function verifyInstalledLauncherRuntime(loaRoot) {
     return safeManagedPath(root, cli.destination_path);
 }
 export async function runInstalledLauncher(loaRoot, argv) {
-    const selected = verifyInstalledLauncherRuntime(loaRoot);
+    const positionals = [];
+    let root = resolve(loaRoot);
+    let authorityInput = false;
+    for (let index = 0; index < argv.length; index++) {
+        const arg = argv[index];
+        if (arg === '--root') {
+            if (!argv[index + 1])
+                throw new Error('--root requires a path');
+            root = resolve(loaRoot, argv[++index]);
+        }
+        else if (['--authority-response', '--open-gate', '--work-samples'].includes(arg)) {
+            authorityInput = true;
+            if (!argv[++index])
+                throw new Error(`${arg} requires a path`);
+        }
+        else if (arg === '--capabilities') {
+            if (!argv[++index])
+                throw new Error('--capabilities requires a path');
+        }
+        else if (!arg.startsWith('--'))
+            positionals.push(arg);
+    }
+    let selected = verifyInstalledLauncherRuntime(root);
+    const runId = authorityInput ? positionals[0]
+        : ['resume', 'validate', 'status'].includes(positionals[0]) ? positionals[1] : undefined;
+    if (runId !== undefined) {
+        if (!/^RUN-[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/u.test(runId))
+            throw new Error('invalid retained run ID');
+        const runDir = safeManagedPath(root, `grimoires/loa/aleph/runs/${runId}`);
+        // Bootstrap only with verified installed code. Before any run mutation,
+        // authenticate and select the original run-local executable, including for
+        // predecessor formats. No current-main or current-install migration.
+        const controlPath = safeManagedPath(root, `${RUNTIME_ROOT}/runtime-js/adapters/loa/src/run-control.js`);
+        const control = await import(__rewriteRelativeImportExtension(pathToFileURL(controlPath).href));
+        const state = control.readRunState(runDir);
+        control.verifyOriginalBundleLock(runDir, state);
+        const snapshot = control.verifyRetainedRuntimeIdentity(runDir, state);
+        const retainedCli = join(snapshot.bundle.root, CLI_SOURCE);
+        const lockPath = join(snapshot.bundle.root, 'bundle.lock.json');
+        const lock = readCanonicalObject(lockPath, 'retained bundle lock').value;
+        const entry = lock.files.find((file) => file.path === CLI_SOURCE && file.classification === 'adapter');
+        if (!entry || digest(readRegularFile(retainedCli)) !== entry.digest) {
+            throw new Error('retained run does not contain its exact pinned CLI; no fallback');
+        }
+        selected = retainedCli;
+    }
     const module = await import(__rewriteRelativeImportExtension(pathToFileURL(selected).href));
     return module.runLoaCli(argv);
 }

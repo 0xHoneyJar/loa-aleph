@@ -176,8 +176,11 @@ export function parseLoaProfile(value: unknown, runFormatVersion = CURRENT_RUN_F
   const legacySemanticRole = (SUPPORTED_RUN_FORMAT_VERSIONS as readonly string[]).includes(runFormatVersion)
     && !hasRunCapability(runFormatVersion, 'semantic-unit-review') && isRecord(profile.role_mappings)
     && !('verifier-l2s' in profile.role_mappings);
+  const legacyWorkRoles = (SUPPORTED_RUN_FORMAT_VERSIONS as readonly string[]).includes(runFormatVersion)
+    && !hasRunCapability(runFormatVersion, 'orchestrator-work-transitions') && isRecord(profile.role_mappings)
+    && !('criteria-reviewer' in profile.role_mappings);
   const expectedRoles = LOA_ROLE_IDS.filter((role) => !(legacyMaterialRole && role === 'verifier-l2f')
-    && !(legacySemanticRole && role === 'verifier-l2s'));
+    && !(legacySemanticRole && role === 'verifier-l2s') && !(legacyWorkRoles && role === 'criteria-reviewer'));
   if (!isRecord(profile.role_mappings)
     || !exactStrings(Object.keys(profile.role_mappings), expectedRoles)) {
     throw new Error('Loa profile does not map every Core role exactly once');

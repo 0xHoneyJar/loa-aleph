@@ -69,7 +69,11 @@
     "runtime-js/adapters/loa/src/worker-return.js",
     "adapters/loa/tests/test-representation-process.ts",
     "adapters/loa/tests/test-semantic-review-process.ts",
-    "adapters/loa/tests/test-duplicate-review-process.ts"
+    "adapters/loa/tests/test-orchestration-process.ts",
+    "adapters/loa/tests/test-f03-degraded-binding-conflict.ts",
+    "adapters/loa/tests/test-duplicate-review-process.ts",
+    "adapters/loa/src/orchestration.ts",
+    "runtime-js/adapters/loa/src/orchestration.js"
   ],
   "references": [
     "adapter-protocol/README.md",

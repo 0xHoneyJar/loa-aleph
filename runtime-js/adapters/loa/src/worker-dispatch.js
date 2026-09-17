@@ -13,6 +13,7 @@ import { isSemanticOutputContract, semanticJson } from '../../../scripts/lib/sem
 import { parseStrictJson } from '../../../scripts/lib/worker-return-contract.js';
 import { canonicalWorkerReturnRoot, contractExemplarToJsonSchema, validateWorkerReturn, } from './worker-return.js';
 import { buildClaudeCodeWorkerPrompt, invokeClaudeCodeWorker, isProviderPinnedClaudeModelId, parseClaudeCodeStream, } from './claude-code-host.js';
+import { usesOrchestration, withOrchestrationLock, assertWorkRequest, beginOrchestrationDispatch, completeOrchestrationDispatch, acceptOrchestrationReturn, } from './orchestration.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const INVOCATION_FORMAT = 'aleph-loa-native-worker-invocation/v1';
 const NATIVE_DISPATCH_FORMAT = 'aleph-loa-native-worker-dispatch/v1';
@@ -362,8 +363,17 @@ function verifyInvocation(workerBundleRoot, returnRoot) {
  * skill. This function does not invoke a worker or a model.
  */
 export function prepareLoaWorkerHandoff(options) {
+    const runDir = dirname(dirname(dirname(resolve(options.workerBundleRoot))));
+    if (usesOrchestration(runDir)) {
+        return withOrchestrationLock(runDir, () => prepareLoaWorkerHandoffUnlocked(options, true));
+    }
+    return prepareLoaWorkerHandoffUnlocked(options, false);
+}
+function prepareLoaWorkerHandoffUnlocked(options, orchestrated) {
     const workerBundleRoot = resolve(options.workerBundleRoot);
     const request = verifyWorkerBundle(workerBundleRoot);
+    if (orchestrated)
+        assertWorkRequest(dirname(dirname(dirname(workerBundleRoot))), request);
     const returnRoot = canonicalWorkerReturnRoot(workerBundleRoot, request.call_id, options.returnRoot);
     const binding = pinnedHostBinding(workerBundleRoot, request);
     assertSuppliedHostMatchesPin(options.hostCapabilities, binding);
@@ -372,15 +382,29 @@ export function prepareLoaWorkerHandoff(options) {
         throw new Error('capability receipt path is not the canonical run-pinned host receipt');
     }
     assertNoSymlinkComponents(workerBundleRoot, workerBundleRoot);
+    if (orchestrated && existsSync(join(returnRoot, INVOCATION_FILE))) {
+        const invocation = verifyInvocation(workerBundleRoot, returnRoot);
+        return { invocation, invocationPath: join(returnRoot, INVOCATION_FILE),
+            nativeDispatchPath: invocation.result.dispatch_receipt_path,
+            nativeReturnPath: invocation.result.structured_return_path,
+            eventStreamPath: invocation.result.event_stream_path };
+    }
     if (existsSync(join(returnRoot, INVOCATION_FILE))
-        || existsSync(join(returnRoot, CAPABILITIES_FILE))
+        || !orchestrated && existsSync(join(returnRoot, CAPABILITIES_FILE))
         || existsSync(join(returnRoot, NATIVE_DISPATCH_FILE))
         || existsSync(join(returnRoot, NATIVE_RETURN_FILE))
         || existsSync(join(returnRoot, EVENT_STREAM_FILE))) {
         throw new Error('Loa native worker handoff already exists; stale handoffs are never reused');
     }
     const capabilitiesPath = join(returnRoot, CAPABILITIES_FILE);
-    writeFileAtomic(capabilitiesPath, binding.receiptBytes, 0o400);
+    if (orchestrated && existsSync(capabilitiesPath)) {
+        assertImmutableRegularFile(capabilitiesPath, 'retained capability receipt');
+        if (!readStableRegularFile(capabilitiesPath).bytes.equals(binding.receiptBytes)) {
+            throw new Error('incomplete prepare has an altered capability receipt');
+        }
+    }
+    else
+        writeFileAtomic(capabilitiesPath, binding.receiptBytes, 0o400);
     const capabilityBytes = readStableRegularFile(capabilitiesPath).bytes;
     if (!capabilityBytes.equals(binding.receiptBytes)
         || sha256Digest(capabilityBytes) !== binding.receiptDigest) {
@@ -586,6 +610,25 @@ function readNativeDispatchRecord(path, invocation, host, structuredReturnBytes)
  * API exposes no canonical-ledger handle and performs no ledger write.
  */
 export function acceptLoaWorkerHandoff(options) {
+    const native = reopenNativeWorkerEvidence(options);
+    const runDir = dirname(dirname(dirname(resolve(options.workerBundleRoot))));
+    const validated = usesOrchestration(runDir)
+        ? acceptOrchestrationReturn(runDir, native.invocation.request.call_id)
+        : validateWorkerReturn({
+            workerBundleRoot: resolve(options.workerBundleRoot),
+            returnRoot: resolve(options.returnRoot),
+            raw: native.raw,
+            dispatchReceipt: native.dispatch.receipt,
+        });
+    return {
+        ...validated,
+        receipt: native.dispatch.receipt,
+        dispatchRecordPath: join(resolve(options.returnRoot), NATIVE_DISPATCH_FILE),
+        invocationPath: join(resolve(options.returnRoot), INVOCATION_FILE),
+    };
+}
+/** Read-only native provenance authentication; never reruns the provider. */
+export function reopenNativeWorkerEvidence(options) {
     const workerBundleRoot = resolve(options.workerBundleRoot);
     const returnRoot = resolve(options.returnRoot);
     const invocation = verifyInvocation(workerBundleRoot, returnRoot);
@@ -596,18 +639,7 @@ export function acceptLoaWorkerHandoff(options) {
     const raw = returned.bytes;
     const host = pinnedHostBinding(workerBundleRoot, invocation.request).host;
     const dispatch = readNativeDispatchRecord(dispatchRecordPath, invocation, host, raw);
-    const validated = validateWorkerReturn({
-        workerBundleRoot,
-        returnRoot,
-        raw,
-        dispatchReceipt: dispatch.receipt,
-    });
-    return {
-        ...validated,
-        receipt: dispatch.receipt,
-        dispatchRecordPath,
-        invocationPath: join(returnRoot, INVOCATION_FILE),
-    };
+    return { invocation, dispatch, raw };
 }
 /**
  * Execute an already prepared live handoff through the binary-attested Claude
@@ -621,6 +653,13 @@ export function dispatchPreparedClaudeCodeHandoff(options) {
     const binding = pinnedHostBinding(workerBundleRoot, invocation.request);
     if (invocation.simulation !== null || binding.host.simulation !== null) {
         throw new Error('live Claude Code dispatch rejects fixture-simulated handoffs');
+    }
+    const runDir = dirname(dirname(dirname(workerBundleRoot))), orchestrated = usesOrchestration(runDir);
+    if (orchestrated && beginOrchestrationDispatch(runDir, invocation.request, invocation.invocation_digest) === 'retained') {
+        const native = reopenNativeWorkerEvidence(options);
+        return { receipt: native.dispatch.receipt, evidence: native.dispatch.host_evidence,
+            dispatchRecordPath: invocation.result.dispatch_receipt_path,
+            structuredReturnPath: invocation.result.structured_return_path, eventStreamPath: invocation.result.event_stream_path };
     }
     for (const path of [
         invocation.result.dispatch_receipt_path,
@@ -643,12 +682,18 @@ export function dispatchPreparedClaudeCodeHandoff(options) {
         host_evidence: completed.evidence,
         receipt: completed.receipt,
     };
-    writeFileAtomic(invocation.result.event_stream_path, completed.eventStream, 0o400);
-    writeFileAtomic(invocation.result.structured_return_path, returnBytes, 0o400);
-    writeJsonAtomic(invocation.result.dispatch_receipt_path, dispatchRecord, 0o400);
-    chmodSync(invocation.result.event_stream_path, 0o400);
-    chmodSync(invocation.result.structured_return_path, 0o400);
-    chmodSync(invocation.result.dispatch_receipt_path, 0o400);
+    const retain = () => {
+        writeFileAtomic(invocation.result.event_stream_path, completed.eventStream, 0o400);
+        writeFileAtomic(invocation.result.structured_return_path, returnBytes, 0o400);
+        writeJsonAtomic(invocation.result.dispatch_receipt_path, dispatchRecord, 0o400);
+        chmodSync(invocation.result.event_stream_path, 0o400);
+        chmodSync(invocation.result.structured_return_path, 0o400);
+        chmodSync(invocation.result.dispatch_receipt_path, 0o400);
+    };
+    if (orchestrated)
+        completeOrchestrationDispatch(runDir, invocation.request, invocation.invocation_digest, retain);
+    else
+        retain();
     readNativeDispatchRecord(invocation.result.dispatch_receipt_path, invocation, binding.host, returnBytes);
     return {
         receipt: completed.receipt,
@@ -672,6 +717,12 @@ export function dispatchPreparedLoaWorker(options) {
     const binding = pinnedHostBinding(workerBundleRoot, invocation.request);
     if (invocation.simulation === null || binding.host.simulation === null) {
         throw new Error('fixture callback dispatch requires a fixture-simulated retained host');
+    }
+    const runDir = dirname(dirname(dirname(workerBundleRoot))), orchestrated = usesOrchestration(runDir);
+    if (orchestrated && beginOrchestrationDispatch(runDir, invocation.request, invocation.invocation_digest) === 'retained') {
+        const native = reopenNativeWorkerEvidence(options);
+        return { receipt: native.dispatch.receipt, dispatchRecordPath: invocation.result.dispatch_receipt_path,
+            structuredReturnPath: invocation.result.structured_return_path };
     }
     for (const path of [
         invocation.result.dispatch_receipt_path,
@@ -699,10 +750,16 @@ export function dispatchPreparedLoaWorker(options) {
         host_evidence: null,
         receipt: result.receipt,
     };
-    writeJsonAtomic(invocation.result.dispatch_receipt_path, dispatchRecord, 0o400);
-    writeFileAtomic(invocation.result.structured_return_path, returnBytes, 0o400);
-    chmodSync(invocation.result.dispatch_receipt_path, 0o400);
-    chmodSync(invocation.result.structured_return_path, 0o400);
+    const retain = () => {
+        writeFileAtomic(invocation.result.structured_return_path, returnBytes, 0o400);
+        writeJsonAtomic(invocation.result.dispatch_receipt_path, dispatchRecord, 0o400);
+        chmodSync(invocation.result.dispatch_receipt_path, 0o400);
+        chmodSync(invocation.result.structured_return_path, 0o400);
+    };
+    if (orchestrated)
+        completeOrchestrationDispatch(runDir, invocation.request, invocation.invocation_digest, retain);
+    else
+        retain();
     readNativeDispatchRecord(invocation.result.dispatch_receipt_path, invocation, binding.host, returnBytes);
     return {
         receipt: result.receipt,

@@ -28,10 +28,12 @@ import {
 import {
   contractExemplarToJsonSchema,
   validateWorkerReturnContract,
+  parseStrictJson,
 } from '../../../scripts/lib/worker-return-contract.ts';
 import { validateMaterialProducerReturn } from '../../../scripts/lib/source-representation.ts';
 import { isSemanticOutputContract, validateSemanticReturn, parseSemanticJson, semanticJson, validateSemanticProducerDelivery, type SemanticSubject } from '../../../scripts/lib/semantic-review.ts';
-import { loadRun } from '../../../scripts/lib/run-model.ts';
+import { loadRun, type RunModel } from '../../../scripts/lib/run-model.ts';
+import { CRITERIA_SUBJECT_PATH, validateCriteriaReview, type CriteriaSubject } from '../../../scripts/lib/work-transitions.ts';
 
 export { contractExemplarToJsonSchema };
 
@@ -169,6 +171,10 @@ export interface WorkerReturnResult {
   validated: ValidatedWorkerReturn | null;
 }
 
+export interface CheckedWorkerReturn extends WorkerReturnResult {
+  rawBytes: Buffer;
+}
+
 function parseRaw(raw: ValidateWorkerReturnOptions['raw'], semantic = false): {
   value: unknown;
   bytes: Buffer;
@@ -236,9 +242,15 @@ export function validateWorkerDispatch(
   }
 }
 
-export function validateWorkerReturn(
+/**
+ * Reproduce contract checking without publishing quarantine derivatives.
+ * A supplied model is a retained validation basis, not commit authority.
+ * Native provenance and work applicability are checked by the controller.
+ */
+export function checkWorkerReturn(
   options: ValidateWorkerReturnOptions,
-): WorkerReturnResult {
+  validationModel?: RunModel,
+): CheckedWorkerReturn {
   const workerRoot = resolve(options.workerBundleRoot);
   const request = verifyWorkerBundle(workerRoot);
   const returnRoot = canonicalWorkerReturnRoot(
@@ -247,7 +259,6 @@ export function validateWorkerReturn(
     options.returnRoot,
   );
   validateWorkerDispatch(request, options.dispatchReceipt);
-  mkdirSync(returnRoot, { recursive: true });
   const contractPath = join(workerRoot, 'contracts', 'output.json');
   if (!existsSync(contractPath)) throw new Error('worker bundle omits its Core output contract');
   const contractBytes = readFileSync(contractPath);
@@ -261,7 +272,6 @@ export function validateWorkerReturn(
   }
   const parsed = parseRaw(options.raw, (isSemanticOutputContract(JSON.parse(contractBytes.toString('utf8'))) || isDuplicateOutputContract(JSON.parse(contractBytes.toString('utf8')))));
   const rawDigest = sha256Digest(parsed.bytes);
-  writeFileAtomic(join(returnRoot, 'raw.json'), parsed.bytes);
   const errors: string[] = [];
   let canonicalValue: JsonValue | null = null;
   let semantic = false;
@@ -282,7 +292,7 @@ export function validateWorkerReturn(
     canonicalValue = validation.canonicalValue as JsonValue | null;
     if (canonicalValue !== null && errors.length === 0) {
       if (isDuplicateOutputContract(example)) {
-        const task = validateDuplicateOutputContract(example), model = loadRun(dirname(dirname(dirname(workerRoot))));
+        const task = validateDuplicateOutputContract(example), model = validationModel || loadRun(dirname(dirname(dirname(workerRoot))));
         const attachments = request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(workerRoot, a.attachment_path)) }));
         const context = task === 'refutation' ? { model, subject: validateDuplicateReviewDispatch(model, request.call_id, request.task_line,
           request.isolation.producer_context_id, attachments) }
@@ -292,10 +302,10 @@ export function validateWorkerReturn(
       }
       if (isSemanticOutputContract(example)) {
         const runDir = dirname(dirname(dirname(workerRoot)));
-        const model = loadRun(runDir);
+        const model = validationModel || loadRun(runDir);
         const subjectPath = request.role === 'verifier-l2s'
           ? request.allowlist.find((a) => a.run_path.startsWith('verification/harness/semantic-subjects/'))?.run_path : undefined;
-        const subject = subjectPath ? parseSemanticJson(readFileSync(join(runDir, subjectPath))) as SemanticSubject : undefined;
+        const subject = subjectPath ? parseSemanticJson(readFileSync(join(model.runDir, subjectPath))) as SemanticSubject : undefined;
         const context = request.role === 'verifier-l2s' ? {
           model, subject, owner_stage: request.stage as 'S2' | 'S3' | 'S4', legal_source_ids: subject!.anchors.map((a) => a.source_id),
         } : validateSemanticProducerDelivery(model, request.role as 'extractor' | 'normalizer', request.stage as 'S2' | 'S3' | 'S4',
@@ -306,6 +316,15 @@ export function validateWorkerReturn(
       }
       try { validateMaterialProducerReturn(canonicalValue); } catch (error) {
         errors.push(error instanceof Error ? error.message : String(error));
+      }
+      if (request.role === 'criteria-reviewer') {
+        try {
+          const subject = request.allowlist.find((entry) => entry.run_path === CRITERIA_SUBJECT_PATH);
+          if (!subject || request.allowlist.length !== 1) throw new Error('criteria review requires exactly its sealed subject');
+          validateCriteriaReview(canonicalValue, parseStrictJson(readFileSync(join(workerRoot, subject.attachment_path))) as unknown as CriteriaSubject);
+        } catch (error) {
+          errors.push(error instanceof Error ? error.message : String(error));
+        }
       }
       if (request.role === 'verifier-l2f') {
         const returned = canonicalValue as Record<string, JsonValue>;
@@ -324,8 +343,7 @@ export function validateWorkerReturn(
     result: errors.length > 0 ? 'FAIL' : 'PASS',
     errors,
   };
-  writeJsonAtomic(join(returnRoot, 'validation.json'), report);
-  if (errors.length > 0) return { report, validated: null };
+  if (errors.length > 0) return { report, validated: null, rawBytes: parsed.bytes };
   const validationDigest = sha256Digest(stableJsonBytes(report));
   const validated = new ValidatedWorkerReturn(
     VALIDATED_TOKEN,
@@ -339,9 +357,23 @@ export function validateWorkerReturn(
     options.dispatchReceipt.producer_context_id,
     semantic,
   );
-  writeFileAtomic(join(returnRoot, 'validated.json'), validated.canonicalBytes());
   return {
     report,
     validated,
+    rawBytes: parsed.bytes,
   };
+}
+
+/** Legacy publication remains separate from read-only reauthentication. */
+export function validateWorkerReturn(
+  options: ValidateWorkerReturnOptions,
+): WorkerReturnResult {
+  const checked = checkWorkerReturn(options);
+  const request = verifyWorkerBundle(resolve(options.workerBundleRoot));
+  const returnRoot = canonicalWorkerReturnRoot(options.workerBundleRoot, request.call_id, options.returnRoot);
+  mkdirSync(returnRoot, { recursive: true });
+  writeFileAtomic(join(returnRoot, 'raw.json'), checked.rawBytes);
+  writeJsonAtomic(join(returnRoot, 'validation.json'), checked.report);
+  if (checked.validated) writeFileAtomic(join(returnRoot, 'validated.json'), checked.validated.canonicalBytes());
+  return { report: checked.report, validated: checked.validated };
 }
