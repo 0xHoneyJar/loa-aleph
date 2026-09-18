@@ -7,7 +7,7 @@ import { parseTables, envelopeSection } from './markdown.ts';
 import { parseStrictJson, contractExemplarToJsonSchema, validateWorkerReturnContract, validateJudgmentRationale, type WorkerJsonValue } from './worker-return-contract.ts';
 import { forwardExecutionIdentityProblems, hasRunCapability, type RunModel } from './run-model.ts';
 import {
-  materialHash, materialTableMarkdown, readMaterialFile, readRepresentationContext, degradedPacketMaterialView,
+  materialHash, materialTableMarkdown, readMaterialFile, readRepresentationContext, degradedPacketMaterialView, indeterminateClaimMaterialPreview,
   representationUseSubjectJson, representationReviewView, validateMaterialUseInput,
   validateRepresentationUse, representationUseNeedsReview, materialFeatureAvailable, assertMaterialReviewUpheld, type MaterialUseInput, type MaterialFileWrite,
   type MaterialRow, type RepresentationContext,
@@ -52,6 +52,8 @@ export const FINDING_CODES = ['atomicity-indeterminate', 'context-insufficient',
 export const SEMANTIC_ISSUES = ['none', 'compound-assertion', 'lost-context', 'spurious-context', 'altered-scope', 'lost-condition', 'altered-qualifier', 'altered-modality', 'altered-attribution', 'conflated-role', 'result-interpretation-collapse', 'lost-comparator', 'lost-metric', 'unsupported-interpretation', 'unresolved-referent', 'missing-material', 'illegal-relation-use', 'insufficient-context'] as const;
 export const SEMANTIC_EXECUTIONS = ['native-dispatch', 'fixture-simulated', 'static-record', 'manual-separate-pass'] as const;
 export const SEMANTIC_OUTPUT_KINDS = ['packet-candidate', 'claim-candidate', 'no-claim-candidate', 'material-candidate'] as const;
+const INDETERMINATE_CLAIM_REVIEW_PATHS = ['output_selector', 'reserved_claim_id', 'normalized_claim', 'packet_ids', 'source_ids', 'claim_type']
+  .map((field) => `/output_binding/${field}`);
 export const SEMANTIC_HEADERS = {
   subjects: ['semantic_id', 'owner_stage', 'subject_kind', 'subject_path', 'subject_digest', 'predecessor_semantic_id', 'producer_receipt_ref'],
   assignments: ['review_id', 'semantic_id', 'assignment_path', 'assignment_digest'],
@@ -120,6 +122,8 @@ export type SemanticOutput =
   | { kind: 'packet-group'; evidence_keys: string[]; packet_ids: string[] }
   | { kind: 'degraded-packet'; source_id: string; degraded_source_locator: string; degradation_reason: string; criterion: number }
   | { kind: 'claim'; reserved_claim_id: string; normalized_claim: string; packet_ids: string[]; source_ids: string[]; claim_type: string }
+  | { kind: 'indeterminate-claim'; output_selector: string; output_index: number; reserved_claim_id: string;
+      normalized_claim: string; packet_ids: string[]; source_ids: string[]; claim_type: string }
   | { kind: 'no-claim'; packet_id: string; basis: string }
   | { kind: 'material-only'; object_id: string };
 export interface PacketBasis {
@@ -222,7 +226,8 @@ export function semanticAssignmentPath(id: string): string { return `verificatio
 export function semanticCoverage(semantics: Semantics, kind: SemanticOutput['kind']): string[] {
   return ['/semantics/atomicity', '/semantics/contexts', '/semantics/couplings', '/semantics/relation_proposals', '/semantics/unresolved_findings', '/material_use',
     ...semantics.units.flatMap((_unit, i) => ['proposition', ...Object.keys(SEMANTIC_FACETS)].map((field) => `/semantics/units/${i}/${field}`)),
-    ...(kind === 'no-claim' ? ['/output_binding/basis'] : [])];
+    ...(kind === 'no-claim' ? ['/output_binding/basis'] : []),
+    ...(kind === 'indeterminate-claim' ? INDETERMINATE_CLAIM_REVIEW_PATHS : [])];
 }
 const ANCHOR_INPUT_KEYS = ['anchor_id', 'source_id', 'locator', 'start_byte', 'end_byte', 'exact_bytes_base64'];
 const ANCHOR_KEYS = ['anchor_id', 'source_id', 'source_hash', 'locator', 'span_hash', 'start_byte', 'end_byte', 'selection_hash', 'exact_bytes_base64', 'packet_ids'];
@@ -438,7 +443,9 @@ export function validateSemanticResult(value: unknown, subject?: SemanticSubject
   } else {
     const top = ['/semantics/atomicity', '/semantics/contexts', '/semantics/couplings', '/semantics/relation_proposals', '/semantics/unresolved_findings', '/material_use'];
     requireSemantic(semanticJson(paths.slice(0, 6)) === semanticJson(top), 'SEM_REVIEW', 'field_reviews', 'required top-level coverage');
-    const unitPaths = paths.slice(6, paths.at(-1) === '/output_binding/basis' ? -1 : undefined);
+    const proposalSuffix = semanticJson(paths.slice(-INDETERMINATE_CLAIM_REVIEW_PATHS.length)) === semanticJson(INDETERMINATE_CLAIM_REVIEW_PATHS);
+    const unitPaths = paths.slice(6, proposalSuffix ? -INDETERMINATE_CLAIM_REVIEW_PATHS.length
+      : paths.at(-1) === '/output_binding/basis' ? -1 : undefined);
     const fields = ['proposition', ...Object.keys(SEMANTIC_FACETS)];
     requireSemantic(unitPaths.length % fields.length === 0 && unitPaths.every((p, i) => p === `/semantics/units/${Math.floor(i / fields.length)}/${fields[i % fields.length]}`),
       'SEM_REVIEW', 'field_reviews', 'finite contiguous unit coverage required');
@@ -537,21 +544,59 @@ export function semanticDegradedMaterialViews(model: RunModel, output: Extract<S
   const view = parseSemanticJson(degradedPacketMaterialView(model, context, output.source_id, producerBindingHash, materialUse)) as Record<string, WorkerJsonValue>;
   return [{ use_subject: view.subject, use_subject_digest: materialHash(semanticJson(view.subject)), view }];
 }
+/** Mechanically retains one original claim selector; it does not admit its reservation. */
+export function indeterminateClaimBinding(model: RunModel, returned: unknown, outputIndex: number, reservedClaimId: string): {
+  output_binding: Extract<SemanticOutput, { kind: 'indeterminate-claim' }>; material_use: MaterialUseInput; entry: SemanticEntry;
+} {
+  requireSemantic(hasRunCapability(model.manifest!.runFormatVersion, 'orchestrator-work-transitions'),
+    'SEM_COMPATIBILITY', 'indeterminate-claim', 'orchestrator-work-transitions required');
+  const checked = validateSemanticReturn('normalizer', model.manifest!.runFormatVersion, returned);
+  requireSemantic(checked.result === 'PASS' && obj(returned), 'SEM_FORMAT', 'indeterminate-claim', checked.errors.join('; '));
+  requireSemantic(ordinal(outputIndex) && existingId(reservedClaimId, 'CC'), 'SEM_REFERENCE', 'indeterminate-claim', 'original index and reserved CC required');
+  const candidate = (returned.claims as Record<string, unknown>[])[outputIndex];
+  requireSemantic(candidate, 'SEM_REFERENCE', 'indeterminate-claim', 'original claim candidate required');
+  const use = validateMaterialUseInput(candidate.material_use);
+  requireSemantic(use.use_state === 'CANNOT_DETERMINE', 'SEM_STATE', 'indeterminate-claim', 'nonaffirmative material declaration required');
+  const packets = candidate.packets as string[];
+  const sources = [...new Set(packets.map((id) => {
+    const packet = model.packets.find((row) => row.values.packetId === id);
+    requireSemantic(packet, 'SEM_REFERENCE', id, 'existing candidate packet required');
+    return packet.values.sourceId;
+  }))];
+  return { output_binding: { kind: 'indeterminate-claim', output_selector: `claim-candidate:${outputIndex}`, output_index: outputIndex,
+    reserved_claim_id: reservedClaimId, normalized_claim: String(candidate.normalized_claim),
+    packet_ids: [...packets], source_ids: sources, claim_type: String(candidate.claim_type) },
+  material_use: structuredClone(use), entry: structuredClone((returned.semantic_units as SemanticEntry[])
+    .find((entry) => entry.output_kind === 'claim-candidate' && entry.output_index === outputIndex)!) };
+}
+export function semanticIndeterminateClaimMaterialViews(model: RunModel,
+  output: Extract<SemanticOutput, { kind: 'indeterminate-claim' }>, producerBindingHash: string,
+  materialUse: MaterialUseInput, context = readRepresentationContext(model)): MaterialView[] {
+  subjectOutput(output);
+  const view = parseSemanticJson(indeterminateClaimMaterialPreview(model, context, {
+    producer_binding_hash: producerBindingHash, proposal_digest: materialHash(semanticJson(output)),
+    packet_ids: output.packet_ids, source_ids: output.source_ids, material_use: materialUse,
+  })) as Record<string, WorkerJsonValue>;
+  return [{ use_subject: view.subject, use_subject_digest: materialHash(semanticJson(view.subject)), view }];
+}
 function subjectOutput(value: unknown): asserts value is SemanticOutput {
   requireSemantic(obj(value), 'SEM_FORMAT', 'output_binding', 'closed variant required');
-  oneOf(value.kind, ['packet-group', 'degraded-packet', 'claim', 'no-claim', 'material-only'], 'output_binding/kind');
+  oneOf(value.kind, ['packet-group', 'degraded-packet', 'claim', 'indeterminate-claim', 'no-claim', 'material-only'], 'output_binding/kind');
   const fields = { 'packet-group': ['kind', 'evidence_keys', 'packet_ids'],
     claim: ['kind', 'reserved_claim_id', 'normalized_claim', 'packet_ids', 'source_ids', 'claim_type'],
+    'indeterminate-claim': ['kind', 'output_selector', 'output_index', 'reserved_claim_id', 'normalized_claim', 'packet_ids', 'source_ids', 'claim_type'],
     'no-claim': ['kind', 'packet_id', 'basis'], 'material-only': ['kind', 'object_id'],
     'degraded-packet': ['kind', 'source_id', 'degraded_source_locator', 'degradation_reason', 'criterion'] };
   keys(value, fields[value.kind], 'output_binding');
-  if (value.kind === 'claim') {
+  if (value.kind === 'claim' || value.kind === 'indeterminate-claim') {
     requireSemantic(existingId(value.reserved_claim_id, 'CC'), 'SEM_REFERENCE', 'output_binding', 'reserved CC required');
     text(value.normalized_claim, 'normalized_claim');
     oneOf(value.claim_type, ['factual', 'design-intent', 'constraint', 'preference', 'open-question'], 'claim_type');
     uniqueStrings(value.source_ids, 'source_ids', true);
   }
-  if (value.kind === 'claim' || value.kind === 'packet-group') {
+  if (value.kind === 'indeterminate-claim') requireSemantic(ordinal(value.output_index)
+    && value.output_selector === `claim-candidate:${value.output_index}`, 'SEM_REFERENCE', 'output_selector', 'exact original claim selector required');
+  if (value.kind === 'claim' || value.kind === 'indeterminate-claim' || value.kind === 'packet-group') {
     uniqueStrings(value.packet_ids, 'packet_ids', true);
     requireSemantic(value.packet_ids.every((id) => existingId(id, 'PKT')), 'SEM_REFERENCE', 'packet_ids', 'existing packet IDs required');
   }
@@ -634,13 +679,13 @@ export function validateSemanticSubjectShape(value: unknown): asserts value is S
   keys(value, SUBJECT_KEYS, 'subject');
   requireSemantic(value.format === SEMANTIC_SUBJECT_FORMAT && semanticId(value.semantic_id, 'SEM'), 'SEM_FORMAT', 'subject', 'exact format and semantic ID required');
   oneOf(value.owner_stage, ['S2', 'S3', 'S4'], 'owner_stage');
-  oneOf(value.subject_kind, ['packet-group', 'degraded-packet', 'claim', 'no-claim', 'material-only'], 'subject_kind');
+  oneOf(value.subject_kind, ['packet-group', 'degraded-packet', 'claim', 'indeterminate-claim', 'no-claim', 'material-only'], 'subject_kind');
   oneOf(value.review_mode, ['proposal', 'unresolved-record'], 'review_mode');
   requireSemantic(value.predecessor_semantic_id === 'none' || semanticId(value.predecessor_semantic_id, 'SEM'), 'SEM_REFERENCE', 'predecessor_semantic_id', 'invalid predecessor');
   hash(value.producer_binding_hash, 'producer_binding_hash');
   keys(value.run_binding, ['run_id', 'run_format_version', 'core_digest', 'checker_digest', 'bundle_digest', 'runtime_snapshot_digest'], 'run_binding');
   requireSemantic(hasRunCapability(String(value.run_binding.run_format_version), 'semantic-unit-review'), 'SEM_COMPATIBILITY', 'run_binding', 'capability required');
-  requireSemantic(value.subject_kind !== 'degraded-packet'
+  requireSemantic(!['degraded-packet', 'indeterminate-claim'].includes(value.subject_kind)
     || hasRunCapability(String(value.run_binding.run_format_version), 'orchestrator-work-transitions'),
   'SEM_COMPATIBILITY', 'degraded-packet', 'orchestrator-work-transitions required');
   text(value.run_binding.run_id, 'run_id');
@@ -660,6 +705,8 @@ export function validateSemanticSubjectShape(value: unknown): asserts value is S
   requireSemantic(subject.review_mode !== 'unresolved-record' || (subject.predecessor_semantic_id !== 'none' && subject.semantics.atomicity === 'CANNOT_DETERMINE'),
     'SEM_STATE', 'unresolved-record', 'new linked indeterminate record required');
   requireSemantic(subject.subject_kind !== 'material-only' || subject.semantics.atomicity === 'CANNOT_DETERMINE', 'SEM_STATE', 'material-only', 'cannot invent an affirmative packet/claim');
+  requireSemantic(subject.subject_kind !== 'indeterminate-claim' || subject.material_use?.use_state === 'CANNOT_DETERMINE',
+    'SEM_STATE', 'indeterminate-claim', 'nonaffirmative material declaration required');
   if (subject.subject_kind === 'degraded-packet') {
     requireSemantic(subject.owner_stage === 'S2' && subject.packet_basis.length === 0 && subject.anchors.length === 0
       && subject.origin_context.length === 0 && subject.lineage_context.length === 0 && subject.relation_context.length === 0
@@ -676,6 +723,7 @@ function validateDegradedSemantics(semantics: Semantics, anchors: readonly Ancho
 }
 export function semanticAdmissionProblems(subject: SemanticSubject): string[] {
   const s = subject.semantics, problems: string[] = [];
+  if (subject.subject_kind === 'indeterminate-claim') problems.push('nonaffirmative proposal reservation is not a canonical CC');
   if (subject.review_mode !== 'proposal') problems.push('unresolved-record is not an affirmative license');
   if (!['single-assertion', 'inseparable-context', ...(subject.owner_stage === 'S2' ? ['multiple-separable'] : [])].includes(s.atomicity)) problems.push('atomicity ineligible');
   if (s.unresolved_findings.some((f) => f.code !== 'relation-deferred')) problems.push('meaning-bearing unresolved finding');
@@ -780,7 +828,7 @@ export function semanticPinnedPrompts(model: RunModel, stage: SemanticStage): Se
     return { ...part, digest: materialHash(selectSemanticCorePart(bytes, part.selector)) };
   });
 }
-export function canonicalClaimModel(model: RunModel, output: SemanticOutput): RunModel {
+export function claimProposalModel(model: RunModel, output: SemanticOutput): RunModel {
   if (output.kind !== 'claim') return model;
   const existing = model.claims.find((c) => c.values.claimId === output.reserved_claim_id);
   if (existing) {
@@ -795,6 +843,8 @@ export function canonicalClaimModel(model: RunModel, output: SemanticOutput): Ru
     sources: output.source_ids.join(', '), claimType: output.claim_type, disposition: '', rationale: '', judgedBy: '', verified: '', status: 'active',
   } }] };
 }
+/** Retained compatibility name for the ordinary affirmative pre-admission model. */
+export const canonicalClaimModel = claimProposalModel;
 /** Existing Markdown cell encoding, also used by the Slice 6 CC projection. */
 export function semanticClaimCell(text: string): string {
   return parseTables(materialTableMarkdown(['normalized claim'], [{ 'normalized claim': text }]))[0].rows[0].cells[0];
@@ -1025,10 +1075,11 @@ export function validateSemanticSubject(value: unknown, model: RunModel, visitin
   requireSemantic(subject.anchors.every((a) => sources.includes(a.source_id)), 'SEM_REFERENCE', id, 'anchor outside output source scope');
   requireSemantic(subject.owner_stage !== 'S2' || sources.length === 1, 'SEM_REFERENCE', id, 'S2 must remain one-source');
   validateSemantics(subject.semantics, subject.anchors, subject.material_use, subject.subject_kind, model, sources);
-  const proposed = canonicalClaimModel(model, subject.output_binding);
-  if (subject.output_binding.kind === 'claim') requireSemantic(semanticJson([...new Set(subject.packet_basis.map((p) => p.packet.source_id))])
+  const proposed = claimProposalModel(model, subject.output_binding);
+  if (subject.output_binding.kind === 'claim' || subject.output_binding.kind === 'indeterminate-claim') requireSemantic(semanticJson([...new Set(subject.packet_basis.map((p) => p.packet.source_id))])
     === semanticJson(subject.output_binding.source_ids), 'SEM_REFERENCE', id, 'CC source provenance differs');
-  const requiredKinds = subject.output_binding.kind === 'degraded-packet' ? ['degraded-packet']
+  const requiredKinds = subject.output_binding.kind === 'indeterminate-claim' ? ['indeterminate-claim']
+    : subject.output_binding.kind === 'degraded-packet' ? ['degraded-packet']
     : subject.output_binding.kind === 'material-only' ? [`OBJ:${subject.output_binding.object_id}`]
     : subject.output_binding.kind === 'claim' ? [`CC:${subject.output_binding.reserved_claim_id}`] : packetIds.map((p) => `PKT:${p}`);
   const seenUses: string[] = [];
@@ -1042,6 +1093,12 @@ export function validateSemanticSubject(value: unknown, model: RunModel, visitin
     const useIds = (view.limitations as Array<Record<string, WorkerJsonValue>>).map((r) => String(r.limitation_ref)).filter((id) => id.startsWith('USE-'));
     requireSemantic(useIds.every((id) => material.uses.some((use) => use.use_id === id)), 'SEM_SUBJECT', id, 'shown material limitation absent');
     const viewContext = newReservation ? material : { ...material, uses: material.uses.filter((use) => useIds.includes(use.use_id)) };
+    if (subject.output_binding.kind === 'indeterminate-claim') {
+      const expected = semanticIndeterminateClaimMaterialViews(model, subject.output_binding, subject.producer_binding_hash, subject.material_use!, viewContext)[0];
+      requireSemantic(semanticJson(entry) === semanticJson(expected), 'SEM_SUBJECT', id, 'complete nonaffirmative material declaration/preview differs');
+      seenUses.push('indeterminate-claim');
+      continue;
+    }
     if (subject.output_binding.kind === 'degraded-packet') {
       const expected = semanticDegradedMaterialViews(model, subject.output_binding, subject.producer_binding_hash, subject.material_use!, viewContext)[0];
       requireSemantic(semanticJson(entry) === semanticJson(expected), 'SEM_SUBJECT', id, 'complete degraded material declaration/view differs');
@@ -1105,13 +1162,13 @@ export function validateSemanticSubject(value: unknown, model: RunModel, visitin
       'SEM_SUBJECT', context.lineage_id, 'direct predecessor definitions differ');
   }
   if (subject.owner_stage === 'S4') {
-    requireSemantic(subject.lineage_context.length === 1 && (subject.output_binding.kind === 'claim'
+    requireSemantic(subject.lineage_context.length === 1 && ((subject.output_binding.kind === 'claim' || subject.output_binding.kind === 'indeterminate-claim')
       && subject.lineage_context[0].event.successors.includes(subject.output_binding.reserved_claim_id)
       || subject.output_binding.kind === 'material-only'), 'SEM_WINDOW', id, 'S4 requires exact already-proposed successor or its material refusal');
     const lineage = subject.lineage_context[0];
     requireSemantic(lineage.event.owner_stage === 'S4' && lineage.unit_definitions.every((u) => u.kind === 'CC'),
       'SEM_WINDOW', id, 'bounded S4 CC predecessor group required');
-    if (subject.output_binding.kind === 'claim') {
+    if (subject.output_binding.kind === 'claim' || subject.output_binding.kind === 'indeterminate-claim') {
       const union = [...new Set(lineage.unit_definitions.flatMap((u) => (u.projection as { packets: string[] }).packets))];
       requireSemantic(semanticJson(subject.output_binding.packet_ids) === semanticJson(union),
         'SEM_ACCOUNTING', id, 'S4 successor must preserve exact predecessor packet union');
@@ -1369,10 +1426,16 @@ function validateProducerSelection(subject: SemanticSubject, returned: Record<st
       && output.degradation_reason === candidate.degradation_reason && output.criterion === candidate.criterion,
     'SEM_SUBJECT', 'degraded-packet', 'original degraded producer selection differs');
     validateDegradedSemantics(subject.semantics, subject.anchors);
-  } else if (output.kind === 'claim') {
+  } else if (output.kind === 'claim' || output.kind === 'indeterminate-claim') {
     requireSemantic(tuple.output_kind === 'claim-candidate' && output.normalized_claim === candidate.normalized_claim
       && output.claim_type === candidate.claim_type && semanticJson(output.packet_ids) === semanticJson(candidate.packets),
     'SEM_SUBJECT', 'claim candidate', 'selected text/type/provenance differs');
+    if (hasRunCapability(subject.run_binding.run_format_version, 'orchestrator-work-transitions')) {
+      requireSemantic((output.kind === 'indeterminate-claim') === (subject.material_use?.use_state === 'CANNOT_DETERMINE'),
+        'SEM_SUBJECT', 'claim candidate', 'original nonaffirmative selector requires its dedicated binding');
+      if (output.kind === 'indeterminate-claim') requireSemantic(output.output_index === tuple.output_index
+        && output.output_selector === `${tuple.output_kind}:${tuple.output_index}`, 'SEM_SUBJECT', 'claim candidate', 'original selector differs');
+    }
   } else if (output.kind === 'no-claim') {
     requireSemantic(tuple.output_kind === 'no-claim-candidate' && output.packet_id === candidate.packet && output.basis === candidate.basis,
       'SEM_SUBJECT', 'no-claim candidate', 'selected packet/basis differs');
@@ -2619,6 +2682,9 @@ export function validateSemanticReturn(role: SemanticRole, runFormatVersion: str
     if (role === 'verifier-l2s') {
       requireSemantic(!context || context.subject, 'SEM_SUBJECT', 'return', 'full reviewer validation needs sealed subject');
       validateSemanticResult(value, context?.subject);
+      requireSemantic(hasRunCapability(runFormatVersion, 'orchestrator-work-transitions')
+        || !(value as SemanticResult).field_reviews.some((row) => INDETERMINATE_CLAIM_REVIEW_PATHS.includes(row.field_path)),
+      'SEM_COMPATIBILITY', 'indeterminate-claim', 'orchestrator-work-transitions required');
       if (context?.subject) {
         validateSemanticSubject(context.subject, context.model);
         (value as SemanticResult).unresolved_findings.forEach((finding, i) => findingShape(finding, i,

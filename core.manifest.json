@@ -688,6 +688,9 @@
         "adapters/loa/tests/test-f03-shared-position-continuation-conflict.ts",
         "adapters/loa/tests/test-f03-pending-event-commitment.ts",
         "adapters/loa/tests/test-f03-indeterminate-claim-binding-conflict.ts",
+        "adapters/loa/tests/test-f03-s3-packet-widening-conflict.ts",
+        "adapters/loa/tests/test-f03-indeterminate-claim-binding.ts",
+        "adapters/loa/tests/test-f03-stage-entry.ts",
         "adapters/loa/tests/test-duplicate-review-process.ts",
         "adapters/loa/src/orchestration.ts",
         "runtime-js/adapters/loa/src/orchestration.js"

@@ -1212,6 +1212,33 @@ export function degradedPacketMaterialView(model: RunModel, context: Representat
   return materialReviewView(model, context, input, [sourceId], [], subject,
     `degraded-packet-material-subject:${materialHash(JSON.stringify(subject))}`);
 }
+/** Read-only proposal context. This is neither a CC nor a representation USE. */
+export interface IndeterminateClaimMaterialBasis {
+  producer_binding_hash: string; proposal_digest: string;
+  packet_ids: string[]; source_ids: string[]; material_use: MaterialUseInput;
+}
+export function indeterminateClaimMaterialPreview(model: RunModel, context: RepresentationContext,
+  basis: IndeterminateClaimMaterialBasis): string {
+  requireMaterial(hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions'),
+    'FORMAT', 'indeterminate-claim', 'run_format', 'orchestrator-work-transitions required');
+  requireMaterial([basis.producer_binding_hash, basis.proposal_digest].every((hash) => /^sha256:[0-9a-f]{64}$/u.test(hash)),
+    'USE_CLOSURE', 'indeterminate-claim', 'binding', 'exact producer and proposal digests required');
+  const sources = [...new Set(basis.packet_ids.map((id) => {
+    const packet = model.packets.find((p) => p.values.packetId === id);
+    requireMaterial(packet, 'USE_CLOSURE', 'indeterminate-claim', 'packet_ids', 'existing packet required');
+    return packet.values.sourceId;
+  }))];
+  requireMaterial(sources.length > 0 && JSON.stringify(sources) === JSON.stringify(basis.source_ids),
+    'USE_CLOSURE', 'indeterminate-claim', 'source_ids', 'exact ordered packet source basis required');
+  const input = validateMaterialUseInput(basis.material_use);
+  requireMaterial(input.use_state === 'CANNOT_DETERMINE',
+    'USE_CLOSURE', 'indeterminate-claim', 'use_state', 'retained nonaffirmative declaration required');
+  validateUseRequirements(model, context, input, sources, basis.packet_ids, 'indeterminate-claim', '', basis.producer_binding_hash);
+  const subject = { format: 'aleph-indeterminate-claim-material-preview/v1',
+    representation_inventory_hash: context.inventoryHash, ...basis, material_use: input };
+  return materialReviewView(model, context, input, sources, basis.packet_ids, subject,
+    `indeterminate-claim-material-preview:${materialHash(JSON.stringify(subject))}`);
+}
 function materialReviewView(model: RunModel, context: RepresentationContext, input: MaterialUseInput,
   sources: string[], packetIds: string[], subject: unknown, target: string): string {
   const inv = context.inventory, objects = new Set<string>(), bindings = new Set<string>();

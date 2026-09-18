@@ -7,6 +7,7 @@ import { readRunState } from './run-control.js';
 import { loadCorePart, loadOutputContract, } from './core-loader.js';
 import { assertDownstreamOperationsAllowed, retainedRestrictionOverlays, } from '../../../scripts/lib/internal-ambiguity.js';
 import { loadRun, usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
+import { workMaterialReviewReservation, workJson } from '../../../scripts/lib/work-transitions.js';
 import { materialHash, REPRESENTATION_PATH, validateRepresentationRun } from '../../../scripts/lib/source-representation.js';
 import { hasRunCapability } from '../../../scripts/lib/run-model.js';
 import { SEMANTIC_LENS, semanticPromptRequirements, validateSemanticAttachmentDelivery, parseSemanticJson, validateSemanticSubject, parseSemanticLedger, SEMANTIC_PATH, validateSemanticProducerDelivery, } from '../../../scripts/lib/semantic-review.js';
@@ -382,7 +383,18 @@ export function assembleWorkerBundle(options) {
             && /^verification\/harness\/material-use-subjects\/([0-9a-f]{64})\.json$/u.exec(allowlist[0]);
         if (!match)
             throw new Error('L2F requires only the exact reserved Core material review view');
-        const reservation = readJsonFile(join(runDir, 'control', 'transactions', `RES-material-${match[1]}.json`));
+        let reservation;
+        if (hasRunCapability(loadRun(runDir).manifest.runFormatVersion, 'orchestrator-work-transitions')) {
+            const bytes = readStableRegularFile(join(runDir, 'verification/harness/material-use-reservations', `${match[1]}.json`)).bytes;
+            const retained = JSON.parse(bytes.toString('utf8'));
+            const derived = workMaterialReviewReservation(loadRun(runDir), retained.semantic_id);
+            if (!bytes.equals(workJson(derived)) || derived.call_id !== options.callId)
+                throw new Error('L2F requires the exact Core work reservation');
+            reservation = derived;
+        }
+        else {
+            reservation = readJsonFile(join(runDir, 'control', 'transactions', `RES-material-${match[1]}.json`));
+        }
         if (reservation.review_path !== allowlist[0]
             || reservation.inventory_hash !== materialHash(readFileSync(join(runDir, REPRESENTATION_PATH)))
             || reservation.view_hash !== materialHash(readStableRegularFile(join(runDir, allowlist[0])).bytes))

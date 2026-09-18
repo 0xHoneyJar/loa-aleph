@@ -14,7 +14,7 @@ import {
   validateSemanticReturn,
   parseSemanticLedger, semanticSubjectPath, semanticAssignmentPath, semanticResultPath, semanticAttachmentPaths,
   semanticMaterialViews, semanticAdmissionProblems, semanticStageSeal, planSemanticWrite, validateSemanticAcceptedBindings, validateSemanticRun,
-  canonicalClaimModel, useRowFromSubject, semanticOriginProjection,
+  claimProposalModel, useRowFromSubject, semanticOriginProjection, indeterminateClaimBinding, semanticIndeterminateClaimMaterialViews,
   SEMANTIC_ASSIGNMENT_FORMAT, SEMANTIC_TASK, type SemanticEntry, type SemanticAssignment, type SemanticResult,
   type SemanticOperation, type SemanticStage,
 } from './semantic-review.ts';
@@ -29,6 +29,7 @@ import {
   validateRepresentationUse, REPRESENTATION_USE_PATH,
   materialFindingRows,
   selectRepresentationInventory,
+  representationUseNeedsReview, representationReviewView, assertMaterialReviewUpheld,
 } from './source-representation.ts';
 
 export const WORK_TRANSITION_CAPABILITY = 'orchestrator-work-transitions';
@@ -114,7 +115,7 @@ export interface WorkFileEffect {
 export interface WorkTransition {
   format: 'aleph-core-work-transition/v1';
   obligation: WorkObligation;
-  family: 'stage' | 'inventory' | 'criteria-review' | 'criteria-preparation' | 's2-preparation' | 's2-capture' | 's2-event-commitment' | 's2-gap-review' | 's3-preparation' | 's3-capture' | 'semantic';
+  family: 'stage' | 'inventory' | 'criteria-review' | 'criteria-preparation' | 's2-preparation' | 's2-capture' | 's2-event-commitment' | 's2-gap-review' | 's3-preparation' | 's3-capture' | 'material-review' | 'semantic';
   effects: WorkFileEffect[];
   origins: WorkFieldOrigin[];
   next_execution: WorkExecution;
@@ -442,6 +443,10 @@ function selectS3Work(model: RunModel): NextWork {
         allowlist: [paths.view, ...view.assets.map((entry) => entry.path)].sort(), producer_dependency: null,
         output_selector: 'Role: Normalizer (S3)' } };
   }
+  const unnormalized = [...current].filter((id) => !model.claims.some((claim) =>
+    claim.values.packets.split(',').map((packet) => packet.trim()).includes(id)));
+  if (unnormalized.length) return { kind: 'halt', code: 'WORK_S3_PACKET_OUTCOME_UNMET',
+    reason: `${unnormalized.join(', ')}: reviewed candidate accounting supplies neither an admitted claim nor a legal lineage closure.` };
   return { kind: 'local', accepted_dependencies: ledger.subjects.flatMap((row) => semanticDependencies(model, row.semantic_id))
     .filter((call, index, calls) => calls.indexOf(call) === index),
     obligation: obligation('S3', 'S3.exit', 'stage.seal-S3', model.manifest!.runId, required(model, SEMANTIC_PATH)) };
@@ -490,13 +495,15 @@ function reserveS3Subject(model: RunModel, work: Extract<NextWork, { kind: 'loca
   assertWork(entry, 'WORK_ACCOUNTING', work.obligation.subject_id);
   const candidates = kind === 'claim-candidate' ? raw.claims : kind === 'no-claim-candidate' ? raw.no_claim_packets : raw.material_findings;
   const candidate = (candidates as Array<Record<string, WorkerJsonValue>>)[Number(index)];
-  const output: SemanticSubject['output_binding'] = kind === 'claim-candidate' ? {
+  const nonaffirmative = kind === 'claim-candidate' && (candidate.material_use as unknown as MaterialUseInput).use_state === 'CANNOT_DETERMINE';
+  const output: SemanticSubject['output_binding'] = nonaffirmative
+    ? indeterminateClaimBinding(model, raw, Number(index), selector.reserved_claim_id!).output_binding : kind === 'claim-candidate' ? {
     kind: 'claim', reserved_claim_id: selector.reserved_claim_id!, normalized_claim: String(candidate.normalized_claim),
     packet_ids: candidate.packets as string[], source_ids: [...new Set((candidate.packets as string[])
       .map((id) => model.packets.find((row) => row.values.packetId === id)!.values.sourceId))], claim_type: String(candidate.claim_type),
   } : kind === 'no-claim-candidate' ? { kind: 'no-claim', packet_id: String(candidate.packet), basis: String(candidate.basis) }
     : { kind: 'material-only', object_id: String(candidate.object_id) };
-  const projected = canonicalClaimModel(model, output), context = readRepresentationContext(model);
+  const projected = claimProposalModel(model, output), context = readRepresentationContext(model);
   const input = output.kind === 'no-claim' ? null : candidate.material_use as unknown as MaterialUseInput;
   let uses: MaterialRow[];
   if (output.kind === 'claim') {
@@ -507,19 +514,22 @@ function reserveS3Subject(model: RunModel, work: Extract<NextWork, { kind: 'loca
       review_subject_digest: '', reviewed_by: 'none' };
     row.review_subject_digest = representationUseDigest(projected, context, row);
     uses = [row];
-  } else uses = output.kind === 'no-claim'
+  } else uses = output.kind === 'indeterminate-claim' ? [] : output.kind === 'no-claim'
     ? context.uses.filter((row) => row.subject_kind === 'PKT' && row.subject_id === output.packet_id)
     : context.uses.filter((row) => row.subject_kind === 'OBJ' && row.subject_id === output.object_id
       && row.requirements === semanticJson(input!.requirements) && row.reason === input!.reason).slice(-1);
   const id = nextId('SEM', ledger.subjects.map((row) => row.semantic_id));
+  const producerHash = semanticProducerBinding({
+    call_id: callId, context_id: capture.context_id, raw_return_hash: capture.raw_digest, output_kind: kind, output_index: Number(index) });
   const subject = buildSemanticSubject(projected, { semantic_id: id, owner_stage: 'S3', subject_kind: output.kind,
-    review_mode: entry.review_mode, predecessor_semantic_id: 'none', producer_binding_hash: semanticProducerBinding({
-      call_id: callId, context_id: capture.context_id, raw_return_hash: capture.raw_digest, output_kind: kind, output_index: Number(index) }),
+    review_mode: entry.review_mode, predecessor_semantic_id: 'none', producer_binding_hash: producerHash,
     reviewer_profile: semanticReviewer(model), output_binding: output, origin_unit_refs: entry.origin_unit_refs,
     origin_context: [...new Set(entry.origin_unit_refs.map((ref) => ref.split('/')[0]))].map((id) =>
       semanticOriginProjection(parseStrictJson(required(model, semanticSubjectPath(id))) as unknown as SemanticSubject)),
     anchors: entry.anchors, semantics: entry.semantics, material_use: input,
-    material_views: semanticMaterialViews(projected, uses), lineage_context: [], relation_context: [], ambiguity_context: [] });
+    material_views: output.kind === 'indeterminate-claim'
+      ? semanticIndeterminateClaimMaterialViews(model, output, producerHash, input!) : semanticMaterialViews(projected, uses),
+    lineage_context: [], relation_context: [], ambiguity_context: [] });
   const bytes = Buffer.from(semanticJson(subject)), digest = workDigest(bytes);
   ledger.subjects.push({ semantic_id: id, owner_stage: 'S3', subject_kind: subject.subject_kind, subject_path: semanticSubjectPath(id),
     subject_digest: digest, predecessor_semantic_id: 'none',
@@ -540,7 +550,13 @@ function s3Admission(model: RunModel, subject: SemanticSubject, callId: string):
   assertWork(output.kind === 'claim', 'WORK_ADMISSION', 'only reviewed claims or no-claim outcomes may be admitted in S3');
   const use = useRowFromSubject(subject.material_views[0].use_subject), context = readRepresentationContext(model);
   use.use_id = nextId('USE', context.uses.map((row) => row.use_id));
-  validateRepresentationUse(canonicalClaimModel(model, output), context, use);
+  if (representationUseNeedsReview(context, subject.material_use!)) {
+    const review = materialReviewResult(model, subject);
+    assertWork(review, 'WORK_MATERIAL_REVIEW', 'admission requires retained L2F');
+    assertMaterialReviewUpheld(review.value, use.review_subject_digest);
+    use.reviewed_by = `${subject.owner_stage}/L2F-${use.review_subject_digest.slice(7)}`;
+  }
+  validateRepresentationUse(claimProposalModel(model, output), context, use);
   return { refs: [output.reserved_claim_id], effects: [
     effect(model, 'ledgers/claim-inventory.md', appendRows(required(model, 'ledgers/claim-inventory.md'), CLAIM_HEADERS[0],
       [[output.reserved_claim_id, output.normalized_claim, output.packet_ids.join(', '), output.source_ids.join(', '),
@@ -564,7 +580,8 @@ function s2Preparation(model: RunModel, sourceId: string): S2Preparation {
     call_id: `CALL-F03-${workDigest(workJson(identity)).slice(7)}` };
 }
 function s2Captures(model: RunModel): S2Capture[] {
-  return model.files.filter((entry) => entry.relativePath.startsWith(S2_CAPTURES)).map((file) => {
+  return model.files.filter((entry) => entry.relativePath.startsWith(S2_CAPTURES)
+    && !entry.relativePath.startsWith(S3_CAPTURES)).map((file) => {
     const capture = parseStrictJson(file.text);
     record(capture, ['format', 'source_id', 'call_id', 'raw_digest', 'context_id', 'producer_context_id', 'receipt_digest',
       'simulation', 'cursor_id', 'selectors'], 'S2 capture');
@@ -590,6 +607,75 @@ function capturedValue(model: RunModel, capture: S2Capture | S3Capture): WorkVal
     value: parseStrictJson(bytes, true) as WorkerJsonValue };
 }
 function semanticLedger(model: RunModel) { return parseSemanticLedger(required(model, SEMANTIC_PATH).toString('utf8')); }
+const MATERIAL_REVIEW_RESERVATIONS = 'verification/harness/material-use-reservations/';
+const MATERIAL_REVIEW_RESULTS = 'verification/harness/material-use-results/';
+export const MATERIAL_REVIEW_TASK = 'Challenge the exact retained representation-use subject.';
+/** A Core-derived affirmative proposal reservation, prior to any CC/USE write. */
+export function workMaterialReviewReservation(model: RunModel, semanticId: string) {
+  const ledger = semanticLedger(model), row = ledger.subjects.find((entry) => entry.semantic_id === semanticId);
+  assertWork(row, 'WORK_SUBJECT', semanticId);
+  const subject = parseStrictJson(required(model, row.subject_path)) as unknown as SemanticSubject;
+  assertWork(subject.output_binding.kind === 'claim' && subject.material_use
+    && representationUseNeedsReview(readRepresentationContext(model), subject.material_use),
+  'WORK_MATERIAL_SUBJECT', 'only an affirmative claim requiring L2F has this reservation');
+  const binding = parseStrictJson(readFileSync(join(model.runDir, row.producer_receipt_ref.split('@')[0]))) as {
+    call_id: string; context_id: string; raw_return_hash: string;
+  };
+  const context = readRepresentationContext(model), use = useRowFromSubject(subject.material_views[0].use_subject);
+  const view = representationReviewView(claimProposalModel(model, subject.output_binding), context, use);
+  const digest = use.review_subject_digest;
+  return {
+    format: 'aleph-core-work-material-reservation/v1', semantic_id: semanticId, semantic_digest: row.subject_digest,
+    producer_call_id: binding.call_id, producer_context_id: binding.context_id, raw_digest: binding.raw_return_hash,
+    inventory_hash: context.inventoryHash, row: use,
+    review_path: `verification/harness/material-use-subjects/${digest.slice(7)}.json`,
+    view_hash: workDigest(view), view_base64: Buffer.from(view).toString('base64'),
+    reservation_path: `${MATERIAL_REVIEW_RESERVATIONS}${digest.slice(7)}.json`,
+    result_path: `${MATERIAL_REVIEW_RESULTS}${digest.slice(7)}.json`,
+    // This retained subject has exactly one L2F invocation. A negative result
+    // blocks use; it is not repaired or promoted by this controller.
+    call_id: `CALL-F03-${workDigest(workJson({ run_id: model.manifest!.runId, operation: 'material.review', semantic_id: semanticId,
+      subject_digest: row.subject_digest, material_digest: digest })).slice(7)}`,
+  };
+}
+function materialReviewResult(model: RunModel, subject: SemanticSubject): WorkValue | null {
+  if (subject.output_binding.kind !== 'claim' || !subject.material_use
+    || !representationUseNeedsReview(readRepresentationContext(model), subject.material_use)) return null;
+  const reservation = workMaterialReviewReservation(model, subject.semantic_id), bytes = file(model, reservation.result_path);
+  if (!bytes) return null;
+  const result = parseStrictJson(bytes) as unknown as WorkValue;
+  record(result, ['call_id', 'role', 'context_id', 'producer_context_id', 'raw_digest', 'receipt_digest', 'simulation', 'value'], 'L2F result');
+  assertWork(result.call_id === reservation.call_id && result.role === 'verifier-l2f'
+    && result.producer_context_id === reservation.producer_context_id && result.context_id !== result.producer_context_id,
+  'WORK_MATERIAL_REVIEW', subject.semantic_id);
+  assertWork(workDigest(readFileSync(join(model.runDir, `control/worker-returns/${result.call_id}/raw.json`))) === result.raw_digest,
+    'WORK_MATERIAL_REVIEW', 'retained L2F raw changed');
+  return result;
+}
+function selectMaterialReview(model: RunModel, subject: SemanticSubject): NextWork | null {
+  if (subject.output_binding.kind !== 'claim' || !subject.material_use
+    || !representationUseNeedsReview(readRepresentationContext(model), subject.material_use)) return null;
+  const reservation = workMaterialReviewReservation(model, subject.semantic_id);
+  if (!file(model, reservation.reservation_path)) return { kind: 'local',
+    accepted_dependencies: semanticDependencies(model, subject.semantic_id),
+    obligation: obligation(subject.owner_stage, `${subject.owner_stage}.L2F.prepare`, 'material.prepare-review', subject.semantic_id, workJson(reservation)) };
+  assertWork(required(model, reservation.reservation_path).equals(workJson(reservation))
+    && required(model, reservation.review_path).equals(Buffer.from(reservation.view_base64, 'base64')), 'WORK_MATERIAL_REVIEW', 'reservation changed');
+  const result = materialReviewResult(model, subject);
+  if (result) {
+    if ((result.value as Record<string, WorkerJsonValue>).verdict !== 'upheld') return {
+      kind: 'halt', code: 'WORK_MATERIAL_REVIEW_UNRESOLVED',
+      reason: `${subject.semantic_id}: retained L2F result blocks affirmative use; no replacement material or claim inferred.`,
+    };
+    assertMaterialReviewUpheld(result.value, reservation.row.review_subject_digest);
+    return null;
+  }
+  return { kind: 'worker', accepted_dependencies: semanticDependencies(model, subject.semantic_id),
+    obligation: obligation(subject.owner_stage, `${subject.owner_stage}.L2F.review`, 'material.review', subject.semantic_id, workJson(reservation)),
+    call: { prepared_call_id: reservation.call_id, role: 'verifier-l2f', kind: 'refuter', task_line: MATERIAL_REVIEW_TASK,
+      allowlist: [reservation.review_path], producer_dependency: reservation.producer_call_id,
+      output_selector: 'L2F — formal/table/layout use challenge (S3/S4)' } };
+}
 function selectSemanticWork(model: RunModel, capture: S2Capture | S3Capture): NextWork | null {
   const stage = capture.format === 'aleph-s2-work-capture/v1' ? 'S2' : 'S3';
   const ledger = semanticLedger(model);
@@ -618,11 +704,18 @@ function selectSemanticWork(model: RunModel, capture: S2Capture | S3Capture): Ne
         output_selector: 'L2S — atomicity, context, and semantic preservation (S2/S3)' } };
     if (!ledger.resolutions.some((resolution) => resolution.semantic_id === row.semantic_id)) {
       if (reviews.every((review) => review.verdict === 'upheld') && subject.review_mode === 'proposal'
+        && !['indeterminate-claim', 'degraded-packet', 'material-only', 'no-claim'].includes(subject.subject_kind)
         && semanticAdmissionProblems(subject).length > 0) {
         return { kind: 'halt', code: 'WORK_SEMANTIC_PROPOSAL_INELIGIBLE',
           reason: `${row.semantic_id}: ${semanticAdmissionProblems(subject).join('; ')}; no withdrawal or revised semantics inferred.` };
       }
-      return { kind: 'local', accepted_dependencies: [capture.call_id, ...calls.map((call) => call.invocation_id)],
+      if (reviews.every((review) => review.verdict === 'upheld')) {
+        const material = selectMaterialReview(model, subject);
+        if (material) return material;
+      }
+      const material = materialReviewResult(model, subject);
+      return { kind: 'local', accepted_dependencies: [capture.call_id, ...calls.map((call) => call.invocation_id),
+        ...material ? [material.call_id] : []],
         obligation: obligation(stage, `${stage}.L2S.resolution`, 'sem.resolve', row.semantic_id, required(model, row.subject_path)) };
     }
   }
@@ -733,8 +826,9 @@ function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'lo
   });
   const allUpheld = reviews.every((review) => review.verdict === 'upheld');
   const outcome = allUpheld ? subject.review_mode === 'unresolved-record' ? 'unresolved-recorded'
+    : ['indeterminate-claim', 'degraded-packet', 'material-only'].includes(subject.subject_kind) ? 'not-admitted'
     : subject.output_binding.kind === 'no-claim' ? 'no-claim' : 'admitted' : 'not-admitted';
-  assertWork(!allUpheld || outcome === 'unresolved-recorded' || semanticAdmissionProblems(subject).length === 0,
+  assertWork(!allUpheld || ['unresolved-recorded', 'not-admitted', 'no-claim'].includes(outcome) || semanticAdmissionProblems(subject).length === 0,
     'WORK_SEMANTIC_PROPOSAL_INELIGIBLE', 'no inferred withdrawal or admission');
   const id = nextId('SMR', ledger.resolutions.map((row) => row.resolution_id));
   const admission = subject.owner_stage === 'S3' && ['admitted', 'no-claim'].includes(outcome)
@@ -746,7 +840,8 @@ function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'lo
     origin_unit_refs: semanticJson(subject.origin_unit_refs), followup_semantic_ids: '[]' });
   return { simulation: capture.simulation, effects: [...admission.effects, effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
     semantic: { ...meta, operation: ['admitted', 'no-claim'].includes(outcome) ? 'admit' : 'resolve', record_id: id,
-      reviewer_call_ids: assigned.map((assignment) => assignment.invocation_id) } };
+      reviewer_call_ids: [...assigned.map((assignment) => assignment.invocation_id),
+        ...materialReviewResult(model, subject) ? [materialReviewResult(model, subject)!.call_id] : []] } };
 }
 function selectS2Work(model: RunModel): NextWork {
   // C-03 consumes one already reserved event before any new worker batch.
@@ -1096,7 +1191,12 @@ export function selectNextWork(model: RunModel, execution: WorkExecution): NextW
     }
     return { kind: 'local', obligation: obligation('S1', 'S1.criteria-agreement', 'stage.enter-S2', model.manifest!.runId, subjectBytes) };
   }
-  if (execution.stage === 'S2') return selectS2Work(model);
+  if (execution.stage === 'S2') {
+    if (execution.stage_status === 'closed') return { kind: 'local',
+      obligation: obligation('S3', 'S3.entry', 'stage.enter-S3', model.manifest!.runId,
+        required(model, 'verification/harness/semantic-stage-seals/S2.json')) };
+    return selectS2Work(model);
+  }
   if (execution.stage === 'S3') return selectS3Work(model);
   return { kind: 'halt', code: 'WORK_FRONTIER_UNIMPLEMENTED', reason: `No work family is registered for ${execution.stage}.` };
 }
@@ -1173,6 +1273,31 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
   if (work.obligation.operation.startsWith('sem.')) return { ...base, family: 'semantic',
     ...semanticTransition(model, work, accepted),
     origins: [{ artifact: SEMANTIC_PATH, field: '*', from: { kind: 'rule', rule: work.obligation.operation } }] };
+  if (['material.prepare-review', 'material.review'].includes(work.obligation.operation)) {
+    const reservation = workMaterialReviewReservation(model, work.obligation.subject_id);
+    let effects: WorkFileEffect[];
+    if (work.obligation.operation === 'material.prepare-review') {
+      assertWork(accepted === null && work.kind === 'local', 'WORK_ACCEPTANCE', 'material preparation is mechanical');
+      effects = [effect(model, reservation.reservation_path, workJson(reservation)),
+        effect(model, reservation.review_path, Buffer.from(reservation.view_base64, 'base64'))];
+    } else {
+      assertWork(accepted && work.kind === 'worker' && accepted.role === 'verifier-l2f'
+        && accepted.call_id === reservation.call_id && accepted.producer_context_id === reservation.producer_context_id
+        && accepted.context_id !== accepted.producer_context_id, 'WORK_MATERIAL_REVIEW', 'exact fresh L2F required');
+      const value = accepted.value as Record<string, WorkerJsonValue>;
+      assertWork(['upheld', 'refuted', 'cannot-determine'].includes(String(value.verdict))
+        && Array.isArray(value.candidate_evidence) && value.candidate_evidence.length === 0, 'WORK_MATERIAL_REVIEW', 'L2F return contract');
+      const companion = Buffer.from('# Retained L2F review\n\n' + table(['field', 'value'], [
+        ['target', `representation-use-subject:${reservation.row.review_subject_digest}`], ['lens', 'L2F'], ['stage', work.obligation.stage],
+        ['shown', reservation.review_path], ['withheld', 'Producer context, rationale and other subjects.'],
+        ['verdict', String(value.verdict)], ['consequence', 'Only an upheld identical usable proposal may proceed to admission.'],
+      ]));
+      effects = [effect(model, reservation.result_path, workJson(accepted)),
+        effect(model, `verification/harness/${work.obligation.stage}/L2F-${reservation.row.review_subject_digest.slice(7)}.md`, companion)];
+    }
+    return { ...base, family: 'material-review', effects,
+      origins: [{ artifact: reservation.review_path, field: '*', from: { kind: 'rule', rule: 'L2F:exact-retained-affirmative-use-proposal' } }] };
+  }
   if (work.kind === 'worker') {
     assertWork(accepted && accepted.role === work.call.role && accepted.context_id, 'WORK_ACCEPTANCE', 'exact required worker return');
     if (work.obligation.operation === 'inventory.finalize') return { ...base, family: 'inventory', ...intakeEffects(model, accepted, now) };
@@ -1196,6 +1321,16 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
       origins: [{ artifact: CRITERIA_REVIEW_PATHS[index], field: '*', from: { kind: 'accepted', call_id: accepted.call_id, selector: '' } }] };
   }
   assertWork(accepted === null, 'WORK_ACCEPTANCE', 'local transition must not borrow worker authority');
+  if (work.obligation.operation === 'stage.enter-S3') {
+    validateSemanticRun(model);
+    assertWork(!file(model, 'ledgers/claim-inventory.md'), 'WORK_STAGE', 'S3 initialization requires absent claim inventory');
+    return { ...base, family: 'stage',
+      next_execution: { stage: 'S3', stage_status: 'entered', core_state: 'DISTILLING', blocked: false },
+      effects: [effect(model, 'ledgers/claim-inventory.md', Buffer.from('# Claim inventory\n\n' + table(CLAIM_HEADERS, []))),
+        effect(model, 'run-log.md', Buffer.from(`${required(model, 'run-log.md')}\n## ${now} — S3 — entry\n\nCore-authorized normalization begins.\n`))],
+      origins: [{ artifact: 'ledgers/claim-inventory.md', field: '*', from: { kind: 'rule', rule: 'S3:empty-inventory-stage-entry' } },
+        { artifact: 'run-log.md', field: '*', from: { kind: 'rule', rule: 'stage.enter-S3' } }] };
+  }
   if (work.obligation.operation === 's3.prepare-normalizer') {
     const prep = s3Preparation(model, work.obligation.subject_id), paths = semanticProducerViewPaths(prep.call_id);
     const selections = semanticProducerSelections(model, 'normalizer', 'S3', { origin_semantic_ids: [prep.origin_semantic_id] });
@@ -1259,11 +1394,9 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
     const sealPath = 'verification/harness/semantic-stage-seals/S2.json';
     const bytes = Buffer.from(semanticJson(semanticStageSeal(semanticLedger(model), 'S2'))), digest = workDigest(bytes);
     const log = Buffer.from(`${required(model, 'run-log.md')}\n## ${now} — S2 — exit\n\nsemantic_stage: S2\n`
-      + `semantic_review_seal_ref: ${sealPath}@${digest}\n\nCore source-walk and semantic obligations closed; no recall claim.\n`
-      + `\n## ${now} — S3 — entry\n\nCore-authorized normalization begins.\n`);
-    return { ...base, family: 'semantic', next_execution: { stage: 'S3', stage_status: 'entered', core_state: 'DISTILLING', blocked: false },
-      effects: [effect(model, sealPath, bytes), effect(model, 'run-log.md', log),
-        effect(model, 'ledgers/claim-inventory.md', Buffer.from('# Claim inventory\n\n' + table(CLAIM_HEADERS, [])))],
+      + `semantic_review_seal_ref: ${sealPath}@${digest}\n\nCore source-walk and semantic obligations closed; no recall claim.\n`);
+    return { ...base, family: 'semantic', next_execution: { stage: 'S2', stage_status: 'closed', core_state: 'DISTILLING', blocked: false },
+      effects: [effect(model, sealPath, bytes), effect(model, 'run-log.md', log)],
       semantic: { stage: 'S2', semantic_id: 'none', subject_digest: digest, operation: 'seal', record_id: 'S2',
         producer_call_id: '', reviewer_call_ids: [] },
       origins: [{ artifact: sealPath, field: '*', from: { kind: 'rule', rule: 'T3.7:S2-prefix-seal' } }] };

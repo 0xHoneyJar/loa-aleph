@@ -523,6 +523,16 @@ transaction as any admitted packet.)
 
 ## Role: Normalizer (S3)
 
+For new cumulative 1.9 `orchestrator-work-transitions` runs, a validated
+claim candidate with `material_use.use_state=CANNOT_DETERMINE` retains its
+original `claim-candidate:<index>` for the dedicated nonaffirmative
+`indeterminate-claim` L2S subject in T3.7. Return the actual tentative text,
+semantic indeterminacy, complete ordered requirements, limitations and
+packet/origin basis unchanged. Do not invent affirmative units from tentative
+text or substitute material/no-claim candidates. Core derives the proposal
+reservation and read-only material preview. Review/accounting creates no
+canonical CC, USE or relation and supplies no later admission authority.
+
 ```text
 ROLE: Normalizer for one packet batch.
 GOAL: state, once and neutrally, every candidate claim these packets carry.

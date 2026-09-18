@@ -950,6 +950,48 @@ subject; no fallback model can inherit a verdict.
 | no-claim | `{kind, packet_id, basis}`; `basis` is the existing no-claim proposal text, treated as proposed content to challenge |
 | material-only | `{kind, object_id}`; source-bound existing OBJ, no future CC/PKT identifier |
 
+For cumulative **1.9 `orchestrator-work-transitions` only**, a context-validated
+original claim candidate with `material_use.use_state=CANNOT_DETERMINE`
+uses the dedicated `indeterminate-claim` binding:
+`{kind, output_selector, output_index, reserved_claim_id, normalized_claim, packet_ids, source_ids, claim_type}`.
+`output_selector` is exactly `claim-candidate:<output_index>`. The producer
+binding still hashes that original selector and immutable raw return.
+Text/type and ordered packets are copied without rewriting; source IDs are
+the first-occurrence ordered source union of those packets. The complete
+producer semantic declaration, ordered material use, anchors and applicable
+origin/context projections remain in the subject. One selector receives one
+subject, including when it declares several OBJ requirements.
+
+The reserved CC identifies a proposal only. The tentative normalized text is
+proposal text, not an affirmative proposition or source entailment. No unit,
+context, facet or relation is invented from it when the producer declares
+zero-unit indeterminacy. No canonical claim, lineage-current CC, relation
+endpoint or CC representation USE is created by construction or review.
+
+Its material view is a read-only
+`aleph-indeterminate-claim-material-preview/v1`, derived from the full validated
+MaterialUseInput, exact packet/source basis, producer-binding digest and
+output-binding digest. Existing OBJ/BND ownership, order, source scope,
+packet containment, fidelity and limitation predicates still apply. The
+preview reopens all declared requirements in their retained order through
+the existing material review view. It is not a USE receipt and never uses
+`subject_kind=CC`. Canonical `CC + CANNOT_DETERMINE` USE validation remains
+unchanged and rejects that use. The affirmative claim preview remains separate.
+
+L2S additionally covers `/output_binding/output_selector`,
+`/output_binding/reserved_claim_id`, `/output_binding/normalized_claim`,
+`/output_binding/packet_ids`, `/output_binding/source_ids`, and
+`/output_binding/claim_type`. An upheld verdict upholds this retained
+nonaffirmative proposal only. It neither admits the reservation nor changes
+material usability. Existing `not-admitted` accounting for an indeterminate
+candidate uses empty canonical refs; original review mode and semantics stay
+unchanged. Refuted/cannot-determine retain existing challenge, fresh review
+and unresolved requirements; reviewers do not supply replacement claims.
+Selector accounting does not waive packet normalization, lineage, stage
+closure or independently applicable later admission/reservation rules.
+The dedicated binding is not a no-claim/material-only/degraded-packet
+substitute and is unavailable to retained predecessor formats.
+
 For cumulative **1.9 `orchestrator-work-transitions` only**, add the closed
 `degraded-packet` variant in this exact order:
 `{kind, source_id, degraded_source_locator, degradation_reason, criterion}`.

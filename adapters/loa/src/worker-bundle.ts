@@ -47,6 +47,7 @@ import {
   type RestrictionTuple,
 } from '../../../scripts/lib/internal-ambiguity.ts';
 import { loadRun, usesFormalLayoutBindings } from '../../../scripts/lib/run-model.ts';
+import { workMaterialReviewReservation, workJson } from '../../../scripts/lib/work-transitions.ts';
 import { materialHash, REPRESENTATION_PATH, validateRepresentationRun } from '../../../scripts/lib/source-representation.ts';
 import { hasRunCapability } from '../../../scripts/lib/run-model.ts';
 import {
@@ -544,7 +545,16 @@ export function assembleWorkerBundle(
     const match = allowlist.length === 1
       && /^verification\/harness\/material-use-subjects\/([0-9a-f]{64})\.json$/u.exec(allowlist[0]);
     if (!match) throw new Error('L2F requires only the exact reserved Core material review view');
-    const reservation = readJsonFile(join(runDir, 'control', 'transactions', `RES-material-${match[1]}.json`)) as Record<string, unknown>;
+    let reservation: Record<string, unknown>;
+    if (hasRunCapability(loadRun(runDir).manifest!.runFormatVersion, 'orchestrator-work-transitions')) {
+      const bytes = readStableRegularFile(join(runDir, 'verification/harness/material-use-reservations', `${match[1]}.json`)).bytes;
+      const retained = JSON.parse(bytes.toString('utf8')) as { semantic_id: string };
+      const derived = workMaterialReviewReservation(loadRun(runDir), retained.semantic_id);
+      if (!bytes.equals(workJson(derived)) || derived.call_id !== options.callId) throw new Error('L2F requires the exact Core work reservation');
+      reservation = derived;
+    } else {
+      reservation = readJsonFile(join(runDir, 'control', 'transactions', `RES-material-${match[1]}.json`)) as Record<string, unknown>;
+    }
     if (reservation.review_path !== allowlist[0]
       || reservation.inventory_hash !== materialHash(readFileSync(join(runDir, REPRESENTATION_PATH)))
       || reservation.view_hash !== materialHash(readStableRegularFile(join(runDir, allowlist[0])).bytes)) throw new Error('L2F reserved view or capture changed');
