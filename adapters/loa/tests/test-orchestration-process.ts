@@ -14,9 +14,10 @@ import { semanticJson, parseSemanticLedger, type SemanticSubject, type SemanticE
 import { fixtureSemantics, fixtureResult, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
 import { makeTreeOwnerWritable } from '../src/fs.ts';
 import { materialHash, materialFragmentsHash, prepareRepresentationCapture } from '../../../scripts/lib/source-representation.ts';
+import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, type DuplicateSubject } from '../../../scripts/lib/duplicate-review.ts';
+import { duplicateFixtureProposal, duplicateFixtureSuccessorProposal, duplicateFixtureResult } from '../../../scripts/duplicate-fixture-support.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const SELF = fileURLToPath(import.meta.url);
 if (process.argv[2] === '--fixture-worker') {
   const [workerBundleRoot, returnRoot, rawPath] = process.argv.slice(3);
   const pinned = join(dirname(dirname(workerBundleRoot)), 'runtime/bundle/runtime-js/adapters/loa/src/worker-dispatch.js');
@@ -44,7 +45,9 @@ if (process.argv[2] === '--fixture-worker') {
     mkdirSync(dirname(capabilities), { recursive: true });
     cpSync(join(ROOT, 'adapters/loa/tests/fixtures/host-capabilities.json'), capabilities);
     const input = join(host, 'input.md');
-    writeFileSync(input, 'The synthetic counter increased.\n');
+    const wideningMode = process.env.F03_WIDEN === '1';
+    const inputText = 'The synthetic counter increased.\n' + (wideningMode ? 'Under the retained synthetic condition.\n' : '');
+    writeFileSync(input, inputText);
     let selectedInput = input;
     if (process.env.F03_L2F === '1') {
       const bytes = Buffer.from('The synthetic counter increased.');
@@ -76,6 +79,16 @@ if (process.argv[2] === '--fixture-worker') {
       return JSON.parse(processResult.stdout);
     }
     const cli = (...args: string[]) => command('cli', ['--root', host, '--json', '--allow-fixture-simulation', ...args]);
+    function crashSequence(operation: string, points: string[], verify: () => void): void {
+      for (const point of points) {
+        const crashed = spawnSync(process.execPath, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
+          '--root', host, '--json', '--allow-fixture-simulation', 'resume', id],
+        { encoding: 'utf8', cwd: host, env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: `${operation}:${point}` } });
+        assert.equal(crashed.status, 86, `${operation}/${point}: ${crashed.stdout}\n${crashed.stderr}`);
+        verify();
+        console.log(`PASS supported CLI fixture crash/recovery ${operation}/${point}`);
+      }
+    }
     const started = cli('start', selectedInput);
     assert.equal(started.result, 'BLOCKED');
     const id = started.run_id; run = join(host, 'grimoires/loa/aleph/runs', id);
@@ -100,7 +113,8 @@ if (process.argv[2] === '--fixture-worker') {
       command('worker-dispatch', ['prepare', '--worker-bundle', work.worker_bundle, '--return-root', work.return_root, '--capabilities', work.host_capabilities, '--json']);
       const rawPath = join(scratch, `${work.call_id}.json`);
       writeFileSync(rawPath, semanticJson(raw));
-      const dispatched = spawnSync(process.execPath, [SELF, '--fixture-worker', work.worker_bundle, work.return_root, rawPath],
+      const dispatched = spawnSync(process.execPath, [join(source, 'adapters/loa/tests/test-orchestration-process.ts'),
+        '--fixture-worker', work.worker_bundle, work.return_root, rawPath],
         { encoding: 'utf8', cwd: host });
       assert.equal(dispatched.status, 0, dispatched.stderr);
       command('worker-dispatch', ['accept', '--worker-bundle', work.worker_bundle, '--return-root', work.return_root, '--json']);
@@ -137,10 +151,10 @@ if (process.argv[2] === '--fixture-worker') {
     assert.equal(extractor.action, 'prepare');
     const sharedPause = process.env.F03_SHARED_PAUSE === '1';
     const packetMode = process.env.F03_PACKET === '1' || sharedPause;
-    const fragment = Buffer.from('The synthetic counter increased.');
+    const fragment = Buffer.from('The synthetic counter increased.' + (wideningMode ? '\n' : ''));
     const extraction: any = {
       source_id: sourceRow.sourceId, producer_invocation_id: extractor.call_id,
-      walk_intervals: [{ start_byte: 0, end_byte: Buffer.byteLength('The synthetic counter increased.\n'),
+      walk_intervals: [{ start_byte: 0, end_byte: Buffer.byteLength(inputText),
         outcome: packetMode ? 'admitted' : 'excluded', packet_candidate_indexes: packetMode ? [0] : [],
         criterion_ref: packetMode ? 'admission:1' : 'exclusion:scaffolding', closure_state: 'closed',
         reason: packetMode ? null : 'Synthetic declared exclusion; no semantic correctness claim.', closure_note: null }],
@@ -150,7 +164,7 @@ if (process.argv[2] === '--fixture-worker') {
         criterion: 1, flags: [], material_use: TEXT_USE }] : [],
       extraction_events: packetMode ? [{ start_byte: 0, end_byte: fragment.length, shared_position_key: 'SP-0001',
         event_ordinal: 1, packet_candidate_index: 0, origin: 'primary' }] : [],
-      next_cursor: { byte_offset: Buffer.byteLength('The synthetic counter increased.\n'), shared_position_key: null,
+      next_cursor: { byte_offset: Buffer.byteLength(inputText), shared_position_key: null,
         // The exact md-lines fragment excludes the trailing newline. The
         // terminal cursor follows the full walk, not an event ending earlier.
         next_event_ordinal: null, predecessor_walk_index: 0, predecessor_event_index: null,
@@ -351,14 +365,21 @@ if (process.argv[2] === '--fixture-worker') {
         if (mode === 'usable' || mode === 'mixed') {
           const use = structuredClone(TEXT_USE);
           if (process.env.F03_L2F === '1') use.requirements.push({ object_id: 'OBJ-0003', feature: 'formal-structure', binding_ids: ['BND-0001'] });
-          claims.push({ normalized_claim: fragment.toString(), packets: [packet], claim_type: 'factual',
-            widen_requests: [], rationale: 'Synthetic unchanged source proposition.', flags: [], material_use: use });
+          claims.push({ normalized_claim: fragment.toString().trim(), packets: [packet], claim_type: 'factual',
+            widen_requests: wideningMode ? [{ packet, new_locator: 'L1-L2' }] : [],
+            rationale: 'Synthetic unchanged source proposition.', flags: [], material_use: use });
           entries.push({ output_kind: 'claim-candidate', output_index: 0, review_mode: 'proposal',
             origin_unit_refs: originRefs, anchors, semantics: fixtureSemantics(fragment.toString()) });
+          if (process.env.F03_S4) {
+            claims.push(structuredClone(claims[0]));
+            entries.push({ ...structuredClone(entries[0]), output_index: 1 });
+          }
         }
         if (mode.startsWith('indeterminate') || mode === 'mixed') {
+          for (let variant = 0; variant < (mode === 'indeterminate-matrix' ? 6 : 1); variant++) {
           const use: any = { requirements: [{ object_id: 'OBJ-0002', feature: 'formal-structure', binding_ids: ['BND-0001'] },
-            ...mode !== 'indeterminate-one' ? [{ object_id: 'OBJ-0001', feature: 'table-grid', binding_ids: ['BND-0001'] }] : []],
+            ...(mode === 'indeterminate-matrix' ? variant % 2 === 1 : mode !== 'indeterminate-one')
+              ? [{ object_id: 'OBJ-0001', feature: 'table-grid', binding_ids: ['BND-0001'] }] : []],
           use_state: 'CANNOT_DETERMINE', fidelity_claim: 'none', limitation_refs: ['OBJ-0002'], reason: 'Synthetic required structure is unavailable.' };
           const index = claims.length;
           claims.push({ normalized_claim: 'Tentative unadmitted interpretation.', packets: [packet], claim_type: 'factual',
@@ -368,6 +389,7 @@ if (process.argv[2] === '--fixture-worker') {
               unresolved_findings: [{ finding_id: 'F1', field_path: '/semantics/atomicity', code: 'material-unavailable',
                 anchor_ids: ['A1'], material_requirement_indexes: use.requirements.map((_: unknown, index: number) => index),
                 unknown_dimension: 'none', missing: use.reason, requested_context: [] }] } });
+          }
         }
         if (mode === 'no-claim') {
           noClaims.push({ packet, basis: 'Synthetic independently reviewed no-claim proposal.' });
@@ -382,9 +404,54 @@ if (process.argv[2] === '--fixture-worker') {
         resumed = cli('resume', id);
         let reviews = 0;
         const nonaffirmative: SemanticSubject[] = [];
-        while (resumed.details.work?.action === 'prepare') {
+        let wideningInvocations = 0, revisionInvocations = 0;
+        const historicalS2 = new Map(['verification/harness/semantic-stage-seals/S2.json', 'ledgers/source-walk.md']
+          .map((path) => [path, readFileSync(join(run, path))]));
+        while (resumed.stage === 'S3' && resumed.details.work?.action === 'prepare') {
           const work = resumed.details.work;
           const request = JSON.parse(readFileSync(join(work.worker_bundle, 'request.json'), 'utf8'));
+          if (wideningMode && request.role === 'extractor') {
+            assert.equal(wideningInvocations++, 0, 'one dedicated widening producer');
+            assert.equal(request.stage, 'S3');
+            const viewPath = request.allowlist[0].run_path;
+            const view = JSON.parse(readFileSync(join(run, viewPath), 'utf8'));
+            assert.equal(view.format, 'aleph-s3-packet-widening-view/v1');
+            const widened = { format: 'aleph-s3-packet-widening-return/v1', source_id: sourceRow.sourceId,
+              producer_invocation_id: work.call_id, packets: [{ ...extraction.packets[0],
+                fragments: [{ fragment_order: 1, locator: 'L1-L2', exact_bytes_base64: view.basis.exact_bytes_base64 }],
+                rendered_text: inputText }], material_findings: [],
+              semantic_units: [structuredClone(extraction.semantic_units[0])] };
+            const beforePackets = loadRun(run).packets.length;
+            runFixture(work, widened);
+            if (process.env.F03_C05_FAULTS === '1') crashSequence('s3.capture-widening',
+              ['derived', 'commit-intent', 'writer-prepared', 'effect:ledgers/packet-index.md',
+                'effect:ledgers/lineage.md', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], () => {
+                assert([beforePackets, beforePackets + 1].includes(loadRun(run).packets.length));
+                assert.equal(loadRun(run).claims.length, 0);
+                for (const [path, bytes] of historicalS2) assert(readFileSync(join(run, path)).equals(bytes));
+                assert(readFileSync(rawPath).equals(raw));
+              });
+            resumed = cli('resume', id);
+            assert.equal(loadRun(run).claims.length, 0);
+            for (const [path, bytes] of historicalS2) assert(readFileSync(join(run, path)).equals(bytes));
+            console.log('PASS supported CLI dedicated S3 widening capture; original S2 seal and source walk unchanged');
+            continue;
+          }
+          if (wideningMode && request.role === 'normalizer') {
+            assert.equal(revisionInvocations++, 0, 'one fresh claim revision');
+            const retained = parseSemanticLedger(readFileSync(join(run, 'ledgers/semantic-review.md'), 'utf8'));
+            const row = retained.subjects.find((row) => row.owner_stage === 'S3' && row.subject_kind === 'packet-group')!;
+            const subject = JSON.parse(readFileSync(join(run, row.subject_path), 'utf8')) as SemanticSubject;
+            assert(subject.output_binding.kind === 'packet-group');
+            const revised = structuredClone(normalReturn);
+            revised.claims[0].packets = subject.output_binding.packet_ids;
+            revised.claims[0].widen_requests = [];
+            revised.semantic_units[0].origin_unit_refs = subject.semantics.units.map((unit) => `${subject.semantic_id}/${unit.unit_id}`);
+            runFixture(work, revised); resumed = cli('resume', id);
+            assert(readFileSync(rawPath).equals(raw));
+            console.log('PASS supported CLI fresh normalizer revision uses the newly reviewed packet identities');
+            continue;
+          }
           if (request.role === 'verifier-l2f') {
             assert.equal(process.env.F03_L2F, '1');
             assert.equal(loadRun(run).claims.length, 0, 'L2S cannot bypass required L2F');
@@ -402,7 +469,9 @@ if (process.argv[2] === '--fixture-worker') {
           const result = fixtureResult(subject);
           if (subject.subject_kind === 'indeterminate-claim') {
             if (!nonaffirmative.some((prior) => prior.semantic_id === subject.semantic_id)) nonaffirmative.push(subject);
-            const verdict = process.env.F03_C04_VERDICT || 'upheld';
+            const index = subject.output_binding.kind === 'indeterminate-claim' ? subject.output_binding.output_index : 0;
+            const verdict = mode === 'indeterminate-matrix' ? ['upheld', 'cannot-determine', 'refuted'][Math.floor(index / 2)]
+              : process.env.F03_C04_VERDICT || 'upheld';
             if (verdict !== 'upheld') {
               assert(verdict === 'refuted' || verdict === 'cannot-determine');
               result.verdict = verdict; result.field_reviews[0].verdict = verdict; result.field_reviews[0].issue = 'missing-material';
@@ -410,8 +479,22 @@ if (process.argv[2] === '--fixture-worker') {
               if (verdict === 'cannot-determine') result.unresolved_findings = structuredClone(subject.semantics.unresolved_findings);
             }
           }
-          runFixture(work, result); resumed = cli('resume', id); reviews++;
-          assert(reviews <= entries.length + 1, 'no repeated fresh review until preferred verdict');
+          const canonicalBeforeReview = new Map(['ledgers/claim-inventory.md', 'ledgers/representation-uses.md',
+            'ledgers/lineage.md', 'ledgers/relations.md'].map((path) =>
+            [path, existsSync(join(run, path)) ? readFileSync(join(run, path)) : null]));
+          runFixture(work, result);
+          if (process.env.F03_C04_FAULTS === '1' && subject.subject_kind === 'indeterminate-claim' && result.verdict !== 'cannot-determine')
+            crashSequence('sem.resolve', ['derived', 'commit-intent', 'writer-prepared', 'effect:ledgers/semantic-review.md',
+              'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], () => {
+              for (const [path, bytes] of canonicalBeforeReview) {
+                assert.equal(existsSync(join(run, path)), bytes !== null);
+                if (bytes) assert(readFileSync(join(run, path)).equals(bytes));
+              }
+              assert(readFileSync(rawPath).equals(raw));
+              for (const [path, bytes] of historicalS2) assert(readFileSync(join(run, path)).equals(bytes));
+            });
+          resumed = cli('resume', id); reviews++;
+          assert(reviews <= entries.length + (wideningMode ? 3 : 1), 'no repeated fresh review until preferred verdict');
         }
         for (const subject of nonaffirmative) {
           assert.equal(subject.output_binding.kind, 'indeterminate-claim');
@@ -429,10 +512,74 @@ if (process.argv[2] === '--fixture-worker') {
           assert.equal(outcome.outcome, 'not-admitted'); assert.equal(outcome.canonical_refs, '[]');
           assert.deepEqual(subject.material_use, claims[output.output_index].material_use);
         }
+        if (mode === 'indeterminate-matrix') assert.equal(nonaffirmative.length, 6, 'one/multiple OBJ across all three L2S verdicts');
         assert(readFileSync(rawPath).equals(raw));
+        if (wideningMode) {
+          assert.equal(wideningInvocations, 1); assert.equal(revisionInvocations, 1);
+          for (const [path, bytes] of historicalS2) assert(readFileSync(join(run, path)).equals(bytes));
+        }
         assert.equal(loadRun(run).claims.length, (mode === 'usable' || mode === 'mixed')
-          && (!process.env.F03_L2F_VERDICT || process.env.F03_L2F_VERDICT === 'upheld') ? 1 : 0);
+          && (!process.env.F03_L2F_VERDICT || process.env.F03_L2F_VERDICT === 'upheld') ? process.env.F03_S4 ? 2 : 1 : 0);
         console.log(`PASS supported CLI S3 ${mode}/${process.env.F03_C04_VERDICT || 'upheld'}: ${reviews} fresh fixture reviews, original raw bytes and reservation/admission boundary`);
+        if (process.env.F03_S4) {
+          let steps = 0;
+          while (resumed.stage === 'S4' && resumed.details.work?.action === 'prepare') {
+            assert(steps++ < 24, 'bounded S4 fixture cycle');
+            const work = resumed.details.work, request = JSON.parse(readFileSync(join(work.worker_bundle, 'request.json'), 'utf8'));
+            const current = loadRun(run);
+            let returned: unknown;
+            if (request.role === 'merge-judge') {
+              const path = duplicateProducerPaths(work.call_id).view;
+              const shown = JSON.parse(readFileSync(join(run, path), 'utf8'));
+              if (Array.isArray(shown)) {
+                returned = { candidates: shown.length < 2 ? [] : [{ member_ids: shown.map((row: any) => row.claim_id),
+                  basis_refs: ['/catalogue/0', '/catalogue/1'], signal: 'shared-packet' }], unresolved_findings: [],
+                rationale: 'Synthetic global candidate discovery only.', flags: [] };
+              } else {
+                const members = shown.comparison_basis.members.map((row: any) => row.claim_id);
+                const proposal = process.env.F03_S4 === 'successor'
+                  ? duplicateFixtureSuccessorProposal(buildComparisonBasis(current, members))
+                  : duplicateFixtureProposal(buildComparisonBasis(current, members), process.env.F03_S4 === 'overlap' ? 'overlap' : 'distinct');
+                proposal.candidate_ref = shown.candidate_ref;
+                returned = { proposal, rationale: 'Synthetic duplicate versus overlap proposal.', flags: [] };
+              }
+            } else if (request.role === 'verifier-l5') {
+              returned = { verdict: 'upheld', rationale: 'Synthetic independent contradiction sweep.',
+                attacks_tried: ['Compared incompatible conditions.'], evidence_ids: [], candidate_evidence: [],
+                missing_for_determination: null, flags: [], flagged_pairs: [] };
+            } else if (request.role === 'verifier-l3') {
+              const path = request.allowlist.find((entry: any) => entry.run_path.includes('/duplicate-subjects/')).run_path;
+              const subject = JSON.parse(readFileSync(join(run, path), 'utf8')) as DuplicateSubject;
+              returned = duplicateFixtureResult(subject);
+            } else if (request.role === 'normalizer') {
+              const rows = parseDuplicateLedger(readFileSync(join(run, 'ledgers/duplicate-review.md'), 'utf8'));
+              const subject = JSON.parse(readFileSync(join(run, rows.proposals.at(-1)!.subject_path), 'utf8')) as DuplicateSubject;
+              const claim = subject.proposal.successor_request!, origins = subject.comparison_basis.semantic_projections;
+              const entry: SemanticEntry = { output_kind: 'claim-candidate', output_index: 0, review_mode: 'proposal',
+                origin_unit_refs: subject.proposal.member_semantic_refs.flatMap((m) => m.unit_refs),
+                anchors: origins[0].anchors.map(({ anchor_id, source_id, locator, start_byte, end_byte, exact_bytes_base64 }) =>
+                  ({ anchor_id, source_id, locator, start_byte, end_byte, exact_bytes_base64 })),
+                semantics: structuredClone(origins[0].semantics) };
+              entry.semantics.units[0].proposition = claim.proposed_claim;
+              returned = { claims: [{ normalized_claim: claim.proposed_claim, packets: claim.packet_ids, claim_type: claim.claim_type,
+                widen_requests: [], rationale: 'Synthetic fresh successor normalization.', flags: [], material_use: claim.material_use }],
+              no_claim_packets: [], lineage_proposals: [], material_findings: [], semantic_units: [entry] };
+            } else if (request.role === 'verifier-l2s') {
+              const path = request.allowlist.find((entry: any) => entry.run_path.includes('/semantic-subjects/')).run_path;
+              returned = fixtureResult(JSON.parse(readFileSync(join(run, path), 'utf8')));
+            } else {
+              throw Error(`unfinished S4 fixture transport for ${request.role}`);
+            }
+            runFixture(work, returned);
+            resumed = cli('resume', id);
+            console.log(`PASS supported CLI S4 fixture ${request.role}; restart, reauthentication and exact work consumption`);
+          }
+          const rows = parseDuplicateLedger(readFileSync(join(run, 'ledgers/duplicate-review.md'), 'utf8'));
+          assert(rows.effects.length > 0);
+          assert.equal(loadRun(run).claims.length, process.env.F03_S4 === 'successor' ? 3 : 2);
+          assert.equal(rows.effects[0].effect, process.env.F03_S4 === 'successor' ? 'canonicalized' : 'kept-separate');
+          console.log('PASS supported CLI S4 duplicate composition; relation/ambiguity/closure continuation remains separately required');
+        }
       }
     }
     console.log('PASS supported CLI S2 walk-only capture, process reauthentication, C-02 projection, before-row retention and repeated-resume idempotency');

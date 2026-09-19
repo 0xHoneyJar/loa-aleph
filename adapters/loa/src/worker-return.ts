@@ -286,7 +286,8 @@ export function checkWorkerReturn(
         `sealed Core output contract is invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-    const validation = validateWorkerReturnContract(parsed.bytes, example);
+    const pinnedModel = validationModel || loadRun(dirname(dirname(dirname(workerRoot))));
+    const validation = validateWorkerReturnContract(parsed.bytes, example, pinnedModel.manifest!.runFormatVersion);
     semantic = isSemanticOutputContract(example) || isDuplicateOutputContract(example);
     errors.push(...validation.errors);
     canonicalValue = validation.canonicalValue as JsonValue | null;

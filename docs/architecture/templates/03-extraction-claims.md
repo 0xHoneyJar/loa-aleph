@@ -1369,6 +1369,41 @@ because it is awkward to normalize.
 
 ### 12. S3 normalization and unresolved behavior
 
+For cumulative 1.9 `orchestrator-work-transitions`, HUMAN C-05 additionally
+authorizes bounded post-S2 packet widening while remaining in S3. Each work
+item binds one exact retained normalizer `widen_requests` entry and original
+claim selector, frozen source hash/locus, predecessor packet, packet/lineage
+state, run pins, checkpoint and chain head. Only the requested frozen bytes
+already covered by the completed S2 walk may be reopened. Inspection alone
+never supplies affirmative packet evidence.
+
+The dedicated S3 packet-widening producer contract returns exact fragments,
+material declarations and one semantic entry for each new candidate. It
+does not return primary walk intervals, extraction events, cursors or claims.
+New exact fragments receive new PKT identities and the applicable existing
+PKT split/replace/supersede lineage treatment; committed predecessors stay
+immutable. If existing lineage predicates do not determine a legal treatment,
+stop for a human Core decision. The exact work transaction, evidence record
+and lineage retain widening provenance without inventing source-walk events.
+
+Only packets from this authenticated family may have S3-owned packet-group
+subjects and canonical PKT material receipts. Changed bytes require fresh
+L2S; required material review remains independently required. Ordinary S3
+extractor work and general source-walk restart remain forbidden. The S2 seal,
+semantic prefix, receipts, source-walk history and completion snapshot remain
+unchanged. No S2 rewind or replacement seal is authorized.
+
+The original normalizer return and selector remain immutable and blocked
+from affirmative admission while widening is outstanding. After the new
+packet's exact evidence, fresh reviews, material and lineage obligations
+close, the ordinary legal producer revision and claim admission predicates
+still apply. Core cannot alter normalized text or silently substitute the
+new packet basis into the old proposal. Failed or unresolved widening retains
+the request and blocked candidate; it does not create no-claim or admission.
+Recovery binds exact before/after states to durable work and permits no
+duplicate canonical effects. This additive family does not reinterpret
+retained 1.7/1.8 runs or change the repository default from 1.8.
+
 The normalizer proposes one AtomicUnit per affirmative CC output, preserving
 all source-supported facets. Several claims can share packet provenance;
 several packets can support one claim. The ordered packet list and the exact

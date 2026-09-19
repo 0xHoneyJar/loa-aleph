@@ -1,4 +1,5 @@
 import { duplicateSuccessorSubject, duplicatePath, validateDuplicateRun } from './duplicate-review.js';
+import { WIDENING_RETURN_FORMAT, WIDENING_TASK, WIDENING_PREPARATIONS, wideningCallId, validatePacketWideningBasis, packetWideningCaptures, packetWideningReceiptAuthorized, isPostS2WidenedPacket } from './packet-widening.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
 import { TextDecoder } from 'node:util';
@@ -529,7 +530,7 @@ function reviewerProfileShape(value) {
         requireSemantic(obj(value.model_identity) && semanticJson(Object.keys(value.model_identity).sort()) === semanticJson(['provider', 'model_id', 'resolved_version', 'identity_kind', 'immutable', 'context', 'effort', 'budget', 'cache', 'batch', 'fallback'].sort()), 'SEM_FORMAT', 'model_identity', 'existing closed model identity required');
     }
 }
-export function validateSemanticReviewerProfile(value, model, stage) {
+export function validateSemanticReviewerProfile(value, model, stage, producerRole = stage === 'S2' ? 'extractor' : 'normalizer') {
     reviewerProfileShape(value);
     requireSemantic(model.manifest && forwardExecutionIdentityProblems(model.manifest).length === 0, 'SEM_SUBJECT', 'run identity', 'existing exact execution identity contract required');
     const manifest = model.manifest;
@@ -556,7 +557,7 @@ export function validateSemanticReviewerProfile(value, model, stage) {
     }
     const profileBytes = readMaterialFile(model.runDir, profilePath), profile = parseStrictJson(profileBytes);
     requireSemantic(materialHash(profileBytes) === value.profile_digest && obj(profile) && obj(profile.role_mappings), 'SEM_SUBJECT', 'profile', 'exact profile bytes differ');
-    const mapping = profile.role_mappings['verifier-l2s'], l2 = profile.role_mappings['verifier-l2'], producer = profile.role_mappings[stage === 'S2' ? 'extractor' : 'normalizer'];
+    const mapping = profile.role_mappings['verifier-l2s'], l2 = profile.role_mappings['verifier-l2'], producer = profile.role_mappings[producerRole];
     requireSemantic(obj(mapping) && obj(l2) && obj(producer) && mapping.model_slot === l2.model_slot && mapping.context_policy === l2.context_policy, 'SEM_ISOLATION', 'profile', 'L2S must use existing L2 slot/context');
     const efforts = ['low', 'medium', 'high', 'xhigh', 'max'];
     requireSemantic(efforts.includes(String(producer.effort)) && efforts.indexOf(String(mapping.effort)) >= efforts.indexOf(String(producer.effort)), 'SEM_ISOLATION', 'profile', 'reviewer effort below producer');
@@ -620,7 +621,10 @@ export function semanticAdmissionProblems(subject) {
         problems.push('nonaffirmative proposal reservation is not a canonical CC');
     if (subject.review_mode !== 'proposal')
         problems.push('unresolved-record is not an affirmative license');
-    if (!['single-assertion', 'inseparable-context', ...(subject.owner_stage === 'S2' ? ['multiple-separable'] : [])].includes(s.atomicity))
+    if (!['single-assertion', 'inseparable-context', ...(subject.owner_stage === 'S2'
+            || subject.subject_kind === 'packet-group' && subject.owner_stage === 'S3'
+                && hasRunCapability(subject.run_binding.run_format_version, 'orchestrator-work-transitions')
+            ? ['multiple-separable'] : [])].includes(s.atomicity))
         problems.push('atomicity ineligible');
     if (s.unresolved_findings.some((f) => f.code !== 'relation-deferred'))
         problems.push('meaning-bearing unresolved finding');
@@ -973,6 +977,12 @@ export function semanticContextManifest(model, subject) {
     }
     return entries.sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path)) || Buffer.compare(Buffer.from(a.selector), Buffer.from(b.selector)));
 }
+function wideningSubjectCapture(model, subject) {
+    if (subject.owner_stage !== 'S3' || !hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions'))
+        return;
+    return packetWideningCaptures(model).find((capture) => capture.selectors.some((selector) => semanticProducerBinding({ call_id: capture.call_id, context_id: capture.context_id, raw_return_hash: capture.raw_digest,
+        output_kind: selector.output_kind, output_index: Number(selector.output_index) }) === subject.producer_binding_hash));
+}
 export function validateSemanticSubject(value, model, visiting = new Set(), newReservation = false) {
     validateSemanticSubjectShape(value);
     const subject = value, digest = materialHash(semanticJson(subject)), id = subject.semantic_id;
@@ -980,8 +990,12 @@ export function validateSemanticSubject(value, model, visiting = new Set(), newR
     visiting.add(id);
     requireSemantic(semanticJson(subject.run_binding) === semanticJson(semanticRunBinding(model)), 'SEM_SUBJECT', id, 'retained run identity differs');
     requireSemantic(semanticJson(subject.prompt_parts) === semanticJson(semanticPinnedPrompts(model, subject.owner_stage)), 'SEM_SUBJECT', id, 'pinned prompt bytes differ');
-    validateSemanticReviewerProfile(subject.reviewer_profile, model, subject.owner_stage);
+    const widening = wideningSubjectCapture(model, subject);
+    validateSemanticReviewerProfile(subject.reviewer_profile, model, subject.owner_stage, subject.owner_stage === 'S2' || widening ? 'extractor' : 'normalizer');
     const packetIds = outputPackets(subject.output_binding);
+    if (subject.subject_kind === 'packet-group' && subject.owner_stage !== 'S2')
+        requireSemantic(subject.owner_stage === 'S3' && widening && packetIds.length > 0
+            && packetIds.every((packet) => packetWideningReceiptAuthorized(model, packet, widening.call_id)), 'SEM_WINDOW', id, 'S3 packets require the dedicated authenticated widening family');
     requireSemantic(semanticJson(subject.packet_basis) === semanticJson(semanticPacketBasis(model, packetIds)), 'SEM_SUBJECT', id, 'packet evidence or display projection differs');
     const inputs = subject.anchors.map((a) => ({ anchor_id: a.anchor_id, source_id: a.source_id, locator: a.locator, start_byte: a.start_byte, end_byte: a.end_byte, exact_bytes_base64: a.exact_bytes_base64 }));
     requireSemantic(semanticJson(subject.anchors) === semanticJson(completeSemanticAnchors(model, inputs, packetIds)), 'SEM_EVIDENCE', id, 'completed anchors differ');
@@ -1381,10 +1395,11 @@ export function validateSemanticRun(model) {
         const rawReturn = readMaterialFile(model.runDir, rawPath);
         requireSemantic(materialHash(rawReturn) === tuple.raw_return_hash, 'SEM_SUBJECT', row.semantic_id, 'accepted producer bytes changed');
         const returned = parseStrictJson(rawReturn, true);
-        const validation = validateSemanticReturn(subject.owner_stage === 'S2' ? 'extractor' : 'normalizer', subject.run_binding.run_format_version, returned);
+        const producerRole = subject.owner_stage === 'S2' || wideningSubjectCapture(model, subject) ? 'extractor' : 'normalizer';
+        const validation = validateSemanticReturn(producerRole, subject.run_binding.run_format_version, returned);
         requireSemantic(validation.result === 'PASS', 'SEM_FORMAT', rawPath, validation.errors.join('; '));
         if (['agent', 'hybrid'].includes(model.manifest.mode)) {
-            const role = subject.owner_stage === 'S2' ? 'extractor' : 'normalizer', root = `control/worker-bundles/${tuple.call_id}`;
+            const role = producerRole, root = `control/worker-bundles/${tuple.call_id}`;
             const request = parseStrictJson(readMaterialFile(model.runDir, `${root}/request.json`));
             const report = parseStrictJson(readMaterialFile(model.runDir, `control/worker-returns/${tuple.call_id}/validation.json`));
             const dispatch = parseStrictJson(readMaterialFile(model.runDir, `control/worker-returns/${tuple.call_id}/native-dispatch.json`));
@@ -1474,6 +1489,14 @@ export function validateSemanticRun(model) {
         if (['admitted', 'no-claim', 'unresolved-recorded'].includes(row.outcome))
             requireSemantic(allUpheld, 'SEM_REVIEW', row.semantic_id, 'every assigned review must be completed and upheld');
         if (row.outcome === 'admitted') {
+            if (s.output_binding.kind === 'claim' && hasRunCapability(model.manifest.runFormatVersion, 'orchestrator-work-transitions')) {
+                const tuple = producers.get(row.semantic_id);
+                const producerRow = ledger.subjects.find((entry) => entry.semantic_id === row.semantic_id);
+                const rawPath = producerRow.producer_receipt_ref.startsWith('verification/harness/semantic-process/')
+                    ? `verification/harness/semantic-process/${tuple.call_id}.raw.json` : `control/worker-returns/${tuple.call_id}/raw.json`;
+                const returned = parseStrictJson(readMaterialFile(model.runDir, rawPath));
+                requireSemantic(returned.claims[tuple.output_index].widen_requests.length === 0, 'SEM_STATE', row.semantic_id, 'retained widening request blocks original affirmative admission; a new producer proposal is required');
+            }
             requireSemantic(semanticAdmissionProblems(s).length === 0, 'SEM_STATE', row.semantic_id, semanticAdmissionProblems(s).join('; '));
             const expected = s.output_binding.kind === 'claim' ? [s.output_binding.reserved_claim_id] : outputPackets(s.output_binding);
             requireSemantic(semanticJson(refs) === semanticJson(expected) && followups.length === 0 && refs.every((ref) => !admitted.has(ref)), 'SEM_ACCOUNTING', row.semantic_id, 'canonical output/reservation reused or differs');
@@ -1540,7 +1563,7 @@ export function validateSemanticRun(model) {
                 continue;
             const callId = (manual || host)[1], rawHash = materialHash(readMaterialFile(model.runDir, file.relativePath));
             const retained = [...producers.entries()].find(([, p]) => p.call_id === callId && p.raw_return_hash === rawHash);
-            const producerStage = Object.hasOwn(returned, 'packets') ? 'S2'
+            const producerStage = Object.hasOwn(returned, 'packets') ? returned.format === WIDENING_RETURN_FORMAT ? 'S3' : 'S2'
                 : Object.hasOwn(returned, 'claims') ? host
                     ? parseStrictJson(readMaterialFile(model.runDir, `control/worker-bundles/${host[1]}/request.json`)).stage
                     : retained ? subjects.get(retained[0]).owner_stage : 'S3' : null;
@@ -1607,6 +1630,7 @@ export function validateSemanticRun(model) {
                 for (const packet of model.packets)
                     requireSemantic([...subjects.values()].some((s) => s.owner_stage === 'S2'
                         && reviewed(s.semantic_id) && outputPackets(s.output_binding).includes(packet.values.packetId))
+                        || isPostS2WidenedPacket(model, packet.values.packetId)
                         || parseLineage(model).rows.some((r) => r.values.predecessors.split(',').map((s) => s.trim()).includes(packet.values.packetId)), 'SEM_ACCOUNTING', packet.values.packetId, 'packet has no semantic group or lineage outcome');
             else
                 for (const s of subjects.values())
@@ -1692,7 +1716,8 @@ export function validateSemanticAcceptedBindings(model, semanticId, operation, p
     const subject = parseSemanticJson(readMaterialFile(model.runDir, row.subject_path));
     const tuple = parseSemanticJson(referencedBytes(model, row.producer_receipt_ref).bytes);
     requireSemantic(tuple.call_id === producer.call_id && tuple.context_id === producer.context_id
-        && tuple.raw_return_hash === producer.raw_return_hash && producer.role === (subject.owner_stage === 'S2' ? 'extractor' : 'normalizer'), 'SEM_ISOLATION', semanticId, 'authentic producer belongs to another reservation or role');
+        && tuple.raw_return_hash === producer.raw_return_hash && producer.role === (subject.owner_stage === 'S2'
+        || wideningSubjectCapture(model, subject) ? 'extractor' : 'normalizer'), 'SEM_ISOLATION', semanticId, 'authentic producer belongs to another reservation or role');
     for (const review of reviews) {
         requireSemantic(review.context_id && review.context_id !== producer.context_id, 'SEM_ISOLATION', review.call_id, 'accepted review reused producer context');
         const raw = readMaterialFile(model.runDir, `control/worker-returns/${review.call_id}/raw.json`);
@@ -2071,6 +2096,16 @@ export function semanticReturnExemplar(role) {
                 anchors: [{ anchor_id: 'A1', source_id: 'SRC-…', locator: '', start_byte: 0, end_byte: 1, exact_bytes_base64: '' }],
                 semantics: semanticSemanticsExemplar() }] };
 }
+export function packetWideningReturnExemplar() {
+    const extractor = semanticReturnExemplar('extractor');
+    return { format: WIDENING_RETURN_FORMAT, source_id: extractor.source_id,
+        producer_invocation_id: extractor.producer_invocation_id,
+        packets: extractor.packets, material_findings: extractor.material_findings, semantic_units: extractor.semantic_units };
+}
+export function packetWideningOutputContract() {
+    return { contract_format: SEMANTIC_CONTRACT_FORMAT, capability: 'orchestrator-work-transitions',
+        role: 'extractor', shape: packetWideningReturnExemplar() };
+}
 export function semanticOutputContract(role) {
     return { contract_format: SEMANTIC_CONTRACT_FORMAT, capability: 'semantic-unit-review', role, shape: semanticReturnExemplar(role) };
 }
@@ -2078,9 +2113,21 @@ export function isSemanticOutputContract(value) { return obj(value) && value.con
 export function validateSemanticOutputContract(value) {
     keys(value, ['contract_format', 'capability', 'role', 'shape'], 'semantic output contract');
     oneOf(value.role, ['extractor', 'normalizer', 'verifier-l2s'], 'contract role');
-    requireSemantic(value.contract_format === SEMANTIC_CONTRACT_FORMAT && value.capability === 'semantic-unit-review'
-        && semanticJson(value.shape) === semanticJson(semanticReturnExemplar(value.role)), 'SEM_FORMAT', 'output contract', 'descriptor differs from complete Core contract');
+    const widening = value.capability === 'orchestrator-work-transitions' && value.role === 'extractor';
+    requireSemantic(value.contract_format === SEMANTIC_CONTRACT_FORMAT && (widening || value.capability === 'semantic-unit-review')
+        && semanticJson(value.shape) === semanticJson(widening ? packetWideningReturnExemplar() : semanticReturnExemplar(value.role)), 'SEM_FORMAT', 'output contract', 'descriptor differs from complete Core contract');
     return value.role;
+}
+export function semanticContractVersion(value) {
+    validateSemanticOutputContract(value);
+    return value.capability === 'orchestrator-work-transitions' ? '1.9.0-provisional' : '1.7.0-provisional';
+}
+export function packetWideningReturnJsonSchema() {
+    const schema = semanticReturnJsonSchema('extractor', '1.9.0-provisional');
+    const properties = schema.properties;
+    return closed({ format: { type: 'string', enum: [WIDENING_RETURN_FORMAT] },
+        source_id: properties.source_id, producer_invocation_id: properties.producer_invocation_id,
+        packets: properties.packets, material_findings: properties.material_findings, semantic_units: properties.semantic_units });
 }
 function closed(properties) {
     return { type: 'object', additionalProperties: false, required: Object.keys(properties), properties };
@@ -2147,6 +2194,36 @@ export function semanticReturnJsonSchema(role, runFormatVersion) {
     }));
     return base;
 }
+export function packetWideningProducerView(model, basis, retained = false) {
+    validatePacketWideningBasis(model, basis, retained);
+    const material = readRepresentationContext(model);
+    const original = parseStrictJson(readMaterialFile(model.runDir, `control/worker-returns/${basis.normalizer_call_id}/raw.json`));
+    const use = validateMaterialUseInput(original.claims[Number(basis.output_selector.split(':')[1])].material_use);
+    use.requirements.forEach((requirement) => materialFeatureAvailable(material, requirement));
+    const localRequirements = use.requirements.filter((requirement) => {
+        const object = material.inventory.objects.find((row) => row.object_id === requirement.object_id);
+        return material.inventory.representations.some((row) => row.representation_id === object.representation_id && row.source_id === basis.source_id);
+    });
+    const objects = new Set(localRequirements.map((requirement) => requirement.object_id));
+    const bindings = new Set(localRequirements.flatMap((requirement) => requirement.binding_ids));
+    const bindingReferences = material.inventory.bindings.filter((row) => bindings.has(row.binding_id)).map((row) => {
+        const { exact_bytes_base64, ...reference } = row;
+        const inside = row.carrier_id === basis.source_id && Number(row.start_byte) >= Number(basis.start_byte)
+            && Number(row.end_byte) <= Number(basis.end_byte);
+        return { reference, row_digest: materialHash(semanticJson(row)),
+            authorized_exact_bytes_base64: inside ? exact_bytes_base64 : null };
+    });
+    const view = { format: 'aleph-s3-packet-widening-view/v1', basis: parseStrictJson(canonicalJsonBytes(basis)),
+        predecessor: semanticPacketBasis(model, [basis.request.packet]),
+        material_context: { objects: material.inventory.objects.filter((row) => objects.has(row.object_id)),
+            binding_references: bindingReferences, retained_claim_material_use: use },
+    };
+    return { bytes: Buffer.from(semanticJson(view)), assets: [], context: {
+            model, owner_stage: 'S3', legal_source_ids: [basis.source_id], widening: basis,
+            source_windows: [{ source_id: basis.source_id, start_byte: Number(basis.start_byte), end_byte: Number(basis.end_byte) }],
+            packet_ids: [basis.request.packet], origin_unit_refs: [],
+        } };
+}
 export function semanticProducerViewPaths(callId) {
     requireSemantic(/^[A-Za-z0-9_-]+$/u.test(callId), 'SEM_REFERENCE', 'producer call', 'existing call identifier required');
     return { selections: `control/semantic-producer-context/${callId}.json`,
@@ -2159,6 +2236,25 @@ export function semanticProducerTask(role, stage, referentSearch = false, gapRec
         : stage === 'S4' ? 'Express only the already-proposed successor in the attached bounded semantic context.'
             : role === 'extractor' ? 'Extract exact packets and structured semantics from only the attached bounded source context.'
                 : 'Normalize only the assigned packet group and named source windows in the attached bounded semantic context.';
+}
+/** Reopen only the exact targets declared in a retained semantic proposal. */
+export function semanticRelationContexts(model, proposals, outputPacketIds) {
+    return proposals.map((proposal, proposal_index) => {
+        const relation = proposal.subject;
+        const target_units = relation.target_kind === 'PKT' || relation.target_kind === 'CC'
+            ? [unitDefinition(model, relation.target_kind, relation.target_id)] : [];
+        const targetPackets = [...new Set(target_units.flatMap((unit) => unit.kind === 'PKT' ? [unit.id] : unit.projection.packets))];
+        const target_packet_context = semanticPacketBasis(model, targetPackets);
+        const loci = relation.target_kind === 'source-locus'
+            ? [{ source_id: relation.target_source_id, locator: relation.target_locator }]
+            : target_packet_context.map((packet) => ({ source_id: packet.packet.source_id, locator: packet.packet.locator }));
+        const target_anchors = completeSemanticAnchors(model, loci.map((locus, index) => {
+            const span = sourceSpan(model, locus.source_id, locus.locator);
+            return { anchor_id: `A${index + 1}`, ...locus, start_byte: span.start, end_byte: span.end,
+                exact_bytes_base64: span.bytes.toString('base64') };
+        }), outputPacketIds);
+        return { proposal_index, target_units, target_anchors, target_packet_context };
+    });
 }
 export function semanticRequiresWritePlan(model, path) {
     return hasRunCapability(model.manifest?.runFormatVersion || '', 'semantic-unit-review')
@@ -2538,6 +2634,14 @@ function retainedCompletionSelections(model, callId, selections, attachments) {
 }
 export function validateSemanticProducerDelivery(model, role, stage, callId, task, attachments, retained = false) {
     const paths = semanticProducerViewPaths(callId);
+    if (role === 'extractor' && stage === 'S3') {
+        const basis = parseStrictJson(readMaterialFile(model.runDir, `${WIDENING_PREPARATIONS}${callId}.json`));
+        requireSemantic(callId === wideningCallId(basis), 'SEM_ISOLATION', callId, 'dedicated widening invocation required');
+        const view = packetWideningProducerView(model, basis, retained);
+        requireSemantic(task === WIDENING_TASK && attachments.length === 1 && attachments[0].path === paths.view
+            && attachments[0].bytes.equals(view.bytes), 'SEM_ISOLATION', callId, 'exact bounded widening delivery required');
+        return view.context;
+    }
     const selections = parseSemanticJson(readMaterialFile(model.runDir, paths.selections));
     const history = retained && role === 'extractor' && hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions')
         ? retainedCompletionSelections(model, callId, selections, attachments) : undefined;
@@ -2564,7 +2668,11 @@ export function validateSemanticReturn(role, runFormatVersion, value, context) {
             }
         }
         else {
-            const base = SEMANTIC_PRODUCER_BASE_EXEMPLARS[role];
+            const widening = role === 'extractor' && obj(value) && value.format === WIDENING_RETURN_FORMAT;
+            requireSemantic(!widening || hasRunCapability(runFormatVersion, 'orchestrator-work-transitions'), 'SEM_COMPATIBILITY', 'widening', 'orchestrator-work-transitions required');
+            const wideningExemplar = packetWideningReturnExemplar();
+            const base = widening ? Object.fromEntries(Object.entries(wideningExemplar).filter(([key]) => key !== 'semantic_units'))
+                : SEMANTIC_PRODUCER_BASE_EXEMPLARS[role];
             keys(value, [...Object.keys(base), 'semantic_units'], role);
             const previous = Object.fromEntries(Object.keys(base).map((k) => [k, value[k]]));
             // The new closed contract retains the existing cursor/criterion grammar.
@@ -2589,6 +2697,23 @@ export function validateSemanticReturn(role, runFormatVersion, value, context) {
                 requireSemantic(context.source_windows && context.packet_ids && context.origin_unit_refs, 'SEM_ISOLATION', 'producer return', 'full binding requires the Core-projected source windows, packet group and origins');
                 if (role === 'extractor')
                     requireSemantic(context.legal_source_ids.length === 1 && value.source_id === context.legal_source_ids[0], 'SEM_REFERENCE', 'source_id', 'extractor must match its one assigned source');
+                requireSemantic(widening === Boolean(context.widening), 'SEM_WINDOW', 'widening', 'dedicated producer return and exact widening context must agree');
+                if (context.widening) {
+                    const basis = context.widening;
+                    requireSemantic(context.owner_stage === 'S3' && value.producer_invocation_id === wideningCallId(basis), 'SEM_WINDOW', 'widening', 'exact S3 widening invocation required');
+                    const packets = value.packets;
+                    requireSemantic(packets.length === 1 || packets.length === 0 && value.material_findings.length > 0, 'SEM_ACCOUNTING', 'widening', 'one original exact request group or retained material failure required');
+                    for (const packet of packets) {
+                        requireSemantic(packet.evidence_state === 'exact' && String(packet.criterion) === basis.predecessor_cells[5], 'SEM_EVIDENCE', 'widening', 'new exact evidence with retained predecessor criterion required');
+                        let frontier = Number(basis.start_byte);
+                        for (const fragment of packet.fragments) {
+                            const span = sourceSpan(context.model, basis.source_id, String(fragment.locator));
+                            requireSemantic(span.start === frontier && span.end <= Number(basis.end_byte), 'SEM_EVIDENCE', 'widening', 'complete ordered requested source locus required');
+                            frontier = span.end;
+                        }
+                        requireSemantic(frontier === Number(basis.end_byte), 'SEM_EVIDENCE', 'widening', 'requested locus cannot be dropped');
+                    }
+                }
                 if (context.gap_candidates) {
                     const cursor = context.model.sourceWalk.cursors.filter((row) => row.values.sourceId === value.source_id).at(-1);
                     const next = value.next_cursor, packets = value.packets;
@@ -2640,7 +2765,8 @@ export function validateSemanticReturn(role, runFormatVersion, value, context) {
                     validateDegradedSemantics(entry.semantics, entry.anchors);
                 requireSemantic(kind === 'material-only' || kind === 'degraded-packet' || entry.anchors.length > 0, 'SEM_REFERENCE', 'anchors', 'source basis required');
                 if (context) {
-                    requireSemantic(role === 'extractor' ? context.owner_stage === 'S2' : context.owner_stage === 'S3' || context.owner_stage === 'S4' && context.successor, 'SEM_WINDOW', 'producer', 'exact legal stage and successor reservation required');
+                    requireSemantic(role === 'extractor' ? context.owner_stage === 'S2' || widening && context.owner_stage === 'S3' && context.widening
+                        : context.owner_stage === 'S3' || context.owner_stage === 'S4' && context.successor, 'SEM_WINDOW', 'producer', 'exact legal stage and successor reservation required');
                     for (const anchor of entry.anchors) {
                         requireSemantic(context.legal_source_ids.includes(anchor.source_id), 'SEM_REFERENCE', anchor.anchor_id, 'source outside producer allowlist');
                         completeSemanticAnchors(context.model, [{ ...anchor, anchor_id: 'A1' }], []);
@@ -2661,6 +2787,10 @@ export function validateSemanticReturn(role, runFormatVersion, value, context) {
                     for (const requirement of use?.requirements || []) {
                         const object = material.inventory.objects.find((o) => o.object_id === requirement.object_id);
                         requireSemantic(object && material.inventory.representations.some((r) => r.representation_id === object.representation_id && context.legal_source_ids.includes(r.source_id)), 'SEM_REFERENCE', requirement.object_id, 'material outside assigned source scope');
+                        if (context.widening) {
+                            const available = materialFeatureAvailable(material, requirement);
+                            requireSemantic(use.use_state === 'CANNOT_DETERMINE' || available, 'SEM_REFERENCE', requirement.object_id, 'usable widened material requires the declared available feature and owned bindings');
+                        }
                     }
                 }
             });

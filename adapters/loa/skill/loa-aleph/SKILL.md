@@ -11,6 +11,40 @@ Invoke the adapter through:
 node .claude/aleph/bin/loa-aleph.mjs --json <start|status|resume|validate> ...
 ```
 
+For a retained cumulative 1.9 run with `orchestrator-work-transitions`,
+`resume RUN-id` is the controller. It verifies the retained executable, selects
+the exact first unmet obligation, persists its work identity, and returns
+`details.work`. Use this path for these runs:
+
+- For `kind=worker`, execute only the returned `execution.executable` and
+  `execution.args`, preserving argument boundaries and the named work/call.
+  Run `resume RUN-id` again after each transport action. The next action can be
+  prepare, dispatch or accept; do not skip or manufacture an action.
+- Fixture simulation requires the explicitly authorized fixture dispatcher
+  abstraction over the same sealed invocation. A fixture marker never
+  authorizes genuine native dispatch or provider calls.
+- For `kind=proposal`, supply only the exact typed proposal requested by Core
+  through its named control surface. An extraction-criteria sample proposal
+  contains source IDs and exact locators, never destinations or after-images.
+- For `kind=halt` or `BLOCKED`, retain the exact code and evidence. Unknown
+  dispatch outcome prohibits automatic redispatch. Present a human request
+  only when the controller has actually returned that required gate.
+
+The 1.9 skill does not construct assembly inputs, select allowlists or
+destinations, invoke LedgerWriter, pass a validated return to a writer, or
+author canonical effects. After accept, `resume` reopens retained evidence and
+Core derives the transaction. The single writer journals the effects, advances
+the chain/checkpoint, consumes the work, and selects the next obligation.
+L2S accounting is separate from affirmative admission. C-04 nonaffirmative
+claims cannot become canonical CCs through review. C-05 packet widening is
+bounded S3 work and preserves the S2 seal.
+
+The explicit controller capability halt is the supported frontier. Do not
+infer S5–S13 work or describe the partial controller as a complete autonomous
+pipeline. The repository default remains 1.8. The legacy assembly/writer
+instructions below apply only to retained predecessor execution surfaces;
+they are not a 1.9 bypass.
+
 For a new run, provide the exact host-capability receipt at
 `grimoires/loa/aleph/host-capabilities.json`, or pass its unmanaged path with
 `--capabilities`. For a live run, create that receipt only with the entrypoint

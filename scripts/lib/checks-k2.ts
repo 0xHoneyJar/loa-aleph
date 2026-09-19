@@ -1787,7 +1787,7 @@ function checkSourceWalk(results: ResultCollector, model: RunModel): void {
       }
     }
     for (const packet of model.packets) {
-      if (!eventsByPacket.has(packet.values.packetId)) {
+      if (!eventsByPacket.has(packet.values.packetId) && !isPostS2WidenedPacket(model, packet.values.packetId)) {
         fail(`${packet.values.packetId} has no source-walk extraction event`);
       }
     }
@@ -3220,3 +3220,4 @@ export function runK2(results: ResultCollector, model: RunModel, root: string): 
 }
 import { runK2Semantics } from './checks-k2-semantics.ts';
 import { runK2Duplicates } from './checks-k2-duplicates.ts';
+import { isPostS2WidenedPacket } from './packet-widening.ts';

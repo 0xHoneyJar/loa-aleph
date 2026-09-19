@@ -1,4 +1,5 @@
 import { duplicateTaskForRole, duplicatePromptRequirements, validateDuplicateProducerDelivery, validateDuplicateReviewDispatch, validateDuplicateBundleDelivery, validateDuplicateRoleDelivery } from '../../../scripts/lib/duplicate-review.js';
+import { WIDENING_CONTRACT, WIDENING_TASK } from '../../../scripts/lib/packet-widening.js';
 import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { CORE_STAGES, LOA_WORKER_REQUEST_FORMAT, } from './types.js';
@@ -263,7 +264,9 @@ function roleParts(bundle, role, stage, taskLine) {
             contract: loadOutputContract(bundle, charter.path, charter.selector.slice('heading:'.length)) };
     }
     const semantic = hasRunCapability(bundle.lock.run_format_version, 'semantic-unit-review');
-    if (!(semantic && role === 'normalizer' && stage === 'S4'))
+    const widening = role === 'extractor' && stage === 'S3' && taskLine === WIDENING_TASK
+        && hasRunCapability(bundle.lock.run_format_version, 'orchestrator-work-transitions');
+    if (!(widening || semantic && role === 'normalizer' && stage === 'S4'))
         assertDispatchableRoleStage(role, stage);
     if (role === 'verifier-l2s') {
         if (!semantic || !['S2', 'S3', 'S4'].includes(stage))
@@ -287,9 +290,11 @@ function roleParts(bundle, role, stage, taskLine) {
             contract: loadOutputContract(bundle, 'docs/architecture/prompts/verifier-lenses.md', 'file'),
         };
     }
-    const spec = semantic && role === 'normalizer' && stage === 'S4'
-        ? { path: 'docs/architecture/prompts/workers-intake-extraction.md', heading: 'Role: Successor Semantic Normalizer (S4 pre-C1)', stages: ['S4'] }
-        : ROLE_SPECS[role];
+    const spec = widening
+        ? { path: 'docs/architecture/prompts/workers-intake-extraction.md', heading: WIDENING_CONTRACT, stages: ['S3'] }
+        : semantic && role === 'normalizer' && stage === 'S4'
+            ? { path: 'docs/architecture/prompts/workers-intake-extraction.md', heading: 'Role: Successor Semantic Normalizer (S4 pre-C1)', stages: ['S4'] }
+            : ROLE_SPECS[role];
     const rolePart = loadCorePart(bundle, spec.path, `heading:${spec.heading}`);
     const semanticParts = semantic && (role === 'extractor' || role === 'normalizer') ? [loadCorePart(bundle, 'docs/architecture/templates/03-extraction-claims.md', 'heading:T3.7 Semantic review (1.7)')] : [];
     return {

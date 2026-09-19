@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import { selectS4Work, deriveS4Transition, validateS4Transition, s4SemanticCaptures, type S4SemanticCapture } from './work-transitions-s4.ts';
+import { WIDENING_PREPARATIONS, WIDENING_CAPTURES, WIDENING_CONTRACT, WIDENING_TASK,
+  derivePacketWideningBasis, validatePacketWideningBasis, wideningCallId, packetWideningCaptures,
+  type PacketWideningBasis, type PacketWideningCapture } from './packet-widening.ts';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseStrictJson, type WorkerJsonValue } from './worker-return-contract.ts';
@@ -17,6 +21,8 @@ import {
   claimProposalModel, useRowFromSubject, semanticOriginProjection, indeterminateClaimBinding, semanticIndeterminateClaimMaterialViews,
   SEMANTIC_ASSIGNMENT_FORMAT, SEMANTIC_TASK, type SemanticEntry, type SemanticAssignment, type SemanticResult,
   type SemanticOperation, type SemanticStage,
+  packetWideningProducerView,
+  semanticRelationContexts,
 } from './semantic-review.ts';
 import { framedExactEvidenceHash, runK2, sourceWalkReviewBasisDigest } from './checks-k2.ts';
 import { ResultCollector } from './results.ts';
@@ -115,7 +121,7 @@ export interface WorkFileEffect {
 export interface WorkTransition {
   format: 'aleph-core-work-transition/v1';
   obligation: WorkObligation;
-  family: 'stage' | 'inventory' | 'criteria-review' | 'criteria-preparation' | 's2-preparation' | 's2-capture' | 's2-event-commitment' | 's2-gap-review' | 's3-preparation' | 's3-capture' | 'material-review' | 'semantic';
+  family: 'stage' | 'inventory' | 'criteria-review' | 'criteria-preparation' | 's2-preparation' | 's2-capture' | 's2-event-commitment' | 's2-gap-review' | 's3-preparation' | 's3-capture' | 's3-widening' | 's4-preparation' | 's4-capture' | 'duplicate' | 'material-review' | 'semantic';
   effects: WorkFileEffect[];
   origins: WorkFieldOrigin[];
   next_execution: WorkExecution;
@@ -123,6 +129,8 @@ export interface WorkTransition {
   source_completion?: SourceWalkProjection;
   semantic?: { stage: SemanticStage; semantic_id: string; subject_digest: string; operation: SemanticOperation;
     record_id: string; producer_call_id: string; reviewer_call_ids: string[] };
+  duplicate?: { proposal_id: string; subject_digest: string;
+    operation: import('./duplicate-review.ts').DuplicateOperation; record_id: string; accepted_call_ids: string[] };
 }
 export interface CriteriaSample {
   sample_id: string;
@@ -165,7 +173,7 @@ function record(value: unknown, keys: readonly string[], label: string): asserts
 function text(value: unknown, label: string): asserts value is string {
   assertWork(typeof value === 'string' && value.trim().length > 0, 'WORK_CONTRACT', label);
 }
-function file(model: RunModel, path: string): Buffer | null {
+export function file(model: RunModel, path: string): Buffer | null {
   const found = model.files.find((entry) => entry.relativePath === path);
   if (!found && /^control\/semantic-producer-context\/CALL-F03-[0-9a-f]{64}\.json$/u.test(path)) {
     const full = join(model.runDir, path);
@@ -173,23 +181,23 @@ function file(model: RunModel, path: string): Buffer | null {
   }
   return found ? Buffer.from(found.text, 'utf8') : null;
 }
-function required(model: RunModel, path: string): Buffer {
+export function required(model: RunModel, path: string): Buffer {
   const bytes = file(model, path);
   assertWork(bytes, 'WORK_PREREQUISITE', path);
   return bytes;
 }
-function obligation(stage: WorkStage, dod: string, operation: string, subject: string, bytes: Buffer): WorkObligation {
+export function obligation(stage: WorkStage, dod: string, operation: string, subject: string, bytes: Buffer): WorkObligation {
   return { stage, subphase: stage, dod, operation, subject_id: subject, subject_digest: workDigest(bytes) };
 }
-function effect(model: RunModel, path: string, bytes: Buffer): WorkFileEffect {
+export function effect(model: RunModel, path: string, bytes: Buffer): WorkFileEffect {
   const before = file(model, path);
   return { path, before_digest: before === null ? null : workDigest(before), after_base64: bytes.toString('base64'), after_digest: workDigest(bytes) };
 }
-function table(headers: readonly string[], rows: readonly (readonly string[])[]): string {
+export function table(headers: readonly string[], rows: readonly (readonly string[])[]): string {
   return `| ${headers.join(' | ')} |\n| ${headers.map(() => '---').join(' | ')} |\n`
     + rows.map((row) => `| ${row.map(semanticClaimCell).join(' | ')} |\n`).join('');
 }
-function appendRows(bytes: Buffer, firstHeader: string, rows: readonly (readonly string[])[]): Buffer {
+export function appendRows(bytes: Buffer, firstHeader: string, rows: readonly (readonly string[])[]): Buffer {
   if (!rows.length) return bytes;
   const text = bytes.toString('utf8'), matches = parseTables(text).filter((entry) => entry.header[0] === firstHeader && entry.header.length === rows[0].length);
   assertWork(matches.length === 1, 'WORK_TABLE', `unique ${firstHeader} table required`);
@@ -376,14 +384,20 @@ const CLAIM_HEADERS = ['claim_id', 'normalized claim', 'packets', 'sources', 'cl
 interface S3Preparation {
   format: 'aleph-s3-work-preparation/v1'; call_id: string; origin_semantic_id: string;
 }
-interface S3Capture {
+interface S3WideningRevision {
+  format: 'aleph-s3-widening-revision/v1'; call_id: string;
+  predecessor_semantic_id: string; normalizer_call_id: string; output_selector: string;
+  widening_call_ids: string[]; origin_semantic_ids: string[]; packet_ids: string[];
+}
+const S3_WIDENING_REVISIONS = 'verification/harness/packet-widening/revisions/';
+export interface S3Capture {
   format: 'aleph-s3-work-capture/v1'; call_id: string; origin_semantic_id: string; raw_digest: string;
   context_id: string; producer_context_id: string | null; receipt_digest: string; simulation: boolean;
   selectors: Array<{ output_kind: 'claim-candidate' | 'no-claim-candidate' | 'material-candidate'; output_index: string;
     reserved_claim_id: string | null; binding_path: string }>;
 }
 function s3Captures(model: RunModel): S3Capture[] {
-  return model.files.filter((entry) => entry.relativePath.startsWith(S3_CAPTURES)).map((entry) => {
+  const captures = model.files.filter((entry) => entry.relativePath.startsWith(S3_CAPTURES)).map((entry) => {
     const value = parseStrictJson(entry.text);
     record(value, ['format', 'call_id', 'origin_semantic_id', 'raw_digest', 'context_id', 'producer_context_id',
       'receipt_digest', 'simulation', 'selectors'], 'S3 capture');
@@ -401,8 +415,24 @@ function s3Captures(model: RunModel): S3Capture[] {
     }
     return value as unknown as S3Capture;
   });
+  const ordered: S3Capture[] = [], visiting = new Set<string>();
+  const visit = (capture: S3Capture): void => {
+    if (ordered.some((entry) => entry.call_id === capture.call_id)) return;
+    assertWork(!visiting.has(capture.call_id), 'WORK_CAPTURE', 'cyclic producer revision');
+    visiting.add(capture.call_id);
+    const bytes = file(model, `${S3_WIDENING_REVISIONS}${capture.call_id}.json`);
+    if (bytes) {
+      const revision = parseStrictJson(bytes) as unknown as S3WideningRevision;
+      const predecessor = captures.find((entry) => entry.call_id === revision.normalizer_call_id);
+      assertWork(predecessor, 'WORK_CAPTURE', 'revision requires retained original producer');
+      visit(predecessor);
+    }
+    visiting.delete(capture.call_id); ordered.push(capture);
+  };
+  captures.forEach(visit);
+  return ordered;
 }
-function semanticDependencies(model: RunModel, semanticId: string): string[] {
+export function semanticDependencies(model: RunModel, semanticId: string): string[] {
   const ledger = semanticLedger(model), row = ledger.subjects.find((entry) => entry.semantic_id === semanticId)!;
   assertWork(row, 'WORK_SUBJECT', semanticId);
   const binding = parseStrictJson(readFileSync(join(model.runDir, row.producer_receipt_ref.split('@')[0]))) as { call_id: string };
@@ -417,6 +447,8 @@ function s3Preparation(model: RunModel, id: string): S3Preparation {
 function selectS3Work(model: RunModel): NextWork {
   const captures = s3Captures(model), ledger = semanticLedger(model);
   for (const capture of captures) {
+    const widening = selectS3Widening(model, capture);
+    if (widening) return widening;
     const next = selectSemanticWork(model, capture);
     if (next) return next;
   }
@@ -451,6 +483,206 @@ function selectS3Work(model: RunModel): NextWork {
     .filter((call, index, calls) => calls.indexOf(call) === index),
     obligation: obligation('S3', 'S3.exit', 'stage.seal-S3', model.manifest!.runId, required(model, SEMANTIC_PATH)) };
 }
+function selectS3Widening(model: RunModel, capture: S3Capture): NextWork | null {
+  const returned = capturedValue(model, capture).value as { claims: Array<{ packets: string[]; widen_requests: unknown[] }> };
+  const ledger = semanticLedger(model);
+  for (const [index, candidate] of returned.claims.entries()) {
+    if (!candidate.widen_requests.length) continue;
+    const originalSelector = capture.selectors.find((selector) => selector.output_kind === 'claim-candidate' && selector.output_index === String(index))!;
+    const original = ledger.subjects.find((row) => row.producer_receipt_ref.startsWith(`${originalSelector.binding_path}@`));
+    if (original && ledger.resolutions.some((row) => row.semantic_id === original.semantic_id
+      && row.outcome === 'revision-required')) continue;
+    const widened: PacketWideningCapture[] = [];
+    for (const requestIndex of candidate.widen_requests.keys()) {
+    const completed = packetWideningCaptures(model).find((widened) => widened.basis.normalizer_call_id === capture.call_id
+      && widened.basis.output_selector === `claim-candidate:${index}` && widened.basis.request_index === String(requestIndex));
+    if (completed) {
+      const next = selectSemanticWork(model, completed);
+      if (next) return next;
+      const rows = completed.selectors.filter((selector) => selector.output_kind === 'packet-candidate').map((selector) => ledger.subjects.find((row) =>
+        row.producer_receipt_ref.startsWith(`${selector.binding_path}@`))!);
+      if (!rows.length || rows.some((row) => !row || !ledger.resolutions.some((resolution) =>
+        resolution.semantic_id === row.semantic_id && resolution.outcome === 'admitted'))) return {
+        kind: 'halt', code: 'WORK_WIDENING_PACKET_UNRESOLVED',
+        reason: `${capture.call_id}:claim-candidate:${index}: widening did not produce upheld affirmative packet evidence; the original candidate remains blocked.` };
+      widened.push(completed);
+      continue;
+    }
+    const basis = derivePacketWideningBasis(model, capture.call_id, index, requestIndex), call = wideningCallId(basis);
+    const path = `${WIDENING_PREPARATIONS}${call}.json`, view = packetWideningProducerView(model, basis);
+    if (!file(model, path)) return { kind: 'local', accepted_dependencies: [capture.call_id],
+      obligation: obligation('S3', 'S3.widening.prepare', 's3.prepare-widening',
+        `${capture.call_id}:claim-candidate:${index}:widen-request:${requestIndex}`, workJson(basis)) };
+    assertWork(required(model, path).equals(workJson(basis))
+      && required(model, semanticProducerViewPaths(call).view).equals(view.bytes), 'WORK_WIDENING', 'retained preparation changed');
+    return { kind: 'worker', accepted_dependencies: [capture.call_id],
+      obligation: obligation('S3', 'S3.widening.capture', 's3.capture-widening',
+        `${capture.call_id}:claim-candidate:${index}:widen-request:${requestIndex}`, workJson(basis)),
+      call: { prepared_call_id: call, role: 'extractor', kind: 'producer', task_line: WIDENING_TASK,
+        allowlist: [semanticProducerViewPaths(call).view], producer_dependency: null, output_selector: WIDENING_CONTRACT } };
+    }
+    // Review the original selector without treating the replaced packet basis
+    // as an admissible CC. Its immutable proposal remains its own L2S subject.
+    const originalReview = selectSemanticWork(model, { ...capture, selectors: [originalSelector] }, true);
+    if (originalReview) return originalReview;
+    assertWork(original, 'WORK_ACCOUNTING', 'reviewed original claim selector required');
+    const revision = s3WideningRevision(model, original.semantic_id);
+    const dependencies = [...new Set([original.semantic_id, ...revision.origin_semantic_ids].flatMap((id) => semanticDependencies(model, id)))];
+    const paths = semanticProducerViewPaths(revision.call_id), path = `${S3_WIDENING_REVISIONS}${revision.call_id}.json`;
+    if (!file(model, path)) return { kind: 'local', accepted_dependencies: dependencies,
+      obligation: obligation('S3', 'S3.widening.claim-revision.prepare', 's3.prepare-widening-revision',
+        original.semantic_id, workJson(revision)) };
+    assertWork(required(model, path).equals(workJson(revision)), 'WORK_WIDENING', 'claim revision basis changed');
+    const revised = s3Captures(model).find((entry) => entry.call_id === revision.call_id);
+    if (!revised) {
+      const view = semanticProducerView(model, 'normalizer', 'S3',
+        parseStrictJson(required(model, paths.selections)) as unknown as SemanticSubject['context_manifest']);
+      assertWork(required(model, paths.view).equals(view.bytes), 'WORK_WIDENING', 'revision context changed');
+      return { kind: 'worker', accepted_dependencies: dependencies,
+        obligation: obligation('S3', 'S3.widening.claim-revision.capture', 's3.capture', original.semantic_id, view.bytes),
+        call: { prepared_call_id: revision.call_id, role: 'normalizer', kind: 'producer',
+          task_line: semanticProducerTask('normalizer', 'S3'), allowlist: [paths.view, ...view.assets.map((asset) => asset.path)].sort(),
+          producer_dependency: null, output_selector: 'Role: Normalizer (S3)' } };
+    }
+    const followups = revised.selectors.filter((selector) => selector.output_kind !== 'material-candidate');
+    if (!followups.length) return { kind: 'halt', code: 'WORK_WIDENING_CLAIM_REVISION_UNRESOLVED',
+      reason: `${original.semantic_id}: the fresh normalizer supplied no claim/no-claim successor; original proposal remains blocked.` };
+    for (const selector of followups) if (!ledger.subjects.some((row) => row.producer_receipt_ref.startsWith(`${selector.binding_path}@`)))
+      return { kind: 'local', accepted_dependencies: [revised.call_id],
+        obligation: obligation('S3', 'S3.L2S.reserve', 'sem.reserve-S3',
+          `${revised.call_id}:${selector.output_kind}:${selector.output_index}`, readFileSync(join(model.runDir, selector.binding_path))) };
+    return { kind: 'local', accepted_dependencies: [...dependencies, revised.call_id],
+      obligation: obligation('S3', 'S3.widening.claim-revision.link', 'sem.resolve-widening-revision',
+        original.semantic_id, required(model, original.subject_path)) };
+  }
+  return null;
+}
+function s3WideningRevision(model: RunModel, semanticId: string): S3WideningRevision {
+  const ledger = semanticLedger(model), original = ledger.subjects.find((row) => row.semantic_id === semanticId)!;
+  assertWork(original, 'WORK_WIDENING', 'original semantic proposal required');
+  const binding = parseStrictJson(readFileSync(join(model.runDir, original.producer_receipt_ref.split('@')[0]))) as {
+    call_id: string; output_kind: string; output_index: number;
+  };
+  assertWork(binding.output_kind === 'claim-candidate', 'WORK_WIDENING', 'original claim selector required');
+  const returned = parseStrictJson(readFileSync(join(model.runDir, `control/worker-returns/${binding.call_id}/raw.json`))) as {
+    claims: Array<{ packets: string[]; widen_requests: unknown[] }>;
+  };
+  const candidate = returned.claims[binding.output_index], outputSelector = `claim-candidate:${binding.output_index}`;
+  const widened = candidate.widen_requests.map((_, index) => packetWideningCaptures(model).find((entry) =>
+    entry.basis.normalizer_call_id === binding.call_id && entry.basis.output_selector === outputSelector
+      && entry.basis.request_index === String(index))!);
+  assertWork(widened.length > 0 && widened.every(Boolean), 'WORK_WIDENING', 'every exact request must have a capture');
+  const originIds = [...new Set(widened.flatMap((entry) => entry.selectors.map((selector) =>
+    ledger.subjects.find((row) => row.producer_receipt_ref.startsWith(`${selector.binding_path}@`))!.semantic_id)))];
+  assertWork(originIds.every((id) => ledger.resolutions.some((row) => row.semantic_id === id && row.outcome === 'admitted')),
+    'WORK_WIDENING', 'fresh widened packet admission required before claim revision');
+  const packetIds = candidate.packets.flatMap((packet) => {
+    const replacement = widened.find((entry) => entry.basis.request.packet === packet);
+    return replacement ? replacement.selectors.flatMap((selector) => selector.packet_ids) : [packet];
+  });
+  assertWork(packetIds.every((id) => lineageCurrentPacketIds(model).has(id)), 'WORK_WIDENING', 'revision requires current packet basis');
+  const supplied = widened.flatMap((entry) => entry.selectors.flatMap((selector) => selector.packet_ids));
+  if (packetIds.some((id) => !supplied.includes(id))) originIds.unshift(original.semantic_id);
+  const identity = { format: 'aleph-s3-widening-revision/v1' as const,
+    predecessor_semantic_id: original.semantic_id, normalizer_call_id: binding.call_id,
+    output_selector: outputSelector, widening_call_ids: widened.map((entry) => entry.call_id),
+    origin_semantic_ids: originIds, packet_ids: packetIds };
+  return { ...identity, call_id: `CALL-F03-${workDigest(workJson({
+    run_id: model.manifest!.runId, revision: identity,
+  })).slice(7)}` };
+}
+function wideningBasisForWork(model: RunModel, work: Extract<NextWork, { kind: 'local' | 'worker' }>): PacketWideningBasis {
+  const [call, kind, index, request, requestIndex] = work.obligation.subject_id.split(':');
+  assertWork(kind === 'claim-candidate' && request === 'widen-request', 'WORK_WIDENING', 'exact original request selector required');
+  const basis = derivePacketWideningBasis(model, call, Number(index), Number(requestIndex));
+  assertWork(workDigest(workJson(basis)) === work.obligation.subject_digest, 'WORK_WIDENING', 'requested before-state differs');
+  return basis;
+}
+function projectWorkFiles(model: RunModel, writes: WorkFileEffect[]): RunModel {
+  const documents = new Map(model.documents), files = [...model.files];
+  for (const write of writes) {
+    const text = Buffer.from(write.after_base64, 'base64').toString('utf8'), path = join(model.runDir, write.path);
+    if (write.path.endsWith('.md')) documents.set(write.path, {
+      path, relativePath: write.path, text, lines: text.split('\n'), tables: parseTables(text, write.path), bullets: parseBulletFields(text),
+    });
+    const index = files.findIndex((file) => file.relativePath === write.path), value = { path, relativePath: write.path, text };
+    if (index >= 0) files[index] = value; else files.push(value);
+  }
+  return { ...model, documents, files };
+}
+function deriveWideningCapture(model: RunModel, work: Extract<NextWork, { kind: 'worker' }>, accepted: WorkValue): WorkFileEffect[] {
+  const basis = wideningBasisForWork(model, work), call = wideningCallId(basis);
+  validatePacketWideningBasis(model, basis);
+  assertWork(accepted.call_id === call && accepted.role === 'extractor', 'WORK_WIDENING', 'exact dedicated producer required');
+  const returned = accepted.value as Record<string, WorkerJsonValue>;
+  const checked = validateSemanticReturn('extractor', model.manifest!.runFormatVersion, returned,
+    packetWideningProducerView(model, basis).context);
+  assertWork(checked.result === 'PASS', 'WORK_RETURN', checked.errors.join('; '));
+  const packetIds = model.packets.map((row) => row.values.packetId), evidenceIds = model.exactEvidence.records.map((row) => row.values.evidenceKey);
+  const fragmentIds = model.exactEvidence.fragments.map((row) => row.values.fragmentKey), transformIds = model.exactEvidence.transformations.map((row) => row.values.transformKey);
+  const packetRows: string[][] = [], evidenceRows: string[][] = [], fragmentRows: string[][] = [], transformRows: string[][] = [];
+  const selectors: PacketWideningCapture['selectors'] = [], inputs = new Map<string, MaterialUseInput>();
+  for (const [index, candidate] of (returned.packets as Array<Record<string, WorkerJsonValue>>).entries()) {
+    const evidence = nextId('EVID', evidenceIds); evidenceIds.push(evidence);
+    const ids: string[] = [], exact: Buffer[] = [];
+    for (const fragment of candidate.fragments as Array<Record<string, WorkerJsonValue>>) {
+      const id = nextId('PKT', packetIds); packetIds.push(id); ids.push(id);
+      const bytes = Buffer.from(String(fragment.exact_bytes_base64), 'base64'); exact.push(bytes);
+      const fragmentId = nextId('FRAG', fragmentIds); fragmentIds.push(fragmentId);
+      packetRows.push([id, basis.source_id, String(fragment.locator), workDigest(bytes), bytes.toString('utf8'),
+        String(candidate.criterion), 'active']);
+      fragmentRows.push([fragmentId, evidence, id, String(fragment.fragment_order), basis.source_id, String(fragment.locator),
+        'frozen-source', 'exact-source-bytes', workDigest(bytes), bytes.toString('base64')]);
+      inputs.set(id, candidate.material_use as unknown as MaterialUseInput);
+    }
+    const hash = `sha256:${framedExactEvidenceHash(exact)}`;
+    evidenceRows.push([evidence, ids.join(', '), 'exact', String(ids.length), String(candidate.join_policy), hash, 'none', 'none', 'none']);
+    const transform = nextId('XFORM', transformIds); transformIds.push(transform);
+    transformRows.push([transform, evidence, 'rendered', hash, hash, String(candidate.rendered_text), workDigest(String(candidate.rendered_text))]);
+    selectors.push({ output_kind: 'packet-candidate', output_index: String(index), packet_ids: ids, evidence_key: evidence,
+      binding_path: `control/semantic-producer-bindings/${call}/packet-candidate-${index}.json` });
+  }
+  for (const index of (returned.material_findings as unknown[]).keys()) selectors.push({
+    output_kind: 'material-candidate', output_index: String(index), packet_ids: [], evidence_key: null,
+    binding_path: `control/semantic-producer-bindings/${call}/material-candidate-${index}.json`,
+  });
+  let packets = required(model, 'ledgers/packet-index.md');
+  for (const [index, rows] of [packetRows, evidenceRows, fragmentRows, transformRows].entries()) packets = appendRows(packets, PACKET_TABLES[index][0], rows);
+  const ids = selectors.flatMap((selector) => selector.packet_ids);
+  const lineageId = ids.length ? nextId('LIN', parseLineage(model).rows.map((row) => row.values.lineageId)) : null;
+  const lineageType = ids.length ? ids.length === 1 ? 'replace' : 'split' : null;
+  const lineage = ids.length ? appendRows(required(model, 'ledgers/lineage.md'), LINEAGE_TABLE_HEADER[0],
+    [[lineageId, 'S3', lineageType, basis.request.packet, ids.join(', '),
+      `Exact retained widening ${basis.normalizer_call_id}/${basis.output_selector}/${basis.request_index}.`, call]].map((row) => row.map(String))) : null;
+  const capture: PacketWideningCapture = { format: 'aleph-s3-packet-widening-capture/v1', basis, call_id: call,
+    raw_digest: accepted.raw_digest, context_id: accepted.context_id, producer_context_id: accepted.producer_context_id,
+    receipt_digest: accepted.receipt_digest, simulation: accepted.simulation, lineage_id: lineageId, lineage_type: lineageType, selectors };
+  const effects = [...lineage ? [effect(model, 'ledgers/packet-index.md', packets), effect(model, 'ledgers/lineage.md', lineage)] : [],
+    effect(model, `${WIDENING_CAPTURES}${call}.json`, workJson(capture)),
+    ...selectors.map((selector) => effect(model, selector.binding_path, Buffer.from(semanticJson({
+      call_id: call, context_id: accepted.context_id, raw_return_hash: accepted.raw_digest,
+      output_kind: selector.output_kind, output_index: Number(selector.output_index),
+    }))))];
+  const proposed = projectWorkFiles(projectedPackets(model, packets), effects), context = readRepresentationContext(model);
+  const useIds = context.uses.map((row) => row.use_id), uses: MaterialRow[] = [];
+  for (const [id, input] of inputs) {
+    const useId = nextId('USE', useIds); useIds.push(useId);
+    const row: MaterialRow = { use_id: useId, owner_stage: 'S3', subject_kind: 'PKT', subject_id: id,
+      basis_packet_ids: semanticJson([id]), requirements: semanticJson(input.requirements), use_state: input.use_state,
+      fidelity_claim: input.fidelity_claim, limitation_refs: semanticJson(input.limitation_refs), reason: input.reason,
+      established_by: call, review_subject_digest: '', reviewed_by: 'none' };
+    row.review_subject_digest = representationUseDigest(proposed, context, row);
+    validateRepresentationUse(proposed, context, row);
+    uses.push(row);
+  }
+  for (const row of materialFindingRows(model, accepted.value, 'S3', call)) {
+    row.use_id = nextId('USE', useIds); useIds.push(row.use_id);
+    validateRepresentationUse(proposed, context, row);
+    uses.push(row);
+  }
+  effects.push(effect(model, REPRESENTATION_USE_PATH, Buffer.from(representationUsesMarkdown([...context.uses, ...uses]))));
+  return effects;
+}
 function deriveS3Capture(model: RunModel, work: Extract<NextWork, { kind: 'worker' }>, accepted: WorkValue): WorkFileEffect[] {
   const paths = semanticProducerViewPaths(accepted.call_id);
   const view = semanticProducerView(model, 'normalizer', 'S3',
@@ -458,6 +690,15 @@ function deriveS3Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
   const checked = validateSemanticReturn('normalizer', model.manifest!.runFormatVersion, accepted.value, view.context);
   assertWork(checked.result === 'PASS', 'WORK_RETURN', checked.errors.join('; '));
   const value = accepted.value as Record<string, WorkerJsonValue>;
+  const revisionBytes = file(model, `${S3_WIDENING_REVISIONS}${accepted.call_id}.json`);
+  if (revisionBytes) {
+    const revision = parseStrictJson(revisionBytes) as unknown as S3WideningRevision;
+    assertWork(workJson(s3WideningRevision(model, revision.predecessor_semantic_id)).equals(revisionBytes),
+      'WORK_WIDENING', 'revision reservation changed');
+    const outputs = [...(value.claims as Array<{ packets: string[] }>).flatMap((claim) => claim.packets),
+      ...(value.no_claim_packets as Array<{ packet: string }>).map((candidate) => candidate.packet)];
+    assertWork(outputs.every((id) => revision.packet_ids.includes(id)), 'WORK_WIDENING', 'revision cannot cite replaced or unrelated packet evidence');
+  }
   const ids = [...model.claims.map((row) => row.values.claimId),
     ...s3Captures(model).flatMap((capture) => capture.selectors.flatMap((selector) => selector.reserved_claim_id ? [selector.reserved_claim_id] : []))];
   const selectors: S3Capture['selectors'] = [];
@@ -486,8 +727,9 @@ function deriveS3Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
 }
 function reserveS3Subject(model: RunModel, work: Extract<NextWork, { kind: 'local' | 'worker' }>): Pick<WorkTransition, 'effects' | 'semantic' | 'simulation'> {
   const [callId, kind, index] = work.obligation.subject_id.split(':'), ledger = semanticLedger(model);
-  const capture = s3Captures(model).find((entry) => entry.call_id === callId)!;
+  const capture = [...s3Captures(model), ...s4SemanticCaptures(model)].find((entry) => entry.call_id === callId)!;
   assertWork(capture, 'WORK_CAPTURE', callId);
+  const stage = capture.format === 'aleph-s4-semantic-capture/v1' ? 'S4' : 'S3';
   const selector = capture.selectors.find((entry) => entry.output_kind === kind && entry.output_index === index)!;
   assertWork(selector, 'WORK_SELECTOR', work.obligation.subject_id);
   const raw = capturedValue(model, capture).value as Record<string, WorkerJsonValue>;
@@ -507,7 +749,7 @@ function reserveS3Subject(model: RunModel, work: Extract<NextWork, { kind: 'loca
   const input = output.kind === 'no-claim' ? null : candidate.material_use as unknown as MaterialUseInput;
   let uses: MaterialRow[];
   if (output.kind === 'claim') {
-    const row: MaterialRow = { use_id: nextId('USE', context.uses.map((row) => row.use_id)), owner_stage: 'S3',
+    const row: MaterialRow = { use_id: nextId('USE', context.uses.map((row) => row.use_id)), owner_stage: stage,
       subject_kind: 'CC', subject_id: output.reserved_claim_id, basis_packet_ids: semanticJson(output.packet_ids),
       requirements: semanticJson(input!.requirements), use_state: input!.use_state, fidelity_claim: input!.fidelity_claim,
       limitation_refs: semanticJson(input!.limitation_refs), reason: input!.reason, established_by: callId,
@@ -519,24 +761,32 @@ function reserveS3Subject(model: RunModel, work: Extract<NextWork, { kind: 'loca
     : context.uses.filter((row) => row.subject_kind === 'OBJ' && row.subject_id === output.object_id
       && row.requirements === semanticJson(input!.requirements) && row.reason === input!.reason).slice(-1);
   const id = nextId('SEM', ledger.subjects.map((row) => row.semantic_id));
+  const revisionBytes = file(model, `${S3_WIDENING_REVISIONS}${callId}.json`);
+  const predecessor = revisionBytes && kind !== 'material-candidate'
+    ? (parseStrictJson(revisionBytes) as unknown as S3WideningRevision).predecessor_semantic_id : 'none';
   const producerHash = semanticProducerBinding({
     call_id: callId, context_id: capture.context_id, raw_return_hash: capture.raw_digest, output_kind: kind, output_index: Number(index) });
-  const subject = buildSemanticSubject(projected, { semantic_id: id, owner_stage: 'S3', subject_kind: output.kind,
-    review_mode: entry.review_mode, predecessor_semantic_id: 'none', producer_binding_hash: producerHash,
+  const successor = stage === 'S4' ? semanticProducerView(model, 'normalizer', 'S4',
+    parseStrictJson(required(model, semanticProducerViewPaths(callId).selections)) as unknown as SemanticSubject['context_manifest']).context.successor : undefined;
+  const subject = buildSemanticSubject(projected, { semantic_id: id, owner_stage: stage, subject_kind: output.kind,
+    review_mode: entry.review_mode, predecessor_semantic_id: predecessor, producer_binding_hash: producerHash,
     reviewer_profile: semanticReviewer(model), output_binding: output, origin_unit_refs: entry.origin_unit_refs,
     origin_context: [...new Set(entry.origin_unit_refs.map((ref) => ref.split('/')[0]))].map((id) =>
       semanticOriginProjection(parseStrictJson(required(model, semanticSubjectPath(id))) as unknown as SemanticSubject)),
     anchors: entry.anchors, semantics: entry.semantics, material_use: input,
     material_views: output.kind === 'indeterminate-claim'
       ? semanticIndeterminateClaimMaterialViews(model, output, producerHash, input!) : semanticMaterialViews(projected, uses),
-    lineage_context: [], relation_context: [], ambiguity_context: [] });
+    lineage_context: successor ? [successor] : [],
+    relation_context: semanticRelationContexts(projected, entry.semantics.relation_proposals,
+      output.kind === 'claim' || output.kind === 'indeterminate-claim' ? output.packet_ids
+        : output.kind === 'no-claim' ? [output.packet_id] : []), ambiguity_context: [] });
   const bytes = Buffer.from(semanticJson(subject)), digest = workDigest(bytes);
-  ledger.subjects.push({ semantic_id: id, owner_stage: 'S3', subject_kind: subject.subject_kind, subject_path: semanticSubjectPath(id),
-    subject_digest: digest, predecessor_semantic_id: 'none',
+  ledger.subjects.push({ semantic_id: id, owner_stage: stage, subject_kind: subject.subject_kind, subject_path: semanticSubjectPath(id),
+    subject_digest: digest, predecessor_semantic_id: predecessor,
     producer_receipt_ref: `${selector.binding_path}@${workDigest(readFileSync(join(model.runDir, selector.binding_path)))}` });
   return { simulation: capture.simulation, effects: [effect(model, semanticSubjectPath(id), bytes),
     effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
-  semantic: { stage: 'S3', semantic_id: id, subject_digest: digest, operation: 'reserve-subject', record_id: id,
+  semantic: { stage, semantic_id: id, subject_digest: digest, operation: 'reserve-subject', record_id: id,
     producer_call_id: callId, reviewer_call_ids: [] } };
 }
 function s3Admission(model: RunModel, subject: SemanticSubject, callId: string): { effects: WorkFileEffect[]; refs: string[] } {
@@ -548,6 +798,13 @@ function s3Admission(model: RunModel, subject: SemanticSubject, callId: string):
         [[id, 'S3', 'no-claim', output.packet_id, 'none', output.basis, callId]]))] };
   }
   assertWork(output.kind === 'claim', 'WORK_ADMISSION', 'only reviewed claims or no-claim outcomes may be admitted in S3');
+  const original = parseStrictJson(readFileSync(join(model.runDir, `control/worker-returns/${callId}/raw.json`))) as { claims: Array<{ widen_requests: unknown[] }> };
+  const row = semanticLedger(model).subjects.find((row) => row.semantic_id === subject.semantic_id)!;
+  const binding = parseStrictJson(readFileSync(join(model.runDir, row.producer_receipt_ref.split('@')[0]))) as { output_index: number };
+  assertWork(original.claims[binding.output_index].widen_requests.length === 0,
+    'WORK_WIDENING', 'original widening request cannot be bypassed by affirmative admission');
+  assertWork(output.packet_ids.every((id) => lineageCurrentPacketIds(model).has(id)),
+    'WORK_ADMISSION', 'claim packet basis must be current');
   const use = useRowFromSubject(subject.material_views[0].use_subject), context = readRepresentationContext(model);
   use.use_id = nextId('USE', context.uses.map((row) => row.use_id));
   if (representationUseNeedsReview(context, subject.material_use!)) {
@@ -563,7 +820,7 @@ function s3Admission(model: RunModel, subject: SemanticSubject, callId: string):
         output.claim_type, '', '', '', '', 'active']])),
     effect(model, REPRESENTATION_USE_PATH, Buffer.from(representationUsesMarkdown([...context.uses, use])))] };
 }
-function nextId(prefix: string, values: readonly string[]): string {
+export function nextId(prefix: string, values: readonly string[]): string {
   const max = values.reduce((n, value) => {
     const match = new RegExp(`^${prefix}-([0-9]+)$`, 'u').exec(value);
     return Math.max(n, match ? Number(match[1]) : 0);
@@ -599,14 +856,14 @@ function s2Captures(model: RunModel): S2Capture[] {
   }).sort((left, right) => model.sourceWalk.cursors.findIndex((row) => row.values.cursorId === left.cursor_id)
     - model.sourceWalk.cursors.findIndex((row) => row.values.cursorId === right.cursor_id));
 }
-function capturedValue(model: RunModel, capture: S2Capture | S3Capture): WorkValue {
+function capturedValue(model: RunModel, capture: S2Capture | S3Capture | S4SemanticCapture | PacketWideningCapture): WorkValue {
   const bytes = readFileSync(join(model.runDir, `control/worker-returns/${capture.call_id}/raw.json`));
   assertWork(workDigest(bytes) === capture.raw_digest, 'WORK_CAPTURE', 'retained producer bytes changed');
-  return { call_id: capture.call_id, role: capture.format === 'aleph-s2-work-capture/v1' ? 'extractor' : 'normalizer', context_id: capture.context_id, producer_context_id: capture.producer_context_id,
+  return { call_id: capture.call_id, role: capture.format === 'aleph-s3-work-capture/v1' ? 'normalizer' : 'extractor', context_id: capture.context_id, producer_context_id: capture.producer_context_id,
     raw_digest: capture.raw_digest, receipt_digest: capture.receipt_digest, simulation: capture.simulation,
     value: parseStrictJson(bytes, true) as WorkerJsonValue };
 }
-function semanticLedger(model: RunModel) { return parseSemanticLedger(required(model, SEMANTIC_PATH).toString('utf8')); }
+export function semanticLedger(model: RunModel) { return parseSemanticLedger(required(model, SEMANTIC_PATH).toString('utf8')); }
 const MATERIAL_REVIEW_RESERVATIONS = 'verification/harness/material-use-reservations/';
 const MATERIAL_REVIEW_RESULTS = 'verification/harness/material-use-results/';
 export const MATERIAL_REVIEW_TASK = 'Challenge the exact retained representation-use subject.';
@@ -638,7 +895,7 @@ export function workMaterialReviewReservation(model: RunModel, semanticId: strin
       subject_digest: row.subject_digest, material_digest: digest })).slice(7)}`,
   };
 }
-function materialReviewResult(model: RunModel, subject: SemanticSubject): WorkValue | null {
+export function materialReviewResult(model: RunModel, subject: SemanticSubject): WorkValue | null {
   if (subject.output_binding.kind !== 'claim' || !subject.material_use
     || !representationUseNeedsReview(readRepresentationContext(model), subject.material_use)) return null;
   const reservation = workMaterialReviewReservation(model, subject.semantic_id), bytes = file(model, reservation.result_path);
@@ -652,7 +909,7 @@ function materialReviewResult(model: RunModel, subject: SemanticSubject): WorkVa
     'WORK_MATERIAL_REVIEW', 'retained L2F raw changed');
   return result;
 }
-function selectMaterialReview(model: RunModel, subject: SemanticSubject): NextWork | null {
+export function selectMaterialReview(model: RunModel, subject: SemanticSubject): NextWork | null {
   if (subject.output_binding.kind !== 'claim' || !subject.material_use
     || !representationUseNeedsReview(readRepresentationContext(model), subject.material_use)) return null;
   const reservation = workMaterialReviewReservation(model, subject.semantic_id);
@@ -676,8 +933,8 @@ function selectMaterialReview(model: RunModel, subject: SemanticSubject): NextWo
       allowlist: [reservation.review_path], producer_dependency: reservation.producer_call_id,
       output_selector: 'L2F — formal/table/layout use challenge (S3/S4)' } };
 }
-function selectSemanticWork(model: RunModel, capture: S2Capture | S3Capture): NextWork | null {
-  const stage = capture.format === 'aleph-s2-work-capture/v1' ? 'S2' : 'S3';
+export function selectSemanticWork(model: RunModel, capture: S2Capture | S3Capture | S4SemanticCapture | PacketWideningCapture, reviewOnly = false): NextWork | null {
+  const stage = capture.format === 'aleph-s2-work-capture/v1' ? 'S2' : capture.format === 'aleph-s4-semantic-capture/v1' ? 'S4' : 'S3';
   const ledger = semanticLedger(model);
   for (const selector of capture.selectors) {
     const binding = readFileSync(join(model.runDir, selector.binding_path));
@@ -685,7 +942,7 @@ function selectSemanticWork(model: RunModel, capture: S2Capture | S3Capture): Ne
     const reserved = ledger.subjects.filter((row) => row.producer_receipt_ref === ref);
     assertWork(reserved.length <= 1, 'WORK_ACCOUNTING', 'one SEM per original selector');
     if (!reserved.length) return { kind: 'local', accepted_dependencies: [capture.call_id],
-      obligation: obligation(stage, `${stage}.L2S.reserve`, `sem.reserve-${stage}`,
+      obligation: obligation(stage, `${stage}.L2S.reserve`, capture.format === 'aleph-s3-packet-widening-capture/v1' ? 'sem.reserve-widening' : `sem.reserve-${stage}`,
         `${capture.call_id}:${selector.output_kind}:${selector.output_index}`, binding) };
     const row = reserved[0], subject = JSON.parse(required(model, row.subject_path).toString('utf8')) as SemanticSubject;
     const assigned = ledger.assignments.filter((assignment) => assignment.semantic_id === row.semantic_id);
@@ -702,6 +959,7 @@ function selectSemanticWork(model: RunModel, capture: S2Capture | S3Capture): Ne
       call: { prepared_call_id: pending.invocation_id, role: 'verifier-l2s', kind: 'refuter', task_line: SEMANTIC_TASK,
         allowlist: semanticAttachmentPaths(subject), producer_dependency: capture.call_id,
         output_selector: 'L2S — atomicity, context, and semantic preservation (S2/S3)' } };
+    if (reviewOnly) continue;
     if (!ledger.resolutions.some((resolution) => resolution.semantic_id === row.semantic_id)) {
       if (reviews.every((review) => review.verdict === 'upheld') && subject.review_mode === 'proposal'
         && !['indeterminate-claim', 'degraded-packet', 'material-only', 'no-claim'].includes(subject.subject_kind)
@@ -728,15 +986,17 @@ function semanticReviewer(model: RunModel): SemanticReviewerProfile {
   return { profile_id: state.identity.profile.id, profile_digest: state.identity.profile.digest, role: 'verifier-l2s',
     model_identity: state.identity.models['verifier-l2s'] } as SemanticReviewerProfile;
 }
-function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'local' | 'worker' }>,
+export function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'local' | 'worker' }>,
   accepted: WorkValue | null): Pick<WorkTransition, 'effects' | 'semantic' | 'simulation'> {
   const ledger = semanticLedger(model);
   const operation = work.obligation.operation;
-  let subject: SemanticSubject, capture: S2Capture | S3Capture, producerCall: string;
-  if (operation === 'sem.reserve-S2') {
+  let subject: SemanticSubject, capture: S2Capture | S3Capture | S4SemanticCapture | PacketWideningCapture, producerCall: string;
+  if (operation === 'sem.reserve-S2' || operation === 'sem.reserve-widening') {
     const [callId, kind, index] = work.obligation.subject_id.split(':');
-    capture = s2Captures(model).find((entry) => entry.call_id === callId)!;
+    capture = [...s2Captures(model), ...packetWideningCaptures(model)].find((entry) => entry.call_id === callId)!;
     assertWork(capture, 'WORK_CAPTURE', callId);
+    const stage = capture.format === 'aleph-s3-packet-widening-capture/v1' ? 'S3' : 'S2';
+    assertWork((stage === 'S3') === (operation === 'sem.reserve-widening'), 'WORK_WIDENING', 'dedicated packet reservation required');
     const selector = capture.selectors.find((entry) => entry.output_kind === kind && entry.output_index === index)!;
     assertWork(selector, 'WORK_SELECTOR', work.obligation.subject_id);
     const value = capturedValue(model, capture), returned = value.value as Record<string, WorkerJsonValue>;
@@ -754,35 +1014,36 @@ function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'lo
         : [context.uses.find((row) => row.subject_kind === 'OBJ' && row.subject_id === output.object_id
           && row.established_by === callId && row.requirements === semanticJson(use.requirements) && row.reason === use.reason)!];
       assertWork(uses.every(Boolean), 'WORK_MATERIAL', 'exact canonical use context required');
-      subject = buildSemanticSubject(model, { semantic_id: id, owner_stage: 'S2', subject_kind: output.kind,
+      subject = buildSemanticSubject(model, { semantic_id: id, owner_stage: stage, subject_kind: output.kind,
         review_mode: entry.review_mode, predecessor_semantic_id: 'none',
         producer_binding_hash: semanticProducerBinding({ call_id: callId, context_id: capture.context_id, raw_return_hash: capture.raw_digest,
           output_kind: kind, output_index: Number(index) }), reviewer_profile: profile, output_binding: output,
         origin_unit_refs: entry.origin_unit_refs, origin_context: [], anchors: entry.anchors, semantics: entry.semantics,
-        material_use: use, material_views: semanticMaterialViews(model, uses), lineage_context: [], relation_context: [], ambiguity_context: [] });
+        material_use: use, material_views: semanticMaterialViews(model, uses), lineage_context: [],
+        relation_context: semanticRelationContexts(model, entry.semantics.relation_proposals, selector.packet_ids), ambiguity_context: [] });
     }
     const bytes = Buffer.from(semanticJson(subject)), digest = workDigest(bytes);
     const binding = readFileSync(join(model.runDir, selector.binding_path));
-    ledger.subjects.push({ semantic_id: id, owner_stage: 'S2', subject_kind: subject.subject_kind, subject_path: semanticSubjectPath(id),
+    ledger.subjects.push({ semantic_id: id, owner_stage: stage, subject_kind: subject.subject_kind, subject_path: semanticSubjectPath(id),
       subject_digest: digest, predecessor_semantic_id: 'none', producer_receipt_ref: `${selector.binding_path}@${workDigest(binding)}` });
     return { simulation: capture.simulation, effects: [effect(model, semanticSubjectPath(id), bytes),
       effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
-    semantic: { stage: 'S2', semantic_id: id, subject_digest: digest, operation: 'reserve-subject', record_id: id,
+    semantic: { stage, semantic_id: id, subject_digest: workDigest(bytes), operation: 'reserve-subject', record_id: id,
       producer_call_id: callId, reviewer_call_ids: [] } };
   }
-  if (operation === 'sem.reserve-S3') return reserveS3Subject(model, work);
+  if (operation === 'sem.reserve-S3' || operation === 'sem.reserve-S4') return reserveS3Subject(model, work);
   const row = ledger.subjects.find((row) => row.semantic_id === work.obligation.subject_id)!;
   assertWork(row, 'WORK_SUBJECT', work.obligation.subject_id);
   subject = JSON.parse(required(model, row.subject_path).toString('utf8')) as SemanticSubject;
   const binding = JSON.parse(readFileSync(join(model.runDir, row.producer_receipt_ref.split('@')[0]), 'utf8')) as { call_id: string };
-  producerCall = binding.call_id; capture = [...s2Captures(model), ...s3Captures(model)].find((entry) => entry.call_id === producerCall)!;
+  producerCall = binding.call_id; capture = [...s2Captures(model), ...s3Captures(model), ...s4SemanticCaptures(model), ...packetWideningCaptures(model)].find((entry) => entry.call_id === producerCall)!;
   assertWork(capture, 'WORK_CAPTURE', producerCall);
   const meta = { stage: subject.owner_stage, semantic_id: subject.semantic_id, subject_digest: row.subject_digest,
     producer_call_id: producerCall, reviewer_call_ids: [] as string[] };
   const assigned = ledger.assignments.filter((row) => row.semantic_id === subject.semantic_id).map((row) =>
     JSON.parse(required(model, row.assignment_path).toString('utf8')) as SemanticAssignment);
   if (operation === 'sem.assign') {
-    const id = nextId('VER', ledger.assignments.map((row) => row.review_id));
+    const id = nextId('VER', model.files.flatMap((entry) => [...entry.text.matchAll(/\bVER-[0-9]+\b/gu)].map((m) => m[0])));
     const call = `CALL-F03-${workDigest(workJson({ run_id: model.manifest!.runId, subject_digest: row.subject_digest, round: String(assigned.length + 1) })).slice(7)}`;
     const state = parseStrictJson(readFileSync(join(model.runDir, 'control/run-state.json'))) as { full_mode: string };
     const assignment: SemanticAssignment = { format: SEMANTIC_ASSIGNMENT_FORMAT, semantic_id: subject.semantic_id,
@@ -818,6 +1079,22 @@ function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'lo
       effect(model, `verification/harness/${subject.owner_stage}/${id}.md`, companion), effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
     semantic: { ...meta, operation: 'record-review', record_id: id, reviewer_call_ids: [accepted.call_id] } };
   }
+  if (operation === 'sem.resolve-widening-revision') {
+    const revision = s3WideningRevision(model, subject.semantic_id), revised = s3Captures(model).find((entry) => entry.call_id === revision.call_id)!;
+    assertWork(revised && assigned.length > 0 && assigned.every((assignment) => ledger.results.some((row) =>
+      row.review_id === assignment.review_id)), 'WORK_WIDENING', 'original review and fresh producer revision required');
+    const followups = revised.selectors.filter((selector) => selector.output_kind !== 'material-candidate')
+      .map((selector) => ledger.subjects.find((row) => row.producer_receipt_ref.startsWith(`${selector.binding_path}@`))!);
+    assertWork(followups.length > 0 && followups.every((row) => row?.predecessor_semantic_id === subject.semantic_id),
+      'WORK_WIDENING', 'exact new linked subjects required');
+    const id = nextId('SMR', ledger.resolutions.map((row) => row.resolution_id));
+    ledger.resolutions.push({ resolution_id: id, semantic_id: subject.semantic_id, outcome: 'revision-required',
+      review_ids: semanticJson(assigned.map((assignment) => assignment.review_id)), canonical_refs: '[]',
+      origin_unit_refs: semanticJson(subject.origin_unit_refs), followup_semantic_ids: semanticJson(followups.map((row) => row.semantic_id)) });
+    return { simulation: capture.simulation, effects: [effect(model, SEMANTIC_PATH, Buffer.from(semanticLedgerMarkdown(ledger)))],
+      semantic: { ...meta, operation: 'resolve', record_id: id,
+        reviewer_call_ids: assigned.map((assignment) => assignment.invocation_id) } };
+  }
   assertWork(operation === 'sem.resolve' && assigned.length > 0, 'WORK_OPERATION', operation);
   const reviews = assigned.map((assignment) => {
     const result = ledger.results.find((row) => row.review_id === assignment.review_id);
@@ -831,7 +1108,7 @@ function semanticTransition(model: RunModel, work: Extract<NextWork, { kind: 'lo
   assertWork(!allUpheld || ['unresolved-recorded', 'not-admitted', 'no-claim'].includes(outcome) || semanticAdmissionProblems(subject).length === 0,
     'WORK_SEMANTIC_PROPOSAL_INELIGIBLE', 'no inferred withdrawal or admission');
   const id = nextId('SMR', ledger.resolutions.map((row) => row.resolution_id));
-  const admission = subject.owner_stage === 'S3' && ['admitted', 'no-claim'].includes(outcome)
+  const admission = ['S3', 'S4'].includes(subject.owner_stage) && subject.output_binding.kind !== 'packet-group' && ['admitted', 'no-claim'].includes(outcome)
     ? s3Admission(model, subject, producerCall) : { effects: [], refs: outcome === 'admitted'
       && subject.output_binding.kind === 'packet-group' ? subject.output_binding.packet_ids : [] };
   ledger.resolutions.push({ resolution_id: id, semantic_id: subject.semantic_id, outcome,
@@ -1198,6 +1475,7 @@ export function selectNextWork(model: RunModel, execution: WorkExecution): NextW
     return selectS2Work(model);
   }
   if (execution.stage === 'S3') return selectS3Work(model);
+  if (execution.stage === 'S4') return selectS4Work(model);
   return { kind: 'halt', code: 'WORK_FRONTIER_UNIMPLEMENTED', reason: `No work family is registered for ${execution.stage}.` };
 }
 
@@ -1270,6 +1548,33 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
   assertWork(!Number.isNaN(Date.parse(now)), 'WORK_IDENTITY', 'retained operation time');
   const base = { format: 'aleph-core-work-transition/v1' as const, obligation: work.obligation,
     next_execution: { ...execution }, simulation: accepted?.simulation || false };
+  if (work.obligation.operation.startsWith('s4.')) return { ...base, ...deriveS4Transition(model, work, accepted) };
+  if (work.obligation.operation === 's3.prepare-widening') {
+    assertWork(work.kind === 'local' && accepted === null, 'WORK_ACCEPTANCE', 'mechanical widening preparation');
+    const basis = wideningBasisForWork(model, work), call = wideningCallId(basis), view = packetWideningProducerView(model, basis);
+    return { ...base, family: 's3-widening', effects: [
+      effect(model, `${WIDENING_PREPARATIONS}${call}.json`, workJson(basis)),
+      effect(model, semanticProducerViewPaths(call).view, view.bytes)],
+    origins: [{ artifact: WIDENING_PREPARATIONS, field: '*', from: { kind: 'rule', rule: 'C05:exact-retained-widening-request' } }] };
+  }
+  if (work.obligation.operation === 's3.prepare-widening-revision') {
+    assertWork(work.kind === 'local' && accepted === null, 'WORK_ACCEPTANCE', 'mechanical claim revision preparation');
+    const revision = s3WideningRevision(model, work.obligation.subject_id), paths = semanticProducerViewPaths(revision.call_id);
+    const selections = semanticProducerSelections(model, 'normalizer', 'S3', { origin_semantic_ids: revision.origin_semantic_ids });
+    const view = semanticProducerView(model, 'normalizer', 'S3', selections);
+    return { ...base, family: 's3-preparation', effects: [
+      effect(model, `${S3_WIDENING_REVISIONS}${revision.call_id}.json`, workJson(revision)),
+      effect(model, `${S3_PREPARATIONS}${revision.call_id}.json`, workJson({
+        format: 'aleph-s3-work-preparation/v1', call_id: revision.call_id, origin_semantic_id: revision.predecessor_semantic_id,
+      })),
+      effect(model, paths.selections, Buffer.from(semanticJson(selections))), effect(model, paths.view, view.bytes)],
+    origins: [{ artifact: paths.view, field: '*', from: { kind: 'rule', rule: 'C05:fresh-reviewed-packet-basis-claim-revision' } }] };
+  }
+  if (work.obligation.operation === 's3.capture-widening') {
+    assertWork(work.kind === 'worker' && accepted, 'WORK_ACCEPTANCE', 'dedicated widening producer required');
+    return { ...base, family: 's3-widening', effects: deriveWideningCapture(model, work, accepted),
+      origins: [{ artifact: 'ledgers/packet-index.md', field: '*', from: { kind: 'accepted', call_id: accepted.call_id, selector: '/packets' } }] };
+  }
   if (work.obligation.operation.startsWith('sem.')) return { ...base, family: 'semantic',
     ...semanticTransition(model, work, accepted),
     origins: [{ artifact: SEMANTIC_PATH, field: '*', from: { kind: 'rule', rule: work.obligation.operation } }] };
@@ -1431,6 +1736,7 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
 
 /** Existing Core plan validators remain mandatory for the exact derived bytes. */
 export function validateDerivedWorkTransition(model: RunModel, proposedModel: RunModel, transition: WorkTransition): void {
+  if (transition.duplicate) validateS4Transition(model, proposedModel, transition);
   for (const write of transition.effects) {
     assertWork(workDigest(readFileSync(join(proposedModel.runDir, write.path))) === write.after_digest,
       'WORK_PLAN', 'proposed bytes differ from Core derivation');
@@ -1438,6 +1744,17 @@ export function validateDerivedWorkTransition(model: RunModel, proposedModel: Ru
   if (transition.source_completion) {
     assertWork(workJson(validateSourceWalkCompletionWrite(model, proposedModel)).equals(workJson(transition.source_completion)),
       'WORK_PLAN', 'source-walk transition differs from Core lifecycle derivation');
+  }
+  if (transition.obligation.operation === 's3.capture-widening') {
+    const checks = new ResultCollector('bounded S3 packet widening');
+    runK2(checks, proposedModel, join(model.runDir, 'control/runtime/bundle'));
+    const failures = checks.report().checks.filter((check) =>
+      ['K2.13', 'K2.14', 'K2.15', 'K2.18'].includes(check.id) && check.status !== 'PASS');
+    assertWork(failures.length === 0, 'WORK_WIDENING', failures.map((check) => `${check.id}: ${check.message}`).join('; '));
+    assertWork(required(model, 'ledgers/source-walk.md').equals(required(proposedModel, 'ledgers/source-walk.md'))
+      && required(model, 'verification/harness/semantic-stage-seals/S2.json')
+        .equals(required(proposedModel, 'verification/harness/semantic-stage-seals/S2.json')),
+    'WORK_WIDENING', 'S2 history must remain byte-identical');
   }
   if (!transition.semantic) return;
   const meta = transition.semantic;

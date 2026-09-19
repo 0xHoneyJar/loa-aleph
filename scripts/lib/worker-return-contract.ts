@@ -1,5 +1,6 @@
 import { TextDecoder } from 'node:util';
-import { isSemanticOutputContract, semanticReturnJsonSchema, validateSemanticOutputContract, validateSemanticReturn } from './semantic-review.ts';
+import { isSemanticOutputContract, semanticReturnJsonSchema, validateSemanticOutputContract, validateSemanticReturn,
+  semanticContractVersion, packetWideningReturnJsonSchema } from './semantic-review.ts';
 import { isDuplicateOutputContract, duplicateReturnJsonSchema, validateDuplicateOutputContract, validateDuplicateReturn, parseDuplicateJson } from './duplicate-review.ts';
 
 export type WorkerJsonPrimitive = null | boolean | number | string;
@@ -221,7 +222,10 @@ function nonemptyStringSchema(): WorkerJsonValue {
  */
 export function contractExemplarToJsonSchema(example: unknown): WorkerJsonValue {
   if (isDuplicateOutputContract(example)) return duplicateReturnJsonSchema(validateDuplicateOutputContract(example), '1.8.0-provisional');
-  if (isSemanticOutputContract(example)) return semanticReturnJsonSchema(validateSemanticOutputContract(example), '1.7.0-provisional');
+  if (isSemanticOutputContract(example)) {
+    const role = validateSemanticOutputContract(example), version = semanticContractVersion(example);
+    return version === '1.9.0-provisional' ? packetWideningReturnJsonSchema() : semanticReturnJsonSchema(role, version);
+  }
   if (example === null) {
     return {
       anyOf: [
@@ -413,6 +417,7 @@ function validateAgainstContractExemplar(
 export function validateWorkerReturnContract(
   raw: string | Buffer,
   contractExemplar: unknown,
+  pinnedRunFormat?: string,
 ): WorkerReturnContractValidation {
   if (isDuplicateOutputContract(contractExemplar)) {
     try {
@@ -425,7 +430,7 @@ export function validateWorkerReturnContract(
   if (isSemanticOutputContract(contractExemplar)) {
     try {
       const role = validateSemanticOutputContract(contractExemplar);
-      return validateSemanticReturn(role, '1.7.0-provisional', parseStrictJson(raw, true));
+      return validateSemanticReturn(role, pinnedRunFormat || semanticContractVersion(contractExemplar), parseStrictJson(raw, true));
     } catch (error) {
       return { result: 'FAIL', errors: [error instanceof Error ? error.message : String(error)], canonicalValue: null, binding: 'not-checked' };
     }

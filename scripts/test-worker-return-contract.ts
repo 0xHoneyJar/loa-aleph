@@ -11,6 +11,7 @@ import {
   type WorkerJsonValue,
 } from './lib/worker-return-contract.ts';
 import { isSemanticOutputContract, semanticCoverage, SEMANTIC_RESULT_FORMAT, validateSemanticOutputContract } from './lib/semantic-review.ts';
+import { WIDENING_RETURN_FORMAT, WIDENING_CONTRACT } from './lib/packet-widening.ts';
 import { isDuplicateOutputContract, validateDuplicateOutputContract } from './lib/duplicate-review.ts';
 import { makeDuplicateFixture, duplicateFixtureResult } from './duplicate-fixture-support.ts';
 
@@ -39,6 +40,7 @@ const EXPECTED_CONTRACT_IDENTITIES = [
   'workers-intake-extraction.md#Role: Intake Clerk (S0–S1)',
   'workers-intake-extraction.md#S1 — criteria agreement review',
   'workers-intake-extraction.md#Role: Extractor (S2)',
+  `workers-intake-extraction.md#${WIDENING_CONTRACT}`,
   'workers-intake-extraction.md#Role: Normalizer (S3)',
   'workers-intake-extraction.md#Role: Merge Judge (S4, global barrier)',
   'workers-intake-extraction.md#Role: Local Relation Producer (S2 or S3)',
@@ -116,6 +118,10 @@ function json(value: unknown): string {
 function semanticMaterialization(contract: unknown): WorkerJsonValue {
   const role = validateSemanticOutputContract(contract);
   if (role === 'normalizer') return { claims: [], no_claim_packets: [], lineage_proposals: [], material_findings: [], semantic_units: [] };
+  if ((contract as { capability: string }).capability === 'orchestrator-work-transitions') return {
+    format: WIDENING_RETURN_FORMAT, source_id: 'SRC-701', producer_invocation_id: 'fixture-701',
+    packets: [], material_findings: [], semantic_units: [],
+  };
   if (role === 'extractor') return {
     source_id: 'SRC-701', producer_invocation_id: 'fixture-701', walk_intervals: [], packets: [], extraction_events: [],
     next_cursor: { byte_offset: 0, shared_position_key: null, next_event_ordinal: null, predecessor_walk_index: null,

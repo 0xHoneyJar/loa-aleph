@@ -71,8 +71,9 @@ export function duplicateFixtureBase(run: string, first = 'The indicator lit dur
     firstRelationContext?: SemanticSubject['relation_context'];
     suppliedTable?: boolean;
     third?: string;
+    runFormatVersion?: string;
   } = {}): DuplicateFixture {
-  const semantic = makeFragmentSemanticFixture(run, first, last, '1.8.0-provisional');
+  const semantic = makeFragmentSemanticFixture(run, first, last, options.runFormatVersion || '1.8.0-provisional');
   if (options.suppliedTable) {
     const material = readRepresentationContext(loadRun(run)), inv = material.inventory;
     const asset = Buffer.from('Synthetic supplied one-cell table declaration; this is not an inferred chart value.');

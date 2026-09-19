@@ -1,4 +1,5 @@
 import { duplicateTaskForRole, duplicatePromptRequirements, validateDuplicateProducerDelivery, validateDuplicateReviewDispatch, validateDuplicateBundleDelivery, validateDuplicateRoleDelivery } from '../../../scripts/lib/duplicate-review.ts';
+import { WIDENING_CONTRACT, WIDENING_TASK } from '../../../scripts/lib/packet-widening.ts';
 import {
   existsSync,
   lstatSync,
@@ -376,7 +377,9 @@ function roleParts(
       contract: loadOutputContract(bundle, charter.path, charter.selector.slice('heading:'.length)) };
   }
   const semantic = hasRunCapability(bundle.lock.run_format_version, 'semantic-unit-review');
-  if (!(semantic && role === 'normalizer' && stage === 'S4')) assertDispatchableRoleStage(role, stage);
+  const widening = role === 'extractor' && stage === 'S3' && taskLine === WIDENING_TASK
+    && hasRunCapability(bundle.lock.run_format_version, 'orchestrator-work-transitions');
+  if (!(widening || semantic && role === 'normalizer' && stage === 'S4')) assertDispatchableRoleStage(role, stage);
   if (role === 'verifier-l2s') {
     if (!semantic || !['S2', 'S3', 'S4'].includes(stage)) throw new Error('L2S requires the pinned semantic capability and stage');
     return {
@@ -420,7 +423,9 @@ function roleParts(
       ),
     };
   }
-  const spec = semantic && role === 'normalizer' && stage === 'S4'
+  const spec = widening
+    ? { path: 'docs/architecture/prompts/workers-intake-extraction.md', heading: WIDENING_CONTRACT, stages: ['S3'] }
+    : semantic && role === 'normalizer' && stage === 'S4'
     ? { path: 'docs/architecture/prompts/workers-intake-extraction.md', heading: 'Role: Successor Semantic Normalizer (S4 pre-C1)', stages: ['S4'] }
     : ROLE_SPECS[role] as RoleSpec;
   const rolePart = loadCorePart(bundle, spec.path, `heading:${spec.heading}`);

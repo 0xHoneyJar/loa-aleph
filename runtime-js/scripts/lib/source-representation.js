@@ -828,8 +828,10 @@ export function validateRepresentationUse(model, context, row, review = true) {
         && Object.values(row).every((v) => typeof v === 'string'), 'FORMAT', rowId(row), 'use', 'exact scalar use fields required');
     const id = rowId(row), input = useInput(row);
     requireMaterial(['PKT', 'CC', 'REL', 'OBJ'].includes(row.subject_kind), 'USE_CLOSURE', id, 'subject_kind', 'unknown subject kind');
-    requireMaterial(row.subject_kind === 'PKT' ? row.owner_stage === 'S2' : row.subject_kind === 'REL' ? row.owner_stage === 'S4'
-        : row.subject_kind === 'CC' ? ['S3', 'S4'].includes(row.owner_stage) : ['S2', 'S3', 'S4'].includes(row.owner_stage), 'USE_CLOSURE', id, 'owner_stage', 'illegal write stage');
+    requireMaterial(row.subject_kind === 'PKT' ? row.owner_stage === 'S2'
+        || row.owner_stage === 'S3' && packetWideningReceiptAuthorized(model, row.subject_id, row.established_by)
+        : row.subject_kind === 'REL' ? row.owner_stage === 'S4'
+            : row.subject_kind === 'CC' ? ['S3', 'S4'].includes(row.owner_stage) : ['S2', 'S3', 'S4'].includes(row.owner_stage), 'USE_CLOSURE', id, 'owner_stage', 'illegal write stage');
     requireMaterial(Boolean(row.established_by?.trim()) && row.established_by !== 'none', 'USE_CLOSURE', id, 'established_by', 'missing producer reference');
     const basis = list(row.basis_packet_ids, id, 'basis_packet_ids'), sources = useSources(model, context, row);
     requireMaterial(row.subject_kind === 'OBJ' || basis.length > 0, 'USE_CLOSURE', id, 'basis_packet_ids', 'empty canonical evidence basis');
@@ -1307,3 +1309,4 @@ export function selectRepresentationInventory(inventory, sourceIds) {
         result[key] = inventory[key].filter((r) => selected.has(r.representation_id));
     return result;
 }
+import { packetWideningReceiptAuthorized } from './packet-widening.js';

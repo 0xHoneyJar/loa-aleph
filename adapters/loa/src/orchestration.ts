@@ -578,11 +578,20 @@ function transportAction(runDir: string, work: Sealed<OrchestrationWork>): Recor
     modelIdentity: call.model, producerContextId: call.producer_context_id, downstreamOperations: [] });
   assertWorkRequest(runDir, verifyWorkerBundle(bundleRoot));
   const returns = join(runDir, 'control/worker-returns', call.call_id);
+  if (existsSync(canonicalPath(runDir, `${ROOT}/dispatch/${call.call_id}-intent.json`))
+    && !existsSync(join(returns, 'native-dispatch.json'))) return {
+    kind: 'halt', code: 'DISPATCH_OUTCOME_UNKNOWN', work_id: work.work_id, call_id: call.call_id,
+    reason: 'A retained dispatch intent has no completed evidence. Automatic redispatch is forbidden.',
+  };
   const action = !existsSync(join(returns, 'invocation.json')) ? 'prepare'
     : existsSync(join(returns, 'native-dispatch.json')) ? 'accept' : 'dispatch';
+  const transportCli = join(runtime.bundle.root, 'runtime-js/adapters/loa/src/worker-dispatch.js');
+  const args = [transportCli, action, '--worker-bundle', bundleRoot, '--return-root', returns,
+    ...action === 'prepare' ? ['--capabilities', runtime.host_receipt.path] : [], '--json'];
   return { kind: 'worker', work_id: work.work_id, call_id: call.call_id, action,
     worker_bundle: bundleRoot, return_root: returns, host_capabilities: runtime.host_receipt.path,
-    transport_cli: join(runtime.bundle.root, 'runtime-js/adapters/loa/src/worker-dispatch.js') };
+    transport_cli: transportCli, execution: { executable: process.execPath, args },
+    execution_kind: readRunState(runDir).full_mode === 'fixture-simulated' ? 'fixture-simulated' : 'native-dispatch' };
 }
 export function resumeOrchestration(runDir: string, clock: Clock = clockDefault): Record<string, JsonValue> {
   return withOrchestrationLock(runDir, () => {
