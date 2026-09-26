@@ -18,6 +18,7 @@ import {
 import type { BundleProvenance } from './lib/bundle-format.ts';
 import { ResultCollector } from './lib/results.ts';
 import type { CheckReport } from './lib/results.ts';
+import { hasRunCapability, SUPPORTED_RUN_FORMAT_VERSIONS } from './lib/run-model.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_ROOT = resolve(dirname(SCRIPT_PATH), '..');
@@ -1127,6 +1128,11 @@ export function validateCoreBoundary(
   results.run('CB10', 'Core-owned procedural authority semantics', (fail) => {
     if (!adapters.has('loa')) {
       return 'Loa procedural authority semantics are not present in this selected-adapter bundle';
+    }
+    const version = manifest.core.run_format_version;
+    if ((SUPPORTED_RUN_FORMAT_VERSIONS as readonly string[]).includes(version)
+      && !hasRunCapability(version, 'internal-ambiguity-lifecycle')) {
+      return 'This retained format predates the internal-ambiguity lifecycle; no Slice 5 delegation contract applies';
     }
     for (const path of [
       'adapters/loa/src/ledger-writer.ts',

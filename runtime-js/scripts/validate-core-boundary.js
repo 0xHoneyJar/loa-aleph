@@ -5,6 +5,7 @@ import { dirname, isAbsolute, join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildBundlePlan, DIGEST_ALGORITHM, sortedUnique, stringLeaves, treeDigest, } from './lib/bundle-format.js';
 import { ResultCollector } from './lib/results.js';
+import { hasRunCapability, SUPPORTED_RUN_FORMAT_VERSIONS } from './lib/run-model.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_ROOT = resolve(dirname(SCRIPT_PATH), '..');
 const LIFECYCLES = ['planned', 'implemented', 'validated', 'sanctioned'];
@@ -881,6 +882,11 @@ export function validateCoreBoundary(options = {}) {
     results.run('CB10', 'Core-owned procedural authority semantics', (fail) => {
         if (!adapters.has('loa')) {
             return 'Loa procedural authority semantics are not present in this selected-adapter bundle';
+        }
+        const version = manifest.core.run_format_version;
+        if (SUPPORTED_RUN_FORMAT_VERSIONS.includes(version)
+            && !hasRunCapability(version, 'internal-ambiguity-lifecycle')) {
+            return 'This retained format predates the internal-ambiguity lifecycle; no Slice 5 delegation contract applies';
         }
         for (const path of [
             'adapters/loa/src/ledger-writer.ts',

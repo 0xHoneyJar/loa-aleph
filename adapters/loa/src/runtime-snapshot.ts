@@ -178,8 +178,12 @@ export function parseLoaProfile(value: unknown, runFormatVersion = CURRENT_RUN_F
     && !('verifier-l2s' in profile.role_mappings);
   const legacyWorkRoles = (SUPPORTED_RUN_FORMAT_VERSIONS as readonly string[]).includes(runFormatVersion)
     && !hasRunCapability(runFormatVersion, 'orchestrator-work-transitions') && isRecord(profile.role_mappings);
+  const legacyAmbiguityRoles = (SUPPORTED_RUN_FORMAT_VERSIONS as readonly string[]).includes(runFormatVersion)
+    && !hasRunCapability(runFormatVersion, 'internal-ambiguity-lifecycle') && isRecord(profile.role_mappings);
   const expectedRoles = LOA_ROLE_IDS.filter((role) => !(legacyMaterialRole && role === 'verifier-l2f')
     && !(legacySemanticRole && role === 'verifier-l2s')
+    && !(legacyAmbiguityRoles && ['ambiguity-producer', 'ambiguity-reviewer', 'material-impact-producer', 'material-impact-reviewer'].includes(role)
+      && !(role in (profile.role_mappings as Record<string, unknown>)))
     && !(legacyWorkRoles && ['criteria-reviewer', 'relation-producer', 'verifier-l3r'].includes(role)
       && !(role in (profile.role_mappings as Record<string, unknown>))));
   if (!isRecord(profile.role_mappings)
