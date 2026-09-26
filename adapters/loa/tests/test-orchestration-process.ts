@@ -156,7 +156,10 @@ if (process.argv[2] === '--fixture-worker') {
     assert.equal(extractor.action, 'prepare');
     const sharedPause = process.env.F03_SHARED_PAUSE === '1';
     const packetMode = process.env.F03_PACKET === '1' || sharedPause;
-    const degradedMode = process.env.F03_S2_DEGRADED === '1';
+    // C-07 is a stopped-policy discriminator, not an implemented continuation.
+    // Preserve the original invalid end-cursor fixture as separate evidence.
+    const stationaryMode = process.env.F03_C07_STATIONARY === '1';
+    const degradedMode = process.env.F03_S2_DEGRADED === '1' || stationaryMode;
     assert(!degradedMode || !packetMode && !wideningMode, 'degraded fixture has no affirmative packet');
     const fragment = Buffer.from('The synthetic counter increased.' + (wideningMode ? '\n' : ''));
     const extraction: any = {
@@ -211,11 +214,40 @@ if (process.argv[2] === '--fixture-worker') {
         source_hash: sourceRow.contentHash, reason: 'bounded-pause' };
       extraction.walk_exhausted = false;
     }
+    if (stationaryMode) {
+      extraction.next_cursor = { byte_offset: 0, shared_position_key: null, next_event_ordinal: null,
+        predecessor_walk_index: null, predecessor_event_index: null,
+        source_hash: sourceRow.contentHash, reason: 'bounded-pause' };
+      extraction.walk_exhausted = false;
+    }
     runFixture(extractor, extraction);
     const producerRawPath = join(run, 'control/worker-returns', extractor.call_id, 'raw.json');
     const producerRaw = readFileSync(producerRawPath);
     assert.equal(loadRun(run).sourceWalk.completions[0].raw, priorRow, 'accept leaves the old canonical projection intact');
-    if (sharedPause) {
+    if (stationaryMode) {
+      const preserved = ['run-manifest.md', 'ledgers/source-walk.md', 'ledgers/packet-index.md',
+        'ledgers/semantic-review.md', 'ledgers/representation-uses.md',
+        'control/ledger-chain.jsonl', 'control/run-state.json'];
+      const before = new Map(preserved.map((path) => [path, existsSync(join(run, path))
+        ? readFileSync(join(run, path)) : null]));
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const refused = command('cli', ['--root', host, '--json', '--allow-fixture-simulation', 'resume', id], 1);
+        assert.equal(refused.result, 'FAIL');
+        assert.deepEqual(refused.errors, ['WORK_CURSOR: frozen source and actual forward progress required']);
+        for (const [path, bytes] of before) {
+          assert.equal(existsSync(join(run, path)), bytes !== null, path);
+          if (bytes) assert(readFileSync(join(run, path)).equals(bytes), path);
+        }
+        assert(readFileSync(producerRawPath).equals(producerRaw));
+        assert.equal(loadRun(run).sourceWalk.completions[0].raw, priorRow);
+        assert.equal(loadRun(run).packets.length, 0);
+        assert.equal(loadRun(run).claims.length, 0);
+        writeFileSync(join(scratch, `C07-stationary-resume-${attempt}.json`), JSON.stringify(refused, null, 2));
+        console.log(`PASS C07 installed discriminator resume ${attempt}: accepted stationary degraded return refuses WORK_CURSOR; canonical BEFORE preserved`);
+      }
+      console.log('C07 STOPPED: C-01 degraded subject remains unreachable without an adopted stationary capture/frontier/continuation rule.');
+      console.log('EVIDENCE: fixture-simulated only; no C-07 policy implemented; F-03/F-04/F-05 OPEN / MUST PRESERVE.');
+    } else if (sharedPause) {
       let beforeChain: Buffer | null = null, pendingRow = '';
       for (const point of ['derived', 'commit-intent', 'writer-prepared', 'effect:ledgers/source-walk.md',
         'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed']) {
