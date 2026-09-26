@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,7 +12,7 @@ import { loadRun } from '../../../scripts/lib/run-model.ts';
 import { installLoaBundle } from '../src/installer.ts';
 import { semanticJson, parseSemanticLedger, type SemanticSubject, type SemanticEntry } from '../../../scripts/lib/semantic-review.ts';
 import { fixtureSemantics, fixtureResult, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
-import { makeTreeOwnerWritable } from '../src/fs.ts';
+import { makeTreeOwnerWritable, stableJsonBytes } from '../src/fs.ts';
 import { materialHash, materialFragmentsHash, prepareRepresentationCapture } from '../../../scripts/lib/source-representation.ts';
 import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, type DuplicateSubject } from '../../../scripts/lib/duplicate-review.ts';
 import { duplicateFixtureProposal, duplicateFixtureSuccessorProposal, duplicateFixtureResult } from '../../../scripts/duplicate-fixture-support.ts';
@@ -51,6 +51,7 @@ if (process.argv[2] === '--fixture-worker') {
     let selectedInput = input;
     if (process.env.F03_L2F === '1') {
       const bytes = Buffer.from('The synthetic counter increased.');
+      const captured = readFileSync(input);
       const descriptor = { format: 'aleph-supplied-representation/v1', source_path: 'input.md',
         origin_kind: 'supplied-extraction', extraction_surface: 'utf8-text', state: 'available', reason: 'none', assets: [],
         provenance: [{ provenance_id: 'RPR-0001', type: 'supplied-structure', actor: 'synthetic-fixture',
@@ -58,10 +59,14 @@ if (process.argv[2] === '--fixture-worker') {
           parameters_asset_id: 'none', declaration_asset_id: 'declaration' }],
         bindings: [{ binding_id: 'BND-0001', carrier_id: 'source', start_byte: '0', end_byte: String(bytes.length),
           page_id: 'none', region_id: 'none', byte_role: 'frozen-source-bytes', fragment_hash: materialHash(bytes),
-          exact_bytes_base64: bytes.toString('base64') }],
+          exact_bytes_base64: bytes.toString('base64') },
+        { binding_id: 'BND-0002', carrier_id: 'source', start_byte: '0', end_byte: String(captured.length),
+          page_id: 'none', region_id: 'none', byte_role: 'frozen-source-bytes', fragment_hash: materialHash(captured),
+          exact_bytes_base64: captured.toString('base64') }],
         objects: ['source', 'text', 'formal'].map((kind, index) => ({ object_id: `OBJ-000${index + 1}`, kind,
           parent_id: index ? 'OBJ-0001' : 'none', state: 'available', reason: 'none',
-          provenance_id: index ? 'RPR-0001' : 'capture', binding_ids: ['BND-0001'], content_hash: materialFragmentsHash([bytes]),
+          provenance_id: index ? 'RPR-0001' : 'capture', binding_ids: [index ? 'BND-0001' : 'BND-0002'],
+          content_hash: materialFragmentsHash([index ? bytes : captured]),
           coordinates: kind === 'formal' ? { notation: 'source-markup', structure_ids: [], structure_state: 'available' } : {} })),
         associations: [{ association_id: 'ASC-0001', kind: 'caption-for', subject_id: 'OBJ-0003',
           target_ids: [], state: 'unsupported', reason: 'Synthetic fixture supplies no caption.', provenance_id: 'RPR-0001' }] };
@@ -434,7 +439,55 @@ if (process.argv[2] === '--fixture-worker') {
             }
             const beforePackets = loadRun(run).packets.length;
             runFixture(work, widened);
-            if (process.env.F03_C05_FAULTS === '1') crashSequence('s3.capture-widening',
+            if (process.env.F03_C06_TAMPER === '1') {
+              const before = new Map([...loadRun(run).files.map((file) => file.relativePath),
+                'control/run-state.json', 'control/ledger-chain.jsonl']
+                .map((path) => [path, materialHash(readFileSync(join(run, path)))]));
+              const workPath = `control/orchestration/work/${work.work_id}.json`;
+              const acceptancePath = `control/orchestration/accepted/${work.call_id}.json`;
+              const acceptance = JSON.parse(readFileSync(join(run, acceptancePath), 'utf8'));
+              const attacks: Array<{ name: string; path: string; replace?: (bytes: Buffer) => Buffer }> = [
+                ...['raw.json', 'validation.json', 'validated.json', 'native-dispatch.json', 'native-return.json', 'invocation.json']
+                  .map((name) => ({ name, path: `control/worker-returns/${work.call_id}/${name}` })),
+                { name: 'worker-bundle', path: `control/worker-bundles/${work.call_id}/request.json` },
+                ...['intent', 'complete'].map((kind) => ({ name: `dispatch-${kind}`,
+                  path: `control/orchestration/dispatch/${work.call_id}-${kind}.json` })),
+                ...acceptance.native.filter((entry: { path: string }) => /stream|event|completion/u.test(entry.path))
+                  .map((entry: { path: string }, index: number) => ({ name: `native-stream-${index}`, path: entry.path })),
+                ...['run_id', 'stage', 'subject', 'checkpoint', 'chain'].map((field) => ({
+                  name: `work-${field}`, path: workPath, replace: (bytes: Buffer) => {
+                    const value = JSON.parse(bytes.toString());
+                    if (field === 'run_id') value.identity.run_id += '-other';
+                    if (field === 'stage') value.identity.work.obligation.stage = 'S2';
+                    if (field === 'subject') value.identity.work.obligation.subject_id += '-other';
+                    if (field === 'checkpoint') value.identity.checkpoint = `sha256:${'0'.repeat(64)}`;
+                    if (field === 'chain') value.identity.ledger.chain_head = `sha256:${'0'.repeat(64)}`;
+                    return Buffer.from(JSON.stringify(value));
+                  },
+                })),
+                { name: 'forged-widening-call-with-valid-record-digest', path: workPath, replace: (bytes) => {
+                  const { digest: _digest, ...body } = JSON.parse(bytes.toString());
+                  body.call.output_selector = 'Role: Extractor (S2)';
+                  return stableJsonBytes({ ...body, digest: materialHash(stableJsonBytes(body)) });
+                } },
+                { name: 'accepted-return-for-another-work', path: acceptancePath, replace: () =>
+                  readFileSync(join(run, `control/orchestration/accepted/${view.basis.normalizer_call_id}.json`)) },
+              ];
+              for (const attack of attacks) {
+                const path = join(run, attack.path), exact = readFileSync(path), mode = statSync(path).mode & 0o777;
+                try {
+                  chmodSync(path, 0o600);
+                  writeFileSync(path, attack.replace ? attack.replace(exact) : Buffer.concat([exact, Buffer.from('\n')]));
+                  chmodSync(path, mode);
+                  const rejected = command('cli', ['--root', host, '--json', '--allow-fixture-simulation', 'resume', id], 1);
+                  assert.equal(rejected.result, 'FAIL');
+                  for (const [path, digest] of before) assert.equal(materialHash(readFileSync(join(run, path))), digest);
+                  writeFileSync(join(scratch, `C06-${attack.name}-refusal.json`), JSON.stringify(rejected, null, 2));
+                } finally { chmodSync(path, 0o600); writeFileSync(path, exact); chmodSync(path, mode); }
+                console.log(`PASS supported CLI C06 retained-evidence refusal ${attack.name}; no canonical effect`);
+              }
+            }
+            if (process.env.F03_C05_FAULTS === '1' || process.env.F03_C06_FAULTS === '1') crashSequence('s3.capture-widening',
               ['derived', 'commit-intent', 'writer-prepared', 'effect:ledgers/packet-index.md',
                 'effect:ledgers/lineage.md', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], () => {
                 assert([beforePackets, beforePackets + 1].includes(loadRun(run).packets.length));
@@ -442,6 +495,19 @@ if (process.argv[2] === '--fixture-worker') {
                 for (const [path, bytes] of historicalS2) assert(readFileSync(join(run, path)).equals(bytes));
                 assert(readFileSync(rawPath).equals(raw));
               });
+            if (process.env.F03_C06_FAULTS === '1') {
+              const beforeSubjects = parseSemanticLedger(readFileSync(join(run, 'ledgers/semantic-review.md'), 'utf8')).subjects.length;
+              crashSequence('sem.reserve-widening', ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes',
+                'chain', 'checkpoint', 'journal-committed', 'consumed'], () => {
+                const subjects = parseSemanticLedger(readFileSync(join(run, 'ledgers/semantic-review.md'), 'utf8')).subjects;
+                assert([beforeSubjects, beforeSubjects + 1].includes(subjects.length));
+                assert.equal(loadRun(run).packets.length, beforePackets + 1);
+                assert.equal(loadRun(run).claims.length, 0);
+                assert(!existsSync(join(run, 'ledgers/relations.md'))
+                  || !readFileSync(join(run, 'ledgers/relations.md'), 'utf8').includes('| REL-'));
+                for (const [path, bytes] of historicalS2) assert(readFileSync(join(run, path)).equals(bytes));
+              });
+            }
             resumed = cli('resume', id);
             assert.equal(loadRun(run).claims.length, 0);
             for (const [path, bytes] of historicalS2) assert(readFileSync(join(run, path)).equals(bytes));
