@@ -977,7 +977,16 @@
       "calibration/src-001/core-design-basis/ADOPTED-f03-stationary-degraded-capture-accounting-clarification-20260926.md",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-accounting-implementation-progress-20260926.json",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-worker-request-byte-binding-repair-20260926.json",
-      "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-installed-recovery-and-s4-progress-20260926.json"
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-installed-recovery-and-s4-progress-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-stopped-run-snapshot-01-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-stopped-run-snapshot-02-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-stopped-run-snapshot-03-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-stopped-run-snapshot-04-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-stopped-run-snapshot-05-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-stopped-run-snapshot-06-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-stopped-run-snapshot-07-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-source-reference-conflict-and-stopped-handoff-20260926.json",
+      "calibration/src-001/core-design-basis/STOPPED-f03-c08-source-reference-width-conflict-20260926.md"
     ]
   },
   "checker_paths": [
