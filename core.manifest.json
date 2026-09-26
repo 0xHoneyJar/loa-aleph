@@ -990,7 +990,10 @@
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-stopped-run-snapshot-07-20260926.json",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-source-reference-conflict-and-stopped-handoff-20260926.json",
       "calibration/src-001/core-design-basis/STOPPED-f03-c08-source-reference-width-conflict-20260926.md",
-      "calibration/src-001/core-design-basis/ADOPTED-f03-c2-frozen-source-identity-clarification-20260926.md"
+      "calibration/src-001/core-design-basis/ADOPTED-f03-c2-frozen-source-identity-clarification-20260926.md",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-continuation-and-c09-s4-entry-stop-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-c09-fixture-snapshots-20260926.json",
+      "calibration/src-001/core-design-basis/STOPPED-f03-c09-s4-entry-bootstrap-conflict-20260926.md"
     ]
   },
   "checker_paths": [
