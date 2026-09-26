@@ -123,7 +123,7 @@ function captureBasis(runDir) {
     const members = [];
     for (const full of walkRegularFiles(runDir)) {
         const path = relative(runDir, full).replaceAll('\\', '/');
-        if (path.startsWith(`${ROOT}/`))
+        if (path.startsWith(`${ROOT}/`) && !retainedWorkHistoryPath(path))
             continue;
         const bytes = readStableRegularFile(full).bytes, digest = sha256Digest(bytes);
         const storage = path.startsWith('corpus/sources/') || path.startsWith('corpus/representation-assets/')
@@ -134,15 +134,20 @@ function captureBasis(runDir) {
     }
     const basis = seal({ format: 'aleph-loa-work-basis/v1', members,
         canonical_paths: members.map((entry) => entry.path).filter((path) => !path.startsWith('control/')),
-        absence_scope: 'complete-run-file-inventory-excluding-orchestration/v1' });
+        absence_scope: 'complete-run-file-inventory-with-work-history/v2' });
     immutable(runDir, `${ROOT}/basis/${basis.digest.slice(7)}/manifest.json`, stableJsonBytes(basis));
     return basis;
+}
+/** C-07 continuation derives from authenticated prior consumption. Retain only
+ * finite work/acceptance/commit records; never recursively copy bases or blobs. */
+function retainedWorkHistoryPath(path) {
+    return /^control\/orchestration\/(?:work\/WORK-[0-9a-f]{64}|accepted\/CALL-F03-[0-9a-f]{64}|commits\/WORK-[0-9a-f]{64}-(?:intent|consumed))\.json$/u.test(path);
 }
 function readBasis(runDir, digest) {
     assertWork(DIGEST.test(digest), 'WORK_BASIS', digest);
     const basis = readSealed(runDir, `${ROOT}/basis/${digest.slice(7)}/manifest.json`, ['format', 'members', 'canonical_paths', 'absence_scope']);
     assertWork(basis.format === 'aleph-loa-work-basis/v1' && basis.digest === digest
-        && basis.absence_scope === 'complete-run-file-inventory-excluding-orchestration/v1'
+        && basis.absence_scope === 'complete-run-file-inventory-with-work-history/v2'
         && Array.isArray(basis.members) && Array.isArray(basis.canonical_paths), 'WORK_BASIS', digest);
     const paths = new Set();
     for (const member of basis.members) {
@@ -150,7 +155,7 @@ function readBasis(runDir, digest) {
             && DIGEST.test(member.digest) && /^(0|[1-9][0-9]*)$/u.test(member.byte_length)
             && ['blob', 'immutable-reference'].includes(member.storage), 'WORK_BASIS', 'invalid member');
         assertSafeRelativePath(member.path);
-        assertWork(!paths.has(member.path) && !member.path.startsWith(`${ROOT}/`), 'WORK_BASIS', 'duplicate/recursive member');
+        assertWork(!paths.has(member.path) && (!member.path.startsWith(`${ROOT}/`) || retainedWorkHistoryPath(member.path)), 'WORK_BASIS', 'duplicate/recursive member');
         paths.add(member.path);
     }
     assertWork(stableJsonBytes(basis.canonical_paths).equals(stableJsonBytes(basis.members.map((member) => member.path).filter((path) => !path.startsWith('control/')))), 'WORK_BASIS', 'canonical inventory');
@@ -413,6 +418,15 @@ export function deriveAuthenticatedWork(runDir, id, recovering = false) {
             for (const slot of ['worker-bundles', 'worker-returns']) {
                 const path = `control/${slot}/${work.call.call_id}`;
                 cpSync(join(runDir, path), join(basis, path), { recursive: true, force: false, errorOnExist: true });
+            }
+            if (work.identity.work.obligation.operation === 's2.capture') {
+                for (const [path, record] of [[workPath(work.work_id), work],
+                    [acceptedPath(work.call.call_id), accepted.receipt]]) {
+                    const full = canonicalPath(basis, path);
+                    assertWork(!existsSync(full), 'WORK_BASIS', 'current capture cannot precede its own sealed basis');
+                    mkdirSync(dirname(full), { recursive: true });
+                    writeFileSync(full, stableJsonBytes(record), { mode: 0o400, flag: 'wx' });
+                }
             }
         }
         const beforeState = readRunState(basis), chainPath = join(basis, 'control/ledger-chain.jsonl');

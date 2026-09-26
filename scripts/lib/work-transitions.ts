@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import { captureGeneration, stationaryCursor, stationaryCaptureWork, stationaryCandidateDigest,
+  stationaryPriorAccounting, stationaryDuplicateSubject, stationaryHalt, STATIONARY_CAPTURES, STATIONARY_HALTS,
+  type CaptureGeneration, type StationaryCapture, type StationarySelector } from './stationary-capture.ts';
 import { selectS4Work, deriveS4Transition, validateS4Transition, s4SemanticCaptures, type S4SemanticCapture } from './work-transitions-s4.ts';
 import { WIDENING_PREPARATIONS, WIDENING_CAPTURES, WIDENING_CONTRACT, WIDENING_TASK,
   derivePacketWideningBasis, validatePacketWideningBasis, wideningCallId, packetWideningCaptures,
@@ -128,6 +131,7 @@ export interface WorkTransition {
   next_execution: WorkExecution;
   simulation: boolean;
   source_completion?: SourceWalkProjection;
+  stationary_capture?: StationaryCapture;
   semantic?: { stage: SemanticStage; semantic_id: string; subject_digest: string; operation: SemanticOperation;
     record_id: string; producer_call_id: string; reviewer_call_ids: string[] };
   duplicate?: { proposal_id: string; subject_digest: string;
@@ -369,6 +373,7 @@ function deriveGapReview(model: RunModel, work: Extract<NextWork, { kind: 'worke
 }
 interface S2Preparation {
   format: 'aleph-s2-work-preparation/v1'; source_id: string; prior_cursor_id: string; call_id: string;
+  capture_generation: CaptureGeneration;
 }
 interface S2Capture {
   format: 'aleph-s2-work-capture/v1'; source_id: string; call_id: string; raw_digest: string;
@@ -835,10 +840,9 @@ export function nextId(prefix: string, values: readonly string[]): string {
 function s2Preparation(model: RunModel, sourceId: string): S2Preparation {
   const cursor = model.sourceWalk.cursors.filter((row) => row.values.sourceId === sourceId).at(-1);
   assertWork(cursor, 'WORK_PREREQUISITE', 'initial source cursor');
-  const identity = { run_id: model.manifest!.runId, bundle_digest: model.manifest!.forwardIdentity.bundleDigest,
-    source_id: sourceId, prior_cursor_id: cursor.values.cursorId, source_walk_digest: workDigest(required(model, 'ledgers/source-walk.md')) };
+  const identity = captureGeneration(model, sourceId);
   return { format: 'aleph-s2-work-preparation/v1', source_id: sourceId, prior_cursor_id: cursor.values.cursorId,
-    call_id: `CALL-F03-${workDigest(workJson(identity)).slice(7)}` };
+    call_id: `CALL-F03-${workDigest(workJson(identity)).slice(7)}`, capture_generation: identity };
 }
 function s2Captures(model: RunModel): S2Capture[] {
   return model.files.filter((entry) => entry.relativePath.startsWith(S2_CAPTURES)
@@ -941,6 +945,7 @@ export function selectSemanticWork(model: RunModel, capture: S2Capture | S3Captu
   const stage = capture.format === 'aleph-s2-work-capture/v1' ? 'S2' : capture.format === 'aleph-s4-semantic-capture/v1' ? 'S4' : 'S3';
   const ledger = semanticLedger(model);
   for (const selector of capture.selectors) {
+    if (stage === 'S2' && stationaryDuplicateSubject(model, capture.call_id, selector.output_kind, Number(selector.output_index))) continue;
     const binding = readFileSync(join(model.runDir, selector.binding_path));
     const ref = `${selector.binding_path}@${workDigest(binding)}`;
     const reserved = ledger.subjects.filter((row) => row.producer_receipt_ref === ref);
@@ -1152,15 +1157,36 @@ function selectS2Work(model: RunModel): NextWork {
     }
     if (!cursor) return { kind: 'local', obligation: obligation('S2', 'S2.primary-walk.initial-cursor', 's2.initial-cursor', id,
       required(model, 'ledgers/source-walk.md')) };
+    const halt = stationaryHalt(model, id);
+    if (halt) {
+      const path = `${STATIONARY_HALTS}${halt.frontier_digest.slice(7)}.json`, retained = file(model, path);
+      if (!retained) return { kind: 'local', accepted_dependencies: [halt.accepted_invocation],
+        obligation: obligation('S2', 'S2.stationary-frontier.halt', 's2.stationary-halt', id, workJson(halt)) };
+      assertWork(retained.equals(workJson(halt)), 'WORK_STATIONARY_BINDING', 'stationary halt changed');
+      return { kind: 'halt', code: halt.code, reason: semanticJson(halt) };
+    }
+    const expected = s2Preparation(model, id);
     const prepared = model.files.filter((entry) => entry.relativePath.startsWith(S2_PREPARATIONS))
       .map((entry) => parseStrictJson(entry.text) as unknown as S2Preparation)
-      .find((entry) => entry.source_id === id && entry.prior_cursor_id === cursor.values.cursorId);
+      .find((entry) => entry.call_id === expected.call_id);
+    const previousCalls = [...new Set(captures.filter((capture) =>
+      capture.source_id === id && capture.cursor_id === cursor.values.cursorId).flatMap((capture) => [
+      capture.call_id, ...semanticLedger(model).subjects.filter((row) =>
+        row.producer_receipt_ref.startsWith(`control/semantic-producer-bindings/${capture.call_id}/`))
+        .flatMap((row) => {
+          const subject = parseStrictJson(required(model, row.subject_path)) as unknown as SemanticSubject;
+          const material = materialReviewResult(model, subject);
+          return [...semanticDependencies(model, row.semantic_id), ...material ? [material.call_id] : []];
+        }),
+    ]))];
     if (!prepared) return { kind: 'local', obligation: obligation('S2', 'S2.primary-walk.prepare', 's2.prepare-extractor', id,
-      workJson(s2Preparation(model, id))) };
+      workJson(expected)), accepted_dependencies: previousCalls };
+    assertWork(workJson(prepared).equals(workJson(expected)), 'WORK_STATIONARY_BINDING', 'prepared capture generation differs');
     const paths = semanticProducerViewPaths(prepared.call_id), view = semanticProducerView(model, 'extractor', 'S2',
       parseStrictJson(required(model, paths.selections)) as unknown as SemanticSubject['context_manifest']);
     assertWork(required(model, paths.view).equals(view.bytes), 'WORK_SUBJECT_CHANGED', paths.view);
     return { kind: 'worker', obligation: obligation('S2', 'S2.primary-walk.capture', 's2.capture', id, required(model, paths.view)),
+      accepted_dependencies: previousCalls,
       call: { prepared_call_id: prepared.call_id, role: 'extractor', kind: 'producer', task_line: semanticProducerTask('extractor', 'S2'),
         allowlist: [paths.view, ...view.assets.map((asset) => asset.path)].sort(), producer_dependency: null, output_selector: 'Role: Extractor (S2)' } };
   }
@@ -1182,7 +1208,7 @@ function deriveS2Preparation(model: RunModel, work: Extract<NextWork, { kind: 'l
   return [effect(model, `${S2_PREPARATIONS}${prep.call_id}.json`, workJson(prep)),
     effect(model, paths.selections, Buffer.from(semanticJson(selections))), effect(model, paths.view, view.bytes)];
 }
-function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worker' }>, accepted: WorkValue): Pick<WorkTransition, 'effects' | 'source_completion'> {
+function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worker' }>, accepted: WorkValue): Pick<WorkTransition, 'effects' | 'source_completion' | 'stationary_capture'> {
   assertWork(accepted.call_id === work.call.prepared_call_id, 'WORK_CALL_BINDING', 'prepared extractor identity');
   const paths = semanticProducerViewPaths(accepted.call_id), projected = semanticProducerView(model, 'extractor', 'S2',
     parseStrictJson(required(model, paths.selections)) as unknown as SemanticSubject['context_manifest']);
@@ -1196,13 +1222,31 @@ function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
   const source = model.corpus.sources.find((source) => source.values.sourceId === returned.source_id)!;
   const sourcePath = sourceFilePath(model.runDir, source.values.locus)!;
   const sourceBytes = readFileSync(sourcePath);
+  if (!gapCandidates && stationaryCursor(model, accepted.value)
+    && (returned.packets as Array<Record<string, WorkerJsonValue>>).some((packet) => packet.evidence_state === 'degraded-non-exact')
+    && (returned.packets as Array<Record<string, WorkerJsonValue>>).every((packet) => packet.evidence_state === 'degraded-non-exact')
+    && (returned.extraction_events as unknown[]).length === 0) {
+    return deriveStationaryCapture(model, work, accepted);
+  }
+  // A real-progress retry still accounts repeated degraded selectors against
+  // the reviewed history at its old frontier. Progress uses the ordinary walk.
+  const retry = gapCandidates ? null : s2Preparation(model, source.values.sourceId);
+  const retryAccounting = retry?.capture_generation.previous_work_id
+    ? (returned.semantic_units as unknown as SemanticEntry[]).map((entry) =>
+      stationarySelector(model, retry, accepted, entry)) : null;
   const packetIds = model.packets.map((row) => row.values.packetId);
   const evidenceIds = model.exactEvidence.records.map((row) => row.values.evidenceKey);
   const fragmentIds = model.exactEvidence.fragments.map((row) => row.values.fragmentKey);
   const transformIds = model.exactEvidence.transformations.map((row) => row.values.transformKey);
   const packetRows: string[][] = [], evidenceRows: string[][] = [], fragmentRows: string[][] = [], transformRows: string[][] = [];
-  const selected: Array<{ ids: string[]; evidence: string; fragments: Array<{ packet: string; start: number; end: number }>; use: MaterialUseInput }> = [];
-  for (const candidate of returned.packets as Array<Record<string, WorkerJsonValue>>) {
+  const selected: Array<{ ids: string[]; evidence: string | null; fragments: Array<{ packet: string; start: number; end: number }>; use: MaterialUseInput }> = [];
+  for (const [index, candidate] of (returned.packets as Array<Record<string, WorkerJsonValue>>).entries()) {
+    if (retryAccounting?.some((entry) => entry.output_kind === 'packet-candidate'
+      && entry.output_index === String(index) && entry.disposition === 'duplicate-accounting')) {
+      assertWork(candidate.evidence_state === 'degraded-non-exact', 'WORK_STATIONARY_BINDING', 'only prior degraded packet content can repeat');
+      selected.push({ ids: [], evidence: null, fragments: [], use: candidate.material_use as unknown as MaterialUseInput });
+      continue;
+    }
     const evidence = nextId('EVID', evidenceIds); evidenceIds.push(evidence);
     const ids: string[] = [], fragments: Array<{ packet: string; start: number; end: number }> = [], bytes: Buffer[] = [];
     for (const fragment of candidate.fragments as Array<Record<string, WorkerJsonValue>>) {
@@ -1346,7 +1390,10 @@ function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
       }) });
     uses.push(use);
   }
-  for (const use of materialFindingRows(model, accepted.value, 'S2', accepted.call_id)) {
+  const materialValue = retryAccounting ? { ...returned, material_findings: (returned.material_findings as WorkerJsonValue[])
+    .filter((_, index) => !retryAccounting.some((entry) => entry.output_kind === 'material-candidate'
+      && entry.output_index === String(index) && entry.disposition === 'duplicate-accounting')) } : accepted.value;
+  for (const use of materialFindingRows(model, materialValue, 'S2', accepted.call_id)) {
     use.use_id = nextId('USE', useIds); useIds.push(use.use_id);
     planRepresentationUseWrite({ model, proposedModel: proposed, row: use, stage: 'S2', subjectWrites: [] });
     uses.push(use);
@@ -1354,14 +1401,90 @@ function deriveS2Capture(model: RunModel, work: Extract<NextWork, { kind: 'worke
   const useBytes = uses.length ? appendRows(required(model, REPRESENTATION_USE_PATH), 'use_id',
     uses.map((use) => ['use_id', 'owner_stage', 'subject_kind', 'subject_id', 'basis_packet_ids', 'requirements', 'use_state',
       'fidelity_claim', 'limitation_refs', 'reason', 'established_by', 'review_subject_digest', 'reviewed_by'].map((field) => use[field]))) : null;
-  return { source_completion, effects: [effect(model, 'ledgers/packet-index.md', packets), effect(model, 'ledgers/source-walk.md', walk),
+  const stationary_capture: StationaryCapture | undefined = retryAccounting ? {
+    format: 'aleph-stationary-capture/v1', outcome: 'frontier-advanced', basis: retry!.capture_generation,
+    ...stationaryCaptureWork(model, work, accepted), call_id: accepted.call_id, raw_digest: accepted.raw_digest,
+    source_walk_before_digest: source_completion.before_digest!, source_walk_after_digest: source_completion.after_digest,
+    selectors: retryAccounting, new_candidate_content_digests: [...new Set(retryAccounting
+      .filter((entry) => entry.disposition === 'new-accounting').map((entry) => entry.candidate_content_digest))],
+  } : undefined;
+  return { source_completion, ...stationary_capture ? { stationary_capture } : {},
+    effects: [effect(model, 'ledgers/packet-index.md', packets), effect(model, 'ledgers/source-walk.md', walk),
     ...gapEffects,
+    ...stationary_capture ? [effect(model, `${STATIONARY_CAPTURES}${accepted.call_id}.json`, workJson(stationary_capture))] : [],
     ...useBytes ? [effect(model, REPRESENTATION_USE_PATH, useBytes)] : [],
     effect(model, `${S2_CAPTURES}${accepted.call_id}.json`, workJson(capture)),
     ...capture.selectors.map((selector) => effect(model, selector.binding_path, Buffer.from(semanticJson({
       call_id: accepted.call_id, context_id: accepted.context_id, raw_return_hash: accepted.raw_digest,
       output_kind: selector.output_kind, output_index: Number(selector.output_index),
     }))))] };
+}
+function stationarySelector(model: RunModel, preparation: S2Preparation, accepted: WorkValue, entry: SemanticEntry): StationarySelector {
+  assertWork(entry.output_kind === 'packet-candidate' || entry.output_kind === 'material-candidate', 'WORK_SELECTOR', 'S2 selector');
+  const content = stationaryCandidateDigest(accepted.value, entry);
+  const prior = stationaryPriorAccounting(model, preparation.capture_generation, content);
+  return { output_kind: entry.output_kind, output_index: String(entry.output_index),
+    candidate_content_digest: content, disposition: prior ? 'duplicate-accounting' : 'new-accounting',
+    binding_path: `control/semantic-producer-bindings/${accepted.call_id}/${entry.output_kind}-${entry.output_index}.json`,
+    prior_call_id: prior?.prior_call_id || null, prior_output_kind: prior?.prior_output_kind || null,
+    prior_output_index: prior?.prior_output_index || null, semantic_id: prior?.semantic_id || null,
+    semantic_subject_digest: prior?.semantic_subject_digest || null, review_basis_digest: prior?.review_basis_digest || null,
+    followup: prior ? 'prior-L2S-accounted' : 'L2S-required' };
+}
+function deriveStationaryCapture(model: RunModel, work: Extract<NextWork, { kind: 'worker' }>,
+  accepted: WorkValue): Pick<WorkTransition, 'effects' | 'source_completion' | 'stationary_capture'> {
+  const returned = accepted.value as Record<string, WorkerJsonValue>, sourceId = String(returned.source_id);
+  const preparation = s2Preparation(model, sourceId);
+  assertWork(preparation.call_id === accepted.call_id
+    && required(model, `${S2_PREPARATIONS}${accepted.call_id}.json`).equals(workJson(preparation)),
+  'WORK_STATIONARY_BINDING', 'exact Core-derived capture generation');
+  const authenticated = stationaryCaptureWork(model, work, accepted);
+  const source_completion = deriveSourceWalkCompletion(model, model);
+  assertWork(source_completion.before_digest === source_completion.after_digest, 'WORK_STATIONARY_BINDING', 'exact stationary source walk');
+  const ledger = semanticLedger(model), effects: WorkFileEffect[] = [], selectors: StationarySelector[] = [];
+  const entries = returned.semantic_units as unknown as SemanticEntry[];
+  const capture: S2Capture = { format: 'aleph-s2-work-capture/v1', source_id: sourceId, call_id: accepted.call_id,
+    raw_digest: accepted.raw_digest, context_id: accepted.context_id, producer_context_id: accepted.producer_context_id,
+    receipt_digest: accepted.receipt_digest, simulation: accepted.simulation, cursor_id: preparation.prior_cursor_id, selectors: [] };
+  for (const entry of entries) {
+    assertWork(entry.output_kind === 'packet-candidate' || entry.output_kind === 'material-candidate', 'WORK_SELECTOR', 'S2 selector');
+    const bindingPath = `control/semantic-producer-bindings/${accepted.call_id}/${entry.output_kind}-${entry.output_index}.json`;
+    const binding = Buffer.from(semanticJson({ call_id: accepted.call_id, context_id: accepted.context_id,
+      raw_return_hash: accepted.raw_digest, output_kind: entry.output_kind, output_index: entry.output_index }));
+    const accounting = stationarySelector(model, preparation, accepted, entry);
+    capture.selectors.push({ output_kind: entry.output_kind, output_index: String(entry.output_index),
+      packet_ids: [], evidence_key: null, binding_path: bindingPath });
+    effects.push(effect(model, bindingPath, binding));
+    if (accounting.disposition === 'new-accounting' && entry.output_kind === 'packet-candidate') {
+      const id = nextId('SEM', ledger.subjects.map((row) => row.semantic_id));
+      const subject = deriveS2DegradedSubject(model, accepted, entry.output_index, id, semanticReviewer(model));
+      const raw = Buffer.from(semanticJson(subject)), digest = workDigest(raw);
+      ledger.subjects.push({ semantic_id: id, owner_stage: 'S2', subject_kind: 'degraded-packet',
+        subject_path: semanticSubjectPath(id), subject_digest: digest, predecessor_semantic_id: 'none',
+        producer_receipt_ref: `${bindingPath}@${workDigest(binding)}` });
+      effects.push(effect(model, semanticSubjectPath(id), raw));
+      accounting.semantic_id = id; accounting.semantic_subject_digest = digest;
+    }
+    selectors.push(accounting);
+  }
+  const newMaterial = entries.filter((entry, index) => entry.output_kind === 'material-candidate'
+    && selectors[index].disposition === 'new-accounting');
+  if (newMaterial.length) {
+    const retained = newMaterial.map((entry) => (returned.material_findings as WorkerJsonValue[])[entry.output_index]);
+    const uses = materialFindingRows(model, { ...returned, material_findings: retained }, 'S2', accepted.call_id);
+    if (uses.length) effects.push(effect(model, REPRESENTATION_USE_PATH,
+      Buffer.from(representationUsesMarkdown([...readRepresentationContext(model).uses, ...uses]))));
+  }
+  if (ledger.subjects.length !== semanticLedger(model).subjects.length) effects.push(effect(model, SEMANTIC_PATH,
+    Buffer.from(semanticLedgerMarkdown(ledger))));
+  const stationary_capture: StationaryCapture = { format: 'aleph-stationary-capture/v1', outcome: 'stationary-accounting-only',
+    basis: preparation.capture_generation, ...authenticated, call_id: accepted.call_id, raw_digest: accepted.raw_digest,
+    source_walk_before_digest: source_completion.before_digest!, source_walk_after_digest: source_completion.after_digest,
+    selectors, new_candidate_content_digests: [...new Set(selectors.filter((entry) => entry.disposition === 'new-accounting')
+      .map((entry) => entry.candidate_content_digest))] };
+  effects.push(effect(model, `${S2_CAPTURES}${accepted.call_id}.json`, workJson(capture)),
+    effect(model, `${STATIONARY_CAPTURES}${accepted.call_id}.json`, workJson(stationary_capture)));
+  return { effects, source_completion, stationary_capture };
 }
 export function criteriaReviewExemplar(): WorkerJsonValue {
   return {
@@ -1631,6 +1754,14 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
       origins: [{ artifact: CRITERIA_REVIEW_PATHS[index], field: '*', from: { kind: 'accepted', call_id: accepted.call_id, selector: '' } }] };
   }
   assertWork(accepted === null, 'WORK_ACCEPTANCE', 'local transition must not borrow worker authority');
+  if (work.obligation.operation === 's2.stationary-halt') {
+    const halt = stationaryHalt(model, work.obligation.subject_id);
+    assertWork(halt && workDigest(workJson(halt)) === work.obligation.subject_digest,
+      'WORK_STATIONARY_BINDING', 'exact completed generation required for halt');
+    return { ...base, family: 's2-preparation',
+      effects: [effect(model, `${STATIONARY_HALTS}${halt.frontier_digest.slice(7)}.json`, workJson(halt))],
+      origins: [{ artifact: STATIONARY_HALTS, field: '*', from: { kind: 'rule', rule: 'C07:stationary-frontier' } }] };
+  }
   if (work.obligation.operation === 'stage.enter-S3') {
     validateSemanticRun(model);
     assertWork(!file(model, 'ledgers/claim-inventory.md'), 'WORK_STAGE', 'S3 initialization requires absent claim inventory');
@@ -1755,6 +1886,38 @@ export function validateDerivedWorkTransition(model: RunModel, proposedModel: Ru
     runK2(checks, proposedModel, join(model.runDir, 'control/runtime/bundle'));
     const failures = checks.report().checks.filter((check) => check.id === 'K2.13' && check.status !== 'PASS');
     assertWork(failures.length === 0, 'WORK_PACKET_EVIDENCE', failures.map((check) => check.message).join('; '));
+  }
+  if (transition.stationary_capture?.outcome === 'stationary-accounting-only') {
+    const capture = transition.stationary_capture;
+    assertWork(capture.outcome === 'stationary-accounting-only'
+      && capture.source_walk_before_digest === capture.source_walk_after_digest
+      && !transition.effects.some((write) => write.path === 'ledgers/source-walk.md')
+      && required(model, 'ledgers/source-walk.md').equals(required(proposedModel, 'ledgers/source-walk.md'))
+      && required(model, 'ledgers/packet-index.md').equals(required(proposedModel, 'ledgers/packet-index.md')),
+    'WORK_STATIONARY_BINDING', 'stationary accounting cannot write source-walk or packet state');
+    const before = semanticLedger(model), after = semanticLedger(proposedModel);
+    for (const key of ['subjects', 'assignments', 'results', 'resolutions'] as const) {
+      assertWork(semanticJson(before[key]) === semanticJson(after[key].slice(0, before[key].length)),
+        'WORK_STATIONARY_BINDING', 'semantic history changed');
+      if (key !== 'subjects') assertWork(after[key].length === before[key].length,
+        'WORK_STATIONARY_BINDING', 'capture cannot manufacture review or resolution');
+    }
+    const created = capture.selectors.filter((selector) => selector.disposition === 'new-accounting'
+      && selector.output_kind === 'packet-candidate');
+    assertWork(after.subjects.length === before.subjects.length + created.length
+      && created.every((selector, index) => {
+        const row = after.subjects[before.subjects.length + index];
+        return row.semantic_id === selector.semantic_id && row.subject_digest === selector.semantic_subject_digest
+          && row.owner_stage === 'S2' && row.subject_kind === 'degraded-packet';
+      }), 'WORK_STATIONARY_BINDING', 'every new degraded selector requires its exact subject');
+    validateSemanticRun(proposedModel);
+    for (const selector of created) {
+      const binding = parseStrictJson(readFileSync(join(proposedModel.runDir, selector.binding_path))) as {
+        call_id: string; context_id: string; raw_return_hash: string;
+      };
+      validateSemanticAcceptedBindings(proposedModel, selector.semantic_id!, 'reserve-subject',
+        { ...binding, role: 'extractor' }, []);
+    }
   }
   if (transition.obligation.operation === 's3.capture-widening') {
     const checks = new ResultCollector('bounded S3 packet widening');

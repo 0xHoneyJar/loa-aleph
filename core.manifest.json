@@ -626,6 +626,8 @@
       "runtime-js/scripts/lib/work-transitions-s4.js",
       "scripts/lib/packet-widening.ts",
       "runtime-js/scripts/lib/packet-widening.js",
+      "scripts/lib/stationary-capture.ts",
+      "runtime-js/scripts/lib/stationary-capture.js",
       "scripts/lib/source-walk-transition.ts",
       "runtime-js/scripts/lib/source-walk-transition.js"
     ],
@@ -687,6 +689,7 @@
         "adapters/loa/tests/test-semantic-review-process.ts",
         "adapters/loa/tests/test-orchestration-process.ts",
         "adapters/loa/tests/test-f03-stationary-degraded-capture-conflict.ts",
+        "adapters/loa/tests/test-f03-stationary-capture.ts",
         "adapters/loa/tests/test-f03-degraded-binding-conflict.ts",
         "adapters/loa/tests/test-f03-source-walk-transition-conflict.ts",
         "adapters/loa/tests/test-f03-source-walk-completion.ts",
@@ -1046,6 +1049,8 @@
     "runtime-js/scripts/lib/work-transitions-s4.js",
     "scripts/lib/packet-widening.ts",
     "runtime-js/scripts/lib/packet-widening.js",
+    "scripts/lib/stationary-capture.ts",
+    "runtime-js/scripts/lib/stationary-capture.js",
     "scripts/lib/source-walk-transition.ts",
     "runtime-js/scripts/lib/source-walk-transition.js"
   ],

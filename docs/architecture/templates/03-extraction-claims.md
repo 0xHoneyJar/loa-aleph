@@ -1367,6 +1367,46 @@ become an atomicity producer or lose its differently framed recall attack.
 Unaccounted gaps remain in source-walk machinery. No packet is discarded
 because it is awkward to normalize.
 
+For cumulative 1.9 `orchestrator-work-transitions`, HUMAN C-07 permits an
+authenticated S2 extraction capture containing degraded candidates to retain
+its exact current legal cursor. This is a stationary accounting transaction.
+It publishes the original C-01 degraded subjects and registers each selector's
+required accounting/review obligation, retains accepted-return authentication,
+and commits journal, chain, checkpoint and capture-work consumption. Its
+source-walk before/after digest is identical. It writes no cursor, event,
+interval, gap/completion projection, exact packet or claim. K2.14 and C-03
+event commitment remain independent and strict.
+
+`verification/harness/stationary-captures/<call-id>.json` records the exact
+source/cursor/frontier, Core-derived capture generation, previous consumed
+same-frontier work, cumulative accounting basis, accepted invocation and
+selector dispositions. The transaction records `stationary-accounting-only`;
+work consumption means that this return was accounted for. Source completion
+remains blocked. Required L2S accounting precedes the next same-frontier
+capture. Only retained authenticated consumption and completed required review
+can derive generation N+1, a new durable work identity bound to the current
+run pins, checkpoint and chain. Generation never changes source position.
+
+The stationary candidate-content digest binds the complete retained candidate
+and semantic declaration, including ordered material use, without changing
+substantive fields. Invocation/work identity and selector position are not
+candidate content. A repeated selector is explicitly duplicate-accounted
+against the earlier same-frontier digest, semantic subject and completed
+review basis; it creates no second semantic fact. Every original selector
+remains retained. A generation with no real source progress and no new
+candidate-accounting content produces the durable `WORK_STATIONARY_FRONTIER`
+halt. Repeated resume reproduces that halt without automatic redispatch.
+No fixed retry count or semantic-similarity rule applies.
+
+A later real-progress capture uses the ordinary source-walk transition.
+Its retained same-frontier history records `frontier-advanced`, and any
+repeated degraded selectors retain their duplicate-accounting dispositions.
+New degraded selectors still receive C-01 review. Recovery reopens the work,
+accepted bytes, selector bindings, semantic/review basis, transaction,
+consumption, chain and checkpoint; altered or missing evidence fails closed.
+No caller/worker exception flag, arbitrary no-op transaction or predecessor
+format migration is authorized.
+
 ### 12. S3 normalization and unresolved behavior
 
 For cumulative 1.9 `orchestrator-work-transitions`, HUMAN C-05 additionally

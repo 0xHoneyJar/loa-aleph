@@ -159,7 +159,8 @@ if (process.argv[2] === '--fixture-worker') {
     // C-07 is a stopped-policy discriminator, not an implemented continuation.
     // Preserve the original invalid end-cursor fixture as separate evidence.
     const stationaryMode = process.env.F03_C07_STATIONARY === '1';
-    const degradedMode = process.env.F03_S2_DEGRADED === '1' || stationaryMode;
+    const stationaryAccounting = process.env.F03_C07_ACCOUNTING === '1';
+    const degradedMode = process.env.F03_S2_DEGRADED === '1' || stationaryMode || stationaryAccounting;
     assert(!degradedMode || !packetMode && !wideningMode, 'degraded fixture has no affirmative packet');
     const fragment = Buffer.from('The synthetic counter increased.' + (wideningMode ? '\n' : ''));
     const extraction: any = {
@@ -214,7 +215,7 @@ if (process.argv[2] === '--fixture-worker') {
         source_hash: sourceRow.contentHash, reason: 'bounded-pause' };
       extraction.walk_exhausted = false;
     }
-    if (stationaryMode) {
+    if (stationaryMode || stationaryAccounting) {
       extraction.next_cursor = { byte_offset: 0, shared_position_key: null, next_event_ordinal: null,
         predecessor_walk_index: null, predecessor_event_index: null,
         source_hash: sourceRow.contentHash, reason: 'bounded-pause' };
@@ -224,7 +225,117 @@ if (process.argv[2] === '--fixture-worker') {
     const producerRawPath = join(run, 'control/worker-returns', extractor.call_id, 'raw.json');
     const producerRaw = readFileSync(producerRawPath);
     assert.equal(loadRun(run).sourceWalk.completions[0].raw, priorRow, 'accept leaves the old canonical projection intact');
-    if (stationaryMode) {
+    if (stationaryAccounting) {
+      const walk = readFileSync(join(run, 'ledgers/source-walk.md'));
+      const preserved = () => {
+        assert(readFileSync(join(run, 'ledgers/source-walk.md')).equals(walk));
+        assert.equal(loadRun(run).packets.length, 0); assert.equal(loadRun(run).claims.length, 0);
+        assert.equal(loadRun(run).sourceWalk.completions[0].raw, priorRow);
+        assert(readFileSync(producerRawPath).equals(producerRaw));
+      };
+      if (process.env.F03_C07_TAMPER === '1') {
+        const canonical = new Map([...loadRun(run).files.map((entry) => entry.relativePath),
+          'control/run-state.json', 'control/ledger-chain.jsonl']
+          .map((path) => [path, materialHash(readFileSync(join(run, path)))]));
+        const acceptancePath = `control/orchestration/accepted/${extractor.call_id}.json`;
+        const acceptance = JSON.parse(readFileSync(join(run, acceptancePath), 'utf8'));
+        const attacks: Array<{ name: string; path: string; replace?: (bytes: Buffer) => Buffer }> = [
+          ...['raw.json', 'validation.json', 'validated.json', 'native-dispatch.json', 'native-return.json', 'invocation.json']
+            .map((name) => ({ name, path: `control/worker-returns/${extractor.call_id}/${name}` })),
+          { name: 'worker-bundle', path: `control/worker-bundles/${extractor.call_id}/request.json` },
+          ...['intent', 'complete'].map((kind) => ({ name: `dispatch-${kind}`,
+            path: `control/orchestration/dispatch/${extractor.call_id}-${kind}.json` })),
+          ...acceptance.native.filter((entry: { path: string }) => /stream|event|completion/u.test(entry.path))
+            .map((entry: { path: string }, index: number) => ({ name: `native-stream-${index}`, path: entry.path })),
+          ...['run_id', 'stage', 'subject', 'checkpoint', 'chain', 'generation'].map((field) => ({
+            name: `work-${field}`, path: `control/orchestration/work/${extractor.work_id}.json`,
+            replace: (bytes: Buffer) => {
+              const { digest: _digest, ...body } = JSON.parse(bytes.toString());
+              if (field === 'run_id') body.identity.run_id += '-other';
+              if (field === 'stage') body.identity.work.obligation.stage = 'S3';
+              if (field === 'subject') body.identity.work.obligation.subject_id += '-other';
+              if (field === 'checkpoint') body.identity.checkpoint = `sha256:${'0'.repeat(64)}`;
+              if (field === 'chain') body.identity.ledger.chain_head = `sha256:${'0'.repeat(64)}`;
+              if (field === 'generation') body.identity.work.capture_generation = '999';
+              return stableJsonBytes({ ...body, digest: materialHash(stableJsonBytes(body)) });
+            },
+          })),
+          { name: 'accepted-return-for-another-work', path: acceptancePath,
+            replace: () => readFileSync(join(run, `control/orchestration/accepted/${initialWork.call_id}.json`)) },
+        ];
+        for (const attack of attacks) {
+          const path = join(run, attack.path), exact = readFileSync(path), mode = statSync(path).mode & 0o777;
+          try {
+            chmodSync(path, 0o600);
+            writeFileSync(path, attack.replace ? attack.replace(exact) : Buffer.concat([exact, Buffer.from('\n')]));
+            chmodSync(path, mode);
+            const refused = command('cli', ['--root', host, '--json', '--allow-fixture-simulation', 'resume', id], 1);
+            assert.equal(refused.result, 'FAIL');
+            for (const [path, digest] of canonical) assert.equal(materialHash(readFileSync(join(run, path))), digest);
+            writeFileSync(join(scratch, `C07-${attack.name}-refusal.json`), JSON.stringify(refused, null, 2));
+          } finally { chmodSync(path, 0o600); writeFileSync(path, exact); chmodSync(path, mode); }
+          console.log(`PASS C07 installed retained-evidence tamper ${attack.name}; canonical BEFORE preserved`);
+        }
+      }
+      if (process.env.F03_C07_FAULTS === '1') crashSequence('s2.capture', [
+        'derived', 'commit-intent', 'writer-prepared', 'effect:verification/harness/semantic-subjects/SEM-0001.json',
+        'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed',
+      ], preserved);
+      resumed = cli('resume', id); preserved();
+      let lastCapture = extractor;
+      for (let generation = 0; generation < 2; generation++) {
+        const review = resumed.details.work;
+        const request = JSON.parse(readFileSync(join(review.worker_bundle, 'request.json'), 'utf8'));
+        assert.equal(request.role, 'verifier-l2s', 'stationary L2S precedes another extractor');
+        const path = request.allowlist.find((entry: { run_path: string }) =>
+          entry.run_path.startsWith('verification/harness/semantic-subjects/')).run_path;
+        const subject = JSON.parse(readFileSync(join(run, path), 'utf8')) as SemanticSubject;
+        assert.equal(subject.subject_kind, 'degraded-packet');
+        runFixture(review, fixtureResult(subject));
+        if (process.env.F03_C07_FAULTS === '1' && generation === 0) {
+          crashSequence('sem.resolve', ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes',
+            'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
+          crashSequence('s2.prepare-extractor', ['derived', 'commit-intent', 'writer-prepared',
+            'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
+        }
+        resumed = cli('resume', id); preserved();
+        const next = resumed.details.work;
+        assert.equal(JSON.parse(readFileSync(join(next.worker_bundle, 'request.json'), 'utf8')).role, 'extractor');
+        assert.notEqual(next.call_id, lastCapture.call_id);
+        const retry = structuredClone(extraction);
+        retry.producer_invocation_id = next.call_id;
+        retry.packets[0].degradation_reason = 'Synthetic second mechanically distinct grouping limitation.';
+        retry.packets[0].material_use.reason = retry.packets[0].degradation_reason;
+        retry.semantic_units[0].semantics.unresolved_findings[0].missing = retry.packets[0].degradation_reason;
+        runFixture(next, retry);
+        if (process.env.F03_C07_FAULTS === '1' && generation === 1) crashSequence('s2.capture',
+          ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint',
+            'journal-committed', 'consumed'], preserved);
+        if (process.env.F03_C07_FAULTS === '1' && generation === 1) crashSequence('s2.stationary-halt',
+          ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint',
+            'journal-committed', 'consumed'], preserved);
+        resumed = cli('resume', id); preserved(); lastCapture = next;
+      }
+      assert.equal(resumed.details.work.code, 'WORK_STATIONARY_FRONTIER');
+      const records = readdirSync(join(run, 'verification/harness/stationary-captures'))
+        .map((name) => JSON.parse(readFileSync(join(run, 'verification/harness/stationary-captures', name), 'utf8')))
+        .sort((a, b) => Number(a.basis.generation) - Number(b.basis.generation));
+      assert.deepEqual(records.map((entry) => entry.basis.generation), ['0', '1', '2']);
+      assert.deepEqual(records.map((entry) => entry.selectors[0].disposition),
+        ['new-accounting', 'new-accounting', 'duplicate-accounting']);
+      assert.equal(parseSemanticLedger(readFileSync(join(run, 'ledgers/semantic-review.md'), 'utf8')).subjects.length, 2);
+      assert.equal(records[2].selectors[0].semantic_id, records[1].selectors[0].semantic_id);
+      const chain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
+      const workFiles = readdirSync(join(run, 'control/orchestration/work'));
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const same = cli('resume', id); preserved();
+        assert.deepEqual(same.details.work, resumed.details.work);
+        assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(chain));
+        assert.deepEqual(readdirSync(join(run, 'control/orchestration/work')), workFiles);
+      }
+      console.log('PASS C07 installed fresh-process stationary accounting, two reviewed generations, duplicate disposition and stable non-dispatch halt');
+      console.log('EVIDENCE: fixture-simulated transport only; no provider invocation or semantic acceptance; F-03/F-04/F-05 OPEN.');
+    } else if (stationaryMode) {
       const preserved = ['run-manifest.md', 'ledgers/source-walk.md', 'ledgers/packet-index.md',
         'ledgers/semantic-review.md', 'ledgers/representation-uses.md',
         'control/ledger-chain.jsonl', 'control/run-state.json'];

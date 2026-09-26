@@ -1,4 +1,5 @@
 import { duplicateSuccessorSubject, duplicatePath, validateDuplicateRun } from './duplicate-review.js';
+import { stationaryDuplicateSubject } from './stationary-capture.js';
 import { WIDENING_RETURN_FORMAT, WIDENING_TASK, WIDENING_PREPARATIONS, wideningCallId, validatePacketWideningBasis, packetWideningCaptures, packetWideningReceiptAuthorized, isPostS2WidenedPacket } from './packet-widening.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
@@ -1534,6 +1535,12 @@ export function validateSemanticRun(model) {
             || ledger.assignments.some((a) => a.semantic_id === id && !results.has(a.review_id)))
             pending.push(id);
     const assertCandidateCoverage = (stage) => {
+        const duplicateReviewed = (callId, entry) => {
+            if (stage !== 'S2' || !hasRunCapability(model.manifest.runFormatVersion, 'orchestrator-work-transitions'))
+                return false;
+            const id = stationaryDuplicateSubject(model, callId, entry.output_kind, entry.output_index);
+            return id !== null && reviewed(id);
+        };
         for (const [id, tuple] of producers)
             if (subjects.get(id).owner_stage === stage) {
                 const receipt = ledger.subjects.find((r) => r.semantic_id === id);
@@ -1542,7 +1549,8 @@ export function validateSemanticRun(model) {
                 const returned = parseStrictJson(readMaterialFile(model.runDir, path));
                 for (const entry of returned.semantic_units)
                     requireSemantic([...producers.entries()].some(([id, p]) => p.call_id === tuple.call_id && p.context_id === tuple.context_id
-                        && p.raw_return_hash === tuple.raw_return_hash && p.output_kind === entry.output_kind && p.output_index === entry.output_index && reviewed(id)), 'SEM_ACCOUNTING', path, 'emitted candidate selector has no completed L2S review');
+                        && p.raw_return_hash === tuple.raw_return_hash && p.output_kind === entry.output_kind && p.output_index === entry.output_index && reviewed(id))
+                        || duplicateReviewed(tuple.call_id, entry), 'SEM_ACCOUNTING', path, 'emitted candidate selector has no completed L2S review');
             }
         for (const file of model.files) {
             const manual = /^verification\/harness\/semantic-process\/([^/]+)\.raw\.json$/u.exec(file.relativePath);
@@ -1570,7 +1578,8 @@ export function validateSemanticRun(model) {
             if (producerStage !== stage)
                 continue;
             for (const entry of returned.semantic_units)
-                requireSemantic([...producers.entries()].some(([id, p]) => p.call_id === callId && p.raw_return_hash === rawHash && p.output_kind === entry.output_kind && p.output_index === entry.output_index && reviewed(id)), 'SEM_ACCOUNTING', file.relativePath, 'retained emitted producer candidate has no completed L2S review');
+                requireSemantic([...producers.entries()].some(([id, p]) => p.call_id === callId && p.raw_return_hash === rawHash && p.output_kind === entry.output_kind && p.output_index === entry.output_index && reviewed(id))
+                    || duplicateReviewed(callId, entry), 'SEM_ACCOUNTING', file.relativePath, 'retained emitted producer candidate has no completed L2S review');
         }
     };
     for (const claim of model.claims)
