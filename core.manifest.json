@@ -959,7 +959,9 @@
       "calibration/src-001/core-design-basis/STOPPED-f03-production-reachability-implementation-s3-packet-relation-ownership-conflict-20260919.md",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c06-stopped-checkpoint-20260919.json",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c06-continuation-progress-20260926.json",
-      "calibration/src-001/core-design-basis/EVIDENCE-f03-c05-installed-rendering-repair-progress-20260926.json"
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c05-installed-rendering-repair-progress-20260926.json",
+      "calibration/src-001/core-design-basis/STOPPED-f03-production-reachability-implementation-stationary-degraded-capture-conflict-20260926.md",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-stopped-checkpoint-20260926.json"
     ]
   },
   "checker_paths": [
