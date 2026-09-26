@@ -9,6 +9,7 @@ import { pathToFileURL } from 'node:url';
 import { assembleBundles } from '../../../scripts/assemble-bundles.ts';
 import { predecessorSource } from '../../../scripts/compatibility-fixture-source.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
+import { sourceWalkReviewBasisDigest } from '../../../scripts/lib/checks-k2.ts';
 import { installLoaBundle } from '../src/installer.ts';
 import { semanticJson, parseSemanticLedger, type SemanticSubject, type SemanticEntry } from '../../../scripts/lib/semantic-review.ts';
 import { fixtureSemantics, fixtureResult, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
@@ -598,17 +599,18 @@ if (process.argv[2] === '--fixture-worker') {
         const subject = JSON.parse(readFileSync(join(run, reviewed.allowlist.find((entry: any) =>
           entry.run_path.startsWith('verification/harness/semantic-subjects/')).run_path), 'utf8')) as SemanticSubject;
         runFixture(review, fixtureResult(subject));
-        resumed = cli('resume', id);
-        assert.equal(JSON.parse(readFileSync(join(resumed.details.work.worker_bundle, 'request.json'), 'utf8')).role, 'verifier-l1');
         const afterGap = loadRun(run);
         assert.deepEqual(afterGap.sourceWalk.intervals.map((row) => row.raw), primary);
         assert.deepEqual(afterGap.sourceWalk.cursors.map((row) => row.raw), cursors);
         assert.equal(afterGap.packets.length, beforeGap.packets.length + 1);
         assert.equal(afterGap.sourceWalk.events.filter((row) => row.values.origin === 'gap-reconciliation').length, 1);
         assert(afterGap.sourceWalk.gapReviews.some((row) => row.values.status === 'reconciled'));
+        const cursor = beforeGap.sourceWalk.cursors.at(-1)!.values.cursorId;
+        assert.equal(sourceWalkReviewBasisDigest(afterGap, sourceRow.sourceId, cursor),
+          sourceWalkReviewBasisDigest(beforeGap, sourceRow.sourceId, cursor),
+          'Core L1 basis excludes reconciliation additions; an extra L1 is not an adopted completion prerequisite');
         assert(readFileSync(producerRawPath).equals(producerRaw));
-        console.log('PASS supported CLI L1 gap discovery, separate exact producer, fresh L2S, committed gap event and preserved primary history');
-        runFixture(resumed.details.work, noGap);
+        console.log('PASS supported CLI L1 gap discovery, exact reconciliation and accepted fresh L2S; original review basis and primary history preserved');
       } else runFixture(gap, noGap);
       if (process.env.F03_S2_BOUNDARY_FAULTS === '1') {
         for (const operation of ['stage.seal-S2', 'stage.enter-S3']) {
@@ -634,6 +636,13 @@ if (process.argv[2] === '--fixture-worker') {
       assert.equal(resumed.stage, 'S3');
       assert.equal(loadRun(run).sourceWalk.completions[0].values.completionState, 'complete');
       assert(existsSync(join(run, 'verification/harness/semantic-stage-seals/S2.json')));
+      if (process.env.F03_S2_GAP === '1') {
+        const requests = readdirSync(join(run, 'control/worker-bundles')).map((call) =>
+          JSON.parse(readFileSync(join(run, 'control/worker-bundles', call, 'request.json'), 'utf8')));
+        assert.equal(requests.filter((request) => request.role === 'verifier-l1').length, 1);
+        assert.equal(loadRun(run).sourceWalk.gapReviews[0].values.status, 'reconciled');
+        console.log('PASS reconciled gap and fresh L2S close S2 without duplicating L1 or changing its primary review basis');
+      }
       console.log('PASS supported CLI fresh fixture L1, complete source projection, S2 seal and S3 entry');
       const journals = readdirSync(join(run, 'control/transactions')).map((name) => JSON.parse(readFileSync(join(run, 'control/transactions', name), 'utf8')));
       const seal = journals.find((entry) => entry.plan?.obligation?.operation === 'stage.seal-S2');
