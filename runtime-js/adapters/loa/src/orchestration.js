@@ -417,7 +417,14 @@ export function deriveAuthenticatedWork(runDir, id, recovering = false) {
         }
         const beforeState = readRunState(basis), chainPath = join(basis, 'control/ledger-chain.jsonl');
         const model = loadRun(basis);
-        const transition = deriveWorkTransition(model, execution(beforeState), work.identity.work, accepted ? valueOf(accepted.receipt, accepted.returned, work.call.role) : null, work.created_at);
+        const value = accepted ? valueOf(accepted.receipt, accepted.returned, work.call.role) : null;
+        if (value && work.identity.work.obligation.operation === 's3.capture-widening') {
+            value.widening_work_provenance = {
+                work_record_base64: stableJsonBytes(work).toString('base64'),
+                acceptance_record_base64: stableJsonBytes(accepted.receipt).toString('base64'),
+            };
+        }
+        const transition = deriveWorkTransition(model, execution(beforeState), work.identity.work, value, work.created_at);
         const proposed = mkdtempSync(join(tmpdir(), 'aleph-work-proposed-'));
         try {
             cpSync(basis, proposed, { recursive: true });

@@ -536,6 +536,14 @@ CONSTRAINTS
 - The old packet, normalizer return and S2 seal remain immutable.
 - New packets need new identities, legal existing lineage and fresh L2S.
 - Widening does not admit the triggering claim or authorize semantic acceptance.
+- The view's `basis.first_packet_id` binds Core's next PKT allocation. Packet
+  fragments receive consecutive IDs from that value, in packet output order
+  and then fragment order. Use those exact identities in packet relation
+  proposals; the worker does not allocate or write canonical packets.
+- An otherwise-PKT-legal relation inside this fresh widened-packet semantic
+  subject is S3-owned under C-06. Preserve its PKT source and exact producer.
+  CC-only relation types remain forbidden for a PKT source. This retains a
+  proposal for fresh review; it creates no canonical REL.
 ```
 
 **Bundle:** the exact Core-derived S3 widening view: retained request, frozen

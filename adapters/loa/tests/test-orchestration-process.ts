@@ -421,6 +421,17 @@ if (process.argv[2] === '--fixture-worker') {
                 fragments: [{ fragment_order: 1, locator: 'L1-L2', exact_bytes_base64: view.basis.exact_bytes_base64 }],
                 rendered_text: inputText }], material_findings: [],
               semantic_units: [structuredClone(extraction.semantic_units[0])] };
+            if (process.env.F03_C06 === '1') {
+              const relation = { format: 'aleph-relation-review-subject/v1', owner_stage: 'S3',
+                family: 'source-context', type: 'qualifier-context', source_kind: 'PKT',
+                source_id: view.basis.first_packet_id, target_kind: 'source-locus', target_id: 'none',
+                target_source_id: sourceRow.sourceId, target_locator: 'L1-L1',
+                target_span_hash: materialHash(fragment), record_state: 'asserted', null_reason: 'none',
+                basis_packet_ids: [view.basis.first_packet_id], proposed_by: `invocation:${work.call_id}` };
+              widened.semantic_units[0].semantics.relation_proposals.push({
+                subject: relation, review_subject_digest: materialHash(semanticJson(relation)), material_use: TEXT_USE,
+              });
+            }
             const beforePackets = loadRun(run).packets.length;
             runFixture(work, widened);
             if (process.env.F03_C05_FAULTS === '1') crashSequence('s3.capture-widening',

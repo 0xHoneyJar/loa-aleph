@@ -35,6 +35,8 @@ import {
   usesTypedRelations,
 } from './run-model.ts';
 import type { RunModel, SourceRow } from './run-model.ts';
+import { widenedPacketRelationEligible } from './packet-widening.ts';
+import type { SemanticSubject } from './semantic-review.ts';
 
 const SOURCE_KINDS = ['CC', 'PKT'] as const;
 const TARGET_KINDS = ['CC', 'PKT', 'source-locus', 'null'] as const;
@@ -270,6 +272,7 @@ function checkRow(
   currentPackets: ReadonlySet<string>,
   fail: (message: string) => void,
   proposal = false,
+  semanticSubject?: SemanticSubject,
 ): void {
   const values = row.values;
   const label = values.relationId || 'relation row';
@@ -442,7 +445,10 @@ function checkRow(
     }
   }
   if (values.ownerStage === 'S3' && values.sourceKind !== 'CC') {
-    fail(`${label} S3 relation proposals require a CC source`);
+    let widened = false;
+    try { widened = widenedPacketRelationEligible(model, row, semanticSubject); }
+    catch (error) { fail(String(error)); }
+    if (!widened) fail(`${label} S3 relation proposals require a CC source`);
   }
 
   const basis = parsePacketBasis(values.basisPacketIds);
@@ -507,12 +513,13 @@ function checkRow(
 }
 
 /** The same Slice 4 rules, before REL allocation or L3R certification. */
-export function relationProposalProblems(model: RunModel, row: RelationRow, historical = false): string[] {
+export function relationProposalProblems(model: RunModel, row: RelationRow, historical = false,
+  semanticSubject?: SemanticSubject): string[] {
   const problems: string[] = [];
   checkRow(model, row,
     historical ? new Set(model.claims.map((c) => c.values.claimId)) : lineageCurrentClaimIds(model),
     historical ? new Set(model.packets.map((p) => p.values.packetId)) : lineageCurrentPacketIds(model),
-    (problem) => problems.push(problem), true);
+    (problem) => problems.push(problem), true, semanticSubject);
   return problems;
 }
 

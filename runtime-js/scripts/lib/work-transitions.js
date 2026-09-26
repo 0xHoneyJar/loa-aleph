@@ -489,6 +489,7 @@ function deriveWideningCapture(model, work, accepted) {
     const checked = validateSemanticReturn('extractor', model.manifest.runFormatVersion, returned, packetWideningProducerView(model, basis).context);
     assertWork(checked.result === 'PASS', 'WORK_RETURN', checked.errors.join('; '));
     const packetIds = model.packets.map((row) => row.values.packetId), evidenceIds = model.exactEvidence.records.map((row) => row.values.evidenceKey);
+    assertWork(nextId('PKT', packetIds) === basis.first_packet_id, 'WORK_WIDENING', 'retained packet allocation changed');
     const fragmentIds = model.exactEvidence.fragments.map((row) => row.values.fragmentKey), transformIds = model.exactEvidence.transformations.map((row) => row.values.transformKey);
     const packetRows = [], evidenceRows = [], fragmentRows = [], transformRows = [];
     const selectors = [], inputs = new Map();
@@ -533,7 +534,8 @@ function deriveWideningCapture(model, work, accepted) {
             `Exact retained widening ${basis.normalizer_call_id}/${basis.output_selector}/${basis.request_index}.`, call]].map((row) => row.map(String))) : null;
     const capture = { format: 'aleph-s3-packet-widening-capture/v1', basis, call_id: call,
         raw_digest: accepted.raw_digest, context_id: accepted.context_id, producer_context_id: accepted.producer_context_id,
-        receipt_digest: accepted.receipt_digest, simulation: accepted.simulation, lineage_id: lineageId, lineage_type: lineageType, selectors };
+        receipt_digest: accepted.receipt_digest, simulation: accepted.simulation, lineage_id: lineageId, lineage_type: lineageType, selectors,
+        ...accepted.widening_work_provenance ? { work_provenance: accepted.widening_work_provenance } : {} };
     const effects = [...lineage ? [effect(model, 'ledgers/packet-index.md', packets), effect(model, 'ledgers/lineage.md', lineage)] : [],
         effect(model, `${WIDENING_CAPTURES}${call}.json`, workJson(capture)),
         ...selectors.map((selector) => effect(model, selector.binding_path, Buffer.from(semanticJson({

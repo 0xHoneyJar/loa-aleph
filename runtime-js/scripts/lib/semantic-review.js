@@ -1111,7 +1111,7 @@ export function validateSemanticSubject(value, model, visiting = new Set(), newR
         requireSemantic(context.proposal_index === i, 'SEM_REFERENCE', 'relation_context', 'proposal indexes in order required');
         const relation = subject.semantics.relation_proposals[i].subject;
         const row = semanticRelationRow(subject.semantics.relation_proposals[i]);
-        const problems = relationProposalProblems(model, row, true);
+        const problems = relationProposalProblems(model, row, true, subject);
         requireSemantic(problems.length === 0, 'SEM_REFERENCE', 'relation proposal', problems.join('; '));
         requireSemantic(packetIds.includes(relation.source_id) || subject.output_binding.kind === 'claim'
             && relation.source_id === subject.output_binding.reserved_claim_id, 'SEM_REFERENCE', 'relation source', 'local proposal must concern this output');
@@ -1689,10 +1689,6 @@ export function semanticUnresolvedSummary(model) {
 }
 export function buildSemanticSubject(model, input) {
     assertSemanticWindow(model, input.owner_stage);
-    for (const proposal of input.semantics.relation_proposals) {
-        const problems = relationProposalProblems(model, semanticRelationRow(proposal));
-        requireSemantic(problems.length === 0, 'SEM_REFERENCE', 'new relation proposal', problems.join('; '));
-    }
     const packetIds = outputPackets(input.output_binding);
     const subject = {
         format: SEMANTIC_SUBJECT_FORMAT, semantic_id: input.semantic_id, owner_stage: input.owner_stage, subject_kind: input.subject_kind,
@@ -1704,6 +1700,10 @@ export function buildSemanticSubject(model, input) {
         lineage_context: input.lineage_context, relation_context: input.relation_context, ambiguity_context: input.ambiguity_context, context_manifest: [],
     };
     subject.context_manifest = semanticContextManifest(model, subject);
+    for (const proposal of input.semantics.relation_proposals) {
+        const problems = relationProposalProblems(model, semanticRelationRow(proposal), false, subject);
+        requireSemantic(problems.length === 0, 'SEM_REFERENCE', 'new relation proposal', problems.join('; '));
+    }
     validateSemanticSubject(subject, model, new Set(), true);
     return subject;
 }

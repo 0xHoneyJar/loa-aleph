@@ -4,6 +4,7 @@ import { lineageCurrentClaimIds, lineageCurrentPacketIds, } from './lineage.js';
 import { findTables, normalizeHeader } from './markdown.js';
 import { RELATION_EXPLICIT_ABSENCE_REASON, RELATION_FAMILIES, RELATION_FAMILY_TYPES, RELATION_FORMAT, RELATION_INDETERMINATE_REASONS, RELATION_RECORD_STATES, RELATION_TABLE_HEADER, RELATION_TYPES, RELATION_UNRESOLVED_REASONS, parsePacketBasis, parseRelations, relationReviewSubjectDigest, } from './relations.js';
 import { SUPPORTED_RUN_FORMAT_VERSIONS, usesInternalAmbiguityLifecycle, usesTypedRelations, } from './run-model.js';
+import { widenedPacketRelationEligible } from './packet-widening.js';
 const SOURCE_KINDS = ['CC', 'PKT'];
 const TARGET_KINDS = ['CC', 'PKT', 'source-locus', 'null'];
 const CONCRETE_TARGET_KINDS = ['CC', 'PKT', 'source-locus'];
@@ -204,7 +205,7 @@ function concreteTargetTypeLegal(row) {
     }
     return isOneOf(values.targetKind, CONCRETE_TARGET_KINDS);
 }
-function checkRow(model, row, currentClaims, currentPackets, fail, proposal = false) {
+function checkRow(model, row, currentClaims, currentPackets, fail, proposal = false, semanticSubject) {
     const values = row.values;
     const label = values.relationId || 'relation row';
     const familyKnown = isOneOf(values.family, RELATION_FAMILIES);
@@ -359,7 +360,15 @@ function checkRow(model, row, currentClaims, currentPackets, fail, proposal = fa
         }
     }
     if (values.ownerStage === 'S3' && values.sourceKind !== 'CC') {
-        fail(`${label} S3 relation proposals require a CC source`);
+        let widened = false;
+        try {
+            widened = widenedPacketRelationEligible(model, row, semanticSubject);
+        }
+        catch (error) {
+            fail(String(error));
+        }
+        if (!widened)
+            fail(`${label} S3 relation proposals require a CC source`);
     }
     const basis = parsePacketBasis(values.basisPacketIds);
     if (!basis.clean || new Set(basis.ids).size !== basis.ids.length) {
@@ -419,9 +428,9 @@ function checkRow(model, row, currentClaims, currentPackets, fail, proposal = fa
     }
 }
 /** The same Slice 4 rules, before REL allocation or L3R certification. */
-export function relationProposalProblems(model, row, historical = false) {
+export function relationProposalProblems(model, row, historical = false, semanticSubject) {
     const problems = [];
-    checkRow(model, row, historical ? new Set(model.claims.map((c) => c.values.claimId)) : lineageCurrentClaimIds(model), historical ? new Set(model.packets.map((p) => p.values.packetId)) : lineageCurrentPacketIds(model), (problem) => problems.push(problem), true);
+    checkRow(model, row, historical ? new Set(model.claims.map((c) => c.values.claimId)) : lineageCurrentClaimIds(model), historical ? new Set(model.packets.map((p) => p.values.packetId)) : lineageCurrentPacketIds(model), (problem) => problems.push(problem), true, semanticSubject);
     return problems;
 }
 export function runK2Relations(results, model) {

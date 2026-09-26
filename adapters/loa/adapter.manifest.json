@@ -78,6 +78,7 @@
     "adapters/loa/tests/test-f03-indeterminate-claim-binding-conflict.ts",
     "adapters/loa/tests/test-f03-s3-packet-widening-conflict.ts",
     "adapters/loa/tests/test-f03-s3-packet-relation-ownership-conflict.ts",
+    "adapters/loa/tests/test-f03-widened-packet-relations.ts",
     "adapters/loa/tests/test-f03-packet-widening.ts",
     "adapters/loa/tests/test-f03-s4-transitions.ts",
     "adapters/loa/tests/test-f03-indeterminate-claim-binding.ts",

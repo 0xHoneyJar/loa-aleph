@@ -8,7 +8,8 @@ import { hasRunCapability } from './run-model.js';
 import { canonicalJsonBytes } from './bundle-format.js';
 import { parseStrictJson } from './worker-return-contract.js';
 import { framedExactEvidenceHash } from './checks-k2.js';
-import { semanticClaimCell } from './semantic-review.js';
+import { semanticClaimCell, semanticJson, semanticProducerBinding, semanticRelationRow, parseSemanticLedger, semanticSubjectPath, validateSemanticSubjectShape } from './semantic-review.js';
+import { relationReviewSubjectJson } from './relations.js';
 export const WIDENING_RETURN_FORMAT = 'aleph-s3-packet-widening-return/v1';
 export const WIDENING_CONTRACT = 'S3 — bounded packet widening (1.9)';
 export const WIDENING_TASK = 'Propose exact packet semantics and material use only for the retained S3 widening request. Preserve the requested frozen source bounds and predecessor bytes. Emit no claims, primary walk intervals, extraction events or cursors.';
@@ -82,18 +83,20 @@ export function derivePacketWideningBasis(model, normalizerCallId, outputIndex, 
         exact_bytes_base64: span.bytes.toString('base64'), predecessor_cells: [...predecessor.cells],
         s2_seal_digest: wideningHash(seal), source_walk_digest: wideningHash(bytes(model, 'ledgers/source-walk.md')),
         lineage_digest: wideningHash(bytes(model, 'ledgers/lineage.md')),
-        packet_inventory_digest: wideningHash(bytes(model, 'ledgers/packet-index.md')), operation_family: 'bounded-packet-widening' };
+        packet_inventory_digest: wideningHash(bytes(model, 'ledgers/packet-index.md')), operation_family: 'bounded-packet-widening',
+        first_packet_id: `PKT-${String(model.packets.reduce((max, row) => Math.max(max, Number(row.values.packetId.slice(4))), 0) + 1).padStart(4, '0')}` };
 }
 /** Reopening history never refreshes a saved request to the current checkpoint. */
 export function validatePacketWideningBasis(model, basis, retained = false) {
     exactKeys(basis, ['format', 'run_id', 'run_format', 'capability', 'owner_stage', 'normalizer_call_id',
         'normalizer_raw_digest', 'output_selector', 'request_index', 'request', 'source_id', 'source_path', 'source_hash',
         'start_byte', 'end_byte', 'exact_bytes_base64', 'predecessor_cells', 's2_seal_digest', 'source_walk_digest',
-        'lineage_digest', 'packet_inventory_digest', 'operation_family'], 'widening basis');
+        'lineage_digest', 'packet_inventory_digest', 'operation_family', 'first_packet_id'], 'widening basis');
     assertWidening(basis.format === 'aleph-s3-packet-widening-basis/v1' && basis.run_id === model.manifest?.runId
         && basis.run_format === model.manifest.runFormatVersion && basis.owner_stage === 'S3'
         && basis.capability === 'orchestrator-work-transitions' && basis.operation_family === 'bounded-packet-widening'
-        && hasRunCapability(basis.run_format, basis.capability), 'run, format, stage and family binding differs');
+        && hasRunCapability(basis.run_format, basis.capability)
+        && /^PKT-\d{4,}$/u.test(basis.first_packet_id), 'run, format, stage and family binding differs');
     const match = /^claim-candidate:(0|[1-9]\d*)$/u.exec(basis.output_selector);
     assertWidening(match, 'original claim selector required');
     if (!retained) {
@@ -122,7 +125,8 @@ export function packetWideningCaptures(model) {
     return model.files.filter((file) => file.relativePath.startsWith(WIDENING_CAPTURES)).map((file) => {
         const value = parseStrictJson(file.text);
         exactKeys(value, ['format', 'basis', 'call_id', 'raw_digest', 'context_id', 'producer_context_id',
-            'receipt_digest', 'simulation', 'lineage_id', 'lineage_type', 'selectors'], 'widening capture');
+            'receipt_digest', 'simulation', 'lineage_id', 'lineage_type', 'selectors',
+            ...Object.hasOwn(value, 'work_provenance') ? ['work_provenance'] : []], 'widening capture');
         assertWidening(value.format === 'aleph-s3-packet-widening-capture/v1'
             && file.relativePath === `${WIDENING_CAPTURES}${value.call_id}.json`
             && value.call_id === wideningCallId(value.basis) && typeof value.context_id === 'string'
@@ -171,6 +175,7 @@ function validateCapturedOutputs(model, capture, raw) {
         assertWidening(fragments.length === exact.length, 'complete ordered fragment set required');
         selector.packet_ids.forEach((id, index) => {
             assertWidening(/^PKT-\d{4,}$/u.test(id) && !packetIds.has(id) && id !== capture.basis.request.packet, 'unique new packet identities required');
+            assertWidening(id === `PKT-${String(Number(capture.basis.first_packet_id.slice(4)) + packetIds.size).padStart(4, '0')}`, 'new packets must follow the retained allocation in output/fragment order');
             packetIds.add(id);
             const fragment = candidate.fragments[index], packets = model.packets.filter((row) => row.values.packetId === id);
             assertWidening(packets.length === 1 && same(packets[0].cells, [id, capture.basis.source_id, fragment.locator, wideningHash(exact[index]), exact[index].toString('utf8'),
@@ -210,4 +215,135 @@ export function isPostS2WidenedPacket(model, packetId) {
     const captures = packetWideningCaptures(model).filter((capture) => capture.selectors.some((selector) => selector.packet_ids.includes(packetId)));
     assertWidening(captures.length <= 1, 'one widening capture per new packet required');
     return captures.length === 1 && packetWideningReceiptAuthorized(model, packetId, captures[0].call_id);
+}
+/** C-06 witnesses are retained work/acceptance bytes, never a worker permission flag.
+ * The adapter reauthenticates the original transport and dependencies separately.
+ * Core checks the witness against the exact C-05 capture and its committed effect. */
+export function widenedPacketRelationEligible(model, row, subject) {
+    if (model.manifest?.runFormatVersion !== '1.9.0-provisional'
+        || !hasRunCapability(model.manifest.runFormatVersion, 'orchestrator-work-transitions')
+        || row.values.ownerStage !== 'S3' || row.values.sourceKind !== 'PKT')
+        return false;
+    if (!subject) {
+        const ledger = parseSemanticLedger(bytes(model, 'ledgers/semantic-review.md').toString());
+        const matches = ledger.subjects.filter((entry) => entry.owner_stage === 'S3' && entry.subject_kind === 'packet-group').flatMap((entry) => {
+            assertWidening(entry.subject_path === semanticSubjectPath(entry.semantic_id), 'C06 exact subject path required');
+            const value = parseStrictJson(bytes(model, entry.subject_path));
+            validateSemanticSubjectShape(value);
+            return value.semantics.relation_proposals.some((proposal) => relationReviewSubjectJson(semanticRelationRow(proposal).values)
+                === relationReviewSubjectJson(row.values)) ? [value] : [];
+        });
+        if (matches.length !== 1)
+            return false;
+        subject = matches[0];
+    }
+    if (subject.owner_stage !== 'S3' || subject.subject_kind !== 'packet-group'
+        || subject.output_binding.kind !== 'packet-group' || row.values.ownerStage !== 'S3'
+        || row.values.sourceKind !== 'PKT')
+        return false;
+    const packets = subject.output_binding.packet_ids;
+    const captures = packetWideningCaptures(model).filter((capture) => capture.selectors.some((selector) => selector.output_kind === 'packet-candidate' && same(selector.packet_ids, packets)
+        && subject.producer_binding_hash === semanticProducerBinding({
+            call_id: capture.call_id, context_id: capture.context_id, raw_return_hash: capture.raw_digest,
+            output_kind: selector.output_kind, output_index: Number(selector.output_index),
+        })));
+    if (captures.length !== 1 || !captures[0].work_provenance)
+        return false;
+    const capture = captures[0], provenance = capture.work_provenance;
+    exactKeys(provenance, ['work_record_base64', 'acceptance_record_base64'], 'C06 work provenance');
+    const record = (value, label) => {
+        assertWidening(value !== null && typeof value === 'object' && !Array.isArray(value), label);
+        return value;
+    };
+    const sealed = (encoded, label) => {
+        assertWidening(typeof encoded === 'string', label);
+        const raw = Buffer.from(encoded, 'base64'), value = record(parseStrictJson(raw), label);
+        assertWidening(raw.toString('base64') === encoded && raw.equals(canonicalJsonBytes(value)), `${label} canonical bytes`);
+        const { digest, ...body } = value;
+        assertWidening(digest === wideningHash(canonicalJsonBytes(body)), `${label} digest`);
+        return value;
+    };
+    const work = sealed(provenance.work_record_base64, 'C06 work'), acceptance = sealed(provenance.acceptance_record_base64, 'C06 acceptance');
+    const identity = record(work.identity, 'C06 identity'), selected = record(identity.work, 'C06 selected work');
+    const obligation = record(selected.obligation, 'C06 obligation'), call = record(work.call, 'C06 call');
+    const pins = record(identity.pins, 'C06 pins'), ledger = record(identity.ledger, 'C06 ledger');
+    const state = record(parseStrictJson(bytes(model, 'control/run-state.json')), 'C06 current state');
+    assertWidening(work.work_id === `WORK-${wideningHash(canonicalJsonBytes(identity)).slice(7)}`
+        && identity.run_id === model.manifest.runId && state.run_id === identity.run_id
+        && same(state.identity, pins) && pins.run_format_version === model.manifest.runFormatVersion
+        && selected.kind === 'worker' && obligation.stage === 'S3' && obligation.operation === 's3.capture-widening'
+        && obligation.subject_id === `${capture.basis.normalizer_call_id}:${capture.basis.output_selector}:widen-request:${capture.basis.request_index}`
+        && obligation.subject_digest === wideningHash(canonicalJsonBytes(capture.basis))
+        && call.call_id === capture.call_id && call.role === 'extractor' && call.kind === 'producer'
+        && call.output_selector === WIDENING_CONTRACT && call.task_line === WIDENING_TASK, 'C06 exact durable widening work required');
+    assertWidening(acceptance.work_id === work.work_id && acceptance.work_digest === work.digest
+        && acceptance.digest === capture.receipt_digest && acceptance.call_id === capture.call_id
+        && acceptance.raw_digest === capture.raw_digest && acceptance.context_id === capture.context_id
+        && acceptance.producer_context_id === capture.producer_context_id && acceptance.simulation === capture.simulation
+        && acceptance.checkpoint === identity.checkpoint && acceptance.basis_digest === work.basis_digest
+        && typeof identity.checkpoint === 'string' && /^sha256:[0-9a-f]{64}$/u.test(identity.checkpoint), 'C06 work/acceptance/checkpoint binding differs');
+    assertWidening(Array.isArray(identity.dependencies) && identity.dependencies.some((entry) => record(entry, 'C06 dependency').call_id === capture.basis.normalizer_call_id), 'C06 triggering normalizer dependency missing');
+    const journal = record(parseStrictJson(bytes(model, `control/transactions/TXN-work-${String(work.work_id).slice(5)}.json`)), 'C06 journal');
+    const { digest, status, ...body } = journal;
+    const plan = record(journal.plan, 'C06 plan'), before = record(journal.state_before, 'C06 before');
+    const execution = record(before.execution, 'C06 execution'), resume = record(execution.resume, 'C06 resume');
+    const checkpoint = (state) => {
+        const projected = structuredClone(state);
+        record(record(projected.execution, 'C06 checkpoint execution').resume, 'C06 checkpoint resume').checkpoint_digest = '';
+        return wideningHash(canonicalJsonBytes(projected));
+    };
+    assertWidening(status === 'committed' && digest === wideningHash(canonicalJsonBytes(body))
+        && journal.work_id === work.work_id && same(plan.obligation, obligation)
+        && same(before.identity, identity.pins) && before.run_id === identity.run_id
+        && same(before.ledger, ledger) && execution.stage === 'S3' && resume.checkpoint_digest === identity.checkpoint
+        && checkpoint(before) === identity.checkpoint
+        && checkpoint(state) === record(record(state.execution, 'C06 state execution').resume, 'C06 state resume').checkpoint_digest, 'C06 committed transaction stage/run/work/checkpoint differs');
+    const intent = { format: 'aleph-loa-orchestration-commit/v1', work_id: work.work_id, work_digest: work.digest,
+        acceptance_digest: acceptance.digest, plan_digest: wideningHash(canonicalJsonBytes(plan)),
+        before_checkpoint: identity.checkpoint, before_chain: ledger.chain_head,
+        journal: `control/transactions/TXN-work-${String(work.work_id).slice(5)}.json` };
+    assertWidening(journal.intent_digest === wideningHash(canonicalJsonBytes(intent))
+        && typeof journal.chain_before === 'string' && typeof journal.chain_after === 'string'
+        && journal.chain_after.startsWith(journal.chain_before)
+        && bytes(model, 'control/ledger-chain.jsonl').toString().startsWith(journal.chain_after), 'C06 committed chain/intent differs');
+    const chain = bytes(model, 'control/ledger-chain.jsonl').toString().trim().split('\n').filter(Boolean);
+    let previous;
+    for (const line of chain) {
+        const receipt = record(parseStrictJson(line), 'C06 chain receipt'), { chain_digest, ...body } = receipt;
+        assertWidening(chain_digest === wideningHash(canonicalJsonBytes(body))
+            && (previous === undefined || receipt.previous_chain_digest === previous), 'C06 chain receipt differs');
+        previous = chain_digest;
+    }
+    assertWidening(previous === record(state.ledger, 'C06 current ledger').chain_head, 'C06 current chain head differs');
+    const effects = plan.effects;
+    assertWidening(Array.isArray(effects), 'C06 effects required');
+    const captured = effects.filter((effect) => record(effect, 'C06 effect').path === `${WIDENING_CAPTURES}${capture.call_id}.json`);
+    assertWidening(captured.length === 1, 'C06 exact capture effect required');
+    const effect = record(captured[0], 'C06 capture effect');
+    assertWidening(effect.before_digest === null && effect.after_base64 === canonicalJsonBytes(capture).toString('base64')
+        && effect.after_digest === wideningHash(canonicalJsonBytes(capture)), 'C06 accepted capture changed');
+    const selector = capture.selectors.find((entry) => same(entry.packet_ids, packets));
+    const returned = parseStrictJson(bytes(model, `control/worker-returns/${capture.call_id}/raw.json`));
+    const entry = returned.semantic_units.find((entry) => entry.output_kind === selector.output_kind
+        && entry.output_index === Number(selector.output_index));
+    assertWidening(entry && same(entry.semantics, subject.semantics)
+        && subject.predecessor_semantic_id === 'none' && packets.includes(row.values.sourceId)
+        && same(subject.packet_basis.map((basis) => basis.packet.packet_id), packets), 'C06 fresh subject or exact producer semantics differs');
+    const proposal = subject.semantics.relation_proposals.find((proposal) => relationReviewSubjectJson(semanticRelationRow(proposal).values) === relationReviewSubjectJson(row.values));
+    assertWidening(proposal && proposal.subject.owner_stage === subject.owner_stage
+        && proposal.subject.proposed_by === `invocation:${capture.call_id}`
+        && same(proposal.subject.basis_packet_ids, packets)
+        && proposal.review_subject_digest === wideningHash(semanticJson(proposal.subject))
+        && row.values.reviewSubjectDigest === proposal.review_subject_digest, 'C06 exact relation/source/basis/digest differs');
+    const semanticLedger = parseSemanticLedger(bytes(model, 'ledgers/semantic-review.md').toString());
+    const rows = semanticLedger.subjects.filter((entry) => entry.semantic_id === subject.semantic_id);
+    const owners = semanticLedger.subjects.filter((entry) => entry.producer_receipt_ref.startsWith(`${selector.binding_path}@`));
+    assertWidening(owners.length <= 1 && (!owners.length || owners[0].semantic_id === subject.semantic_id), 'C06 original selector cannot acquire another semantic subject');
+    assertWidening(rows.length <= 1 && (!rows.length || rows[0].owner_stage === 'S3'
+        && rows[0].subject_digest === wideningHash(semanticJson(subject))
+        && bytes(model, rows[0].subject_path).equals(Buffer.from(semanticJson(subject)))), 'C06 retained semantic subject digest differs');
+    const currentStage = record(state.execution, 'C06 current execution').stage;
+    assertWidening(typeof currentStage === 'string' && /^S(?:[3-9]|1[0-3])$/u.test(currentStage)
+        && (rows.length === 1 || currentStage === 'S3'), 'C06 fresh subject requires current S3');
+    return true;
 }
