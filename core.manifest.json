@@ -970,7 +970,8 @@
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-stopped-checkpoint-20260926.json",
       "calibration/src-001/core-design-basis/ADOPTED-f03-stationary-degraded-capture-accounting-clarification-20260926.md",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-accounting-implementation-progress-20260926.json",
-      "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-worker-request-byte-binding-repair-20260926.json"
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-worker-request-byte-binding-repair-20260926.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-c07-installed-recovery-and-s4-progress-20260926.json"
     ]
   },
   "checker_paths": [
