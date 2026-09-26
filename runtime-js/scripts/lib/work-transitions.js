@@ -515,7 +515,8 @@ function deriveWideningCapture(model, work, accepted) {
         evidenceRows.push([evidence, ids.join(', '), 'exact', String(ids.length), String(candidate.join_policy), hash, 'none', 'none', 'none']);
         const transform = nextId('XFORM', transformIds);
         transformIds.push(transform);
-        transformRows.push([transform, evidence, 'rendered', hash, hash, String(candidate.rendered_text), workDigest(String(candidate.rendered_text))]);
+        transformRows.push([transform, evidence, 'rendered', hash, hash, String(candidate.rendered_text),
+            workDigest(semanticClaimCell(String(candidate.rendered_text)))]);
         selectors.push({ output_kind: 'packet-candidate', output_index: String(index), packet_ids: ids, evidence_key: evidence,
             binding_path: `control/semantic-producer-bindings/${call}/packet-candidate-${index}.json` });
     }
@@ -1097,9 +1098,10 @@ function deriveS2Capture(model, work, accepted) {
         evidenceRows.push([evidence, ids.join(', ') || 'none', String(candidate.evidence_state), String(ids.length),
             String(candidate.join_policy), hash, exact ? 'none' : source.values.sourceId,
             exact ? 'none' : String(candidate.degraded_source_locator), exact ? 'none' : String(candidate.degradation_reason)]);
-        const transform = nextId('TRN', transformIds);
+        const transform = nextId('XFORM', transformIds);
         transformIds.push(transform);
-        transformRows.push([transform, evidence, 'rendered', hash, hash, String(candidate.rendered_text), workDigest(String(candidate.rendered_text))]);
+        transformRows.push([transform, evidence, 'rendered', hash, hash, String(candidate.rendered_text),
+            workDigest(semanticClaimCell(String(candidate.rendered_text)))]);
         selected.push({ ids, evidence, fragments, use: candidate.material_use });
     }
     let packets = required(model, 'ledgers/packet-index.md');
@@ -1646,6 +1648,12 @@ export function validateDerivedWorkTransition(model, proposedModel, transition) 
     }
     if (transition.source_completion) {
         assertWork(workJson(validateSourceWalkCompletionWrite(model, proposedModel)).equals(workJson(transition.source_completion)), 'WORK_PLAN', 'source-walk transition differs from Core lifecycle derivation');
+    }
+    if (transition.family === 's2-capture') {
+        const checks = new ResultCollector('bounded S2 packet evidence');
+        runK2(checks, proposedModel, join(model.runDir, 'control/runtime/bundle'));
+        const failures = checks.report().checks.filter((check) => check.id === 'K2.13' && check.status !== 'PASS');
+        assertWork(failures.length === 0, 'WORK_PACKET_EVIDENCE', failures.map((check) => check.message).join('; '));
     }
     if (transition.obligation.operation === 's3.capture-widening') {
         const checks = new ResultCollector('bounded S3 packet widening');

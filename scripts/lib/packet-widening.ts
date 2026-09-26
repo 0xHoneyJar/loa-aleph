@@ -249,7 +249,8 @@ function validateCapturedOutputs(model: RunModel, capture: PacketWideningCapture
     });
     const transformations = model.exactEvidence.transformations.filter((row) => row.values.evidenceKey === selector.evidence_key);
     assertWidening(transformations.length === 1 && same(transformations[0].cells.slice(1),
-      [selector.evidence_key, 'rendered', hash, hash, candidate.rendered_text, wideningHash(candidate.rendered_text)].map(semanticClaimCell)),
+      [selector.evidence_key, 'rendered', hash, hash, candidate.rendered_text,
+        wideningHash(semanticClaimCell(candidate.rendered_text))].map(semanticClaimCell)),
     'rendered derivative differs from producer bytes');
   }
   if (packetIds.size === 0) {

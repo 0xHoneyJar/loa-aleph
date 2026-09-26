@@ -185,7 +185,8 @@ function validateCapturedOutputs(model, capture, raw) {
                 wideningHash(exact[index]), fragment.exact_bytes_base64]), 'fragment identity, order or exact bytes differ');
         });
         const transformations = model.exactEvidence.transformations.filter((row) => row.values.evidenceKey === selector.evidence_key);
-        assertWidening(transformations.length === 1 && same(transformations[0].cells.slice(1), [selector.evidence_key, 'rendered', hash, hash, candidate.rendered_text, wideningHash(candidate.rendered_text)].map(semanticClaimCell)), 'rendered derivative differs from producer bytes');
+        assertWidening(transformations.length === 1 && same(transformations[0].cells.slice(1), [selector.evidence_key, 'rendered', hash, hash, candidate.rendered_text,
+            wideningHash(semanticClaimCell(candidate.rendered_text))].map(semanticClaimCell)), 'rendered derivative differs from producer bytes');
     }
     if (packetIds.size === 0) {
         assertWidening(capture.lineage_id === null && capture.lineage_type === null, 'material refusal creates no packet lineage');

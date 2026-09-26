@@ -384,4 +384,22 @@ test('two exact fragments use existing split lineage and remain one semantic sel
 for (const version of ['1.7.0-provisional', '1.8.0-provisional']) test(`${version} refuses the new producer contract`, () => {
   assert.equal(sem.validateSemanticReturn('extractor', version, producer).result, 'FAIL');
 });
+for (const [index, rendered] of ['Synthetic\nrendering\n', 'Synthetic & rendered | cell',
+  'Synthetic\r\nrendering', '  Synthetic rendering  '].entries()) test(`rendered cell ${index} hashes its retained encoding and preserves raw/exact bytes`, () => {
+  const root = join(scratch, `rendering-${index}`); cpSync(prepared, root, { recursive: true });
+  const value = structuredClone(producer); value.packets[0].rendered_text = rendered;
+  const raw = Buffer.from(sem.semanticJson(value));
+  writeFixtureFile(root, `control/worker-returns/${call}/raw.json`, raw);
+  const plan = core.deriveWorkTransition(loadRun(root), execution, worker,
+    { ...accepted, value: value as unknown as WorkValue['value'], raw_digest: core.workDigest(raw) }, '2026-09-26T12:00:00Z');
+  const after = apply(root, plan, `rendering-${index}-captured`), model = loadRun(after);
+  const transformation = model.exactEvidence.transformations.at(-1)!;
+  assert.match(transformation.values.transformKey, /^XFORM-[0-9]+$/u);
+  assert.equal(transformation.values.outputText, sem.semanticClaimCell(rendered));
+  assert.equal(transformation.values.outputTextHash, core.workDigest(transformation.values.outputText));
+  assert.equal(model.exactEvidence.fragments.at(-1)!.values.exactBytesBase64, basis.exact_bytes_base64);
+  assert(readFileSync(join(after, `control/worker-returns/${call}/raw.json`)).equals(raw));
+  assert(readFileSync(join(after, basis.source_path)).equals(readFileSync(join(prepared, basis.source_path))));
+  assert.equal(widening.packetWideningCaptures(model).length, 1);
+});
 console.log(JSON.stringify({ result: 'PASS', passed: count, runtime, scratch, scope: 'partial synthetic C05 Core transitions; not producer completion' }, null, 2));
