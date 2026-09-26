@@ -5,15 +5,28 @@ import { dirname, join } from 'node:path';
 import { hasRunCapability } from './lib/run-model.ts';
 const expect: (condition: unknown, message: string) => asserts condition = assert;
 
+/** Calibration administration, including closed references, is never input
+ * to a synthetic source checkout. Keep tooling administration such as ignore
+ * rules and generated-file attributes, without opening calibration bytes. */
+export function fixtureSourcePaths(paths: string[]): string[] {
+  return paths.filter((path) => !path.startsWith('calibration/'));
+}
+export function stripFixtureCalibrationInventory(root: string): void {
+  const path = join(root, 'core.manifest.json'), manifest = JSON.parse(readFileSync(path, 'utf8'));
+  manifest.files.repository_administration = fixtureSourcePaths(manifest.files.repository_administration);
+  writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
+}
+
 /** Exercise predecessor mechanics using a separate synthetic compatibility bundle. */
 export function predecessorSource(repository: string, root: string, version = '1.5.0-provisional'): string {
   const target = join(root, `source-${version}`); mkdirSync(target);
   const inventory = spawnSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: repository, encoding: 'utf8' });
   expect(inventory.status === 0, 'cannot inventory compatibility source');
-  for (const path of new Set(inventory.stdout.split('\0').filter(Boolean))) {
+  for (const path of new Set(fixtureSourcePaths(inventory.stdout.split('\0').filter(Boolean)))) {
     mkdirSync(dirname(join(target, path)), { recursive: true });
     copyFileSync(join(repository, path), join(target, path));
   }
+  stripFixtureCalibrationInventory(target);
   for (const path of ['core.manifest.json', 'adapters/loa/adapter.manifest.json', 'adapters/hermes/adapter.manifest.json', 'adapter-protocol/adapter.schema.json']) {
     writeFileSync(join(target, path), readFileSync(join(target, path), 'utf8').replaceAll('1.8.0-provisional', version));
   }

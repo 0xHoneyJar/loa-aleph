@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
+import { fixtureSourcePaths, stripFixtureCalibrationInventory } from '../scripts/compatibility-fixture-source.ts';
 import {
   canonicalJsonBytes,
   readJsonFile,
@@ -87,12 +88,12 @@ function git(root: string, args: string[], fixedDate = false): string {
 
 function sourceInventory(): string[] {
   const manifest = readJsonFile(join(REPO_ROOT, 'core.manifest.json')) as CoreManifest;
-  return [...new Set([
+  return fixtureSourcePaths([...new Set([
     ...manifest.files.core,
     ...Object.values(manifest.files.adapter).flat(),
     ...manifest.files.packaging,
     ...manifest.files.repository_administration,
-  ])].sort(utf8Compare);
+  ])]).sort(utf8Compare);
 }
 
 function createCleanSource(destination: string): void {
@@ -103,6 +104,7 @@ function createCleanSource(destination: string): void {
     mkdirSync(dirname(target), { recursive: true });
     cpSync(source, target, { recursive: true });
   }
+  stripFixtureCalibrationInventory(destination);
   git(destination, ['init', '-q']);
   git(destination, ['config', 'user.name', 'Aleph Release Tests']);
   git(destination, ['config', 'user.email', 'aleph-release-tests.invalid']);

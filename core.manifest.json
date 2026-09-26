@@ -735,6 +735,7 @@
       "tsconfig.runtime.json"
     ],
     "repository_administration": [
+      "calibration/src-001/core-design-basis/INCIDENT-f03-fixture-source-copy-scope-20260926.md",
       "calibration/src-001/core-design-basis/ADOPTED-f03-c09-s4-entry-atomic-bootstrap-clarification-20260926.md",
       ".gitattributes",
       ".github/CODEOWNERS",

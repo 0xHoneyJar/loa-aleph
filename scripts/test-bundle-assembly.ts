@@ -16,6 +16,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fixtureSourcePaths, stripFixtureCalibrationInventory } from './compatibility-fixture-source.ts';
 import {
   bundleLockBytes,
   canonicalJson,
@@ -155,7 +156,7 @@ function copyInventory(
   inventory: string[],
 ): void {
   mkdirSync(destination, { recursive: true });
-  for (const path of inventory) {
+  for (const path of fixtureSourcePaths(inventory)) {
     const source = join(sourceRoot, path);
     const target = join(destination, path);
     expect(
@@ -165,6 +166,7 @@ function copyInventory(
     mkdirSync(dirname(target), { recursive: true });
     cpSync(source, target);
   }
+  stripFixtureCalibrationInventory(destination);
 }
 
 function copyRepository(

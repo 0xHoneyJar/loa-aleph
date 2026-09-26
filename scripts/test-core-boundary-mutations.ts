@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateCoreBoundary } from './validate-core-boundary.ts';
+import { fixtureSourcePaths, stripFixtureCalibrationInventory } from './compatibility-fixture-source.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
@@ -81,7 +82,7 @@ function sourceFiles(): string[] {
       .split('\0')
       .filter(Boolean),
   );
-  return output.split('\0').filter((path) => path && !deleted.has(path));
+  return fixtureSourcePaths(output.split('\0').filter((path) => path && !deleted.has(path)));
 }
 
 function copyRepository(root: string): void {
@@ -90,6 +91,7 @@ function copyRepository(root: string): void {
     mkdirSync(dirname(destination), { recursive: true });
     cpSync(join(REPO_ROOT, path), destination);
   }
+  stripFixtureCalibrationInventory(root);
   runGit(root, ['init', '-q']);
   runGit(root, ['add', '--all']);
   runGit(
