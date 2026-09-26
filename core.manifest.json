@@ -716,7 +716,8 @@
         "adapters/loa/src/orchestration.ts",
         "runtime-js/adapters/loa/src/orchestration.js",
         "adapters/loa/tests/test-f03-c08-source-identity.ts",
-        "adapters/loa/tests/test-f03-c08-retained-discriminator.ts"
+        "adapters/loa/tests/test-f03-c08-retained-discriminator.ts",
+        "adapters/loa/tests/test-f03-c09-s4-entry-discriminator.ts"
       ]
     },
     "packaging": [
