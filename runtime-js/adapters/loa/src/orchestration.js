@@ -294,6 +294,7 @@ export function reopenAcceptedWorkReturn(runDir, workId) {
     const native = reopenNativeWorkerEvidence({ workerBundleRoot: root, returnRoot: returns });
     assertWork(assertWorkRequest(runDir, native.invocation.request).digest === work.digest, 'WORK_ACCEPTANCE', 'request belongs to another work');
     assertDispatchIntent(runDir, work, native.invocation.request, native.invocation.invocation_digest);
+    assertDispatchCompletion(runDir, work, native.invocation.invocation_digest, native.invocation.simulation !== null);
     const checked = withBasis(runDir, work.basis_digest, (basis) => checkWorkerReturn({
         workerBundleRoot: root, returnRoot: returns, raw: native.raw, dispatchReceipt: native.dispatch.receipt,
     }, loadRun(basis)));
@@ -334,6 +335,7 @@ export function acceptOrchestrationReturn(runDir, callId) {
         const native = reopenNativeWorkerEvidence({ workerBundleRoot: root, returnRoot: returns });
         assertWorkRequest(runDir, native.invocation.request);
         assertDispatchIntent(runDir, work, native.invocation.request, native.invocation.invocation_digest);
+        assertDispatchCompletion(runDir, work, native.invocation.invocation_digest, native.invocation.simulation !== null);
         const checked = withBasis(runDir, work.basis_digest, (basis) => checkWorkerReturn({
             workerBundleRoot: root, returnRoot: returns, raw: native.raw, dispatchReceipt: native.dispatch.receipt,
         }, loadRun(basis)));
@@ -359,6 +361,14 @@ function assertDispatchIntent(runDir, work, request, invocationDigest) {
         && intent.checkpoint === work.identity.checkpoint && /^[1-9][0-9]*$/u.test(intent.pid)
         && !Number.isNaN(Date.parse(intent.created_at))
         && intent.request_digest === sha256Digest(stableJsonBytes(request)), 'WORK_DISPATCH_INTENT', request.call_id);
+}
+function assertDispatchCompletion(runDir, work, invocationDigest, simulated) {
+    const callId = work.call.call_id;
+    const completion = readSealed(runDir, `${ROOT}/dispatch/${callId}-complete.json`, ['format', 'work_id', 'work_digest', 'invocation_digest', 'native']);
+    assertWork(completion.format === 'aleph-loa-dispatch-completion/v1'
+        && completion.work_id === work.work_id && completion.work_digest === work.digest
+        && completion.invocation_digest === invocationDigest
+        && stableJsonBytes(completion.native).equals(stableJsonBytes(retainedNativeDigests(runDir, callId, simulated))), 'WORK_DISPATCH_COMPLETION', callId);
 }
 export function beginOrchestrationDispatch(runDir, request, invocationDigest) {
     return withOrchestrationLock(runDir, () => {
