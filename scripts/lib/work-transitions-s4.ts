@@ -54,7 +54,7 @@ interface Capture {
   receipt_digest: string; simulation: boolean; binding_path: string | null; review_id: string | null;
 }
 type LocalWork = Extract<NextWork, { kind: 'local' | 'worker' }>;
-type Derived = Pick<WorkTransition, 'family' | 'effects' | 'origins'> & Partial<Pick<WorkTransition, 'duplicate' | 'simulation' | 's4_closure' | 'next_execution'>>;
+type Derived = Pick<WorkTransition, 'family' | 'effects' | 'origins'> & Partial<Pick<WorkTransition, 'duplicate' | 'simulation' | 's4_closure' | 'next_execution' | 'authority'>>;
 const json = <T>(bytes: Buffer): T => parseStrictJson(bytes, true) as T;
 const ledger = (model: RunModel) => parseDuplicateLedger(required(model, DUPLICATE_PATH).toString());
 const currentIds = (model: RunModel) => model.claims.map((row) => row.values.claimId).filter((id) => lineageCurrentClaimIds(model).has(id));
@@ -237,7 +237,7 @@ function selectedPreparation(model: RunModel, work: LocalWork): Preparation {
 export function deriveS4Transition(model: RunModel, work: LocalWork, accepted: WorkValue | null, now: string): Derived {
   const operation = work.obligation.operation;
   if (operation.startsWith('s4.relation.')) return deriveRelationTransition(model, work, accepted);
-  if (operation.startsWith('s4.ambiguity.')) return deriveAmbiguityTransition(model, work, accepted);
+  if (operation.startsWith('s4.ambiguity.')) return deriveAmbiguityTransition(model, work, accepted, now);
   if (['s4.close-C2', 's4.close-C3', 's4.enter-S5'].includes(operation)) {
     assertWork(accepted === null, 'WORK_S4_CLOSURE', 'closure consumes reviewed state only');
     validateAmbiguityWorkState(model);

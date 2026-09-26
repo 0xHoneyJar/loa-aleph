@@ -71,7 +71,7 @@ export interface SemanticFixture {
   assignment: SemanticAssignment; result: SemanticResult; ledger: SemanticLedger;
 }
 export function makeSemanticFixture(run: string, text = 'With the filter enabled, the counter rose.',
-  declaredSemantics?: Semantics, anchors?: AnchorInput[], version = '1.7.0-provisional'): SemanticFixture {
+  declaredSemantics?: Semantics, anchors?: AnchorInput[], version = '1.7.0-provisional', sourceId = 'SRC-701'): SemanticFixture {
   const root = SEMANTIC_TEST_ROOT;
   const manifest = JSON.parse(readFileSync(join(root, 'core.manifest.json'), 'utf8')) as CoreManifest;
   const adapter = JSON.parse(readFileSync(join(root, 'adapters/loa/adapter.manifest.json'), 'utf8')) as AdapterManifest;
@@ -81,16 +81,16 @@ export function makeSemanticFixture(run: string, text = 'With the filter enabled
   for (const path of new Set(['S2', 'S3', 'S4'].flatMap((stage) => semanticPromptRequirements(stage as 'S2').map((p) => p.path)))) {
     writeFixtureFile(run, `control/runtime/bundle/${path}`, readFileSync(join(root, path)));
   }
-  writeFixtureFile(run, 'README.md', '# Semantic structural fixture\n\n```aleph-fixture\nkind: run\nsrc_ids: SRC-701\n```\n\nSynthetic source and declared manual process records only. No human/model review was executed.\n');
+  writeFixtureFile(run, 'README.md', '# Semantic structural fixture\n\n```aleph-fixture\nkind: run\nsrc_ids: ' + sourceId + '\n```\n\nSynthetic source and declared manual process records only. No human/model review was executed.\n');
   const source = Buffer.from(text);
   const fragment = text.endsWith('\n') ? source.subarray(0, -1) : source;
   const semantics = declaredSemantics || fixtureSemantics(fragment.toString('utf8'));
   writeFixtureFile(run, 'corpus/sources/semantic.txt', source);
-  const capture = prepareRepresentationCapture([{ source_id: 'SRC-701', bytes: source }]);
+  const capture = prepareRepresentationCapture([{ source_id: sourceId, bytes: source }]);
   const inventory = representationMarkdown(capture.inventory);
   writeFixtureFile(run, 'corpus/representations.md', inventory);
   const corpus = '# Corpus Manifest\n\n' + fixtureTable(['source_id', 'kind', 'locus', 'scheme', 'content_hash', 'date(s)', 'trust_class', 'sensitivity', 'admission note'],
-    [['SRC-701', 'design-note', 'sources/semantic.txt', 'md-lines', materialHash(source), '2026-09-12', 'model-generated', 'none', 'Synthetic semantic contract exercise']]);
+    [[sourceId, 'design-note', 'sources/semantic.txt', 'md-lines', materialHash(source), '2026-09-12', 'model-generated', 'none', 'Synthetic semantic contract exercise']]);
   writeFixtureFile(run, 'corpus/manifest.md', corpus);
   let runManifest = readFileSync(join(root, 'docs/fixtures/exact-evidence-fragments/run-manifest.md'), 'utf8')
     .replaceAll('RUN-exact-evidence-fragments', 'RUN-semantic-unit-review')
@@ -107,11 +107,11 @@ export function makeSemanticFixture(run: string, text = 'With the filter enabled
   const evidenceHash = materialHash(Buffer.concat([Buffer.from(`${EXACT_EVIDENCE_FORMAT}\0`), size, fragment]));
   writeFixtureFile(run, 'ledgers/packet-index.md', `# Packet Index\n\n- exact_evidence_format: ${EXACT_EVIDENCE_FORMAT}\n\n## Packets\n\n`
     + fixtureTable(['packet_id', 'source_id', 'locator', 'span_hash', 'quote', 'criterion', 'status'],
-      [['PKT-0701', 'SRC-701', locator, materialHash(fragment), text.trim(), '1', 'active']])
+      [['PKT-0701', sourceId, locator, materialHash(fragment), text.trim(), '1', 'active']])
     + '\n## Exact evidence records\n\n' + fixtureTable(['evidence_key', 'packet_ids', 'evidence_state', 'fragment_count', 'join_policy', 'exact_evidence_hash', 'degraded_source_id', 'degraded_source_locator', 'degradation_reason'],
       [['EVID-0701', 'PKT-0701', 'exact', '1', 'single-fragment', evidenceHash, 'none', 'none', 'none']])
     + '\n## Exact fragments\n\n' + fixtureTable(['fragment_key', 'evidence_key', 'packet_id', 'fragment_order', 'source_id', 'locator', 'source_relation', 'byte_role', 'fragment_hash', 'exact_bytes_base64'],
-      [['FRAG-0701', 'EVID-0701', 'PKT-0701', '1', 'SRC-701', locator, 'frozen-source', 'exact-source-bytes', materialHash(fragment), fragment.toString('base64')]])
+      [['FRAG-0701', 'EVID-0701', 'PKT-0701', '1', sourceId, locator, 'frozen-source', 'exact-source-bytes', materialHash(fragment), fragment.toString('base64')]])
     + '\n## Evidence transformations\n\n' + fixtureTable(['transform_key', 'evidence_key', 'output_role', 'predecessor_exact_evidence_hash', 'effective_exact_evidence_hash', 'output_text', 'output_text_hash'], []));
   writeFixtureFile(run, 'ledgers/claim-inventory.md', '# Candidate-Claim Inventory\n\n' + fixtureTable(['claim_id', 'normalized claim', 'packets', 'sources', 'claim_type', 'disposition', 'rationale', 'judged_by', 'verified', 'status'], []));
   writeFixtureFile(run, 'ledgers/disposition-ledger.md', '# Disposition Ledger\n');
@@ -122,20 +122,20 @@ export function makeSemanticFixture(run: string, text = 'With the filter enabled
     + '\n## Exclusion classes\n\n' + fixtureTable(['class', 'description', 'example'], [['scaffolding', 'Headings without assertions.', 'A heading.']]));
   const walkPrefix = '# Source Walk Ledger\n\n- source_walk_format: aleph-source-walk/v1\n- source_position_format: zero-based-utf8-byte-half-open/v1\n\n## Primary walk intervals\n\n'
     + fixtureTable(['walk_id', 'source_id', 'start_byte', 'end_byte', 'outcome', 'packet_ids', 'criterion_ref', 'producer_invocation_id', 'closure_state', 'reason', 'closure_note'],
-      [['WLK-0701', 'SRC-701', '0', String(source.length), 'admitted', 'PKT-0701', 'admission:1', 'manual-producer-0701', 'closed', 'none', 'none']])
+      [['WLK-0701', sourceId, '0', String(source.length), 'admitted', 'PKT-0701', 'admission:1', 'manual-producer-0701', 'closed', 'none', 'none']])
     + '\n## Extraction events\n\n' + fixtureTable(['event_id', 'source_id', 'start_byte', 'end_byte', 'shared_position_key', 'event_ordinal', 'packet_id', 'origin', 'producer_invocation_id', 'status'],
-      [['EVT-0701', 'SRC-701', '0', String(fragment.length), 'SP-0701', '1', 'PKT-0701', 'primary', 'manual-producer-0701', 'committed']])
+      [['EVT-0701', sourceId, '0', String(fragment.length), 'SP-0701', '1', 'PKT-0701', 'primary', 'manual-producer-0701', 'committed']])
     + '\n## Resume cursors\n\n' + fixtureTable(['cursor_id', 'source_id', 'byte_offset', 'shared_position_key', 'next_event_ordinal', 'predecessor_walk_id', 'predecessor_event_id', 'source_hash', 'reason'],
-      [['CUR-0701', 'SRC-701', '0', 'none', 'none', 'none', 'none', materialHash(source), 'initial'],
-        ['CUR-0702', 'SRC-701', String(source.length), 'none', 'none', 'WLK-0701', 'EVT-0701', materialHash(source), 'source-complete']]);
+      [['CUR-0701', sourceId, '0', 'none', 'none', 'none', 'none', materialHash(source), 'initial'],
+        ['CUR-0702', sourceId, String(source.length), 'none', 'none', 'WLK-0701', 'EVT-0701', materialHash(source), 'source-complete']]);
   const gapHeaders = ['gap_review_id', 'source_id', 'producer_invocation_id', 'reviewer_invocation_id', 'review_basis_cursor_id', 'review_basis_digest', 'result', 'candidate_start_byte', 'candidate_end_byte', 'proposed_packet_id', 'reconciliation_event_id', 'status', 'note'];
   const completion = '\n## Per-source completion\n\n' + fixtureTable(['source_id', 'source_hash', 'source_length_bytes', 'final_cursor_id', 'gap_review_ids', 'completion_state', 'declared_by', 'note'],
-    [['SRC-701', materialHash(source), String(source.length), 'CUR-0702', 'GAP-0701', 'complete', 'synthetic-manual-coordinator', 'Synthetic gap record; no actual review execution.']]);
+    [[sourceId, materialHash(source), String(source.length), 'CUR-0702', 'GAP-0701', 'complete', 'synthetic-manual-coordinator', 'Synthetic gap record; no actual review execution.']]);
   writeFixtureFile(run, 'ledgers/source-walk.md', walkPrefix + '\n## Fresh gap reviews\n\n' + fixtureTable(gapHeaders, []) + completion);
-  const walkDigest = sourceWalkReviewBasisDigest(loadRun(run), 'SRC-701', 'CUR-0702');
+  const walkDigest = sourceWalkReviewBasisDigest(loadRun(run), sourceId, 'CUR-0702');
   assert(walkDigest);
   writeFixtureFile(run, 'ledgers/source-walk.md', walkPrefix + '\n## Fresh gap reviews\n\n' + fixtureTable(gapHeaders,
-    [['GAP-0701', 'SRC-701', 'manual-producer-0701', 'manual-gap-0701', 'CUR-0702', walkDigest, 'no-gap-candidate-found', 'none', 'none', 'none', 'none', 'closed', 'Synthetic independent gap-review declaration.']]) + completion);
+    [['GAP-0701', sourceId, 'manual-producer-0701', 'manual-gap-0701', 'CUR-0702', walkDigest, 'no-gap-candidate-found', 'none', 'none', 'none', 'none', 'closed', 'Synthetic independent gap-review declaration.']]) + completion);
   const useRow: MaterialRow = { use_id: 'USE-0701', owner_stage: 'S2', subject_kind: 'PKT', subject_id: 'PKT-0701',
     basis_packet_ids: '["PKT-0701"]', requirements: semanticJson(TEXT_USE.requirements), use_state: 'usable', fidelity_claim: 'none',
     limitation_refs: '[]', reason: 'none', established_by: 'synthetic-manual-producer', review_subject_digest: '', reviewed_by: 'none' };
@@ -143,8 +143,8 @@ export function makeSemanticFixture(run: string, text = 'With the filter enabled
   useRow.review_subject_digest = representationUseDigest(model, readRepresentationContext(model), useRow);
   writeFixtureFile(run, 'ledgers/representation-uses.md', representationUsesMarkdown([useRow]));
   const entry: SemanticEntry = { output_kind: 'packet-candidate', output_index: 0, review_mode: 'proposal', origin_unit_refs: [],
-    anchors: anchors || [{ anchor_id: 'A1', source_id: 'SRC-701', locator, start_byte: 0, end_byte: fragment.length, exact_bytes_base64: fragment.toString('base64') }], semantics };
-  const returned = { source_id: 'SRC-701', producer_invocation_id: 'manual-producer-0701',
+    anchors: anchors || [{ anchor_id: 'A1', source_id: sourceId, locator, start_byte: 0, end_byte: fragment.length, exact_bytes_base64: fragment.toString('base64') }], semantics };
+  const returned = { source_id: sourceId, producer_invocation_id: 'manual-producer-0701',
     walk_intervals: [{ start_byte: 0, end_byte: source.length, outcome: 'admitted', packet_candidate_indexes: [0], criterion_ref: 'admission:1', closure_state: 'closed', reason: null, closure_note: null }],
     packets: [{ evidence_state: 'exact', join_policy: 'single-fragment', fragments: [{ fragment_order: 1, locator, exact_bytes_base64: fragment.toString('base64') }],
       rendered_text: text.trim(), degraded_source_locator: null, degradation_reason: null, criterion: 1, flags: [], material_use: TEXT_USE }],
@@ -194,21 +194,21 @@ export function assertSemanticFixture(run: string): void {
 
 /** Synthetic ordered fragments; no production extraction or source-walk proof. */
 export function makeFragmentSemanticFixture(run: string, first = 'The counter rose.', last = 'The battery discharged.',
-  version = '1.7.0-provisional'): SemanticFixture {
+  version = '1.7.0-provisional', sourceId = 'SRC-701'): SemanticFixture {
   const middle = 'Unrelated surrounding text.';
   const text = `${first}\n${middle}\n${last}`, start = Buffer.byteLength(`${first}\n${middle}\n`);
   const anchors: AnchorInput[] = [
-    { anchor_id: 'A1', source_id: 'SRC-701', locator: 'L1-L1', start_byte: 0, end_byte: Buffer.byteLength(first), exact_bytes_base64: Buffer.from(first).toString('base64') },
-    { anchor_id: 'A2', source_id: 'SRC-701', locator: 'L3-L3', start_byte: start, end_byte: Buffer.byteLength(text), exact_bytes_base64: Buffer.from(last).toString('base64') },
+    { anchor_id: 'A1', source_id: sourceId, locator: 'L1-L1', start_byte: 0, end_byte: Buffer.byteLength(first), exact_bytes_base64: Buffer.from(first).toString('base64') },
+    { anchor_id: 'A2', source_id: sourceId, locator: 'L3-L3', start_byte: start, end_byte: Buffer.byteLength(text), exact_bytes_base64: Buffer.from(last).toString('base64') },
   ];
   const semantics: Semantics = { atomicity: 'multiple-separable', units: [fixtureUnit(first, first), fixtureUnit(last, last, 'U2', 'A2')],
     contexts: [], couplings: [], relation_proposals: [], unresolved_findings: [] };
-  const f = makeSemanticFixture(run, text, semantics, anchors, version);
+  const f = makeSemanticFixture(run, text, semantics, anchors, version, sourceId);
   const packetText = readFileSync(join(run, 'ledgers/packet-index.md'), 'utf8'), tables = parseTables(packetText);
   const exactFragments = [Buffer.from(`${first}\n`), Buffer.from(last)];
-  const packetRows = anchors.map((a, i) => [`PKT-070${i + 1}`, 'SRC-701', a.locator, materialHash(exactFragments[i]),
+  const packetRows = anchors.map((a, i) => [`PKT-070${i + 1}`, sourceId, a.locator, materialHash(exactFragments[i]),
     i === 0 ? first : last, '1', 'active']);
-  const fragments = anchors.map((a, i) => [`FRAG-070${i + 1}`, 'EVID-0701', `PKT-070${i + 1}`, String(i + 1), 'SRC-701',
+  const fragments = anchors.map((a, i) => [`FRAG-070${i + 1}`, 'EVID-0701', `PKT-070${i + 1}`, String(i + 1), sourceId,
     a.locator, 'frozen-source', 'exact-source-bytes', materialHash(exactFragments[i]), exactFragments[i].toString('base64')]);
   const framed = exactFragments.flatMap((b) => { const size = Buffer.alloc(8); size.writeBigUInt64BE(BigInt(b.length)); return [size, b]; });
   writeFixtureFile(run, 'ledgers/packet-index.md', `# Packet Index\n\n- exact_evidence_format: ${EXACT_EVIDENCE_FORMAT}\n\n## Packets\n\n`
@@ -219,12 +219,12 @@ export function makeFragmentSemanticFixture(run: string, first = 'The counter ro
     + '\n## Evidence transformations\n\n' + fixtureTable(tables[3].header, []));
   let walk = readFileSync(join(run, 'ledgers/source-walk.md'), 'utf8')
     .replace('| admitted | PKT-0701 |', '| admitted | PKT-0701, PKT-0702 |')
-    .replace(`| EVT-0701 | SRC-701 | 0 | ${Buffer.byteLength(text)} |`, `| EVT-0701 | SRC-701 | 0 | ${exactFragments[0].length} |`)
-    .replace('\n\n## Resume cursors', `\n| EVT-0702 | SRC-701 | ${start} | ${Buffer.byteLength(text)} | SP-0702 | 1 | PKT-0702 | primary | manual-producer-0701 | committed |\n\n## Resume cursors`)
+    .replace(`| EVT-0701 | ${sourceId} | 0 | ${Buffer.byteLength(text)} |`, `| EVT-0701 | ${sourceId} | 0 | ${exactFragments[0].length} |`)
+    .replace('\n\n## Resume cursors', `\n| EVT-0702 | ${sourceId} | ${start} | ${Buffer.byteLength(text)} | SP-0702 | 1 | PKT-0702 | primary | manual-producer-0701 | committed |\n\n## Resume cursors`)
     .replace('| WLK-0701 | EVT-0701 |', '| WLK-0701 | EVT-0702 |');
   writeFixtureFile(run, 'ledgers/source-walk.md', walk);
   const oldGap = parseTables(walk).find((t) => t.header[0] === 'gap_review_id')!.rows[0].cells[5];
-  walk = walk.replace(oldGap, sourceWalkReviewBasisDigest(loadRun(run), 'SRC-701', 'CUR-0702')!);
+  walk = walk.replace(oldGap, sourceWalkReviewBasisDigest(loadRun(run), sourceId, 'CUR-0702')!);
   writeFixtureFile(run, 'ledgers/source-walk.md', walk);
   const model = loadRun(run), material = readRepresentationContext(model), template = material.uses[0];
   const uses = packetRows.map((row, i) => {

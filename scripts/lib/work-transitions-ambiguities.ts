@@ -15,7 +15,9 @@ import {
   materialImpactSubjectJson, materialImpactSubjectDigest, materialImpactSubjectProblems,
   MATERIAL_IMPACT_SUBJECT_FORMAT, loadPinnedCoreAuthority, resolvePinnedCoreRequirement,
   closurePhases, type AmbiguityReviewSubject, type MaterialImpactSubject,
+  buildProceduralAuthoritySubject,
 } from './internal-ambiguity.ts';
+import { selectProceduralWork, deriveProceduralTransition } from './work-transitions-authority.ts';
 import { assertWork, file, required, effect, obligation, workDigest, table, nextId, semanticLedger,
   semanticDependencies, appendRows, type NextWork, type WorkTransition, type WorkValue } from './work-transitions.ts';
 
@@ -43,7 +45,7 @@ interface Preparation {
 interface CapturedSubject { accepted: WorkValue; subject: AmbiguityReviewSubject; review_id: string; review_call_id: string }
 interface MaterialCapture { accepted: WorkValue; subject: MaterialImpactSubject; review_id: string; review_call_id: string }
 type LocalWork = Extract<NextWork, { kind: 'local' | 'worker' }>;
-type Derived = Pick<WorkTransition, 'family' | 'effects' | 'origins'>;
+type Derived = Pick<WorkTransition, 'family' | 'effects' | 'origins'> & Partial<Pick<WorkTransition, 'authority' | 'next_execution'>>;
 function fields(value: unknown, names: string[], label: string): asserts value is Record<string, unknown> {
   assertWork(value && typeof value === 'object' && !Array.isArray(value)
     && Object.keys(value).sort().join('\0') === names.sort().join('\0'), 'WORK_AMBIGUITY_FORMAT', label);
@@ -194,6 +196,28 @@ function impactReviewView(model: RunModel, p: Preparation, c: CapturedSubject, m
   return { format: 'aleph-core-material-impact-review-view/v1', subject: json(Buffer.from(materialImpactSubjectJson(m.subject))),
     basis: impactView(model, p, c) };
 }
+export function reviewedAmbiguityAuthorityBasis(model: RunModel, id: string) {
+  const p = preparations(model).find((p) => p.ambiguity_id === id);
+  assertWork(p, 'WORK_AMBIGUITY_AUTHORITY', 'retained ambiguity work required');
+  const c = capture(model, p)!, m = impactCapture(model, p, c);
+  const review = retainedValue(model, id, 'review'), impactReview = retainedValue(model, id, 'material-review');
+  assertWork(m?.subject.materiality_class === 'C' && (review?.value as any)?.verdict === 'upheld'
+    && (impactReview?.value as any)?.verdict === 'upheld', 'WORK_AMBIGUITY_AUTHORITY', 'upheld Class C work required');
+  assertWork(required(model, `verification/harness/S4/material-impact-subjects/${id}-A1-M1.json`)
+    .equals(Buffer.from(materialImpactSubjectJson(m.subject))), 'WORK_AMBIGUITY_AUTHORITY', 'exact canonical material-impact subject');
+  const subject = buildProceduralAuthoritySubject({
+    run_id: model.manifest!.runId, ambiguity_id: id, assessment_seq: 1,
+    t5_2_assessment_ref: m.subject.t5_2_assessment_ref, t5_2_review_subject_digest: m.subject.t5_2_review_subject_digest,
+    t5_2_review_ref: m.subject.t5_2_review_ref, prior_indeterminate_review_refs: [], candidate_state: c.subject.candidate_state,
+    candidate_refs: c.subject.candidate_refs, carry_state: c.subject.carry_state, affected_relation_ids: c.subject.affected_relation_ids,
+    c1_relation_basis_ref: m.subject.c1_relation_basis_ref, material_impact_seq: 1,
+    material_impact_subject_ref: `material-impact-subject:${id}:A1:M1@${materialImpactSubjectDigest(m.subject)}`,
+    material_impact_review_ref: `material-impact-verdict:${m.review_id}@${workDigest(required(model, `verification/harness/${m.review_id}.md`))}`,
+    operative_scope: m.subject.operative_scope, source_locators: m.subject.source_locators,
+    reviewed_unaffected_ids: m.subject.reviewed_unaffected_ids, unresolved_statement: m.subject.unresolved_statement,
+  });
+  return { subject, dependencies: [...p.dependencies, p.call_id, review!.call_id, m.accepted.call_id, impactReview!.call_id] };
+}
 export function pinnedAmbiguityAuthority(model: RunModel) {
   return loadPinnedCoreAuthority({ bundle_lock_path: join(model.runDir, 'control/runtime/bundle/bundle.lock.json'),
     expected_bundle_digest: model.manifest!.forwardIdentity.bundleDigest!, expected_core_digest: model.manifest!.forwardIdentity.coreDigest! });
@@ -245,8 +269,10 @@ export function selectAmbiguityWork(model: RunModel): NextWork | null {
       m.review_call_id, [...dependencies, m.accepted.call_id], m.accepted.call_id, 'Role: Fresh Material-Impact Reviewer (S4-C2)');
     if ((materialReview.value as any).verdict !== 'upheld') return { kind: 'halt', code: 'WORK_MATERIAL_IMPACT_REVIEW_UNRESOLVED',
       reason: `${p.ambiguity_id}: material-impact scope has no upheld fresh review.` };
-    if (m.subject.materiality_class === 'C') return { kind: 'halt', code: 'WORK_S4_PROCEDURAL_GATE_UNIMPLEMENTED',
-      reason: `${p.ambiguity_id}: reviewed Class C scope requires the existing human procedural gate.` };
+    if (m.subject.materiality_class === 'C') {
+      const authority = selectProceduralWork(model, p.ambiguity_id);
+      if (authority) return authority;
+    }
   }
   validateAmbiguityWorkState(model);
   return null;
@@ -266,8 +292,13 @@ export function validateAmbiguityWorkDelivery(model: RunModel, role: string, sta
     : role === 'material-impact-reviewer' ? impactCapture(model, p, capture(model, p)!)!.accepted.context_id : null;
   assertWork(producerContext === context, 'WORK_AMBIGUITY_ISOLATION', 'actual producer context withheld');
 }
-export function deriveAmbiguityTransition(model: RunModel, work: LocalWork, value: WorkValue | null): Derived {
+export function deriveAmbiguityTransition(model: RunModel, work: LocalWork, value: WorkValue | null, now?: string): Derived {
   const op = work.obligation.operation.slice('s4.ambiguity.'.length), id = work.obligation.subject_id;
+  if (['open-authority', 'apply-authority', 'followup-authority'].includes(op)) {
+    assertWork(value === null, 'WORK_AMBIGUITY_AUTHORITY', 'worker cannot supply human authority');
+    assertWork(now && !Number.isNaN(Date.parse(now)), 'WORK_AMBIGUITY_AUTHORITY', 'retained transaction time required');
+    return deriveProceduralTransition(model, work, now);
+  }
   const effects: WorkTransition['effects'] = [];
   if (op === 'select') {
     const input = readFileSync(join(model.runDir, AMBIGUITY_SELECTION_INPUT)); ambiguityExpressionSelection(model, input);

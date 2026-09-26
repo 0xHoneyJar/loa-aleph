@@ -12,6 +12,7 @@ import { reopenNativeWorkerEvidence } from './worker-dispatch.js';
 import { LedgerWriter } from './ledger-writer.js';
 import { verifyAndLoadLoaBundle } from './core-loader.js';
 import { AMBIGUITY_SELECTION_INPUT, ambiguityExpressionSelection } from '../../../scripts/lib/work-transitions-ambiguities.js';
+import { validateAuthorityContact } from '../../../scripts/lib/work-transitions-authority.js';
 const ROOT = 'control/orchestration';
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const WORK_ID = /^WORK-[0-9a-f]{64}$/u;
@@ -184,13 +185,17 @@ function withBasis(runDir, digest, action) {
         rmSync(scratch, { recursive: true, force: true });
     }
 }
+function prerequisitePath(path) {
+    return !path.startsWith('control/') || path.startsWith('control/gates/') || path.startsWith('control/work-proposals/');
+}
 function assertApplicable(runDir, work) {
     const state = readRunState(runDir);
     assertWork(state.execution.resume.checkpoint_digest === work.identity.checkpoint, 'WORK_CHECKPOINT_STALE', work.work_id);
     const basis = readBasis(runDir, work.basis_digest);
-    const current = walkRegularFiles(runDir).map((full) => relative(runDir, full).replaceAll('\\', '/')).filter((path) => !path.startsWith('control/'));
-    assertWork(stableJsonBytes(current).equals(stableJsonBytes(basis.canonical_paths)), 'WORK_PREREQUISITE_CHANGED', 'canonical inventory/absence');
-    for (const member of basis.members.filter((entry) => !entry.path.startsWith('control/'))) {
+    const current = walkRegularFiles(runDir).map((full) => relative(runDir, full).replaceAll('\\', '/')).filter(prerequisitePath);
+    const retained = basis.members.filter((entry) => prerequisitePath(entry.path));
+    assertWork(stableJsonBytes(current).equals(stableJsonBytes(retained.map((m) => m.path))), 'WORK_PREREQUISITE_CHANGED', 'canonical/authority/proposal inventory and absence');
+    for (const member of retained) {
         assertWork(readStableRegularFile(canonicalPath(runDir, member.path)).bytes.equals(basisBytes(runDir, member)), 'WORK_PREREQUISITE_CHANGED', member.path);
     }
     assertWork(workJson(selectNextWork(loadRun(runDir), execution(state))).equals(workJson(work.identity.work)), 'WORK_STALE', 'first unmet obligation changed');
@@ -198,10 +203,11 @@ function assertApplicable(runDir, work) {
 export function assertRecoveryPrerequisites(runDir, work, plan) {
     const basis = readBasis(runDir, work.basis_digest);
     const writes = new Map(plan.effects.map((effect) => [effect.path, effect]));
-    const current = walkRegularFiles(runDir).map((full) => relative(runDir, full).replaceAll('\\', '/')).filter((path) => !path.startsWith('control/'));
+    const current = walkRegularFiles(runDir).map((full) => relative(runDir, full).replaceAll('\\', '/')).filter(prerequisitePath);
+    const retained = basis.members.filter((entry) => prerequisitePath(entry.path));
     for (const path of current)
-        assertWork(basis.canonical_paths.includes(path) || writes.has(path), 'WORK_PREREQUISITE_CHANGED', path);
-    for (const member of basis.members.filter((entry) => !entry.path.startsWith('control/'))) {
+        assertWork(retained.some((m) => m.path === path) || writes.has(path), 'WORK_PREREQUISITE_CHANGED', path);
+    for (const member of retained) {
         const full = canonicalPath(runDir, member.path), effect = writes.get(member.path);
         assertWork(existsSync(full), 'WORK_PREREQUISITE_CHANGED', member.path);
         const bytes = readStableRegularFile(full).bytes;
@@ -560,6 +566,11 @@ export function resumeOrchestration(runDir, clock = clockDefault) {
     return withOrchestrationLock(runDir, () => {
         verifyRetainedRuntimeIdentity(runDir, readRunState(runDir));
         const writer = new LedgerWriter(runDir, clock);
+        const commit = (id) => {
+            writer.commitOrchestrationWork(id);
+            const halt = verifyRunControl(runDir).execution.halt;
+            return halt ? { kind: 'halt', code: halt.code, reason: halt.reason } : null;
+        };
         for (;;) {
             const works = allWorkIds(runDir).map((id) => readOrchestrationWork(runDir, id));
             const pending = works.filter((work) => !existsSync(canonicalPath(runDir, consumedPath(work.work_id))));
@@ -567,13 +578,17 @@ export function resumeOrchestration(runDir, clock = clockDefault) {
             if (pending.length) {
                 const work = pending[0];
                 if (existsSync(canonicalPath(runDir, orchestrationCommitPath(work.work_id)))) {
-                    writer.commitOrchestrationWork(work.work_id);
+                    const halt = commit(work.work_id);
+                    if (halt)
+                        return halt;
                     continue;
                 }
                 assertApplicable(runDir, work);
                 if (work.call && !existsSync(canonicalPath(runDir, acceptedPath(work.call.call_id))))
                     return transportAction(runDir, work);
-                writer.commitOrchestrationWork(work.work_id);
+                const halt = commit(work.work_id);
+                if (halt)
+                    return halt;
                 continue;
             }
             const state = verifyRunControl(runDir), selected = selectNextWork(loadRun(runDir), execution(state));
@@ -582,7 +597,9 @@ export function resumeOrchestration(runDir, clock = clockDefault) {
             const work = createWork(runDir, selected, clock);
             if (work.call)
                 return transportAction(runDir, work);
-            writer.commitOrchestrationWork(work.work_id);
+            const halt = commit(work.work_id);
+            if (halt)
+                return halt;
         }
     }, clock);
 }
@@ -608,5 +625,17 @@ export function proposeOrchestrationAmbiguities(runDir, raw, clock = clockDefaul
         assertWork(allWorkIds(runDir).every((id) => existsSync(canonicalPath(runDir, consumedPath(id)))), 'WORK_PROPOSAL_WINDOW', 'unconsumed work exists');
         ambiguityExpressionSelection(loadRun(runDir), raw);
         immutable(runDir, AMBIGUITY_SELECTION_INPUT, raw);
+    }, clock);
+}
+/** Contact metadata names the request recipient, never an action or response. */
+export function proposeOrchestrationAuthorityContact(runDir, raw, clock = clockDefault) {
+    withOrchestrationLock(runDir, () => {
+        const state = verifyRunControl(runDir);
+        verifyRetainedRuntimeIdentity(runDir, state);
+        const selected = selectNextWork(loadRun(runDir), execution(state));
+        assertWork(selected.kind === 'proposal' && selected.operation === 'ambiguity.authority-contact', 'WORK_PROPOSAL_WINDOW', 'authority contact is not the first unmet preparation');
+        assertWork(allWorkIds(runDir).every((id) => existsSync(canonicalPath(runDir, consumedPath(id)))), 'WORK_PROPOSAL_WINDOW', 'unconsumed work exists');
+        validateAuthorityContact(raw);
+        immutable(runDir, selected.input_path, raw);
     }, clock);
 }

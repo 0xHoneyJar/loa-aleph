@@ -671,7 +671,8 @@ export class LedgerWriter {
             const stateBefore = authenticated.beforeState, stateAfter = structuredClone(stateBefore);
             assertWork(stateBefore.execution.resume.checkpoint_digest === intent.before_checkpoint
                 && stateBefore.ledger.chain_head === intent.before_chain, 'WORK_CHECKPOINT_STALE', workId);
-            assertWork(stateBefore.ledger.writer_id === 'loa-orchestrator' && !stateBefore.execution.halt
+            assertWork(stateBefore.ledger.writer_id === 'loa-orchestrator'
+                && (!stateBefore.execution.halt || plan.authority?.operation === 'apply' || plan.authority?.operation === 'followup')
                 && (!plan.simulation || stateBefore.full_mode === 'fixture-simulated'), 'WORK_WRITER_BOUNDARY', workId);
             const chainBefore = authenticated.chainBefore;
             let chainAfter = chainBefore;
@@ -689,6 +690,10 @@ export class LedgerWriter {
             stateAfter.execution.stage = plan.next_execution.stage;
             stateAfter.execution.stage_status = plan.next_execution.stage_status;
             stateAfter.execution.core_state = plan.next_execution.core_state;
+            if (plan.authority) {
+                stateAfter.execution.gate = plan.authority.gate;
+                stateAfter.execution.halt = plan.authority.halt;
+            }
             stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
             stateAfter.execution.resume.last_verified_at = authenticated.work.created_at;
             stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);

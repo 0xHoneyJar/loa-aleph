@@ -226,7 +226,7 @@ export function deriveS4Transition(model, work, accepted, now) {
     if (operation.startsWith('s4.relation.'))
         return deriveRelationTransition(model, work, accepted);
     if (operation.startsWith('s4.ambiguity.'))
-        return deriveAmbiguityTransition(model, work, accepted);
+        return deriveAmbiguityTransition(model, work, accepted, now);
     if (['s4.close-C2', 's4.close-C3', 's4.enter-S5'].includes(operation)) {
         assertWork(accepted === null, 'WORK_S4_CLOSURE', 'closure consumes reviewed state only');
         validateAmbiguityWorkState(model);

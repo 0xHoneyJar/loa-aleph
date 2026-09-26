@@ -3,6 +3,7 @@ import { captureGeneration, stationaryCursor, stationaryCaptureWork, stationaryC
   stationaryPriorAccounting, stationaryDuplicateSubject, stationaryHalt, STATIONARY_CAPTURES, STATIONARY_HALTS,
   type CaptureGeneration, type StationaryCapture, type StationarySelector } from './stationary-capture.ts';
 import { selectS4Work, deriveS4Transition, validateS4Transition, s4SemanticCaptures, type S4SemanticCapture } from './work-transitions-s4.ts';
+import { selectBlockedProceduralWork, type WorkAuthority } from './work-transitions-authority.ts';
 import { WIDENING_PREPARATIONS, WIDENING_CAPTURES, WIDENING_CONTRACT, WIDENING_TASK,
   derivePacketWideningBasis, validatePacketWideningBasis, wideningCallId, packetWideningCaptures,
   type PacketWideningBasis, type PacketWideningCapture } from './packet-widening.ts';
@@ -107,6 +108,7 @@ export type NextWork =
   | { kind: 'halt'; code: string; reason: string }
   | { kind: 'proposal'; operation: 'criteria.samples'; input_path: typeof CRITERIA_SAMPLE_INPUT_PATH }
   | { kind: 'proposal'; operation: 'ambiguity.expressions'; input_path: 'control/work-proposals/S4-ambiguity-expressions.json' }
+  | { kind: 'proposal'; operation: 'ambiguity.authority-contact'; input_path: string }
   | { kind: 'local'; obligation: WorkObligation; accepted_dependencies?: string[] }
   | { kind: 'worker'; obligation: WorkObligation; call: WorkCall; accepted_dependencies?: string[] };
 
@@ -134,6 +136,7 @@ export interface WorkTransition {
   source_completion?: SourceWalkProjection;
   stationary_capture?: StationaryCapture;
   s4_closure?: import('./internal-ambiguity.ts').ClosurePhase;
+  authority?: WorkAuthority;
   semantic?: { stage: SemanticStage; semantic_id: string; subject_digest: string; operation: SemanticOperation;
     record_id: string; producer_call_id: string; reviewer_call_ids: string[] };
   duplicate?: { proposal_id: string; subject_digest: string;
@@ -1564,7 +1567,8 @@ export function criteriaSampleProposal(model: RunModel, criteria: Buffer, propos
 
 export function selectNextWork(model: RunModel, execution: WorkExecution): NextWork {
   assertWork(hasRunCapability(model.manifest?.runFormatVersion || '', WORK_TRANSITION_CAPABILITY), 'WORK_CAPABILITY', 'run does not select work transitions');
-  if (execution.blocked) return { kind: 'halt', code: 'WORK_EXISTING_GATE_OR_HALT', reason: 'Retained authority or operational halt has precedence.' };
+  if (execution.blocked) return (execution.stage === 'S4' ? selectBlockedProceduralWork(model) : null)
+    || { kind: 'halt', code: 'WORK_EXISTING_GATE_OR_HALT', reason: 'Retained authority or operational halt has precedence.' };
   if (execution.stage === 'S0') {
     assertWork(execution.stage_status === 'closed' && execution.core_state === 'CORPUS-FROZEN', 'WORK_STAGE', 'S0 freeze is incomplete');
     return { kind: 'local', obligation: obligation('S0', 'S0.frozen', 'stage.enter-S1', model.manifest!.runId, required(model, 'run-manifest.md')) };

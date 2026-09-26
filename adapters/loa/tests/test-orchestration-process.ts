@@ -19,7 +19,8 @@ import { duplicateFixtureProposal, duplicateFixtureSuccessorProposal, duplicateF
 import { relationReviewSubjectDigest, parseRelations } from '../../../scripts/lib/relations.ts';
 import { semanticRelationRow } from '../../../scripts/lib/semantic-review.ts';
 import { lineageCurrentPacketIds } from '../../../scripts/lib/lineage.ts';
-import { searchBasisDigest, ambiguityReviewSubjectDigest, materialImpactSubjectDigest, parseInternalAmbiguities, type AmbiguityReviewSubject } from '../../../scripts/lib/internal-ambiguity.ts';
+import { searchBasisDigest, ambiguityReviewSubjectDigest, materialImpactSubjectDigest, parseInternalAmbiguities,
+  buildProceduralAuthorityResponse, exactTextBlob, type ProceduralAction, type AmbiguityReviewSubject } from '../../../scripts/lib/internal-ambiguity.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 if (process.argv[2] === '--fixture-worker') {
@@ -121,10 +122,10 @@ if (process.argv[2] === '--fixture-worker') {
       return JSON.parse(processResult.stdout);
     }
     const cli = (...args: string[]) => command('cli', ['--root', host, '--json', '--allow-fixture-simulation', ...args]);
-    function crashSequence(operation: string, points: string[], verify: () => void): void {
-      for (const point of points) {
+    function crashSequence(operation: string, points: string[], verify: () => void, firstArgs: string[] = ['resume', id]): void {
+      for (const [index, point] of points.entries()) {
         const crashed = spawnSync(process.execPath, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
-          '--root', host, '--json', '--allow-fixture-simulation', 'resume', id],
+          '--root', host, '--json', '--allow-fixture-simulation', ...index === 0 ? firstArgs : ['resume', id]],
         { encoding: 'utf8', cwd: host, env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: `${operation}:${point}` } });
         assert.equal(crashed.status, 86, `${operation}/${point}: ${crashed.stdout}\n${crashed.stderr}`);
         verify();
@@ -967,6 +968,7 @@ if (process.argv[2] === '--fixture-worker') {
           assert(readFileSync(join(run, 'run-log.md'), 'utf8').includes('closure_phase: S4-C1-relations-closed'));
           console.log('PASS supported CLI S4 duplicate, global relation producer, fresh L3R and composed C1; C2/C3 remain separately required');
           if (process.env.F03_C2) {
+            const classC = process.env.F03_C2 === 'C', unresolved = classC || process.env.F03_C2 === 'B';
             assert.equal(resumed.details.work.operation, 'ambiguity.expressions');
             const model = loadRun(run), packet = model.packets.find((p) => lineageCurrentPacketIds(model).has(p.values.packetId))!.values;
             const semantic = model.files.filter((f) => f.relativePath.startsWith('verification/harness/semantic-subjects/'))
@@ -987,14 +989,14 @@ if (process.argv[2] === '--fixture-worker') {
               const view = JSON.parse(readFileSync(join(run, request.allowlist[0].run_path), 'utf8'));
               let returned: unknown, operation: string;
               if (request.role === 'ambiguity-producer') {
-                const e = view.expression, completion = view.source_walk.completion[0], classB = process.env.F03_C2 === 'B';
+                const e = view.expression, completion = view.source_walk.completion[0];
                 const subject: AmbiguityReviewSubject = { source_entity_kind: e.source_entity_kind, source_entity_id: e.source_entity_id,
                   source_id: e.source_id, expression_locator: e.locator, expression_start_byte: e.start_byte, expression_end_byte: e.end_byte,
                   expression_sha256: e.expression_sha256, expression_bytes_base64: e.expression_bytes_base64, basis_packet_ids: e.basis_packet_ids,
                   search_scope_kind: 'full-same-source', search_completion_ref: `${e.source_id}@${completion.finalCursorId}@${completion.sourceHash}`,
-                  search_basis_digest: '', candidate_state: classB ? 'null-cannot-determine' : 'single',
-                  candidate_refs: classB ? [] : [{ kind: 'PKT', id: e.source_entity_id }], affected_relation_ids: [],
-                  resolution_state: classB ? 'unresolved' : 'resolved-local', carry_state: 'none', proposed_by: `invocation:${work.call_id}` };
+                  search_basis_digest: '', candidate_state: unresolved ? 'null-cannot-determine' : 'single',
+                  candidate_refs: unresolved ? [] : [{ kind: 'PKT', id: e.source_entity_id }], affected_relation_ids: [],
+                  resolution_state: unresolved ? 'unresolved' : 'resolved-local', carry_state: 'none', proposed_by: `invocation:${work.call_id}` };
                 subject.search_basis_digest = searchBasisDigest({ source_id: e.source_id, source_hash: view.source.contentHash,
                   source_length_bytes: Buffer.from(view.frozen_source_base64, 'base64').length, scope_kind: subject.search_scope_kind,
                   scope_refs: [], completion_ref: subject.search_completion_ref, expression_start_byte: e.start_byte, expression_end_byte: e.end_byte,
@@ -1009,8 +1011,12 @@ if (process.argv[2] === '--fixture-worker') {
                   review_subject_digest: ambiguityReviewSubjectDigest(subject) }, flags: [] };
                 operation = 'capture';
               } else if (request.role === 'material-impact-producer') {
-                returned = { materiality_class: 'B', operative_scope: { affected_ids: [], impact_rows: [] }, source_locators: [], reviewed_unaffected_ids: [],
-                  unresolved_statement: 'Synthetic Class B declaration only.', proposed_by: `invocation:${work.call_id}`, flags: [] };
+                returned = { materiality_class: classC ? 'C' : 'B', operative_scope: classC ? {
+                  affected_ids: [packet.packetId], impact_rows: [{ affected_id: packet.packetId, operation_kind: 'load-bearing-reasoning',
+                    requirement_ref: 'core:docs/precis-wedge.md#Completeness contract (canonical: option A)',
+                    unresolved_treatment: 'carry-or-restriction', consequence_if_unresolved: 'Synthetic exact evidence use remains contingent.' }],
+                } : { affected_ids: [], impact_rows: [] }, source_locators: classC ? [`${packet.sourceId}:${packet.locator}`] : [], reviewed_unaffected_ids: [],
+                  unresolved_statement: 'Synthetic declared unresolved material impact only.', proposed_by: `invocation:${work.call_id}`, flags: [] };
                 operation = 'material-capture';
               } else {
                 assert(['ambiguity-reviewer', 'material-impact-reviewer'].includes(request.role));
@@ -1026,13 +1032,58 @@ if (process.argv[2] === '--fixture-worker') {
                 ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
               if (request.role === 'ambiguity-reviewer' && process.env.F03_C2_FAULTS === '1')
                 crashSequence('s4.ambiguity.admit', ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
-              if ((request.role === 'material-impact-reviewer' || request.role === 'ambiguity-reviewer' && process.env.F03_C2 !== 'B')
+              if (!classC && (request.role === 'material-impact-reviewer' || request.role === 'ambiguity-reviewer' && !unresolved)
                 && process.env.F03_C2_FAULTS === '1') for (const phase of ['s4.close-C2', 's4.close-C3', 's4.enter-S5'])
                 crashSequence(phase, ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
               resumed = cli('resume', id); preserved();
               console.log(`PASS supported CLI C2 fixture ${request.role}; exact retained subject and fresh-process work consumption`);
             }
-            assert.equal(calls, process.env.F03_C2 === 'B' ? 4 : 2);
+            assert.equal(calls, unresolved ? 4 : 2);
+            if (classC) {
+              assert.equal(resumed.details.work.operation, 'ambiguity.authority-contact');
+              const contact = join(scratch, 'authority-contact.json');
+              writeFileSync(contact, semanticJson({ format: 'aleph-ambiguity-authority-contact/v1', identity: 'fixture-simulated-authority' }));
+              const points = ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'];
+              if (process.env.F03_C2_FAULTS === '1') {
+                crashSequence('s4.ambiguity.open-authority', points, preserved, ['--work-authority-contact', contact, id]);
+                resumed = cli('resume', id);
+              } else resumed = cli('--work-authority-contact', contact, id);
+              assert.equal(resumed.result, 'BLOCKED'); assert.equal(resumed.gate.status, 'awaiting-authority');
+              for (const action of ['inspect-source', 'record-human-observation', 'block-at-current-barrier', 'carry-unresolved'] as ProceduralAction[]) {
+                const stateBefore = readFileSync(join(run, 'control/run-state.json')), gate = JSON.parse(stateBefore.toString()).execution.gate;
+                const requestBytes = readFileSync(join(run, gate.request_ref)), request = JSON.parse(requestBytes.toString());
+                const repeat = cli('resume', id); assert.equal(repeat.result, 'BLOCKED');
+                assert(readFileSync(join(run, 'control/run-state.json')).equals(stateBefore));
+                const recordedAt = new Date().toISOString();
+                const response = buildProceduralAuthorityResponse({ request, request_bytes: requestBytes, authority_identity: 'fixture-simulated-authority',
+                  selected_action: action, observation: action === 'record-human-observation' ? exactTextBlob(Buffer.from('Fixture observation; not semantic evidence.')) : null,
+                  comment: null, recorded_at: recordedAt });
+                const responsePath = join(scratch, `${request.request_id}-human-fixture.json`);
+                writeFileSync(responsePath, JSON.stringify({ gateId: gate.id, authorityIdentity: 'fixture-simulated-authority', decision: 'approve',
+                  recordedAt, simulation: { kind: 'fixture-simulated' }, response }));
+                assert.equal(cli('--authority-response', responsePath, id).result, 'BLOCKED');
+                if (process.env.F03_C2_FAULTS === '1') crashSequence('s4.ambiguity.apply-authority', points, preserved);
+                if (action === 'carry-unresolved' && process.env.F03_C2_FAULTS === '1')
+                  for (const phase of ['s4.close-C2', 's4.close-C3', 's4.enter-S5']) crashSequence(phase, points, preserved);
+                resumed = cli('resume', id); preserved();
+                const rows = parseInternalAmbiguities(loadRun(run));
+                assert.equal(rows.t5_3Rows.at(-1)!.values.action, action);
+                if (action !== 'carry-unresolved') {
+                  // If the process stopped after consumption, this resume is
+                  // already the later actual resume allowed to create Q+1.
+                  if (resumed.gate.id === gate.id) {
+                    assert.equal(resumed.result, 'BLOCKED'); assert.equal(resumed.gate.status, 'approved');
+                    if (process.env.F03_C2_FAULTS === '1') crashSequence('s4.ambiguity.followup-authority', points, preserved);
+                    resumed = cli('resume', id);
+                  }
+                  assert.equal(resumed.gate.id, gate.id.replace(/Q(\d+)$/u, (_: string, q: string) => `Q${Number(q) + 1}`));
+                  assert.equal(resumed.gate.status, 'awaiting-authority');
+                  const nextRequest = JSON.parse(readFileSync(join(run, resumed.gate.request_ref), 'utf8'));
+                  assert.equal(nextRequest.authority_subject_digest, request.authority_subject_digest);
+                }
+                console.log(`PASS supported CLI fixture Class C ${action}; exact response, T5.3 application and legal next gate or closure`);
+              }
+            }
             assert.equal(resumed.stage, 'S5'); assert.equal(resumed.details.work.code, 'WORK_UNSUPPORTED_CAPABILITY');
             assert.equal(parseInternalAmbiguities(loadRun(run)).t5_2Rows.length, 1);
             const state = readFileSync(join(run, 'control/run-state.json')), chain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
@@ -1046,7 +1097,7 @@ if (process.argv[2] === '--fixture-worker') {
         }
       }
     }
-    console.log('PASS supported CLI S2 walk-only capture, process reauthentication, C-02 projection, before-row retention and repeated-resume idempotency');
+    console.log('PASS supported CLI retained S2 capture and completion path; fixture controls only');
     console.log('EVIDENCE: fixture-simulated only. No provider/model/native/live execution. F-03 OPEN / MUST PRESERVE.');
     }
   } finally {

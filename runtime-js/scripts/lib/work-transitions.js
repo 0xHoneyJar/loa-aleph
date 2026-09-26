@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { captureGeneration, stationaryCursor, stationaryCaptureWork, stationaryCandidateDigest, stationaryPriorAccounting, stationaryDuplicateSubject, stationaryHalt, STATIONARY_CAPTURES, STATIONARY_HALTS } from './stationary-capture.js';
 import { selectS4Work, deriveS4Transition, validateS4Transition, s4SemanticCaptures } from './work-transitions-s4.js';
+import { selectBlockedProceduralWork } from './work-transitions-authority.js';
 import { WIDENING_PREPARATIONS, WIDENING_CAPTURES, WIDENING_CONTRACT, WIDENING_TASK, derivePacketWideningBasis, validatePacketWideningBasis, wideningCallId, packetWideningCaptures } from './packet-widening.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -1440,7 +1441,8 @@ export function criteriaSampleProposal(model, criteria, proposalBytes = required
 export function selectNextWork(model, execution) {
     assertWork(hasRunCapability(model.manifest?.runFormatVersion || '', WORK_TRANSITION_CAPABILITY), 'WORK_CAPABILITY', 'run does not select work transitions');
     if (execution.blocked)
-        return { kind: 'halt', code: 'WORK_EXISTING_GATE_OR_HALT', reason: 'Retained authority or operational halt has precedence.' };
+        return (execution.stage === 'S4' ? selectBlockedProceduralWork(model) : null)
+            || { kind: 'halt', code: 'WORK_EXISTING_GATE_OR_HALT', reason: 'Retained authority or operational halt has precedence.' };
     if (execution.stage === 'S0') {
         assertWork(execution.stage_status === 'closed' && execution.core_state === 'CORPUS-FROZEN', 'WORK_STAGE', 'S0 freeze is incomplete');
         return { kind: 'local', obligation: obligation('S0', 'S0.frozen', 'stage.enter-S1', model.manifest.runId, required(model, 'run-manifest.md')) };

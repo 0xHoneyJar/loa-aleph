@@ -31,6 +31,11 @@ the exact first unmet obligation, persists its work identity, and returns
   retained Core template. Submit it through `--work-ambiguity-expressions
   FILE RUN-id`. Do not add an ambiguity verdict, candidate choice, materiality,
   human action, ledger destination, or canonical after-image.
+  For `operation=ambiguity.authority-contact`, submit the supplied human
+  contact identity with `--work-authority-contact FILE RUN-id`. The file
+  contains only `format: aleph-ambiguity-authority-contact/v1` and `identity`.
+  This names the recipient of the Core-derived request; it grants no
+  authority and contains no response or selected action.
 - For `kind=halt` or `BLOCKED`, retain the exact code and evidence. Unknown
   dispatch outcome prohibits automatic redispatch. Present a human request
   only when the controller has actually returned that required gate.

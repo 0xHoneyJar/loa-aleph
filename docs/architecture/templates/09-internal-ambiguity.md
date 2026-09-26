@@ -174,6 +174,16 @@ producer and fresh reviewer; Class B creates no human request, and Class C
 retains the existing procedural-authority requirement. No selection metadata
 can satisfy those review or authority predicates.
 
+For an upheld Class C subject, the bounded contact proposal contains only
+`format: aleph-ambiguity-authority-contact/v1` and the supplied human
+`identity`. It identifies the request recipient and supplies no action,
+response, semantic field or writer destination. Core derives and retains
+the exact Q request; the existing human response ingress remains separate.
+Response application and a lawful Q follow-up are separate work transactions.
+A new authority halt is returned before another selection in that resume
+call; a subsequent resume can derive a permitted follow-up from retained
+request, response, T5.2 and reviewed M evidence.
+
 The C1 relation, representation, semantic and duplicate seals remain
 immutable throughout C2/C3. Only complete C2 permits C3 and deterministic S5
 entry. The implemented S0–S4 orchestration frontier then returns

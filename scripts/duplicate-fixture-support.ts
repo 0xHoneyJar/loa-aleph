@@ -72,8 +72,10 @@ export function duplicateFixtureBase(run: string, first = 'The indicator lit dur
     suppliedTable?: boolean;
     third?: string;
     runFormatVersion?: string;
+    sourceId?: string;
   } = {}): DuplicateFixture {
-  const semantic = makeFragmentSemanticFixture(run, first, last, options.runFormatVersion || '1.8.0-provisional');
+  const semantic = makeFragmentSemanticFixture(run, first, last, options.runFormatVersion || '1.8.0-provisional', options.sourceId);
+  const sourceId = semantic.entry.anchors[0].source_id;
   if (options.suppliedTable) {
     const material = readRepresentationContext(loadRun(run)), inv = material.inventory;
     const asset = Buffer.from('Synthetic supplied one-cell table declaration; this is not an inferred chart value.');
@@ -83,9 +85,9 @@ export function duplicateFixtureBase(run: string, first = 'The indicator lit dur
       locus: 'corpus/representation-assets/AST-0900.txt', media_type: 'text/plain', encoding: 'utf8',
       byte_length: String(asset.length), content_hash: materialHash(asset) });
     inv.provenance.push({ provenance_id: 'RPR-0900', representation_id: 'REP-0001', type: 'supplied-structure',
-      actor: 'synthetic-supplier', tool: 'synthetic-export', tool_version: '1', input_refs: '["SRC-701"]', output_refs: '["AST-0900"]',
+      actor: 'synthetic-supplier', tool: 'synthetic-export', tool_version: '1', input_refs: semanticJson([sourceId]), output_refs: '["AST-0900"]',
       parameters_asset_id: 'none', declaration_asset_id: 'AST-0900' });
-    inv.bindings.push({ binding_id: 'BND-0900', representation_id: 'REP-0001', carrier_id: 'SRC-701', start_byte: String(anchor.start_byte),
+    inv.bindings.push({ binding_id: 'BND-0900', representation_id: 'REP-0001', carrier_id: sourceId, start_byte: String(anchor.start_byte),
       end_byte: String(anchor.end_byte), page_id: 'none', region_id: 'none', byte_role: 'frozen-source-bytes',
       fragment_hash: materialHash(bytes), exact_bytes_base64: bytes.toString('base64') });
     for (const [object_id, kind, coordinates] of [
@@ -110,7 +112,7 @@ export function duplicateFixtureBase(run: string, first = 'The indicator lit dur
     writeFixtureFile(run, 'ledgers/representation-uses.md', representationUsesMarkdown(uses));
     const walk = readFileSync(join(run, 'ledgers/source-walk.md'), 'utf8');
     writeFixtureFile(run, 'ledgers/source-walk.md', walk.replace(model.sourceWalk.gapReviews[0].values.reviewBasisDigest,
-      sourceWalkReviewBasisDigest(model, 'SRC-701', 'CUR-0702')!));
+      sourceWalkReviewBasisDigest(model, sourceId, 'CUR-0702')!));
     model = loadRun(run);
     semantic.subject = buildSemanticSubject(model, { ...semantic.subject, anchors: semantic.entry.anchors,
       material_views: semanticMaterialViews(model, uses) });
