@@ -7,12 +7,14 @@ import { tmpdir } from 'node:os';
 import { duplicateFixtureBase, duplicateFixtureDiscovery, closeDuplicateFixture } from '../../../scripts/duplicate-fixture-support.ts';
 import { writeFixtureFile } from '../../../scripts/semantic-fixture-support.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
+import { mdLineSpan, sourceFilePath } from '../../../scripts/lib/check-helpers.ts';
 import { semanticJson } from '../../../scripts/lib/semantic-review.ts';
 import { searchBasisDigest, ambiguityReviewSubjectDigest, materialImpactSubjectDigest, parseInternalAmbiguities,
   buildProceduralAuthorityResponse, proceduralAuthorityResponseJson, exactTextBlob, type ProceduralAction,
   type AmbiguityReviewSubject } from '../../../scripts/lib/internal-ambiguity.ts';
 import type { NextWork, WorkValue } from '../../../scripts/lib/work-transitions.ts';
 const runtime = process.argv.includes('--runtime');
+const c08 = process.argv.includes('--c08');
 const classB = process.argv.includes('--class-b');
 const classC = process.argv.includes('--class-c');
 const unresolved = classB || classC;
@@ -21,7 +23,8 @@ const amb = await import(runtime ? '../../../runtime-js/scripts/lib/work-transit
 const s4 = await import(runtime ? '../../../runtime-js/scripts/lib/work-transitions-s4.js' : '../../../scripts/lib/work-transitions-s4.ts') as typeof import('../../../scripts/lib/work-transitions-s4.ts');
 const authority = await import(runtime ? '../../../runtime-js/scripts/lib/work-transitions-authority.js' : '../../../scripts/lib/work-transitions-authority.ts') as typeof import('../../../scripts/lib/work-transitions-authority.ts');
 const scratch = mkdtempSync(join(tmpdir(), 'f03-ambiguity-')); let run = join(scratch, 'before'), serial = 0;
-const fixture = duplicateFixtureBase(run, undefined, undefined, { runFormatVersion: '1.9.0-provisional', ...(classC ? { sourceId: 'SRC-0701' } : {}) });
+const fixture = duplicateFixtureBase(run, undefined, undefined, { runFormatVersion: '1.9.0-provisional',
+  ...(classC ? { sourceId: 'SRC-0701' } : {}), ...(c08 ? { sourceId: 'SRC-001' } : {}) });
 duplicateFixtureDiscovery(fixture, []); closeDuplicateFixture(fixture);
 const log = readFileSync(join(run, 'run-log.md'), 'utf8');
 writeFixtureFile(run, 'run-log.md', log.slice(0, log.indexOf('\n## 2026-09-13 11:10')));
@@ -54,6 +57,27 @@ function returned(work: NextWork, value: unknown, producerContext: string | null
   return { call_id: call, role: work.call.role, context_id: `CTX-${call}`, producer_context_id: producerContext,
     raw_digest: core.workDigest(raw), receipt_digest: `sha256:${'a'.repeat(64)}`, simulation: true, value: value as WorkValue['value'] };
 }
+function refuseAfter(work: NextWork, value: unknown) {
+  assert(work.kind === 'worker');
+  if (value && typeof value === 'object' && 'assessment' in value) {
+    const v = value as typeof raw, a = v.assessment;
+    const changed = { ...subject, search_completion_ref: a.search_completion_ref, candidate_refs: a.candidate_refs };
+    changed.search_basis_digest = searchBasisDigest({ source_id: changed.source_id, source_hash: source.contentHash,
+      source_length_bytes: Buffer.from(view.frozen_source_base64, 'base64').length, scope_kind: changed.search_scope_kind, scope_refs: [],
+      completion_ref: changed.search_completion_ref, expression_start_byte: changed.expression_start_byte,
+      expression_end_byte: changed.expression_end_byte, expression_sha256: changed.expression_sha256,
+      basis_packet_ids: changed.basis_packet_ids, candidate_state: changed.candidate_state, candidate_refs: changed.candidate_refs });
+    a.search_basis_digest = changed.search_basis_digest;
+    a.review_subject_digest = ambiguityReviewSubjectDigest(changed);
+  }
+  const accepted = returned(work, value), before = loadRun(run);
+  assert.throws(() => {
+    const plan = core.deriveWorkTransition(before, execution, work, accepted, '2026-09-26T15:00:00Z');
+    const after = join(scratch, `refused-${serial++}`); cpSync(run, after, { recursive: true });
+    for (const e of plan.effects) writeFixtureFile(after, e.path, Buffer.from(e.after_base64, 'base64'));
+    core.validateDerivedWorkTransition(before, loadRun(after), plan);
+  }, /WORK_AMBIGUITY/u);
+}
 const packet = loadRun(run).packets[0].values;
 const bytes = Buffer.from(packet.quote), source = loadRun(run).corpus.sources[0].values;
 const selection = { format: 'aleph-ambiguity-expression-selection/v1', expressions: [{ source_entity_kind: 'PKT', source_entity_id: packet.packetId,
@@ -74,7 +98,9 @@ const subject: AmbiguityReviewSubject = { source_entity_kind: 'PKT', source_enti
   expression_sha256: expression.expression_sha256, expression_bytes_base64: expression.expression_bytes_base64,
   basis_packet_ids: expression.basis_packet_ids, search_scope_kind: 'full-same-source',
   search_completion_ref: `${packet.sourceId}@${completion.finalCursorId}@${completion.sourceHash}`, search_basis_digest: '', candidate_state: unresolved ? 'null-cannot-determine' : 'single',
-  candidate_refs: unresolved ? [] : [{ kind: 'PKT', id: packet.packetId }], affected_relation_ids: [], resolution_state: unresolved ? 'unresolved' : 'resolved-local', carry_state: 'none',
+  candidate_refs: unresolved ? [] : c08 ? [{ kind: 'source-locus', source_id: packet.sourceId, locator: packet.locator,
+    span_hash: core.workDigest(mdLineSpan(sourceFilePath(run, source.locus)!, 1, 1)!.bytes!) }]
+    : [{ kind: 'PKT', id: packet.packetId }], affected_relation_ids: [], resolution_state: unresolved ? 'unresolved' : 'resolved-local', carry_state: 'none',
   proposed_by: `invocation:${producer.call.prepared_call_id}` };
 subject.search_basis_digest = searchBasisDigest({ source_id: subject.source_id, source_hash: source.contentHash,
   source_length_bytes: Buffer.from(view.frozen_source_base64, 'base64').length, scope_kind: subject.search_scope_kind, scope_refs: [],
@@ -87,6 +113,47 @@ const raw = { definition: { source_entity_kind: subject.source_entity_kind, sour
   search_completion_ref: subject.search_completion_ref, search_basis_digest: subject.search_basis_digest, candidate_state: subject.candidate_state,
   candidate_refs: subject.candidate_refs, affected_relation_ids: subject.affected_relation_ids, resolution_state: subject.resolution_state,
   carry_state: subject.carry_state, proposed_by: subject.proposed_by, review_subject_digest: ambiguityReviewSubjectDigest(subject) }, flags: [] };
+if (c08) {
+  for (const id of ['SRC-01', 'SRC-777', 'SRC-0001']) test(`C08 expression rejects ${id}`, () =>
+    assert.throws(() => amb.ambiguityExpressionSelection(loadRun(run), Buffer.from(semanticJson({ ...selection,
+      expressions: [{ ...selection.expressions[0], source_id: id }] })))), 'adversarial');
+  test('C08 duplicate frozen row is rejected by Core selection', () => {
+    const duplicate = loadRun(run); duplicate.corpus.sources.push(duplicate.corpus.sources[0]);
+    assert.throws(() => amb.ambiguityExpressionSelection(duplicate, Buffer.from(semanticJson(selection))), /WORK_AMBIGUITY_SOURCE/u);
+  }, 'adversarial');
+  for (const completionRef of [
+    subject.search_completion_ref.replace('SRC-001@', 'SRC-0001@'),
+    subject.search_completion_ref.replace('CUR-0702', 'CUR-702'),
+  ]) test(`C08 completion refuses ${completionRef.split('@').slice(0, 2).join('@')}`, () => {
+    const changed = structuredClone(raw); changed.assessment.search_completion_ref = completionRef;
+    refuseAfter(producer, changed);
+  }, 'adversarial');
+  test('C08 search source must equal exact T5.1 source', () => {
+    const changed = structuredClone(raw); changed.assessment.search_source_id = 'SRC-0001';
+    refuseAfter(producer, changed);
+  }, 'adversarial');
+  if (!unresolved) for (const [name, candidate] of [
+    ['alternate-width alias', { ...subject.candidate_refs[0], source_id: 'SRC-0001' }],
+    ['absent source', { ...subject.candidate_refs[0], source_id: 'SRC-777' }],
+    ['malformed locator', { ...subject.candidate_refs[0], locator: 'L01-L1' }],
+    ['nonexistent locus', { ...subject.candidate_refs[0], locator: 'L999-L999' }],
+    ['wrong span hash', { ...subject.candidate_refs[0], span_hash: `sha256:${'0'.repeat(64)}` }],
+    ['short PKT', { kind: 'PKT', id: 'PKT-701' }],
+  ]) test(`C08 candidate ${name} fails`, () => {
+    const changed = structuredClone(raw);
+    changed.assessment.candidate_refs = [candidate as AmbiguityReviewSubject['candidate_refs'][number]];
+    refuseAfter(producer, changed);
+  }, 'adversarial');
+  if (!unresolved) test('C08 source-locus cannot cross to another existing frozen source', () => {
+    const other = loadRun(run); other.corpus.sources.push({ ...other.corpus.sources[0],
+      values: { ...other.corpus.sources[0].values, sourceId: 'SRC-002' } });
+    const changed = structuredClone(raw);
+    changed.assessment.candidate_refs = [{ kind: 'source-locus', source_id: 'SRC-002', locator: packet.locator,
+      span_hash: (subject.candidate_refs[0] as { span_hash: string }).span_hash }];
+    const value = returned(producer, changed);
+    assert.throws(() => amb.deriveAmbiguityTransition(other, producer, value), /candidate crosses the bound frozen source/u);
+  }, 'adversarial');
+}
 const accepted = returned(producer, raw);
 test('changed producer expression fails before canonicalization', () => {
   const changed = structuredClone(accepted); (changed.value as any).definition.expression_start_byte = 1;
@@ -107,6 +174,13 @@ test('upheld exact assessment canonicalizes T5.1 and T5.2', () => {
   const rows = parseInternalAmbiguities(loadRun(run)); assert.equal(rows.t5_1Rows.length, 1); assert.equal(rows.t5_2Rows.length, 1);
   assert.equal(rows.t5_2Rows[0].values.reviewSubjectDigest, ambiguityReviewSubjectDigest(subject));
 });
+if (c08) test('C08 T5.1, T5.2, completion and reviewed source retain exact SRC-001', () => {
+  const rows = parseInternalAmbiguities(loadRun(run));
+  assert.equal(rows.t5_1Rows[0].values.sourceId, 'SRC-001');
+  assert.equal(rows.t5_2Rows[0].values.searchSourceId, 'SRC-001');
+  assert(rows.t5_2Rows[0].values.searchCompletionRef.startsWith('SRC-001@CUR-'));
+  assert.equal(loadRun(run).corpus.sources[0].values.sourceId, 'SRC-001');
+});
 if (unresolved) {
   apply(s4.selectS4Work(loadRun(run)));
   const material = s4.selectS4Work(loadRun(run)); assert(material.kind === 'worker');
@@ -122,6 +196,15 @@ if (unresolved) {
     const altered = structuredClone(proposal); (altered.value as any).proposed_by = 'invocation:another-call';
     assert.throws(() => amb.deriveAmbiguityTransition(loadRun(run), material, altered), /WORK_AMBIGUITY_BINDING/u);
   }, 'adversarial');
+  if (c08 && classC) {
+    for (const locator of ['SRC-0001:L1-L1', 'SRC-777:L1-L1', 'SRC-001:L01-L1', 'SRC-001:L999-L999', 'SRC-001:L2-L1']) {
+      test(`C08 material refuses ${locator}`, () => {
+        const changed = structuredClone(proposal.value) as any; changed.source_locators = [locator];
+        refuseAfter(material, changed);
+      }, 'adversarial');
+    }
+    returned(material, proposal.value);
+  }
   apply(material, proposal);
   const review = s4.selectS4Work(loadRun(run)); assert(review.kind === 'worker');
   const view = JSON.parse(readFileSync(join(run, review.call.allowlist[0]), 'utf8'));

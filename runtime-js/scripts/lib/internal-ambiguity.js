@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { bundleLockBytes, canonicalJsonBytes, resealBundleLock, } from './bundle-format.js';
 import { findTables, normalizeHeader, parseBulletFields, parseTables, } from './markdown.js';
+import { hasRunCapability } from './run-model.js';
 export const INTERNAL_AMBIGUITY_FORMAT = 'aleph-internal-ambiguity/v1';
 export const INTERNAL_AMBIGUITY_SEARCH_BASIS_FORMAT = 'aleph-internal-ambiguity-search-basis/v1';
 export const INTERNAL_AMBIGUITY_REVIEW_SUBJECT_FORMAT = 'aleph-internal-ambiguity-review-subject/v1';
@@ -243,7 +244,18 @@ function compareCandidates(left, right) {
     }
     return 0;
 }
-export function parseCandidateRefs(raw) {
+export function usesExactC2SourceIdentity(model) {
+    const version = model.manifest?.runFormatVersion || '';
+    return version === '1.9.0-provisional' && hasRunCapability(version, 'orchestrator-work-transitions');
+}
+export function legalSourceIdSyntax(id) {
+    return /^SRC-\d{3,}$/u.test(id);
+}
+export function legalFrozenSourceRef(model, id) {
+    return legalSourceIdSyntax(id)
+        && model.corpus.sources.filter((row) => row.values.sourceId === id).length === 1;
+}
+export function parseCandidateRefs(raw, model) {
     let parsed;
     try {
         parsed = JSON.parse(raw);
@@ -271,7 +283,9 @@ export function parseCandidateRefs(raw) {
         else if (candidate.kind === 'source-locus') {
             if (!exactObjectKeys(candidate, ['kind', 'source_id', 'locator', 'span_hash'])
                 || typeof candidate.source_id !== 'string'
-                || !/^SRC-\d{4,}$/u.test(candidate.source_id)
+                || !(model && usesExactC2SourceIdentity(model)
+                    ? legalFrozenSourceRef(model, candidate.source_id)
+                    : /^SRC-\d{4,}$/u.test(candidate.source_id))
                 || typeof candidate.locator !== 'string' || candidate.locator.length === 0
                 || typeof candidate.span_hash !== 'string'
                 || !/^sha256:[a-f0-9]{64}$/u.test(candidate.span_hash)) {

@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { TextDecoder } from 'node:util';
 import { hasRunLogEvent, mdLineSpan, normalizeSha256, reachedState, sha256, sourceFilePath, } from './check-helpers.js';
-import { CANDIDATE_STATES, CARRY_STATES, INTERNAL_AMBIGUITY_FORMAT, PROCEDURAL_ACTIONS, RESOLUTION_STATES, SEARCH_SCOPE_KINDS, T5_1_HEADER, T5_2_HEADER, T5_3_HEADER, ambiguityReviewSubjectDigest, buildProceduralAuthorityLedgerRow, CLOSURE_PHASES, closurePhases, materialImpactSubjectDigest, materialImpactSubjectJson, materialImpactSubjectProblems, nextClosurePhase, operativeScopeProblems, parseCandidateRefs, parseInternalAmbiguities, parseOrderedIds, parseStructuredVerifierRecord, resolvePinnedCoreRequirement, searchBasisDigest, sha256Digest, tableLooksLike, validateProceduralAuthorityRequest, validateProceduralAuthorityResponse, legalResolutionCarryState, } from './internal-ambiguity.js';
+import { CANDIDATE_STATES, CARRY_STATES, INTERNAL_AMBIGUITY_FORMAT, PROCEDURAL_ACTIONS, RESOLUTION_STATES, SEARCH_SCOPE_KINDS, T5_1_HEADER, T5_2_HEADER, T5_3_HEADER, ambiguityReviewSubjectDigest, buildProceduralAuthorityLedgerRow, CLOSURE_PHASES, closurePhases, materialImpactSubjectDigest, materialImpactSubjectJson, materialImpactSubjectProblems, nextClosurePhase, operativeScopeProblems, parseCandidateRefs, parseInternalAmbiguities, parseOrderedIds, parseStructuredVerifierRecord, resolvePinnedCoreRequirement, searchBasisDigest, sha256Digest, tableLooksLike, validateProceduralAuthorityRequest, validateProceduralAuthorityResponse, legalResolutionCarryState, legalFrozenSourceRef, legalSourceIdSyntax, usesExactC2SourceIdentity, } from './internal-ambiguity.js';
 import { lineageCurrentClaimIds, lineageCurrentPacketIds } from './lineage.js';
 import { findTables, normalizeHeader } from './markdown.js';
 import { parseRelations } from './relations.js';
@@ -104,6 +104,8 @@ function verdictForTarget(model, target) {
     return matches.length === 1 ? matches[0] : null;
 }
 function sourceRow(model, id) {
+    if (usesExactC2SourceIdentity(model) && !legalFrozenSourceRef(model, id))
+        return null;
     return model.corpus.sources.find((row) => row.values.sourceId === id) || null;
 }
 function sourceBytes(model, id) {
@@ -171,7 +173,7 @@ function validateReviewedUnaffectedIds(subject, currentPackets, currentClaims, r
         }
     }
 }
-function validateSourceLocators(model, sourceId, subject, fail, label) {
+export function validateSourceLocators(model, sourceId, subject, fail, label) {
     const values = subject.source_locators;
     if (!Array.isArray(values)) {
         fail(`${label} source_locators must be an array`);
@@ -183,17 +185,23 @@ function validateSourceLocators(model, sourceId, subject, fail, label) {
             fail(`${label} source_locators contains non-string prose`);
             continue;
         }
-        const match = value.match(/^(SRC-\d{4,}):L([1-9]\d*)-L([1-9]\d*)$/u);
-        if (!match) {
+        const match = value.match(/^([^:]+):(.*)$/u);
+        const exactSource = usesExactC2SourceIdentity(model);
+        if (!match || !(exactSource ? legalSourceIdSyntax(match[1]) : /^SRC-\d{4,}$/u.test(match[1]))) {
             fail(`${label} source locator ${value || '(blank)'} is malformed`);
             continue;
         }
-        const start = Number(match[2]);
-        const end = Number(match[3]);
-        if (match[1] !== sourceId) {
+        if (match[1] !== sourceId || (exactSource && !legalFrozenSourceRef(model, match[1]))) {
             fail(`${label} source locator ${value} crosses the bound frozen source`);
             continue;
         }
+        const locus = match[2].match(/^L([1-9]\d*)-L([1-9]\d*)$/u);
+        if (!locus) {
+            fail(`${label} source locator ${value} is malformed`);
+            continue;
+        }
+        const start = Number(locus[1]);
+        const end = Number(locus[2]);
         const source = sourceRow(model, sourceId);
         const path = source ? sourceFilePath(model.runDir, source.values.locus) : null;
         if (!source || source.values.scheme.replace(/`/gu, '').trim() !== 'md-lines'
@@ -235,9 +243,9 @@ function completionRef(model, sourceId) {
         return null;
     return `${sourceId}@${completion.values.finalCursorId}@${completion.values.sourceHash}`;
 }
-function reviewSubject(definition, assessment) {
+function reviewSubject(model, definition, assessment) {
     const packets = parseOrderedIds(definition.values.basisPacketIds, 'PKT');
-    const candidates = parseCandidateRefs(assessment.values.candidateRefs);
+    const candidates = parseCandidateRefs(assessment.values.candidateRefs, model);
     const relations = parseOrderedIds(assessment.values.affectedRelationIds, 'REL', true);
     const start = Number(definition.values.expressionStartByte);
     const end = Number(definition.values.expressionEndByte);
@@ -358,6 +366,10 @@ export function runK2Ambiguities(results, model, pinnedCoreAuthority) {
         const active = usesInternalAmbiguityLifecycle(version);
         const signals = ambiguitySignals(model);
         const ambiguity = parseInternalAmbiguities(model);
+        if (usesExactC2SourceIdentity(model)
+            && new Set(model.corpus.sources.map((row) => row.values.sourceId)).size !== model.corpus.sources.length) {
+            fail('C2 frozen corpus contains duplicate exact source identities');
+        }
         if (!active) {
             if (signals.length > 0)
                 fail(`run format ${version || '(pre-versioned)'} must reject active 1.5 ambiguity artifacts`);
@@ -512,7 +524,7 @@ export function runK2Ambiguities(results, model, pinnedCoreAuthority) {
                 fail(`${values.ambiguityId} carry_state is invalid`);
             if (values.searchSourceId !== definition.values.sourceId)
                 fail(`${values.ambiguityId} search source crosses the frozen source`);
-            const candidates = parseCandidateRefs(values.candidateRefs);
+            const candidates = parseCandidateRefs(values.candidateRefs, model);
             if (!candidates.clean)
                 fail(`${values.ambiguityId} candidate_refs: ${candidates.error || 'invalid'}`);
             const count = candidates.candidates.length;
@@ -588,7 +600,7 @@ export function runK2Ambiguities(results, model, pinnedCoreAuthority) {
                 if (searchBasisDigest(basis) !== values.searchBasisDigest)
                     fail(`${values.ambiguityId} search_basis_digest is wrong`);
             }
-            const subject = reviewSubject(definition, row);
+            const subject = reviewSubject(model, definition, row);
             if (!subject || ambiguityReviewSubjectDigest(subject) !== values.reviewSubjectDigest) {
                 fail(`${values.ambiguityId} review_subject_digest is wrong`);
             }

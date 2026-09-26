@@ -18,7 +18,7 @@ import type {
   MarkdownTable,
   MarkdownTableRow,
 } from './markdown.ts';
-import type { RunDocument, RunModel } from './run-model.ts';
+import { hasRunCapability, type RunDocument, type RunModel } from './run-model.ts';
 
 export const INTERNAL_AMBIGUITY_FORMAT = 'aleph-internal-ambiguity/v1';
 export const INTERNAL_AMBIGUITY_SEARCH_BASIS_FORMAT =
@@ -578,8 +578,23 @@ function compareCandidates(left: AmbiguityCandidate, right: AmbiguityCandidate):
   return 0;
 }
 
+export function usesExactC2SourceIdentity(model: RunModel): boolean {
+  const version = model.manifest?.runFormatVersion || '';
+  return version === '1.9.0-provisional' && hasRunCapability(version, 'orchestrator-work-transitions');
+}
+
+export function legalSourceIdSyntax(id: string): boolean {
+  return /^SRC-\d{3,}$/u.test(id);
+}
+
+export function legalFrozenSourceRef(model: RunModel, id: string): boolean {
+  return legalSourceIdSyntax(id)
+    && model.corpus.sources.filter((row) => row.values.sourceId === id).length === 1;
+}
+
 export function parseCandidateRefs(
   raw: string,
+  model?: RunModel,
 ): { candidates: AmbiguityCandidate[]; clean: boolean; error?: string } {
   let parsed: unknown;
   try { parsed = JSON.parse(raw) as unknown; } catch {
@@ -604,7 +619,9 @@ export function parseCandidateRefs(
     } else if (candidate.kind === 'source-locus') {
       if (!exactObjectKeys(candidate, ['kind', 'source_id', 'locator', 'span_hash'])
         || typeof candidate.source_id !== 'string'
-        || !/^SRC-\d{4,}$/u.test(candidate.source_id)
+        || !(model && usesExactC2SourceIdentity(model)
+          ? legalFrozenSourceRef(model, candidate.source_id)
+          : /^SRC-\d{4,}$/u.test(candidate.source_id))
         || typeof candidate.locator !== 'string' || candidate.locator.length === 0
         || typeof candidate.span_hash !== 'string'
         || !/^sha256:[a-f0-9]{64}$/u.test(candidate.span_hash)) {

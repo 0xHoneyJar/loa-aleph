@@ -149,7 +149,7 @@ mechanism represents expression selection as orchestration metadata:
     {
       "source_entity_kind": "PKT",
       "source_entity_id": "PKT-0001",
-      "source_id": "SRC-0001",
+      "source_id": "SRC-001",
       "locator": "L1-L1",
       "start_byte": 0,
       "end_byte": 1,
@@ -165,6 +165,18 @@ submitted bytes and derives each producer view; the proposal supplies no
 destination, after-image, assessment, candidate choice or material scope.
 Selection is a question, not a finding or evidence that no ambiguity exists.
 Existing semantic findings and their dispositions remain retained.
+
+For cumulative `1.9.0-provisional` with `orchestrator-work-transitions`,
+HUMAN C-08 controls every C2 source reference: source syntax is
+`^SRC-\d{3,}$`, and each reference must equal exactly one frozen inventory
+row's `source_id`. Same-source fields additionally equal their bound source.
+`SRC-0001` is not an alias for frozen `SRC-001`. The exact frozen token is
+serialized in search bases, `source_id`, `search_source_id`, full-source
+completion references (`SRC-001@CUR-0001@sha256:…`) and material locators
+(`SRC-001:L1-L4`). Locator reopening, exact hashes, source completion,
+review and all other identifier grammars remain independently controlling.
+Predecessor formats retain their pinned behavior; no inventory or source
+allocation change, alias, repadding or migration occurs.
 
 The ambiguity producer supplies the existing definition and assessment
 fields for each selected expression. Core retains the exact subject and

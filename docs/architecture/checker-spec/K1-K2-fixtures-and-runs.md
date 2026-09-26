@@ -428,6 +428,16 @@ removal, and rejects an extractor cursor return with no Core `reason`.
   one exact fresh verifier target and upheld verdict; and duplicate subject
   digest rejection.
 
+  For cumulative `1.9.0-provisional` with `orchestrator-work-transitions`,
+  HUMAN C-08 requires minimum-width-three `^SRC-\d{3,}$` source syntax and
+  exactly one matching frozen source row. T5.1, T5.2, source-locus candidates,
+  search-basis serialization, completion references and material source
+  locators retain that row's exact identity; same-source bindings remain
+  exact. Duplicate frozen IDs, absent sources, alternate-width aliases and
+  cross-source locators fail. Canonical locator syntax and exact reopening
+  remain separate checks. PKT/CC/REL/WLK/CUR and other ID grammars are unchanged,
+  as are retained predecessor-format rules and historical Slice-5 records.
+
   For material impact and procedural authority, it validates exact retained
   subject path/format/key order; T5.2/C1 binding; contiguous single-headed M
   history; Class B empty and Class C nonempty operative scope; legal current

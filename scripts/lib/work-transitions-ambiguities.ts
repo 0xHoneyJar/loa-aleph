@@ -7,7 +7,7 @@ import { parseStrictJson, type WorkerJsonValue } from './worker-return-contract.
 import { lineageCurrentPacketIds, lineageCurrentClaimIds } from './lineage.ts';
 import { semanticJson, semanticPacketBasis, type SemanticSubject } from './semantic-review.ts';
 import { parseRelations } from './relations.ts';
-import { runK2Ambiguities } from './checks-k2-ambiguities.ts';
+import { runK2Ambiguities, validateSourceLocators } from './checks-k2-ambiguities.ts';
 import { ResultCollector } from './results.ts';
 import {
   INTERNAL_AMBIGUITY_FORMAT, T5_1_HEADER, T5_2_HEADER, T5_3_HEADER,
@@ -16,6 +16,8 @@ import {
   MATERIAL_IMPACT_SUBJECT_FORMAT, loadPinnedCoreAuthority, resolvePinnedCoreRequirement,
   closurePhases, type AmbiguityReviewSubject, type MaterialImpactSubject,
   buildProceduralAuthoritySubject,
+  legalFrozenSourceRef,
+  parseCandidateRefs,
 } from './internal-ambiguity.ts';
 import { selectProceduralWork, deriveProceduralTransition } from './work-transitions-authority.ts';
 import { assertWork, file, required, effect, obligation, workDigest, table, nextId, semanticLedger,
@@ -51,6 +53,7 @@ function fields(value: unknown, names: string[], label: string): asserts value i
     && Object.keys(value).sort().join('\0') === names.sort().join('\0'), 'WORK_AMBIGUITY_FORMAT', label);
 }
 function source(model: RunModel, id: string) {
+  assertWork(legalFrozenSourceRef(model, id), 'WORK_AMBIGUITY_SOURCE', 'exact unique frozen source required');
   const row = model.corpus.sources.find((s) => s.values.sourceId === id)?.values;
   assertWork(row?.scheme === 'md-lines', 'WORK_AMBIGUITY_SOURCE', 'exact supported frozen source required');
   const path = sourceFilePath(model.runDir, row.locus);
@@ -177,6 +180,7 @@ function materialSubject(model: RunModel, p: Preparation, c: CapturedSubject, va
     review_proposition: 'class-B-or-C-and-canonical-operative-scope-complete-and-accurate-under-cited-Core-requirements',
     proposed_by: raw.proposed_by };
   const problems = materialImpactSubjectProblems(subject);
+  validateSourceLocators(model, p.expression.source_id, subject, (problem) => problems.push(problem), p.ambiguity_id);
   assertWork(!problems.length, 'WORK_AMBIGUITY_MATERIAL', problems.join('; '));
   const authority = pinnedAmbiguityAuthority(model);
   for (const row of subject.operative_scope.impact_rows) {
@@ -352,6 +356,22 @@ export function deriveAmbiguityTransition(model: RunModel, work: LocalWork, valu
         detected_by: `invocation:${value.call_id}` };
       assertWork(isDeepStrictEqual(d, definition) && a.search_source_id === e.source_id && a.proposed_by === `invocation:${value.call_id}`,
         'WORK_AMBIGUITY_BINDING', 'producer cannot change selected expression or source');
+      const candidates = parseCandidateRefs(JSON.stringify(a.candidate_refs), model);
+      assertWork(candidates.clean, 'WORK_AMBIGUITY_SOURCE', candidates.error || 'invalid candidate references');
+      for (const candidate of candidates.candidates) {
+        if (candidate.kind === 'source-locus') {
+          assertWork(candidate.source_id === e.source_id, 'WORK_AMBIGUITY_SOURCE', 'candidate crosses the bound frozen source');
+          assertWork(workDigest(span(model, candidate.source_id, candidate.locator).bytes) === candidate.span_hash,
+            'WORK_AMBIGUITY_SOURCE', 'candidate does not reopen exact source bytes');
+        }
+      }
+      if (a.search_scope_kind === 'full-same-source') {
+        const completion = model.sourceWalk.completions.filter((row) => row.values.sourceId === e.source_id
+          && row.values.completionState === 'complete');
+        assertWork(completion.length === 1 && a.search_completion_ref
+          === `${e.source_id}@${completion[0].values.finalCursorId}@${completion[0].values.sourceHash}`,
+        'WORK_AMBIGUITY_SOURCE', 'exact same-source completion reference required');
+      }
       const { detected_by: _detected, ...expression } = definition;
       const subject: AmbiguityReviewSubject = { ...expression, search_scope_kind: a.search_scope_kind,
         search_completion_ref: a.search_completion_ref, search_basis_digest: a.search_basis_digest,

@@ -714,7 +714,9 @@
         "adapters/loa/tests/test-f03-stage-entry.ts",
         "adapters/loa/tests/test-duplicate-review-process.ts",
         "adapters/loa/src/orchestration.ts",
-        "runtime-js/adapters/loa/src/orchestration.js"
+        "runtime-js/adapters/loa/src/orchestration.js",
+        "adapters/loa/tests/test-f03-c08-source-identity.ts",
+        "adapters/loa/tests/test-f03-c08-retained-discriminator.ts"
       ]
     },
     "packaging": [
