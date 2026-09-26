@@ -313,6 +313,13 @@ for (const [name, path, mutate] of [
 test('consumed capture identity cannot produce a second transaction', () => assert.throws(() =>
   core.deriveWorkTransition(loadRun(f.run), execution, worker, first.value, first.durable.created_at),
   /WORK_.*(?:STALE|CHANGED)|WORK_SELECTION|WORK_OBLIGATION/u), 'adversarial');
+test('a rehashed consumption record with a foreign format cannot authorize generation', () => {
+  const run = clone(f.run, 'foreign-consumption-format');
+  const path = `control/orchestration/commits/${first.durable.work_id}-consumed.json`;
+  const { digest: _digest, ...body } = read(run, path);
+  body.format = 'caller-stationary-permission/v1'; write(run, path, core.workJson(seal(body)));
+  assert.throws(() => stationary.stationaryHistory(loadRun(run)), /WORK_STATIONARY_BINDING/u);
+}, 'adversarial');
 for (const version of ['1.2.0-provisional', '1.3.0-provisional', '1.4.0-provisional', '1.5.0-provisional',
   '1.6.0-provisional', '1.7.0-provisional', '1.8.0-provisional']) test(`stationary extension refuses predecessor ${version}`, () => {
   const model = loadRun(initial);

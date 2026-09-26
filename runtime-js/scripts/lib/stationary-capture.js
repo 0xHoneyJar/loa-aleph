@@ -207,7 +207,9 @@ function committed(model, record) {
         && acceptance.digest === record.acceptance_digest && acceptance.raw_digest === record.raw_digest
         && acceptance.call_id === record.call_id && acceptance.work_id === record.work_id && acceptance.work_digest === work.digest
         && acceptance.checkpoint === identity.checkpoint && acceptance.basis_digest === work.basis_digest, 'retained capture work/acceptance');
-    requireStationary(status === 'committed' && digest === hash(canonicalJsonBytes(body))
+    requireStationary(journal.format === 'aleph-loa-work-transaction/v1'
+        && intent.format === 'aleph-loa-orchestration-commit/v1'
+        && status === 'committed' && digest === hash(canonicalJsonBytes(body))
         && journal.work_id === record.work_id && journal.intent_digest === intent.digest
         && intent.work_id === record.work_id && intent.work_digest === work.digest
         && intent.acceptance_digest === acceptance.digest && intent.plan_digest === hash(canonicalJsonBytes(plan))
@@ -218,7 +220,8 @@ function committed(model, record) {
         && journal.state_before.execution.stage === 'S2'
         && checkpoint(journal.state_before) === identity.checkpoint
         && checkpoint(journal.state_after) === journal.state_after.execution.resume.checkpoint_digest, 'retained stationary journal/intent/checkpoints');
-    requireStationary(consumed.work_id === record.work_id && consumed.commit_digest === intent.digest
+    requireStationary(consumed.format === 'aleph-loa-work-consumption/v1'
+        && consumed.work_id === record.work_id && consumed.commit_digest === intent.digest
         && consumed.journal_digest === hash(bytes(model, journalPath))
         && consumed.after_checkpoint === journal.state_after.execution.resume.checkpoint_digest
         && consumed.after_chain === journal.state_after.ledger.chain_head
