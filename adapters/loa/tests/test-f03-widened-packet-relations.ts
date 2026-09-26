@@ -154,7 +154,25 @@ refusal('forged durable work identity fails', (run) => {
   work.work_id = `WORK-${'0'.repeat(64)}`; value.work_provenance.work_record_base64 = core.workJson(work).toString('base64');
   write(run, capturePath, core.workJson(value));
 });
+refusal('forged provenance with recomputed record hashes fails', (run) => {
+  const value = json(run, capturePath);
+  const { digest: _workDigest, ...work } = JSON.parse(Buffer.from(value.work_provenance.work_record_base64, 'base64').toString());
+  work.identity.work.obligation.subject_id += '-forged';
+  work.work_id = `WORK-${core.workDigest(core.workJson(work.identity)).slice(7)}`;
+  const sealedWork = seal(work);
+  const { digest: _receiptDigest, ...receipt } = JSON.parse(Buffer.from(value.work_provenance.acceptance_record_base64, 'base64').toString());
+  const acceptance = seal({ ...receipt, work_id: work.work_id, work_digest: sealedWork.digest });
+  value.work_provenance = { work_record_base64: core.workJson(sealedWork).toString('base64'),
+    acceptance_record_base64: core.workJson(acceptance).toString('base64') };
+  value.receipt_digest = acceptance.digest;
+  write(run, capturePath, core.workJson(value));
+});
 refusal('wrong semantic subject digest fails', (_run, context) => { context.semantics.units[0].proposition += ' changed'; });
+refusal('retained ledger subject digest mutation fails', (run) => {
+  const rows = sem.parseSemanticLedger(readFileSync(join(run, sem.SEMANTIC_PATH), 'utf8'));
+  rows.subjects.find((entry) => entry.semantic_id === subject.semantic_id)!.subject_digest = `sha256:${'0'.repeat(64)}`;
+  write(run, sem.SEMANTIC_PATH, sem.semanticLedgerMarkdown(rows));
+});
 refusal('wrong stage fails', (run) => {
   const state = json(run, 'control/run-state.json'); state.execution.stage = 'S2';
   write(run, 'control/run-state.json', core.workJson(state));
@@ -208,6 +226,13 @@ for (const version of ['1.7.0-provisional', '1.8.0-provisional']) test(`${versio
 }, 'adversarial');
 test('caller exception flag is rejected by the closed subject schema', () => {
   assert.throws(() => sem.validateSemanticSubject({ ...subject, allow_s3_pkt_relation: true }, loadRun(reserved)));
+}, 'adversarial');
+test('worker-authored exception flag is rejected by the return contract', () => {
+  const returned = json(fixture.run, `control/worker-returns/${fixture.call}/raw.json`);
+  returned.allow_s3_pkt_relation = true;
+  const basis = json(fixture.captured, capturePath).basis;
+  assert.equal(sem.validateSemanticReturn('extractor', '1.9.0-provisional', returned,
+    sem.packetWideningProducerView(loadRun(fixture.run), basis).context).result, 'FAIL');
 }, 'adversarial');
 test('reloading retained bytes reconstructs identical eligibility', () => {
   const reopened = JSON.parse(readFileSync(join(reserved, row.subject_path), 'utf8'));

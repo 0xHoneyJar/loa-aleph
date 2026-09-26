@@ -548,9 +548,14 @@ export function verifyWorkerBundle(root) {
         throw new Error('worker request format is invalid');
     }
     const runDir = resolve(bundleRoot, '../../..');
+    const model = loadRun(runDir);
     const duplicateSuccessor = request.role === 'normalizer' && request.stage === 'S4'
-        && hasRunCapability(loadRun(runDir).manifest?.runFormatVersion || '', 'duplicate-overlap-review');
-    if (!duplicateSuccessor)
+        && hasRunCapability(model.manifest?.runFormatVersion || '', 'duplicate-overlap-review');
+    const widening = request.role === 'extractor' && request.stage === 'S3' && request.task_line === WIDENING_TASK
+        && request.output_contract.core_path === 'docs/architecture/prompts/workers-intake-extraction.md'
+        && request.output_contract.selector === `output-contract:${WIDENING_CONTRACT}`
+        && hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions');
+    if (!duplicateSuccessor && !widening)
         assertDispatchableRoleStage(request.role, request.stage);
     assertWorkerRoleIsolation(request.role, request.kind, request.isolation?.producer_context_id);
     if (workerBundleDigest(bundleRoot, request) !== request.bundle_digest) {
@@ -613,7 +618,9 @@ export function verifyWorkerBundle(root) {
             throw new Error(`worker attachment changed: ${attachment.attachment_path}`);
         }
     }
-    const model = loadRun(runDir), duplicateTask = duplicateTaskForRole(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line);
+    if (widening)
+        validateSemanticProducerDelivery(model, 'extractor', 'S3', request.call_id, request.task_line, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })), true);
+    const duplicateTask = duplicateTaskForRole(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line);
     validateDuplicateRoleDelivery(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line, request.allowlist.map((a) => a.run_path));
     if (duplicateTask)
         validateDuplicateBundleDelivery(model, duplicateTask, request.call_id, request.task_line, request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
