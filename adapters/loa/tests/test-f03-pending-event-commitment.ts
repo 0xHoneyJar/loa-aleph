@@ -9,6 +9,7 @@ import { makeSemanticFixture } from '../../../scripts/semantic-fixture-support.t
 import { loadRun, type RunModel } from '../../../scripts/lib/run-model.ts';
 import { runK2 } from '../../../scripts/lib/checks-k2.ts';
 import { ResultCollector } from '../../../scripts/lib/results.ts';
+import { sourceFilePath } from '../../../scripts/lib/check-helpers.ts';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const runtime = process.argv.includes('--runtime');
 const core = await import(pathToFileURL(join(root, runtime
@@ -30,6 +31,8 @@ try {
   }
   writeFileSync(join(scratch, 'ledgers/packet-index.md'), packets);
   const full = loadRun(scratch), walk = full.sourceWalk;
+  const sourcePath = sourceFilePath(scratch, full.corpus.sources[0].values.locus)!;
+  const frozenSource = readFileSync(sourcePath), frozenSourceHash = full.corpus.sources[0].values.contentHash;
   const first = walk.events[0].raw;
   const second = first.replace('EVT-0701', 'EVT-0702').replace('PKT-0701', 'PKT-0702')
     .replace('| 1 |', '| 2 |').replace('| committed |', '| pending |');
@@ -75,6 +78,23 @@ try {
     assert.equal(repeated.after_base64, finalPlan.after_base64); assert.equal(repeated.event_commitments.length, 0);
   });
   test('C03-11 deterministic derivation', () => assert.deepEqual(core.derivePendingEventCommitment(before, 'EVT-0702'), plan));
+  test('C03 exact frozen-source hash survives pending and committed states', () => {
+    assert.equal('sha256:' + createHash('sha256').update(frozenSource).digest('hex'), frozenSourceHash);
+    for (const model of [before, after, final]) {
+      assert.equal(model.corpus.sources[0].values.contentHash, frozenSourceHash);
+      assert(model.sourceWalk.cursors.every((row) => row.values.sourceHash === frozenSourceHash));
+      assert(model.sourceWalk.completions.every((row) => row.values.sourceHash === frozenSourceHash));
+      assert(readFileSync(sourcePath).equals(frozenSource));
+    }
+  });
+  test('C03 changed frozen bytes fail strict K2.14 after commitment', () => {
+    try {
+      const altered = Buffer.from(frozenSource); altered[0] ^= 1;
+      writeFileSync(sourcePath, altered);
+      assert(checks(final).some((entry) => entry.status === 'FAIL'));
+    } finally { writeFileSync(sourcePath, frozenSource); }
+    assert(checks(final).every((entry) => entry.status === 'PASS'));
+  });
   const changed = (model: RunModel, old: string, next: string) => core.projectSourceWalk(model, model.sourceWalkDocument!.text.replace(old, next));
   const committed = after.sourceWalk.events[1].raw;
   for (const [name, field, value] of [
@@ -112,8 +132,18 @@ try {
     '1.6.0-provisional', '1.7.0-provisional', '1.8.0-provisional']) test(`C03 predecessor ${version}`, () => assert.throws(
     () => core.derivePendingEventCommitment({ ...before, manifest: { ...before.manifest!, runFormatVersion: version } }, 'EVT-0702'),
     /1.9 orchestration identity required/u));
-  test('C03 K2.14 implementation unchanged', () => assert.equal(createHash('sha256')
-    .update(readFileSync(join(root, 'scripts/lib/checks-k2.ts'))).digest('hex'),
-  '23369afafd113f0012af4f321ef70dedd694ed883252d296f3edc7c9a4a7fcf3'));
+  test('C03 K2.14 source remains exact outside the adopted C05 exception', () => {
+    const current = readFileSync(join(root, 'scripts/lib/checks-k2.ts'), 'utf8');
+    // c9aff09f introduced exactly these two C05 source changes. Retain the
+    // original C03 hash and reject every other change to the protected source.
+    const c05Predicate = 'if (!eventsByPacket.has(packet.values.packetId) && !isPostS2WidenedPacket(model, packet.values.packetId)) {';
+    const c05Import = "import { isPostS2WidenedPacket } from './packet-widening.ts';\n";
+    assert.equal(current.split(c05Predicate).length, 2);
+    assert.equal(current.split(c05Import).length, 2);
+    const historicalProjection = current.replace(c05Predicate, 'if (!eventsByPacket.has(packet.values.packetId)) {')
+      .replace(c05Import, '');
+    assert.equal(createHash('sha256').update(historicalProjection).digest('hex'),
+      '23369afafd113f0012af4f321ef70dedd694ed883252d296f3edc7c9a4a7fcf3');
+  });
   console.log(JSON.stringify({ result: 'PASS', evidence: 'fixture-structural only', records, passed: records.length, total: records.length }, null, 2));
 } finally { rmSync(scratch, { recursive: true, force: true }); }
