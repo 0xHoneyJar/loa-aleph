@@ -31,6 +31,39 @@ if (process.argv[2] === '--fixture-worker') {
       model_identity: invocation.model_identity, simulation: { kind: 'fixture-simulated' } },
     structured_return: JSON.parse(readFileSync(rawPath, 'utf8')) };
   } } });
+} else if (process.argv[2] === '--request-byte-regression') {
+  const original = resolve(process.argv[3]);
+  assert.equal(JSON.parse(readFileSync(join(original, 'control/run-state.json'), 'utf8')).full_mode, 'fixture-simulated');
+  const scratch = mkdtempSync(join(tmpdir(), 'aleph-request-byte-regression-')), run = join(scratch, 'run');
+  cpSync(original, run, { recursive: true });
+  const works = readdirSync(join(run, 'control/orchestration/work'))
+    .map((name) => JSON.parse(readFileSync(join(run, 'control/orchestration/work', name), 'utf8')));
+  const work = works.find((entry) => entry.identity.work.obligation.operation === 's2.capture');
+  assert(work?.call);
+  const workerRoot = join(run, 'control/worker-bundles', work.call.call_id), path = join(workerRoot, 'request.json');
+  const exact = readFileSync(path), request = JSON.parse(exact.toString()), before = readFileSync(join(original, 'control/worker-bundles', work.call.call_id, 'request.json'));
+  const { verifyWorkerBundle } = await import(process.argv.includes('--runtime')
+    ? '../../../runtime-js/adapters/loa/src/worker-bundle.js' : '../src/worker-bundle.ts') as typeof import('../src/worker-bundle.ts');
+  assert.deepEqual(verifyWorkerBundle(workerRoot), request);
+  const attacks = [
+    ['trailing newline', Buffer.concat([exact, Buffer.from('\n')])],
+    ['leading whitespace', Buffer.concat([Buffer.from(' '), exact])],
+    ['key order', Buffer.from(JSON.stringify(Object.fromEntries(Object.entries(request).reverse())) + '\n')],
+    ['JSON indentation', Buffer.from(JSON.stringify(request, null, 4) + '\n')],
+    ['equivalent unicode escape', Buffer.from(exact.toString().replace('"format"', '"for\\u006dat"'))],
+    ['duplicate unchanged field', Buffer.from(exact.toString().replace('{', `{\"format\":${JSON.stringify(request.format)},`))],
+  ] as const;
+  for (const [name, altered] of attacks) {
+    assert.deepEqual(JSON.parse(altered.toString()), request, 'attack changes serialization only');
+    chmodSync(path, 0o600); writeFileSync(path, altered); chmodSync(path, 0o400);
+    assert.throws(() => verifyWorkerBundle(workerRoot), /WORK_REQUEST_BYTES_CHANGED/u);
+    console.log(`PASS exact worker request refusal: ${name}`);
+  }
+  chmodSync(path, 0o600); writeFileSync(path, exact); chmodSync(path, 0o400);
+  assert.deepEqual(verifyWorkerBundle(workerRoot), request);
+  assert(readFileSync(join(original, 'control/worker-bundles', work.call.call_id, 'request.json')).equals(before));
+  console.log(JSON.stringify({ result: 'PASS', controls: 2, adversarial: attacks.length, scratch,
+    scope: 'Isolated copy of retained fixture evidence; direct bundle verifier regression, not installed resume or predecessor qualification.' }));
 } else {
   const scratch = mkdtempSync(join(tmpdir(), 'aleph-orchestration-process-'));
   const keep = process.env.F03_KEEP_TEST === '1';

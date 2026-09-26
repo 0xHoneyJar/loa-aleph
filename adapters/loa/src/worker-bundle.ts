@@ -705,6 +705,13 @@ export function verifyWorkerBundle(root: string): WorkerRequest {
   }
   const runDir = resolve(bundleRoot, '../../..');
   const model = loadRun(runDir);
+  // The self-digest uses a request projection. New orchestration runs also
+  // require the exact bytes emitted by writeJsonAtomic; parsing must not erase
+  // a changed request envelope during acceptance or restart authentication.
+  if (hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions')
+    && !readStableRegularFile(join(bundleRoot, 'request.json')).bytes.equals(stableJsonBytes(request))) {
+    throw new Error('WORK_REQUEST_BYTES_CHANGED: worker request differs from its exact serialized envelope');
+  }
   const duplicateSuccessor = request.role === 'normalizer' && request.stage === 'S4'
     && hasRunCapability(model.manifest?.runFormatVersion || '', 'duplicate-overlap-review');
   const widening = request.role === 'extractor' && request.stage === 'S3' && request.task_line === WIDENING_TASK
