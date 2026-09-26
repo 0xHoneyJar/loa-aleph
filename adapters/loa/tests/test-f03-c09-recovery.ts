@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /** Exact partial subsets of a fresh installed, corrected prepared bootstrap.
- * These are fault/tamper copies, never repairs to the seed or historical C09. */
+ * These are disposable fixture fault injections, never repairs to the seed or historical C09. */
 import assert from 'node:assert/strict';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { stableJsonBytes, sha256Digest } from '../src/fs.ts';
+import { stableJsonBytes, sha256Digest, makeTreeOwnerWritable } from '../src/fs.ts';
 import { stateCheckpointDigest } from '../src/run-control.ts';
 const seedRecord = JSON.parse(readFileSync(resolve(process.argv[2]), 'utf8')) as { run: string; host: string; work_id: string };
 const seed = resolve(seedRecord.run), workId = seedRecord.work_id;
@@ -41,6 +41,19 @@ function inventory(run: string): Array<{ path: string; mode: number; digest: str
   visit(''); return rows;
 }
 const seedInventory = inventory(seed);
+// Retained runtime identity binds an absolute run-local root. Use only the
+// completed, disposable installed fixture's original slot for fault injection;
+// archive every outcome and restore its complete pre-test state at the end.
+const slot = join(seedRecord.host, 'grimoires/loa/aleph/runs', journal.state_before.run_id);
+assert(seedRecord.host.startsWith(join(tmpdir(), 'aleph-orchestration-process-')));
+assert.equal(JSON.parse(readFileSync(join(slot, 'control/run-state.json'), 'utf8')).full_mode, 'fixture-simulated');
+const original = join(root, 'original-completed-fixture');
+cpSync(slot, original, { recursive: true });
+const originalInventory = inventory(original);
+function restoreSlot(from: string): void {
+  makeTreeOwnerWritable(slot); rmSync(slot, { recursive: true });
+  cpSync(from, slot, { recursive: true });
+}
 const script = `
 import { pathToFileURL } from 'node:url';
 const [run, id, action] = process.argv.slice(1);
@@ -56,13 +69,19 @@ const { verifyRunControl } = await import(pathToFileURL(base + 'run-control.js')
 verifyRunControl(run);
 console.log('VERIFIED_FINAL_AFTER');
 `;
+let attempts = 0;
 function invoke(run: string, id = workId, action = 'commit') {
-  return spawnSync(process.execPath, ['--input-type=module', '-e', script, run, id, action], {
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script, run, id, action], {
     encoding: 'utf8', env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: '' }, maxBuffer: 8 * 1024 * 1024,
   });
+  attempts++;
+  writeFileSync(join(root, `attempt-${attempts}.log`), result.stdout + result.stderr);
+  cpSync(slot, join(root, `attempt-${attempts}-after`), { recursive: true });
+  return result;
 }
 function test(name: string, change: (run: string) => void, refusal?: RegExp, id = workId, action = 'commit'): void {
-  const run = join(root, `case-${cases.length + 1}`); cpSync(seed, run, { recursive: true }); change(run);
+  restoreSlot(seed);
+  const run = slot; change(run);
   const before = inventory(run), result = invoke(run, id, action);
   writeFileSync(join(root, `case-${cases.length + 1}.log`), result.stdout + result.stderr);
   if (refusal) {
@@ -88,6 +107,7 @@ function test(name: string, change: (run: string) => void, refusal?: RegExp, id 
   writeFileSync(join(root, 'results.json'), JSON.stringify({ result: 'IN_PROGRESS', cases }, null, 2) + '\n');
 }
 const allEffects = (run: string) => { for (const e of effects) write(run, e.path, Buffer.from(e.after_base64, 'base64')); };
+try {
 for (let mask = 0; mask < 8; mask++) test(`prepared bootstrap partial canonical subset ${mask.toString(2).padStart(3, '0')}`,
   (run) => { for (const [i, e] of effects.entries()) if (mask & (1 << i)) write(run, e.path, Buffer.from(e.after_base64, 'base64')); });
 test('all canonical bytes and chain before checkpoint', (run) => {
@@ -162,3 +182,8 @@ const evidence = { result: 'PASS', cases, root, seed: seedRecord, seed_unchanged
   scope: 'Fresh installed pinned writer in separate processes; authenticated partial subsets and tamper controls. Full CLI crash progression is separate. No provider/native/semantic evidence or finding closure.' };
 writeFileSync(join(root, 'results.json'), JSON.stringify(evidence, null, 2) + '\n');
 console.log(JSON.stringify(evidence));
+} finally {
+  restoreSlot(original);
+  assert.deepEqual(inventory(slot), originalInventory, 'completed installed fixture must be restored byte-for-byte');
+  assert.deepEqual(inventory(seed), seedInventory);
+}

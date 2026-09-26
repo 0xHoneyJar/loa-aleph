@@ -11,7 +11,7 @@ import { captureRuntimeSnapshot, defaultProfilePath, loadLoaProfile, validateRes
 import { invokePinnedChecker, } from './checker.js';
 import { verifyLoaInstallation } from './installer.js';
 import { runLoaPreflight } from './preflight.js';
-import { LedgerWriter, recoverPendingLedgerTransactions, recoverPendingMaterialTransactions, recoverPendingSemanticTransactions, recoverPendingDuplicateTransactions, } from './ledger-writer.js';
+import { LedgerWriter, recoverPendingLedgerTransactions, recoverPendingMaterialTransactions, recoverPendingSemanticTransactions, recoverPendingDuplicateTransactions, inspectPendingOrchestrationCommit, } from './ledger-writer.js';
 import { CLOSURE_PHASES, closurePhasesFromText, nextClosurePhase, } from '../../../scripts/lib/internal-ambiguity.js';
 import { usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
 import { representationUsesMarkdown, REPRESENTATION_USE_PATH, assertRepresentationExtractionSupported, readRepresentationContext, RepresentationError } from '../../../scripts/lib/source-representation.js';
@@ -362,10 +362,23 @@ export function statusLoaRun(runId, options = {}) {
     const loaRoot = resolve(options.loaRoot || process.cwd());
     try {
         if (!runId) {
-            const runs = listRunIds(loaRoot).map((id) => stateSummary(verifyRunControl(runDirectory(loaRoot, id))));
-            return result('status', 'PASS', { details: { runs } });
+            let pending = false;
+            const runs = listRunIds(loaRoot).map((id) => {
+                const dir = runDirectory(loaRoot, id);
+                const transaction = usesOrchestration(dir) ? inspectPendingOrchestrationCommit(dir) : null;
+                if (transaction) {
+                    pending = true;
+                    return { run_id: id, ...transaction };
+                }
+                return stateSummary(verifyRunControl(dir));
+            });
+            return result('status', pending ? 'BLOCKED' : 'PASS', { details: { runs } });
         }
-        const state = verifyRunControl(runDirectory(loaRoot, runId));
+        const runDir = runDirectory(loaRoot, runId);
+        const transaction = usesOrchestration(runDir) ? inspectPendingOrchestrationCommit(runDir) : null;
+        if (transaction)
+            return result('status', 'BLOCKED', { run_id: runId, details: transaction });
+        const state = verifyRunControl(runDir);
         return result('status', state.execution.halt ? 'BLOCKED' : 'PASS', {
             run_id: runId,
             full_mode: state.full_mode,
@@ -533,6 +546,9 @@ export function validateLoaRun(runId, options = {}) {
     const loaRoot = resolve(options.loaRoot || process.cwd());
     try {
         const runDir = runDirectory(loaRoot, runId);
+        const transaction = usesOrchestration(runDir) ? inspectPendingOrchestrationCommit(runDir) : null;
+        if (transaction)
+            return result('validate', 'BLOCKED', { run_id: runId, details: transaction });
         const state = readRunState(runDir);
         const checked = invokePinnedChecker({
             runDir,

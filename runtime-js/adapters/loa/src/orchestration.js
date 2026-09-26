@@ -508,6 +508,17 @@ function readConsumption(runDir, id) {
     validateConsumedWorkTransition(runDir, transaction.plan);
     return consumed;
 }
+export function pendingOrchestrationCommitWork(runDir) {
+    const pending = allWorkIds(runDir).filter((id) => {
+        readOrchestrationWork(runDir, id);
+        if (!existsSync(canonicalPath(runDir, consumedPath(id))))
+            return true;
+        readConsumption(runDir, id);
+        return false;
+    });
+    assertWork(pending.length <= 1, 'WORK_QUEUE_AMBIGUOUS', 'multiple unconsumed work items');
+    return pending.length && existsSync(canonicalPath(runDir, orchestrationCommitPath(pending[0]))) ? pending[0] : null;
+}
 export function recordOrchestrationConsumption(runDir, id, state) {
     const intent = readOrchestrationCommit(runDir, id);
     publish(runDir, consumedPath(id), { format: 'aleph-loa-work-consumption/v1', work_id: id, commit_digest: intent.digest,

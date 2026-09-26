@@ -40,12 +40,14 @@ import {
   writeRunState,
   updateRunState,
   verifyRunControl,
+  verifyRetainedRuntimeIdentity,
 } from './run-control.ts';
 import { ValidatedWorkerReturn } from './worker-return.ts';
 import {
   deriveAuthenticatedWork, prepareOrchestrationCommit, readOrchestrationCommit,
   orchestrationFixtureFault, withOrchestrationLock,
   orchestrationCommitPath, recordOrchestrationConsumption, assertRecoveryPrerequisites,
+  pendingOrchestrationCommitWork, type AuthenticatedWork, type OrchestrationCommit,
 } from './orchestration.ts';
 import { workJson, workDigest, assertWork, type WorkTransition } from '../../../scripts/lib/work-transitions.ts';
 import { parseStrictJson } from '../../../scripts/lib/worker-return-contract.ts';
@@ -101,6 +103,111 @@ import {
   type MaterialRow,
   type MaterialWritePlan,
 } from '../../../scripts/lib/source-representation.ts';
+
+function authenticateWorkTransaction(runDir: string, authenticated: AuthenticatedWork, intent: OrchestrationCommit & { digest: string }) {
+  const workId = authenticated.work.work_id, plan = authenticated.transition;
+  assertWork(intent.format === 'aleph-loa-orchestration-commit/v1' && intent.work_id === workId
+    && intent.work_digest === authenticated.work.digest
+    && intent.acceptance_digest === (authenticated.acceptance?.digest || null)
+    && intent.plan_digest === workDigest(workJson(plan))
+    && intent.before_checkpoint === authenticated.work.identity.checkpoint
+    && intent.before_chain === authenticated.work.identity.ledger.chain_head
+    && intent.journal === `control/transactions/TXN-work-${workId.slice(5)}.json`,
+  'WORK_COMMIT_BINDING', workId);
+  assertRecoveryPrerequisites(runDir, authenticated.work, plan);
+  const journalPath = join(runDir, intent.journal);
+  type Transaction = {
+    format: 'aleph-loa-work-transaction/v1'; work_id: string; intent_digest: string;
+    plan: WorkTransition; state_before: LoaRunState; state_after: LoaRunState;
+    chain_before: string; chain_after: string; digest: string; status: 'prepared' | 'committed';
+  };
+  const stateBefore = authenticated.beforeState, stateAfter = structuredClone(stateBefore);
+  assertWork(stateBefore.execution.resume.checkpoint_digest === intent.before_checkpoint
+    && stateBefore.ledger.chain_head === intent.before_chain, 'WORK_CHECKPOINT_STALE', workId);
+  assertWork(stateBefore.ledger.writer_id === 'loa-orchestrator'
+    && (!stateBefore.execution.halt || plan.authority?.operation === 'apply' || plan.authority?.operation === 'followup')
+    && (!plan.simulation || stateBefore.full_mode === 'fixture-simulated'), 'WORK_WRITER_BOUNDARY', workId);
+  const chainBefore = authenticated.chainBefore;
+  let chainAfter = chainBefore;
+  for (const effect of plan.effects) {
+    const receipt = { format: LOA_LEDGER_RECEIPT_FORMAT, sequence: nextDecimal(stateAfter.ledger.sequence),
+      path: effect.path, before_digest: effect.before_digest || sha256Digest(Buffer.alloc(0)),
+      after_digest: effect.after_digest, return_digest: authenticated.returned?.rawDigest || intent.plan_digest,
+      previous_chain_digest: stateAfter.ledger.chain_head, writer: 'loa-orchestrator' as const,
+      written_at: authenticated.work.created_at };
+    const chainDigest = sha256Digest(stableJsonBytes(receipt));
+    chainAfter += `${stableJson({ ...receipt, chain_digest: chainDigest })}\n`;
+    stateAfter.ledger.sequence = receipt.sequence;
+    stateAfter.ledger.chain_head = chainDigest;
+  }
+  stateAfter.execution.stage = plan.next_execution.stage as LoaRunState['execution']['stage'];
+  stateAfter.execution.stage_status = plan.next_execution.stage_status as LoaRunState['execution']['stage_status'];
+  stateAfter.execution.core_state = plan.next_execution.core_state as LoaRunState['execution']['core_state'];
+  if (plan.authority) {
+    stateAfter.execution.gate = plan.authority.gate;
+    stateAfter.execution.halt = plan.authority.halt;
+  }
+  if (plan.operational_halt) stateAfter.execution.halt = plan.operational_halt;
+  stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
+  stateAfter.execution.resume.last_verified_at = authenticated.work.created_at;
+  stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
+  const body = { format: 'aleph-loa-work-transaction/v1' as const, work_id: workId, intent_digest: intent.digest,
+    plan, state_before: stateBefore, state_after: stateAfter, chain_before: chainBefore, chain_after: chainAfter };
+  let transaction: Transaction = { ...body, digest: sha256Digest(stableJsonBytes(body)), status: 'prepared' };
+  if (existsSync(journalPath)) {
+    const bytes = readFileSync(journalPath), retained = parseStrictJson(bytes) as unknown as Transaction;
+    assertWork(['prepared', 'committed'].includes(retained.status)
+      && bytes.equals(stableJsonBytes({ ...transaction, status: retained.status })), 'WORK_JOURNAL_BINDING', workId);
+    transaction = retained;
+  } else {
+    const current = readRunState(runDir);
+    assertWork(stableJsonBytes(current).equals(stableJsonBytes(stateBefore)), 'WORK_CHECKPOINT_STALE', workId);
+    if (plan.s3_to_s4_bootstrap) {
+      const chainPath = join(runDir, 'control/ledger-chain.jsonl');
+      assertWork((existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '') === chainBefore,
+        'WORK_CHAIN_CHANGED', 'unjournaled bootstrap must be exactly BEFORE');
+      for (const effect of plan.effects) {
+        const path = join(runDir, effect.path);
+        assertWork(effect.before_digest === null ? !existsSync(path)
+          : existsSync(path) && sha256Digest(readFileSync(path)) === effect.before_digest,
+        'WORK_BOOTSTRAP_UNJOURNALED', effect.path);
+      }
+    }
+  }
+  const state = readRunState(runDir);
+  assertWork(transaction.state_before.execution.resume.checkpoint_digest === intent.before_checkpoint
+    && stateCheckpointDigest(transaction.state_before) === intent.before_checkpoint
+    && stateCheckpointDigest(transaction.state_after) === transaction.state_after.execution.resume.checkpoint_digest
+    && stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_before.identity))
+    && stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_after.identity))
+    && [transaction.state_before.execution.resume.checkpoint_digest, transaction.state_after.execution.resume.checkpoint_digest]
+      .includes(state.execution.resume.checkpoint_digest), 'WORK_JOURNAL_CHECKPOINT', workId);
+  const chainPath = join(runDir, 'control/ledger-chain.jsonl');
+  const chain = existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '';
+  assertWork(chain === transaction.chain_before || chain === transaction.chain_after, 'WORK_CHAIN_CHANGED', workId);
+  for (const effect of plan.effects) {
+    assertSafeRelativePath(effect.path);
+    assertNoSymlinkComponents(runDir, join(runDir, effect.path));
+    const current = existsSync(join(runDir, effect.path)) ? readFileSync(join(runDir, effect.path)) : null;
+    const after = Buffer.from(effect.after_base64, 'base64');
+    assertWork(sha256Digest(after) === effect.after_digest
+      && (current === null ? effect.before_digest === null
+        : sha256Digest(current) === effect.before_digest || current.equals(after)), 'WORK_EFFECT_CHANGED', effect.path);
+  }
+  return { transaction, journalPath, state, chain, chainPath };
+}
+
+/** Read-only pending visibility, under the same exact transaction checks as recovery. */
+export function inspectPendingOrchestrationCommit(runDir: string): Record<string, JsonValue> | null {
+  verifyRetainedRuntimeIdentity(runDir, readRunState(runDir));
+  const id = pendingOrchestrationCommitWork(runDir);
+  if (!id) return null;
+  const authenticated = deriveAuthenticatedWork(runDir, id, true);
+  const { transaction, journalPath } = authenticateWorkTransaction(runDir, authenticated, readOrchestrationCommit(runDir, id));
+  return { kind: 'pending-transaction', work_id: id, operation: transaction.plan.obligation.operation,
+    journal: existsSync(journalPath) ? journalPath.slice(runDir.length + 1) : null,
+    canonical_verification: 'not-run', next_action: 'resume' };
+}
 
 const CANONICAL_PREFIXES = [
   'arms/',
@@ -780,96 +887,9 @@ export class LedgerWriter {
         : prepareOrchestrationCommit(this.runDir, authenticated);
       fault('commit-intent');
       const plan = authenticated.transition;
-      assertWork(intent.format === 'aleph-loa-orchestration-commit/v1' && intent.work_id === workId
-        && intent.work_digest === authenticated.work.digest
-        && intent.acceptance_digest === (authenticated.acceptance?.digest || null)
-        && intent.plan_digest === workDigest(workJson(plan))
-        && intent.before_checkpoint === authenticated.work.identity.checkpoint
-        && intent.before_chain === authenticated.work.identity.ledger.chain_head
-        && intent.journal === `control/transactions/TXN-work-${workId.slice(5)}.json`,
-      'WORK_COMMIT_BINDING', workId);
-      assertRecoveryPrerequisites(this.runDir, authenticated.work, plan);
-      const journalPath = join(this.runDir, intent.journal);
-      type Transaction = {
-        format: 'aleph-loa-work-transaction/v1'; work_id: string; intent_digest: string;
-        plan: WorkTransition; state_before: LoaRunState; state_after: LoaRunState;
-        chain_before: string; chain_after: string; digest: string; status: 'prepared' | 'committed';
-      };
-      const stateBefore = authenticated.beforeState, stateAfter = structuredClone(stateBefore);
-        assertWork(stateBefore.execution.resume.checkpoint_digest === intent.before_checkpoint
-          && stateBefore.ledger.chain_head === intent.before_chain, 'WORK_CHECKPOINT_STALE', workId);
-        assertWork(stateBefore.ledger.writer_id === 'loa-orchestrator'
-          && (!stateBefore.execution.halt || plan.authority?.operation === 'apply' || plan.authority?.operation === 'followup')
-          && (!plan.simulation || stateBefore.full_mode === 'fixture-simulated'), 'WORK_WRITER_BOUNDARY', workId);
-        const chainBefore = authenticated.chainBefore;
-        let chainAfter = chainBefore;
-        for (const effect of plan.effects) {
-          const receipt = { format: LOA_LEDGER_RECEIPT_FORMAT, sequence: nextDecimal(stateAfter.ledger.sequence),
-            path: effect.path, before_digest: effect.before_digest || sha256Digest(Buffer.alloc(0)),
-            after_digest: effect.after_digest, return_digest: authenticated.returned?.rawDigest || intent.plan_digest,
-            previous_chain_digest: stateAfter.ledger.chain_head, writer: 'loa-orchestrator' as const,
-            written_at: authenticated.work.created_at };
-          const chainDigest = sha256Digest(stableJsonBytes(receipt));
-          chainAfter += `${stableJson({ ...receipt, chain_digest: chainDigest })}\n`;
-          stateAfter.ledger.sequence = receipt.sequence;
-          stateAfter.ledger.chain_head = chainDigest;
-        }
-        stateAfter.execution.stage = plan.next_execution.stage as LoaRunState['execution']['stage'];
-        stateAfter.execution.stage_status = plan.next_execution.stage_status as LoaRunState['execution']['stage_status'];
-        stateAfter.execution.core_state = plan.next_execution.core_state as LoaRunState['execution']['core_state'];
-        if (plan.authority) {
-          stateAfter.execution.gate = plan.authority.gate;
-          stateAfter.execution.halt = plan.authority.halt;
-        }
-        if (plan.operational_halt) stateAfter.execution.halt = plan.operational_halt;
-        stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
-        stateAfter.execution.resume.last_verified_at = authenticated.work.created_at;
-        stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
-      const body = { format: 'aleph-loa-work-transaction/v1' as const, work_id: workId, intent_digest: intent.digest,
-        plan, state_before: stateBefore, state_after: stateAfter, chain_before: chainBefore, chain_after: chainAfter };
-      let transaction: Transaction = { ...body, digest: sha256Digest(stableJsonBytes(body)), status: 'prepared' };
-      if (existsSync(journalPath)) {
-        const bytes = readFileSync(journalPath), retained = parseStrictJson(bytes) as unknown as Transaction;
-        assertWork(['prepared', 'committed'].includes(retained.status)
-          && bytes.equals(stableJsonBytes({ ...transaction, status: retained.status })), 'WORK_JOURNAL_BINDING', workId);
-        transaction = retained;
-      } else {
-        const current = readRunState(this.runDir);
-        assertWork(stableJsonBytes(current).equals(stableJsonBytes(stateBefore)), 'WORK_CHECKPOINT_STALE', workId);
-        if (plan.s3_to_s4_bootstrap) {
-          const chainPath = join(this.runDir, 'control/ledger-chain.jsonl');
-          assertWork((existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '') === chainBefore,
-            'WORK_CHAIN_CHANGED', 'unjournaled bootstrap must be exactly BEFORE');
-          for (const effect of plan.effects) {
-            const path = join(this.runDir, effect.path);
-            assertWork(effect.before_digest === null ? !existsSync(path)
-              : existsSync(path) && sha256Digest(readFileSync(path)) === effect.before_digest,
-            'WORK_BOOTSTRAP_UNJOURNALED', effect.path);
-          }
-        }
-        writeFileAtomic(journalPath, stableJsonBytes(transaction));
-      }
+      const { transaction, journalPath, state, chain, chainPath } = authenticateWorkTransaction(this.runDir, authenticated, intent);
+      if (!existsSync(journalPath)) writeFileAtomic(journalPath, stableJsonBytes(transaction));
       fault('writer-prepared');
-      const state = readRunState(this.runDir);
-      assertWork(transaction.state_before.execution.resume.checkpoint_digest === intent.before_checkpoint
-        && stateCheckpointDigest(transaction.state_before) === intent.before_checkpoint
-        && stateCheckpointDigest(transaction.state_after) === transaction.state_after.execution.resume.checkpoint_digest
-        && stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_before.identity))
-        && stableJsonBytes(state.identity).equals(stableJsonBytes(transaction.state_after.identity))
-        && [transaction.state_before.execution.resume.checkpoint_digest, transaction.state_after.execution.resume.checkpoint_digest]
-          .includes(state.execution.resume.checkpoint_digest), 'WORK_JOURNAL_CHECKPOINT', workId);
-      const chainPath = join(this.runDir, 'control/ledger-chain.jsonl');
-      const chain = existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '';
-      assertWork(chain === transaction.chain_before || chain === transaction.chain_after, 'WORK_CHAIN_CHANGED', workId);
-      for (const effect of plan.effects) {
-        assertSafeRelativePath(effect.path);
-        assertNoSymlinkComponents(this.runDir, join(this.runDir, effect.path));
-        const current = existsSync(join(this.runDir, effect.path)) ? readFileSync(join(this.runDir, effect.path)) : null;
-        const after = Buffer.from(effect.after_base64, 'base64');
-        assertWork(sha256Digest(after) === effect.after_digest
-          && (current === null ? effect.before_digest === null
-            : sha256Digest(current) === effect.before_digest || current.equals(after)), 'WORK_EFFECT_CHANGED', effect.path);
-      }
       if (plan.s3_to_s4_bootstrap) {
         const after = mkdtempSync(join(tmpdir(), 'aleph-bootstrap-final-'));
         try {
@@ -1409,6 +1429,7 @@ export class LedgerWriter {
   }
 
   appendProceduralAuthorityResponse(requestId: string): LedgerReceipt {
+    this.assertLegacySemanticIngress();
     if (!/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*$/u.test(requestId)) {
       throw new Error('procedural authority request ID is invalid');
     }
@@ -1492,6 +1513,7 @@ export class LedgerWriter {
     prepared_by: string;
     requested_at: string;
   }): ProceduralAuthorityRequest {
+    this.assertLegacySemanticIngress();
     if (!/^GATE-S4-AMB-\d{4,}-A[1-9]\d*-Q[1-9]\d*$/u.test(options.request_id)) {
       throw new Error('procedural follow-up predecessor request ID is invalid');
     }
@@ -1629,6 +1651,7 @@ export class LedgerWriter {
   }
 
   advanceSlice5ClosurePhase(phase: ClosurePhase): void {
+    this.assertLegacySemanticIngress();
     const material = usesFormalLayoutBindings(readRunState(this.runDir).identity.run_format_version)
       && phase === 'S4-C1-relations-closed';
     const release = material ? acquireLedgerLock(this.runDir, this.clock.now(), false) : () => {};
@@ -1754,6 +1777,7 @@ export class LedgerWriter {
   }
 
   enterS5AfterSlice5Closure(): void {
+    this.assertLegacySemanticIngress();
     const state = readRunState(this.runDir);
     const phases = retainedClosurePhases(this.runDir);
     if (state.execution.stage !== 'S4'

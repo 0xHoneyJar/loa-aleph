@@ -26,6 +26,7 @@ the exact first unmet obligation, persists its work identity, and returns
 - For `kind=proposal`, supply only the exact typed proposal requested by Core
   through its named control surface. An extraction-criteria sample proposal
   contains source IDs and exact locators, never destinations or after-images.
+  Submit `operation=criteria.samples` with `--work-samples FILE RUN-id`.
   For `operation=ambiguity.expressions`, the bounded selection identifies
   existing source entities, exact frozen spans and packet bases under the
   retained Core template. Submit it through `--work-ambiguity-expressions
@@ -43,9 +44,15 @@ the exact first unmet obligation, persists its work identity, and returns
   `basis`. This surface only records Core's late-lineage refusal and durable
   halt. It accepts no successor, destination or after-image and preserves an
   unrelated existing halt. It supplies no correction or rewind path.
-- For `kind=halt` or `BLOCKED`, retain the exact code and evidence. Unknown
+- For `kind=halt`, retain the exact code and evidence. Unknown
   dispatch outcome prohibits automatic redispatch. Present a human request
   only when the controller has actually returned that required gate.
+
+Route by the returned `details.work.kind`: a command-level `BLOCKED` result
+can still carry the exact next worker or proposal action. When `status` or
+`validate` reports `details.kind=pending-transaction`, it has authenticated
+pending work without verifying a canonical intermediate. Invoke `resume`
+to recover before ordinary verification or selection.
 
 The 1.9 skill does not construct assembly inputs, select allowlists or
 destinations, invoke LedgerWriter, pass a validated return to a writer, or

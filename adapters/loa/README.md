@@ -84,6 +84,12 @@ the run's retained original bundle and runtime snapshot, even when the active
 installation has since changed. `validate` invokes the checker bytes and
 command pinned by that run and preserves the complete result.
 
+For cumulative 1.9 work transactions, `status` and `validate` authenticate
+an outstanding commit with the same exact BEFORE/AFTER checks as recovery
+and report `pending-transaction`, without presenting partial physical files
+as a verified canonical state. `resume` completes authenticated recovery,
+then performs full verification before selecting ordinary work.
+
 The skill also has two internal, file-driven control surfaces for Core-required
 human stops; they are not additional `/loa-aleph` operator commands:
 

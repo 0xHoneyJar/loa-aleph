@@ -76,6 +76,16 @@ if (process.argv[2] === '--fixture-worker') {
   const keep = process.env.F03_KEEP_TEST === '1';
   try {
     const source = predecessorSource(ROOT, scratch, '1.9.0-provisional');
+    if (process.env.F03_AUTH_MUTATION === '1') {
+      // Deliberately defective, separately pinned fixture bundle. Never edit
+      // a retained run's executable or treat this as positive product evidence.
+      const guard = "assertWork(readStableRegularFile(full).bytes.equals(bytes) && (lstatSync(full).mode & 0o222) === 0, 'WORK_ACCEPTED_BYTES_CHANGED', name);";
+      for (const relative of ['adapters/loa/src/orchestration.ts', 'runtime-js/adapters/loa/src/orchestration.js']) {
+        const path = join(source, relative), before = readFileSync(path, 'utf8');
+        assert.equal(before.split(guard).length - 1, 1, 'mutation must remove exactly the intended ingress guard');
+        writeFileSync(path, before.replace(guard, '/* Deliberate fixture mutation: accepted bytes guard removed. */'));
+      }
+    }
     const assembly = assembleBundles(source, join(scratch, 'bundles'));
     assert.equal(assembly.result, 'PASS', assembly.errors.join('; '));
     const host = join(scratch, 'host'), bundle = join(scratch, 'bundles/aleph-for-loa');
@@ -161,6 +171,30 @@ if (process.argv[2] === '--fixture-worker') {
             cpSync(run, seed, { recursive: true });
             writeFileSync(join(scratch, 'c09-recovery-seed.json'), JSON.stringify({ run: seed, host, work_id: work.work_id }));
           }
+          if (point !== 'consumed') {
+            const state = readFileSync(join(run, 'control/run-state.json'));
+            const chain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
+            const log = readFileSync(join(run, 'run-log.md'));
+            const ledger = existsSync(join(run, 'ledgers/duplicate-review.md'))
+              ? readFileSync(join(run, 'ledgers/duplicate-review.md')) : null;
+            for (const action of ['status', 'validate']) {
+              const reader = spawnSync(process.execPath, [entrypoint, ...args.map((arg) => arg === 'resume' ? action : arg)],
+                { encoding: 'utf8', cwd: host });
+              assert.equal(reader.status, 0, reader.stdout + reader.stderr);
+              const report = JSON.parse(reader.stdout);
+              assert.equal(report.result, 'BLOCKED');
+              assert.equal(report.details.kind, 'pending-transaction');
+              assert.equal(report.details.work_id, work.work_id);
+              assert.equal(report.details.canonical_verification, 'not-run');
+              assert.equal(report.stage, null);
+              assert(readFileSync(join(run, 'control/run-state.json')).equals(state));
+              assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(chain));
+              assert(readFileSync(join(run, 'run-log.md')).equals(log));
+              assert.deepEqual(existsSync(join(run, 'ledgers/duplicate-review.md'))
+                ? readFileSync(join(run, 'ledgers/duplicate-review.md')) : null, ledger);
+              assert(!existsSync(consumed));
+            }
+          }
           console.log(`PASS C09 installed restart recovery ${point}; consumption last`);
         }
         processResult = spawnSync(process.execPath, [entrypoint, ...args], { encoding: 'utf8', cwd: host });
@@ -228,11 +262,45 @@ if (process.argv[2] === '--fixture-worker') {
     const sourceRow = loadRun(run).corpus.sources[0].values;
     runFixture(initialWork, { sources: [{ source_id: sourceRow.sourceId, kind: 'design-note', locus: sourceRow.locus,
       scheme: sourceRow.scheme, content_hash: sourceRow.contentHash, dates: '2026-09-17', trust_class: 'model-generated',
-      sensitivity: ['none'], admission_note: 'Synthetic structural fixture only.', flags: [] }],
+      sensitivity: [process.env.F03_S1_SENSITIVITY === '1' ? 'private' : 'none'], admission_note: 'Synthetic structural fixture only.', flags: [] }],
     criteria: { candidate_definition: 'Explicit observations.', admission: [{ n: 1, criterion: 'Explicit observations.', example: 'The counter increased.' }],
       exclusion_classes: [{ class: 'scaffolding', description: 'Headings without assertions.', example: 'Introduction' }],
       granularity_policy: 'One assertion per candidate.', normalization_conventions: 'Preserve scope and qualifiers.' } });
     assert(!existsSync(join(run, 'ledgers/extraction-criteria.md')), 'accept must not write canonical criteria');
+    if (process.env.F03_AUTH_MUTATION === '1') {
+      const path = join(initialWork.return_root, 'raw.json'), before = readFileSync(path);
+      chmodSync(path, 0o600); writeFileSync(path, Buffer.concat([before, Buffer.from('\n')]));
+      chmodSync(path, 0o400);
+      const attempted = cli('resume', id);
+      assert.equal(attempted.result, 'BLOCKED');
+      assert(existsSync(join(run, 'ledgers/extraction-criteria.md')),
+        'removed-guard mutation must demonstrate the illicit canonical effect detected by the intact refusal test');
+      assert(!readFileSync(path).equals(before));
+      writeFileSync(join(scratch, 'removed-authentication-guard-control.json'), JSON.stringify({
+        result: 'REMOVED_GUARD_ILLICIT_WRITE_DETECTED', run, mutation: 'WORK_ACCEPTED_BYTES_CHANGED guard removed before fixture pinning',
+        intact_test: 'test-f03-controller-authentication.ts: altered accepted raw.json refuses with unchanged canonical files',
+        execution_class: 'deliberately mutated fixture-simulated bundle; not positive production evidence',
+      }, null, 2) + '\n');
+      console.log('PASS discriminator detects illicit canonical write when accepted-byte authentication is removed');
+    } else if (process.env.F03_S1_SENSITIVITY === '1') {
+      const state = readFileSync(join(run, 'control/run-state.json')), manifest = readFileSync(join(run, 'corpus/manifest.md'));
+      const raw = readFileSync(join(initialWork.return_root, 'raw.json'));
+      for (let n = 0; n < 2; n++) {
+        const refused = command('cli', ['--root', host, '--json', '--allow-fixture-simulation', 'resume', id], 1);
+        assert(refused.errors.some((error: string) => error.includes('S1_SENSITIVITY_AUTHORITY_REQUIRED')));
+        assert(!existsSync(join(run, 'ledgers/extraction-criteria.md')));
+        assert(readFileSync(join(run, 'control/run-state.json')).equals(state));
+        assert(readFileSync(join(run, 'corpus/manifest.md')).equals(manifest));
+        assert(readFileSync(join(initialWork.return_root, 'raw.json')).equals(raw));
+      }
+      console.log('PASS installed S1 new sensitivity refuses canonical intake, preserves human rulings and retains accepted evidence');
+    } else if (process.env.F03_AUTH_SEED === '1') {
+      const seed = join(scratch, 'accepted-intake-seed'); cpSync(run, seed, { recursive: true });
+      writeFileSync(join(scratch, 'controller-auth-seed.json'), JSON.stringify({
+        run: seed, host, run_id: id, work_id: initialWork.work_id, call_id: initialWork.call_id,
+      }));
+      console.log('PASS fresh installed accepted intake seed retained before canonical commit');
+    } else {
     resumed = cli('resume', id);
     assert(existsSync(join(run, 'ledgers/extraction-criteria.md')), 'fresh resume must commit accepted intake');
     const firstReview = resumed.details.work;
@@ -243,8 +311,20 @@ if (process.argv[2] === '--fixture-worker') {
     runFixture(firstReview, criteriaResult);
     resumed = cli('resume', id);
     assert.notEqual(firstReview.call_id, resumed.details.work.call_id);
-    runFixture(resumed.details.work, criteriaResult);
+    const secondCriteria = structuredClone(criteriaResult);
+    if (process.env.F03_S1_DISAGREE === '1') secondCriteria.judgments[0].candidacy = 'not-candidate';
+    runFixture(resumed.details.work, secondCriteria);
     resumed = cli('resume', id);
+    if (process.env.F03_S1_DISAGREE === '1') {
+      assert.equal(resumed.stage, 'S1'); assert.equal(resumed.details.work.code, 'S1_CRITERIA_AGREEMENT_UNMET');
+      assert(!existsSync(join(run, 'ledgers/packet-index.md')));
+      const state = readFileSync(join(run, 'control/run-state.json')), chain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
+      const repeated = cli('resume', id);
+      assert.equal(repeated.details.work.code, 'S1_CRITERIA_AGREEMENT_UNMET');
+      assert(readFileSync(join(run, 'control/run-state.json')).equals(state));
+      assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(chain));
+      console.log('PASS installed S1 independent disagreement remains unmet without repeated reviewers or S2 entry');
+    } else {
     assert.equal(resumed.stage, 'S2');
     assert(readFileSync(join(run, 'run-manifest.md'), 'utf8').includes('| DISTILLING |'));
     assert.equal(readdirSync(join(run, 'control/orchestration/accepted')).length, 3);
@@ -1009,9 +1089,14 @@ if (process.argv[2] === '--fixture-worker') {
                 target_span_hash: 'none', record_state: 'explicitly-absent', null_reason: 'bounded-review-found-none',
                 basis_packet_ids: source.packets.split(',').map((id: string) => id.trim()), proposed_by: `invocation:${work.call_id}` };
               const { format: _format, ...fields } = subject;
-              const projection = { subject, review_subject_digest: '', material_use: TEXT_USE };
+              const materialUse = structuredClone(TEXT_USE);
+              if (process.env.F03_S4_L2F === '1') {
+                assert.equal(process.env.F03_L2F, '1', 'formal S4 fixture requires its S0 supplied representation');
+                materialUse.requirements.push({ object_id: 'OBJ-0003', feature: 'formal-structure', binding_ids: ['BND-0001'] });
+              }
+              const projection = { subject, review_subject_digest: '', material_use: materialUse };
               returned = { relation_proposals: [{ ...fields, review_subject_digest: relationReviewSubjectDigest(semanticRelationRow(projection).values),
-                rationale: 'Synthetic bounded relation absence proposal.', flags: [], material_use: TEXT_USE }],
+                rationale: 'Synthetic bounded relation absence proposal.', flags: [], material_use: materialUse }],
               not_applicable: [], material_findings: [] };
             } else if (request.role === 'verifier-l3r') {
               assert.equal(parseRelations(current).rows.length, 0, 'L3R precedes all canonical REL serialization');
@@ -1020,6 +1105,13 @@ if (process.argv[2] === '--fixture-worker') {
               returned = { verdict: 'upheld', rationale: 'Synthetic independent relation challenge.',
                 attacks_tried: ['Challenged the declared bounded absence and exact current source.'],
                 evidence_ids: [`relation-review-subject:${shown.review_subject_digest}`], candidate_evidence: [],
+                missing_for_determination: null, flags: [] };
+            } else if (request.role === 'verifier-l2f') {
+              assert.equal(process.env.F03_S4_L2F, '1');
+              assert.equal(parseRelations(current).rows.length, 0, 'L3R cannot bypass required relation L2F');
+              returned = { verdict: 'upheld', rationale: 'Synthetic independent relation material-fidelity review.',
+                attacks_tried: ['Challenged the declared formal-structure requirement.'],
+                evidence_ids: current.packets.map((packet) => packet.values.packetId), candidate_evidence: [],
                 missing_for_determination: null, flags: [] };
             } else if (request.role === 'verifier-l2s') {
               const path = request.allowlist.find((entry: any) => entry.run_path.includes('/semantic-subjects/')).run_path;
@@ -1197,6 +1289,8 @@ if (process.argv[2] === '--fixture-worker') {
     }
     console.log('PASS supported CLI retained S2 capture and completion path; fixture controls only');
     console.log('EVIDENCE: fixture-simulated only. No provider/model/native/live execution. F-03 OPEN / MUST PRESERVE.');
+    }
+    }
     }
   } finally {
     if (keep) console.error(`retained test scratch: ${scratch}`);

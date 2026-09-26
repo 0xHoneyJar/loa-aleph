@@ -721,7 +721,8 @@
         "adapters/loa/tests/test-f03-c09-bootstrap.ts",
         "adapters/loa/tests/test-f03-c09-retained-discriminator.ts",
         "adapters/loa/tests/test-f03-c09-recovery.ts",
-        "adapters/loa/tests/test-f03-late-lineage.ts"
+        "adapters/loa/tests/test-f03-late-lineage.ts",
+        "adapters/loa/tests/test-f03-controller-authentication.ts"
       ]
     },
     "packaging": [
