@@ -7,7 +7,7 @@ import { loadRun, parseSourceWalk, type RunModel } from '../../../scripts/lib/ru
 import { deriveSourceWalkCompletion, projectSourceWalk, validateSourceWalkCompletionWrite, SOURCE_WALK_PATH } from '../../../scripts/lib/source-walk-transition.ts';
 import { materialHash, representationUsesMarkdown } from '../../../scripts/lib/source-representation.ts';
 import { deriveWorkTransition, selectNextWork } from '../../../scripts/lib/work-transitions.ts';
-import { semanticProducerViewPaths, validateSemanticProducerDelivery } from '../../../scripts/lib/semantic-review.ts';
+import { emptySemanticLedger, semanticLedgerMarkdown, semanticProducerViewPaths, validateSemanticProducerDelivery } from '../../../scripts/lib/semantic-review.ts';
 
 // Synthetic Core snapshots only. CLI, authentication and journal tests remain
 // separate proof obligations; this suite does not establish F-03 reachability.
@@ -34,6 +34,11 @@ try {
   writeFileSync(join(beforeRun, 'ledgers/packet-index.md'), readFileSync(join(beforeRun, 'ledgers/packet-index.md'), 'utf8')
     .split('\n').filter((line) => !/^\| (?:PKT|EVID|FRAG|TRN)-/u.test(line)).join('\n'));
   writeFileSync(join(beforeRun, 'ledgers/representation-uses.md'), representationUsesMarkdown([]));
+  // This fresh pre-capture fixture has no packet or semantic subject yet.
+  writeFileSync(join(beforeRun, 'ledgers/semantic-review.md'), semanticLedgerMarkdown(emptySemanticLedger()));
+  for (const kind of ['subjects', 'assignments', 'results']) {
+    rmSync(join(beforeRun, `verification/harness/semantic-${kind}`), { recursive: true, force: true });
+  }
   const initial = loadRun(beforeRun);
   const absent: RunModel = { ...initial, sourceWalkDocument: null, sourceWalk: parseSourceWalk(null),
     files: initial.files.filter((file) => file.relativePath !== SOURCE_WALK_PATH) };

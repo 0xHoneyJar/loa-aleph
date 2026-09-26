@@ -29,6 +29,7 @@ import {
   sha256Digest,
   stableJson,
   stableJsonBytes,
+  readStableRegularFile,
   writeFileAtomic,
 } from './fs.ts';
 import {
@@ -38,6 +39,7 @@ import {
   stateCheckpointDigest,
   writeRunState,
   updateRunState,
+  verifyRunControl,
 } from './run-control.ts';
 import { ValidatedWorkerReturn } from './worker-return.ts';
 import {
@@ -833,6 +835,17 @@ export class LedgerWriter {
       } else {
         const current = readRunState(this.runDir);
         assertWork(stableJsonBytes(current).equals(stableJsonBytes(stateBefore)), 'WORK_CHECKPOINT_STALE', workId);
+        if (plan.s3_to_s4_bootstrap) {
+          const chainPath = join(this.runDir, 'control/ledger-chain.jsonl');
+          assertWork((existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '') === chainBefore,
+            'WORK_CHAIN_CHANGED', 'unjournaled bootstrap must be exactly BEFORE');
+          for (const effect of plan.effects) {
+            const path = join(this.runDir, effect.path);
+            assertWork(effect.before_digest === null ? !existsSync(path)
+              : existsSync(path) && sha256Digest(readFileSync(path)) === effect.before_digest,
+            'WORK_BOOTSTRAP_UNJOURNALED', effect.path);
+          }
+        }
         writeFileAtomic(journalPath, stableJsonBytes(transaction));
       }
       fault('writer-prepared');
@@ -856,6 +869,16 @@ export class LedgerWriter {
           && (current === null ? effect.before_digest === null
             : sha256Digest(current) === effect.before_digest || current.equals(after)), 'WORK_EFFECT_CHANGED', effect.path);
       }
+      if (plan.s3_to_s4_bootstrap) {
+        const after = mkdtempSync(join(tmpdir(), 'aleph-bootstrap-final-'));
+        try {
+          cpSync(this.runDir, after, { recursive: true });
+          for (const effect of plan.effects) writeFileAtomic(join(after, effect.path), Buffer.from(effect.after_base64, 'base64'));
+          writeFileAtomic(join(after, 'control/ledger-chain.jsonl'), Buffer.from(transaction.chain_after));
+          writeRunState(after, transaction.state_after);
+          verifyRunControl(after);
+        } finally { rmSync(after, { recursive: true, force: true }); }
+      }
       for (const effect of plan.effects) {
         const path = join(this.runDir, effect.path), after = Buffer.from(effect.after_base64, 'base64');
         if (!existsSync(path) || !readFileSync(path).equals(after)) writeFileAtomic(path, after);
@@ -868,6 +891,19 @@ export class LedgerWriter {
         writeRunState(this.runDir, transaction.state_after);
       }
       fault('checkpoint');
+      if (plan.s3_to_s4_bootstrap) {
+        assertRecoveryPrerequisites(this.runDir, authenticated.work, plan);
+        for (const effect of plan.effects) {
+          const path = join(this.runDir, effect.path);
+          assertNoSymlinkComponents(this.runDir, path);
+          assertWork(readStableRegularFile(path).bytes.toString('base64') === effect.after_base64,
+            'WORK_EFFECT_CHANGED', 'bootstrap final AFTER differs');
+        }
+        assertWork(readStableRegularFile(chainPath).bytes.equals(Buffer.from(transaction.chain_after))
+          && readStableRegularFile(join(this.runDir, 'control/run-state.json')).bytes.equals(stableJsonBytes(transaction.state_after)),
+        'WORK_JOURNAL_CHECKPOINT', 'bootstrap final chain/checkpoint differs');
+        verifyRunControl(this.runDir);
+      }
       if (transaction.status !== 'committed') writeFileAtomic(journalPath, stableJsonBytes({ ...transaction, status: 'committed' }));
       fault('journal-committed');
       recordOrchestrationConsumption(this.runDir, workId, transaction.state_after);

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Synthetic Core plan test. Native/fixture dispatch authentication is tested by the installed process suite.
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
@@ -14,7 +14,8 @@ import { selectNextWork, deriveWorkTransition, validateDerivedWorkTransition, wo
 const scratch = mkdtempSync(join(tmpdir(), 'f03-s4-core-'));
 let run = join(scratch, 'before');
 duplicateFixtureBase(run, undefined, undefined, { runFormatVersion: '1.9.0-provisional' });
-rmSync(join(run, DUPLICATE_PATH));
+// Start this supplemental S4 test at valid initialized S4. C09's installed
+// bootstrap and the unchanged historical missing-ledger discriminator are separate.
 writeFixtureFile(run, 'control/run-state.json', workJson({ full_mode: 'fixture-simulated',
   run_id: loadRun(run).manifest!.runId, execution: { stage: 'S4' },
   identity: { run_format_version: '1.9.0-provisional', profile: { id: 'n/a (core-manual)', digest: null }, models: { 'verifier-l3': 'human' } } }));
@@ -57,7 +58,7 @@ for (let step = 0; step < 14; step++) {
   run = next; count++;
   console.log(`PASS S4 ${plan.obligation.operation}`);
 }
-assert.equal(count, 10);
+assert.equal(count, 9);
 const rows = parseDuplicateLedger(readFileSync(join(run, DUPLICATE_PATH), 'utf8'));
 assert.equal(rows.discoveries.length, 1); assert.equal(rows.proposals.length, 1);
 assert.equal(rows.assignments.length, 1); assert.equal(rows.results.length, 0); assert.equal(rows.effects.length, 0);

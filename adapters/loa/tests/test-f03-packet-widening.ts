@@ -37,8 +37,10 @@ writeFixtureFile(run, bindingPath, sem.semanticJson({ call_id: parentCall, conte
   raw_return_hash: originalHash, output_kind: 'claim-candidate', output_index: 0 }));
 writeFixtureFile(run, `control/worker-returns/${parentCall}/native-dispatch.json`, JSON.stringify({ receipt: { context_id: 'synthetic-normalizer' } }));
 writeFixtureFile(run, `control/worker-bundles/${parentCall}/request.json`, JSON.stringify({ role: 'normalizer' }));
-writeFixtureFile(run, 'control/run-state.json', core.workJson({ full_mode: 'fixture-simulated',
-  identity: { profile: { id: MANUAL_REVIEWER.profile_id, digest: null }, models: { 'verifier-l2s': 'human' } } }));
+writeFixtureFile(run, 'control/run-state.json', core.workJson({ full_mode: 'fixture-simulated', run_id: loadRun(run).manifest!.runId,
+  execution: { stage: 'S3' },
+  identity: { run_format_version: '1.9.0-provisional',
+    profile: { id: MANUAL_REVIEWER.profile_id, digest: null }, models: { 'verifier-l2s': 'human' } } }));
 const execution: WorkExecution = { stage: 'S3', stage_status: 'entered', core_state: 'DISTILLING', blocked: false };
 let count = 0;
 function test(name: string, action: () => void) { action(); count++; console.log(`PASS C05 ${name}`); }

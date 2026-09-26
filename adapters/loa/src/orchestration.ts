@@ -11,7 +11,7 @@ import {
   stableJsonBytes, sha256Digest, walkRegularFiles, writeFileAtomic,
 } from './fs.ts';
 import {
-  acquireDurableProcessLock, readRunState, verifyRetainedRuntimeIdentity, verifyRunControl,
+  acquireDurableProcessLock, readRunState, stateCheckpointDigest, verifyRetainedRuntimeIdentity, verifyRunControl,
 } from './run-control.ts';
 import type { Clock, LoaRunState, LoaRoleId, CoreStage, JsonValue, WorkerRequest } from './types.ts';
 import { loadRun, hasRunCapability } from '../../../scripts/lib/run-model.ts';
@@ -21,6 +21,7 @@ import {
   WORK_STAGE_CONTRACT, WORK_TRANSITION_CAPABILITY, type NextWork, type WorkExecution,
   type WorkValue, type WorkTransition, CRITERIA_SAMPLE_INPUT_PATH, criteriaSampleProposal,
   validateDerivedWorkTransition,
+  validateConsumedWorkTransition,
 } from '../../../scripts/lib/work-transitions.ts';
 import { assembleWorkerBundle, verifyWorkerBundle, coreBlindPolicyReference } from './worker-bundle.ts';
 import { checkWorkerReturn, type ValidatedWorkerReturn } from './worker-return.ts';
@@ -497,6 +498,7 @@ function valueOf(receipt: Sealed<Acceptance>, returned: ValidatedWorkerReturn, r
 }
 export function deriveAuthenticatedWork(runDir: string, id: string, recovering = false): AuthenticatedWork {
   const work = readOrchestrationWork(runDir, id);
+  assertWork(!existsSync(canonicalPath(runDir, consumedPath(id))), 'WORK_CONSUMED', id);
   if (!recovering) assertApplicable(runDir, work);
   const accepted = work.call ? reopenAcceptedWorkReturn(runDir, id) : null;
   for (const dependency of work.identity.dependencies) {
@@ -559,9 +561,29 @@ export function readOrchestrationCommit(runDir: string, id: string): Sealed<Orch
 function readConsumption(runDir: string, id: string): Sealed<Consumption> {
   const consumed = readSealed<Consumption>(runDir, consumedPath(id), ['format', 'work_id', 'commit_digest', 'journal_digest', 'after_checkpoint', 'after_chain']);
   const intent = readOrchestrationCommit(runDir, id);
+  const work = readSealed<OrchestrationWork>(runDir, workPath(id), WORK_KEYS);
   const journal = readStableRegularFile(canonicalPath(runDir, intent.journal)).bytes;
   assertWork(consumed.format === 'aleph-loa-work-consumption/v1' && consumed.work_id === id && consumed.commit_digest === intent.digest
     && consumed.journal_digest === sha256Digest(journal), 'WORK_CONSUMPTION', id);
+  const transaction = parseStrictJson(journal) as unknown as {
+    format: string; work_id: string; intent_digest: string; plan: WorkTransition;
+    state_before: LoaRunState; state_after: LoaRunState; chain_before: string; chain_after: string; digest: string; status: string;
+  };
+  closedRecord(transaction, ['format', 'work_id', 'intent_digest', 'plan', 'state_before', 'state_after',
+    'chain_before', 'chain_after', 'digest', 'status'], 'consumed journal');
+  const { digest, status, ...body } = transaction;
+  const chain = readStableRegularFile(canonicalPath(runDir, 'control/ledger-chain.jsonl')).bytes.toString();
+  assertWork(transaction.format === 'aleph-loa-work-transaction/v1' && transaction.work_id === id
+    && transaction.intent_digest === intent.digest && status === 'committed' && digest === sha256Digest(stableJsonBytes(body))
+    && intent.work_digest === work.digest && intent.work_id === id
+    && intent.before_checkpoint === work.identity.checkpoint && intent.before_chain === work.identity.ledger.chain_head
+    && workJson(transaction.plan.obligation).equals(workJson(work.identity.work.obligation))
+    && workDigest(workJson(transaction.plan)) === intent.plan_digest
+    && consumed.after_checkpoint === stateCheckpointDigest(transaction.state_after)
+    && consumed.after_checkpoint === transaction.state_after.execution.resume.checkpoint_digest
+    && consumed.after_chain === transaction.state_after.ledger.chain_head
+    && chain.startsWith(transaction.chain_after), 'WORK_CONSUMPTION', 'committed canonical chain/checkpoint required');
+  validateConsumedWorkTransition(runDir, transaction.plan);
   return consumed;
 }
 export function recordOrchestrationConsumption(runDir: string, id: string, state: LoaRunState): void {
@@ -646,7 +668,11 @@ export function resumeOrchestration(runDir: string, clock: Clock = clockDefault)
     };
     for (;;) {
       const works = allWorkIds(runDir).map((id) => readOrchestrationWork(runDir, id));
-      const pending = works.filter((work) => !existsSync(canonicalPath(runDir, consumedPath(work.work_id))));
+      const pending = works.filter((work) => {
+        if (!existsSync(canonicalPath(runDir, consumedPath(work.work_id)))) return true;
+        readConsumption(runDir, work.work_id);
+        return false;
+      });
       assertWork(pending.length <= 1, 'WORK_QUEUE_AMBIGUOUS', 'multiple unconsumed work items');
       if (pending.length) {
         const work = pending[0];

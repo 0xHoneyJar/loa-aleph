@@ -557,6 +557,16 @@ Manual mode remains the only sanctioned execution path.
 
 Only duplicate-overlap-review activates this contract. S3 closure precedes global discovery and independent L5 sweep; proposals receive fresh L3 before eligible successor expression and separate L2S/L2F. One composed canonical transaction writes CC/LIN/merge-map/USE/semantic/DUP effect. Relation reconciliation and L3R follow, then C1 with relation closure plus material, semantic and duplicate seals; C2; C3; S5. There is no C0/C4 or rewind.
 
+For cumulative `1.9.0-provisional` with `orchestrator-work-transitions`,
+HUMAN C-09 binds durable `stage.seal-S3` to one Core-derived transaction:
+the existing S3 seal and S3-exit/S4-entry event plus exact canonical empty
+duplicate-ledger initialization and the transition's chain/checkpoint effects.
+Core verifies the complete open-S4 AFTER before work consumption. An
+authenticated prepared transaction is recovered before full verification and
+ordinary selection. S4 without its duplicate ledger and pre-S4 duplicate
+artifacts are both invalid canonical states; there is no independent
+production `s4.initialize` gap. See K2.20 for the closed bootstrap composition.
+
 Exactly one fresh round-one L3 review is required. Only cannot-determine requires exactly one round-two review of the identical subject. Round-two upheld cannot erase indeterminacy; refuted yields refuted; otherwise unknown remains. No third round, extra reviewer, majority or preferred-answer retry is permitted. Absorption requires round-one upheld and every admission predicate, independently upheld successor SEM/L2S and required L2F. A revised basis requires a new subject. Existing L2S does not decide equivalence.
 
 C1 adds exactly duplicate_review_closure_hash over the complete duplicate ledger. Pending candidates/proposals/effects block closure. Final current claims require final discovery and L5 inventory coverage. After C1, all duplicate-related writes are refused before changing bytes. Structural PASS is no semantic warrant, recall claim or acceptance.

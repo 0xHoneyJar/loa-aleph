@@ -717,7 +717,10 @@
         "runtime-js/adapters/loa/src/orchestration.js",
         "adapters/loa/tests/test-f03-c08-source-identity.ts",
         "adapters/loa/tests/test-f03-c08-retained-discriminator.ts",
-        "adapters/loa/tests/test-f03-c09-s4-entry-discriminator.ts"
+        "adapters/loa/tests/test-f03-c09-s4-entry-discriminator.ts",
+        "adapters/loa/tests/test-f03-c09-bootstrap.ts",
+        "adapters/loa/tests/test-f03-c09-retained-discriminator.ts",
+        "adapters/loa/tests/test-f03-c09-recovery.ts"
       ]
     },
     "packaging": [

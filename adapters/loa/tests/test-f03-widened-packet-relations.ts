@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // C-06 synthetic Core controls. Installed controller evidence remains separate.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -15,8 +15,19 @@ const sem: typeof import('../../../scripts/lib/semantic-review.ts') = await impo
 const core = await import(runtime ? '../../../runtime-js/scripts/lib/work-transitions.js' : '../../../scripts/lib/work-transitions.ts') as typeof import('../../../scripts/lib/work-transitions.ts');
 const relations = await import(runtime ? '../../../runtime-js/scripts/lib/checks-k2-relations.js' : '../../../scripts/lib/checks-k2-relations.ts') as typeof import('../../../scripts/lib/checks-k2-relations.ts');
 const root = mkdtempSync(join(tmpdir(), 'f03-c06-core-'));
+// Run the unchanged historical discriminator on its retained Core. New positive
+// cases below copy its generated fixture and add the full current identity.
+const retained = join(root, 'retained'); mkdirSync(retained);
+const stop = '1ffb8d5d264b5857936895194ee042816feafcbe';
+const tops = execFileSync('git', ['ls-tree', '--name-only', stop], { encoding: 'utf8' })
+  .trim().split('\n').filter((path) => path !== 'calibration');
+execFileSync('tar', ['-x', '-C', retained], { input: execFileSync('git',
+  ['archive', stop, '--', ...tops],
+  { maxBuffer: 64 * 1024 * 1024 }) });
 const historical = spawnSync(process.execPath, ['adapters/loa/tests/test-f03-s3-packet-relation-ownership-conflict.ts',
-  ...runtime ? ['--runtime'] : []], { encoding: 'utf8' });
+  ...runtime ? ['--runtime'] : []], { encoding: 'utf8', cwd: retained,
+  env: { ...process.env, GIT_DIR: execFileSync('git', ['rev-parse', '--absolute-git-dir'], { encoding: 'utf8' }).trim(),
+    GIT_WORK_TREE: retained } });
 assert.equal(historical.status, 0, historical.stderr);
 const original = JSON.parse(historical.stdout);
 assert.equal(original.assertions, 37);
@@ -42,6 +53,11 @@ function apply(run: string, plan: WorkTransition, name: string): string {
 }
 function prepare(name: string, alter?: (proposal: RelationProjection) => void) {
   const run = join(root, name); cpSync(join(original.scratch, 'producer-S3'), run, { recursive: true });
+  const initial = json(run, 'control/run-state.json');
+  initial.run_id = loadRun(run).manifest!.runId;
+  initial.identity.run_format_version = '1.9.0-provisional';
+  initial.execution = execution;
+  write(run, 'control/run-state.json', core.workJson(initial));
   const selected = core.selectNextWork(loadRun(run), execution);
   assert(selected.kind === 'worker' && selected.obligation.operation === 's3.capture-widening');
   const call = selected.call.prepared_call_id!, rawPath = `control/worker-returns/${call}/raw.json`;

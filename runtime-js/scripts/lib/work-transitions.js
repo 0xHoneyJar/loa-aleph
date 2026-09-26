@@ -3,11 +3,13 @@ import { captureGeneration, stationaryCursor, stationaryCaptureWork, stationaryC
 import { selectS4Work, deriveS4Transition, validateS4Transition, s4SemanticCaptures } from './work-transitions-s4.js';
 import { selectBlockedProceduralWork } from './work-transitions-authority.js';
 import { WIDENING_PREPARATIONS, WIDENING_CAPTURES, WIDENING_CONTRACT, WIDENING_TASK, derivePacketWideningBasis, validatePacketWideningBasis, wideningCallId, packetWideningCaptures } from './packet-widening.js';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { parseStrictJson } from './worker-return-contract.js';
 import { canonicalJsonBytes } from './bundle-format.js';
-import { hasRunCapability, parsePackets, parseExactEvidence } from './run-model.js';
+import { hasRunCapability, loadRun, parsePackets, parseExactEvidence } from './run-model.js';
+import { DUPLICATE_PATH, emptyDuplicateLedger, duplicateLedgerMarkdown, validateDuplicateRun, assertDuplicateWindow, planDuplicateWrite } from './duplicate-review.js';
 import { parseTables, parseBulletFields } from './markdown.js';
 import { mdLineSpan, sourceFilePath } from './check-helpers.js';
 import { semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown, degradedPacketBinding, semanticProducerBinding, semanticDegradedMaterialViews, buildSemanticSubject, semanticProducerSelections, semanticProducerView, semanticProducerViewPaths, semanticProducerTask, semanticJson, validateSemanticReturn, parseSemanticLedger, semanticSubjectPath, semanticAssignmentPath, semanticResultPath, semanticAttachmentPaths, semanticMaterialViews, semanticAdmissionProblems, semanticStageSeal, planSemanticWrite, validateSemanticAcceptedBindings, validateSemanticRun, claimProposalModel, useRowFromSubject, semanticOriginProjection, indeterminateClaimBinding, semanticIndeterminateClaimMaterialViews, SEMANTIC_ASSIGNMENT_FORMAT, SEMANTIC_TASK, packetWideningProducerView, semanticRelationContexts, } from './semantic-review.js';
@@ -15,7 +17,7 @@ import { framedExactEvidenceHash, runK2, sourceWalkReviewBasisDigest } from './c
 import { ResultCollector } from './results.js';
 import { parseLineage, lineageCurrentPacketIds, LINEAGE_TABLE_HEADER } from './lineage.js';
 import { deriveSourceWalkCompletion, derivePendingEventCommitment, validateSourceWalkCompletionWrite, projectSourceWalk } from './source-walk-transition.js';
-import { readRepresentationContext, representationUseDigest, representationUsesMarkdown, validateRepresentationRun, planRepresentationUseWrite, validateRepresentationUse, REPRESENTATION_USE_PATH, materialFindingRows, selectRepresentationInventory, representationUseNeedsReview, representationReviewView, assertMaterialReviewUpheld, } from './source-representation.js';
+import { readMaterialFile, readRepresentationContext, representationUseDigest, representationUsesMarkdown, validateRepresentationRun, planRepresentationUseWrite, validateRepresentationUse, REPRESENTATION_USE_PATH, materialFindingRows, selectRepresentationInventory, representationUseNeedsReview, representationReviewView, assertMaterialReviewUpheld, } from './source-representation.js';
 export const WORK_TRANSITION_CAPABILITY = 'orchestrator-work-transitions';
 export const WORK_STAGE_CONTRACT = 'docs/architecture/04-pipeline-stages-and-dod.md';
 export const CRITERIA_REVIEW_TASK = 'Challenge candidacy agreement and sample adequacy using only the sealed criteria and frozen samples.';
@@ -1440,6 +1442,8 @@ export function criteriaSampleProposal(model, criteria, proposalBytes = required
 }
 export function selectNextWork(model, execution) {
     assertWork(hasRunCapability(model.manifest?.runFormatVersion || '', WORK_TRANSITION_CAPABILITY), 'WORK_CAPABILITY', 'run does not select work transitions');
+    if (execution.stage === 'S3' || execution.stage === 'S4')
+        validateDuplicateRun(model);
     if (execution.blocked)
         return (execution.stage === 'S4' ? selectBlockedProceduralWork(model) : null)
             || { kind: 'halt', code: 'WORK_EXISTING_GATE_OR_HALT', reason: 'Retained authority or operational halt has precedence.' };
@@ -1684,20 +1688,8 @@ export function deriveWorkTransition(model, execution, work, accepted, now) {
                 effect(model, paths.selections, Buffer.from(semanticJson(selections))), effect(model, paths.view, view.bytes)],
             origins: [{ artifact: paths.view, field: '*', from: { kind: 'rule', rule: 'T3.7:exact-reviewed-origin-packet-batch' } }] };
     }
-    if (work.obligation.operation === 'stage.seal-S3') {
-        validateSemanticRun(model);
-        validateRepresentationRun(model);
-        const sealPath = 'verification/harness/semantic-stage-seals/S3.json';
-        const bytes = Buffer.from(semanticJson(semanticStageSeal(semanticLedger(model), 'S3'))), digest = workDigest(bytes);
-        const log = Buffer.from(`${required(model, 'run-log.md')}\n## ${now} — S3 — exit\n\nsemantic_stage: S3\n`
-            + `semantic_review_seal_ref: ${sealPath}@${digest}\n\nCore normalization accounting closed.\n`
-            + `\n## ${now} — S4 — entry\n\nCore duplicate, relation and ambiguity obligations begin.\n`);
-        return { ...base, family: 'semantic', next_execution: { stage: 'S4', stage_status: 'entered', core_state: 'DISTILLING', blocked: false },
-            effects: [effect(model, sealPath, bytes), effect(model, 'run-log.md', log)],
-            semantic: { stage: 'S3', semantic_id: 'none', subject_digest: digest, operation: 'seal', record_id: 'S3',
-                producer_call_id: '', reviewer_call_ids: [] },
-            origins: [{ artifact: sealPath, field: '*', from: { kind: 'rule', rule: 'T3.7:S3-prefix-seal' } }] };
-    }
+    if (work.obligation.operation === 'stage.seal-S3')
+        return planS3ToS4Bootstrap({ model, execution, work, now });
     if (work.obligation.operation === 's2.commit-event') {
         const event = model.sourceWalk.events.find((entry) => entry.values.eventId === work.obligation.subject_id);
         const capture = s2Captures(model).find((entry) => entry.call_id === event.values.producerInvocationId);
@@ -1773,8 +1765,97 @@ export function deriveWorkTransition(model, execution, work, accepted, now) {
         effects: [effect(model, 'run-log.md', log), ...entry.effects],
         origins: [{ artifact: 'run-log.md', field: '*', from: { kind: 'rule', rule: work.obligation.operation } }] };
 }
+/** C09's closed composition. Authentication of model/work/pins is performed by
+ * the durable-work ingress; no caller-authored payload or projected model enters. */
+export function planS3ToS4Bootstrap(options) {
+    assertWork(Object.keys(options).sort().join(',') === 'execution,model,now,work', 'WORK_BOOTSTRAP_INPUT', 'only authenticated basis, execution, work and retained time');
+    const { model, execution, work, now } = options;
+    assertWork(model.manifest?.runFormatVersion === '1.9.0-provisional'
+        && hasRunCapability(model.manifest.runFormatVersion, WORK_TRANSITION_CAPABILITY), 'WORK_CAPABILITY', 'C09 cumulative bootstrap only');
+    assertWork(execution.stage === 'S3' && execution.stage_status === 'entered'
+        && execution.core_state === 'DISTILLING' && !execution.blocked, 'WORK_STAGE', 'bootstrap requires pre-entry S3');
+    assertWork(work.kind === 'local' && work.obligation.operation === 'stage.seal-S3'
+        && workJson(work).equals(workJson(selectNextWork(model, execution))), 'WORK_STALE', 'exact S3-seal obligation');
+    assertWork(!Number.isNaN(Date.parse(now)), 'WORK_IDENTITY', 'retained operation time');
+    validateSemanticRun(model);
+    validateRepresentationRun(model);
+    validateDuplicateRun(model);
+    const sealPath = 'verification/harness/semantic-stage-seals/S3.json';
+    assertWork(!file(model, sealPath) && !file(model, DUPLICATE_PATH), 'WORK_BOOTSTRAP_BEFORE', 'entry effects must be absent');
+    const bytes = Buffer.from(semanticJson(semanticStageSeal(semanticLedger(model), 'S3'))), digest = workDigest(bytes);
+    const log = Buffer.from(`${required(model, 'run-log.md')}\n## ${now} — S3 — exit\n\nsemantic_stage: S3\n`
+        + `semantic_review_seal_ref: ${sealPath}@${digest}\n\nCore normalization accounting closed.\n`
+        + `\n## ${now} — S4 — entry\n\nCore duplicate, relation and ambiguity obligations begin.\n`);
+    return { format: 'aleph-core-work-transition/v1', obligation: work.obligation, family: 'stage', simulation: false,
+        s3_to_s4_bootstrap: { at: now },
+        next_execution: { stage: 'S4', stage_status: 'entered', core_state: 'DISTILLING', blocked: false },
+        effects: [effect(model, sealPath, bytes), effect(model, 'run-log.md', log),
+            effect(model, DUPLICATE_PATH, Buffer.from(duplicateLedgerMarkdown(emptyDuplicateLedger())))],
+        origins: [{ artifact: sealPath, field: '*', from: { kind: 'rule', rule: 'T3.7:S3-prefix-seal' } },
+            { artifact: 'run-log.md', field: '*', from: { kind: 'rule', rule: 'C09:atomic-S4-entry' } },
+            { artifact: DUPLICATE_PATH, field: '*', from: { kind: 'rule', rule: 'C09:canonical-empty-duplicate-ledger' } }] };
+}
+function validateS3ToS4Bootstrap(model, proposedModel, transition) {
+    const execution = { stage: 'S3', stage_status: 'entered', core_state: 'DISTILLING', blocked: false };
+    const expected = planS3ToS4Bootstrap({ model, execution, work: selectNextWork(model, execution),
+        now: transition.s3_to_s4_bootstrap?.at || '' });
+    assertWork(workJson(transition).equals(workJson(expected)), 'WORK_BOOTSTRAP_PLAN', 'exact Core bootstrap composition required');
+    const writes = expected.effects.map((w) => ({ path: w.path, before_hash: w.before_digest || workDigest(Buffer.alloc(0)),
+        after_base64: w.after_base64, after_hash: w.after_digest }));
+    const paths = new Set(expected.effects.map((w) => w.path));
+    const beforeFiles = new Map(model.files.map((f) => [f.relativePath, f]));
+    for (const f of proposedModel.files) {
+        if (!paths.has(f.relativePath))
+            assertWork(beforeFiles.has(f.relativePath)
+                && required(model, f.relativePath).equals(required(proposedModel, f.relativePath)), 'WORK_BOOTSTRAP_PLAN', `unrelated after-image: ${f.relativePath}`);
+        beforeFiles.delete(f.relativePath);
+    }
+    assertWork(beforeFiles.size === 0, 'WORK_BOOTSTRAP_PLAN', 'bootstrap cannot remove existing files');
+    planSemanticWrite({ model, proposedModel, stage: 'S3', semantic_id: 'none', subject_digest: expected.effects[0].after_digest,
+        operation: 'seal', record_id: 'S3', prerequisite_paths: [], writes: writes.slice(0, 2) });
+    // Disposable validator-only projection derived from the real S3 before-image.
+    // It is never returned, journaled, selected, or given ordinary full verification.
+    const projected = mkdtempSync(join(tmpdir(), 'aleph-core-S4-entry-projection-'));
+    try {
+        cpSync(model.runDir, projected, { recursive: true });
+        for (const w of expected.effects.slice(0, 2)) {
+            mkdirSync(dirname(join(projected, w.path)), { recursive: true });
+            rmSync(join(projected, w.path), { force: true });
+            writeFileSync(join(projected, w.path), Buffer.from(w.after_base64, 'base64'));
+        }
+        planDuplicateWrite({ model: loadRun(projected), proposedModel, proposal_id: 'none',
+            subject_digest: expected.effects[2].after_digest, operation: 'initialize', record_id: 'S4',
+            writes: writes.slice(2), prerequisite_paths: [], acceptance_bindings: [] });
+    }
+    finally {
+        rmSync(projected, { recursive: true, force: true });
+    }
+    validateRepresentationRun(proposedModel);
+    validateDuplicateRun(proposedModel);
+    assertDuplicateWindow(proposedModel);
+}
+/** Persistent bootstrap anchors remain mandatory when later work is pending.
+ * This is not full verification of a possibly prepared later transaction. */
+export function validateConsumedWorkTransition(runDir, transition) {
+    if (transition.obligation.operation !== 'stage.seal-S3')
+        return;
+    const paths = ['verification/harness/semantic-stage-seals/S3.json', 'run-log.md', DUPLICATE_PATH];
+    assertWork(transition.s3_to_s4_bootstrap && transition.effects.length === paths.length
+        && transition.effects.every((e, i) => e.path === paths[i])
+        && transition.next_execution.stage === 'S4', 'WORK_CONSUMPTION', 'exact bootstrap composition required');
+    const [seal, log, duplicate] = transition.effects;
+    const logAfter = Buffer.from(log.after_base64, 'base64');
+    assertWork(Buffer.from(duplicate.after_base64, 'base64').equals(Buffer.from(duplicateLedgerMarkdown(emptyDuplicateLedger())))
+        && readMaterialFile(runDir, seal.path).toString('base64') === seal.after_base64
+        && readMaterialFile(runDir, log.path).subarray(0, logAfter.length).equals(logAfter)
+        && readMaterialFile(runDir, DUPLICATE_PATH).length > 0, 'WORK_CONSUMPTION', 'S3-seal consumption requires the complete S4 bootstrap');
+}
 /** Existing Core plan validators remain mandatory for the exact derived bytes. */
 export function validateDerivedWorkTransition(model, proposedModel, transition) {
+    if (transition.obligation.operation === 'stage.seal-S3' || transition.s3_to_s4_bootstrap) {
+        validateS3ToS4Bootstrap(model, proposedModel, transition);
+        return;
+    }
     if (transition.duplicate || transition.s4_closure || transition.obligation.operation.startsWith('s4.ambiguity.'))
         validateS4Transition(model, proposedModel, transition);
     for (const write of transition.effects) {

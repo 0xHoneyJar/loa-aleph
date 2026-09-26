@@ -15,7 +15,8 @@ import { semanticJson, parseSemanticLedger, type SemanticSubject, type SemanticE
 import { fixtureSemantics, fixtureResult, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
 import { makeTreeOwnerWritable, stableJsonBytes } from '../src/fs.ts';
 import { materialHash, materialFragmentsHash, prepareRepresentationCapture, readRepresentationContext } from '../../../scripts/lib/source-representation.ts';
-import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, type DuplicateSubject } from '../../../scripts/lib/duplicate-review.ts';
+import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, duplicateLedgerMarkdown,
+  emptyDuplicateLedger, validateDuplicateRun, type DuplicateSubject } from '../../../scripts/lib/duplicate-review.ts';
 import { duplicateFixtureProposal, duplicateFixtureSuccessorProposal, duplicateFixtureResult } from '../../../scripts/duplicate-fixture-support.ts';
 import { relationReviewSubjectDigest, parseRelations } from '../../../scripts/lib/relations.ts';
 import { semanticRelationRow } from '../../../scripts/lib/semantic-review.ts';
@@ -114,11 +115,72 @@ if (process.argv[2] === '--fixture-worker') {
       selectedInput = join(host, 'input.aleph-representation.json'); writeFileSync(selectedInput, declaration);
     }
     let run = '';
+    let c09Exercised = false;
     function command(module: string, args: string[], expected = 0): any {
       const entrypoint = module === 'cli' ? join(host, '.claude/aleph/bin/loa-aleph.mjs')
         : join(run, `control/runtime/bundle/runtime-js/adapters/loa/src/${module}.js`);
-      const processResult = spawnSync(process.execPath, [entrypoint, ...args],
-        { encoding: 'utf8', cwd: host });
+      const c09Probe = process.env.F03_C09_FAULTS === '1' && !c09Exercised && module === 'cli' && args.includes('resume');
+      let processResult = spawnSync(process.execPath, [entrypoint, ...args],
+        { encoding: 'utf8', cwd: host, env: c09Probe
+          ? { ...process.env, ALEPH_FIXTURE_WORK_FAULT: 'stage.seal-S3:derived' } : process.env });
+      if (c09Probe && processResult.status === 86) {
+        c09Exercised = true;
+        const beforeState = readFileSync(join(run, 'control/run-state.json'));
+        const beforeLog = readFileSync(join(run, 'run-log.md'));
+        assert.equal(JSON.parse(beforeState.toString()).execution.stage, 'S3');
+        assert(!existsSync(join(run, 'ledgers/duplicate-review.md')));
+        assert(!existsSync(join(run, 'verification/harness/semantic-stage-seals/S3.json')));
+        assert(!beforeLog.toString().includes('— S4 — entry'));
+        console.log('PASS C09 installed pre-journal crash retains exact legal S3 BEFORE');
+        const points = ['commit-intent', 'writer-prepared',
+          'effect:verification/harness/semantic-stage-seals/S3.json', 'effect:run-log.md',
+          'effect:ledgers/duplicate-review.md', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'];
+        for (const point of points) {
+          const crash = spawnSync(process.execPath, [entrypoint, ...args], { encoding: 'utf8', cwd: host,
+            env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: `stage.seal-S3:${point}` } });
+          assert.equal(crash.status, 86, `${point}: ${crash.stdout}\n${crash.stderr}`);
+          const works = readdirSync(join(run, 'control/orchestration/work'))
+            .map((p) => JSON.parse(readFileSync(join(run, 'control/orchestration/work', p), 'utf8')));
+          const seals = works.filter((w) => w.identity.work.obligation.operation === 'stage.seal-S3');
+          assert.equal(seals.length, 1);
+          const work = seals[0], consumed = join(run, `control/orchestration/commits/${work.work_id}-consumed.json`);
+          assert.equal(existsSync(consumed), point === 'consumed');
+          if (point === 'consumed') {
+            assert(readFileSync(join(run, 'ledgers/duplicate-review.md')).equals(Buffer.from(duplicateLedgerMarkdown(emptyDuplicateLedger()))));
+            validateDuplicateRun(loadRun(run));
+          }
+          if (point === 'commit-intent' || point === 'writer-prepared') {
+            assert(readFileSync(join(run, 'control/run-state.json')).equals(beforeState));
+            assert(readFileSync(join(run, 'run-log.md')).equals(beforeLog));
+            assert(!existsSync(join(run, 'ledgers/duplicate-review.md')));
+          }
+          if (point === 'writer-prepared') {
+            // Fresh corrected fixture only; seed for exhaustive authenticated
+            // partial-subset/tamper controls in separate disposable copies.
+            const seed = join(scratch, 'c09-prepared-run');
+            cpSync(run, seed, { recursive: true });
+            writeFileSync(join(scratch, 'c09-recovery-seed.json'), JSON.stringify({ run: seed, host, work_id: work.work_id }));
+          }
+          console.log(`PASS C09 installed restart recovery ${point}; consumption last`);
+        }
+        processResult = spawnSync(process.execPath, [entrypoint, ...args], { encoding: 'utf8', cwd: host });
+        assert.equal(processResult.status, expected, `${processResult.stdout}\n${processResult.stderr}`);
+        const work = JSON.parse(processResult.stdout).details.work;
+        assert.equal(JSON.parse(processResult.stdout).stage, 'S4');
+        assert.equal(work.action, 'prepare');
+        validateDuplicateRun(loadRun(run));
+        const afterState = readFileSync(join(run, 'control/run-state.json')), afterChain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
+        const repeat = spawnSync(process.execPath, [entrypoint, ...args], { encoding: 'utf8', cwd: host });
+        assert.equal(repeat.status, expected, repeat.stderr);
+        assert.deepEqual(JSON.parse(repeat.stdout).details.work, work);
+        assert(readFileSync(join(run, 'control/run-state.json')).equals(afterState));
+        assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(afterChain));
+        assert.equal(readFileSync(join(run, 'run-log.md'), 'utf8').split('— S4 — entry').length - 1, 1);
+        const works = readdirSync(join(run, 'control/orchestration/work'))
+          .map((p) => JSON.parse(readFileSync(join(run, 'control/orchestration/work', p), 'utf8')));
+        assert(!works.some((w) => w.identity.work.obligation.operation === 's4.initialize'));
+        console.log('PASS C09 installed final S4 AFTER is verified, initialized and idempotent before ordinary work');
+      }
       assert.equal(processResult.status, expected, `${processResult.stdout}\n${processResult.stderr}`);
       return JSON.parse(processResult.stdout);
     }

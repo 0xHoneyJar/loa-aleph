@@ -35,7 +35,8 @@ for (const entry of lock.files.filter((e: any) => e.classification === 'core')) 
 }
 const cases: Array<{ name: string; kind: string }> = [];
 let execution = { stage: 'S4', stage_status: 'running', core_state: 'DISTILLING', blocked: false };
-let control: any = { execution: { ...execution, gate: null, halt: null } };
+let control: any = { run_id: loadRun(run).manifest!.runId, identity: { run_format_version: '1.9.0-provisional' },
+  execution: { ...execution, gate: null, halt: null } };
 if (classC) writeFixtureFile(run, 'control/run-state.json', semanticJson(control));
 function test(name: string, action: () => void, kind = 'control') { action(); cases.push({ name, kind }); console.log(`PASS ${name}`); }
 function apply(work: NextWork, value: WorkValue | null = null) {

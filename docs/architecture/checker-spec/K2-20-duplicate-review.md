@@ -73,6 +73,24 @@ are forbidden. On S4 entry the ledger is required, including zero-candidate
 runs. At C1 all actual candidates/proposals/effects must be accounted for.
 After C1 duplicate-related writes are refused before changing bytes.
 
+For cumulative `1.9.0-provisional` with `orchestrator-work-transitions`,
+HUMAN C-09 makes S3 sealing, the existing S3-exit/S4-entry event, the
+transition's control state, and the canonical serialization of
+`emptyDuplicateLedger()` one atomic bootstrap transaction. All six tables are
+empty. Its actual BEFORE is authenticated S3 without duplicate artifacts;
+its final AFTER is valid open S4 with the mandatory ledger. Core alone derives
+the exact payload. A private stage-entry projection may serve existing
+duplicate-plan predicates, but is never canonical, selectable, journaled as
+BEFORE, or given ordinary full verification.
+
+An authenticated prepared bootstrap is recovered before strict verification
+and ordinary work selection. Recovery accepts only the journal's exact
+BEFORE/AFTER bytes and completes canonical effects, chain and checkpoint
+before consuming `stage.seal-S3`. No ordinary production `s4.initialize`
+gap exists. Partial state without a matching authentic journal fails closed.
+Ordinary semantic/duplicate write windows, C1/C2/C3 and retained predecessor
+pins are unchanged; the historical missing-ledger C-09 fixture remains invalid.
+
 Précis section 17 mechanically retains rows
 `{proposal_id,subject_digest,member_ids,finding_ref,review_verdict,effect}` for
 producer/reviewer unknowns, refutations, flagged contradiction assertions and

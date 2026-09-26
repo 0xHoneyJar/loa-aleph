@@ -2,10 +2,10 @@ import { existsSync, readFileSync, mkdirSync, mkdtempSync, rmSync, linkSync, unl
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { assertNoSymlinkComponents, assertSafeRelativePath, readStableRegularFile, stableJsonBytes, sha256Digest, walkRegularFiles, writeFileAtomic, } from './fs.js';
-import { acquireDurableProcessLock, readRunState, verifyRetainedRuntimeIdentity, verifyRunControl, } from './run-control.js';
+import { acquireDurableProcessLock, readRunState, stateCheckpointDigest, verifyRetainedRuntimeIdentity, verifyRunControl, } from './run-control.js';
 import { loadRun, hasRunCapability } from '../../../scripts/lib/run-model.js';
 import { parseStrictJson } from '../../../scripts/lib/worker-return-contract.js';
-import { selectNextWork, deriveWorkTransition, workDigest, workJson, assertWork, WORK_STAGE_CONTRACT, WORK_TRANSITION_CAPABILITY, CRITERIA_SAMPLE_INPUT_PATH, criteriaSampleProposal, validateDerivedWorkTransition, } from '../../../scripts/lib/work-transitions.js';
+import { selectNextWork, deriveWorkTransition, workDigest, workJson, assertWork, WORK_STAGE_CONTRACT, WORK_TRANSITION_CAPABILITY, CRITERIA_SAMPLE_INPUT_PATH, criteriaSampleProposal, validateDerivedWorkTransition, validateConsumedWorkTransition, } from '../../../scripts/lib/work-transitions.js';
 import { assembleWorkerBundle, verifyWorkerBundle, coreBlindPolicyReference } from './worker-bundle.js';
 import { checkWorkerReturn } from './worker-return.js';
 import { reopenNativeWorkerEvidence } from './worker-dispatch.js';
@@ -419,6 +419,7 @@ function valueOf(receipt, returned, role) {
 }
 export function deriveAuthenticatedWork(runDir, id, recovering = false) {
     const work = readOrchestrationWork(runDir, id);
+    assertWork(!existsSync(canonicalPath(runDir, consumedPath(id))), 'WORK_CONSUMED', id);
     if (!recovering)
         assertApplicable(runDir, work);
     const accepted = work.call ? reopenAcceptedWorkReturn(runDir, id) : null;
@@ -485,9 +486,26 @@ export function readOrchestrationCommit(runDir, id) {
 function readConsumption(runDir, id) {
     const consumed = readSealed(runDir, consumedPath(id), ['format', 'work_id', 'commit_digest', 'journal_digest', 'after_checkpoint', 'after_chain']);
     const intent = readOrchestrationCommit(runDir, id);
+    const work = readSealed(runDir, workPath(id), WORK_KEYS);
     const journal = readStableRegularFile(canonicalPath(runDir, intent.journal)).bytes;
     assertWork(consumed.format === 'aleph-loa-work-consumption/v1' && consumed.work_id === id && consumed.commit_digest === intent.digest
         && consumed.journal_digest === sha256Digest(journal), 'WORK_CONSUMPTION', id);
+    const transaction = parseStrictJson(journal);
+    closedRecord(transaction, ['format', 'work_id', 'intent_digest', 'plan', 'state_before', 'state_after',
+        'chain_before', 'chain_after', 'digest', 'status'], 'consumed journal');
+    const { digest, status, ...body } = transaction;
+    const chain = readStableRegularFile(canonicalPath(runDir, 'control/ledger-chain.jsonl')).bytes.toString();
+    assertWork(transaction.format === 'aleph-loa-work-transaction/v1' && transaction.work_id === id
+        && transaction.intent_digest === intent.digest && status === 'committed' && digest === sha256Digest(stableJsonBytes(body))
+        && intent.work_digest === work.digest && intent.work_id === id
+        && intent.before_checkpoint === work.identity.checkpoint && intent.before_chain === work.identity.ledger.chain_head
+        && workJson(transaction.plan.obligation).equals(workJson(work.identity.work.obligation))
+        && workDigest(workJson(transaction.plan)) === intent.plan_digest
+        && consumed.after_checkpoint === stateCheckpointDigest(transaction.state_after)
+        && consumed.after_checkpoint === transaction.state_after.execution.resume.checkpoint_digest
+        && consumed.after_chain === transaction.state_after.ledger.chain_head
+        && chain.startsWith(transaction.chain_after), 'WORK_CONSUMPTION', 'committed canonical chain/checkpoint required');
+    validateConsumedWorkTransition(runDir, transaction.plan);
     return consumed;
 }
 export function recordOrchestrationConsumption(runDir, id, state) {
@@ -573,7 +591,12 @@ export function resumeOrchestration(runDir, clock = clockDefault) {
         };
         for (;;) {
             const works = allWorkIds(runDir).map((id) => readOrchestrationWork(runDir, id));
-            const pending = works.filter((work) => !existsSync(canonicalPath(runDir, consumedPath(work.work_id))));
+            const pending = works.filter((work) => {
+                if (!existsSync(canonicalPath(runDir, consumedPath(work.work_id))))
+                    return true;
+                readConsumption(runDir, work.work_id);
+                return false;
+            });
             assertWork(pending.length <= 1, 'WORK_QUEUE_AMBIGUOUS', 'multiple unconsumed work items');
             if (pending.length) {
                 const work = pending[0];
