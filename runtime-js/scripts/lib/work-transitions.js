@@ -241,7 +241,13 @@ function deriveGapReview(model, work, accepted) {
         format: 'aleph-source-gap-review-return/v1', source_id: sourceId, review_basis_digest: subject.digest,
         review_basis_cursor_id: subject.cursor.values.cursorId, call_id: accepted.call_id, raw_digest: accepted.raw_digest,
         receipt_digest: accepted.receipt_digest, context_id: accepted.context_id, simulation: accepted.simulation, verdict: value.verdict,
-        candidate_evidence: value.candidate_evidence,
+        // L1 transport canonicalizes object keys. The retained Core gap subject
+        // has its own exact field order; preserve every value and array position.
+        candidate_evidence: value.candidate_evidence.map((candidate) => {
+            const row = candidate;
+            return { start_byte: row.start_byte, end_byte: row.end_byte,
+                source_locator: row.source_locator, exact_bytes_base64: row.exact_bytes_base64 };
+        }),
     })));
     // A found candidate is retained for its separate producer proposal. L1
     // supplies neither MaterialUseInput nor atomicity semantics.
@@ -1562,7 +1568,7 @@ export function deriveWorkTransition(model, execution, work, accepted, now) {
     const base = { format: 'aleph-core-work-transition/v1', obligation: work.obligation,
         next_execution: { ...execution }, simulation: accepted?.simulation || false };
     if (work.obligation.operation.startsWith('s4.'))
-        return { ...base, ...deriveS4Transition(model, work, accepted) };
+        return { ...base, ...deriveS4Transition(model, work, accepted, now) };
     if (work.obligation.operation === 's3.prepare-widening') {
         assertWork(work.kind === 'local' && accepted === null, 'WORK_ACCEPTANCE', 'mechanical widening preparation');
         const basis = wideningBasisForWork(model, work), call = wideningCallId(basis), view = packetWideningProducerView(model, basis);
@@ -1764,7 +1770,7 @@ export function deriveWorkTransition(model, execution, work, accepted, now) {
 }
 /** Existing Core plan validators remain mandatory for the exact derived bytes. */
 export function validateDerivedWorkTransition(model, proposedModel, transition) {
-    if (transition.duplicate)
+    if (transition.duplicate || transition.s4_closure)
         validateS4Transition(model, proposedModel, transition);
     for (const write of transition.effects) {
         assertWork(workDigest(readFileSync(join(proposedModel.runDir, write.path))) === write.after_digest, 'WORK_PLAN', 'proposed bytes differ from Core derivation');

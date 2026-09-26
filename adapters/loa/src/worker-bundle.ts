@@ -49,6 +49,7 @@ import {
 } from '../../../scripts/lib/internal-ambiguity.ts';
 import { loadRun, usesFormalLayoutBindings } from '../../../scripts/lib/run-model.ts';
 import { workMaterialReviewReservation, workJson } from '../../../scripts/lib/work-transitions.ts';
+import { relationMaterialReservation, validateRelationWorkDelivery } from '../../../scripts/lib/work-transitions-relations.ts';
 import { materialHash, REPRESENTATION_PATH, validateRepresentationRun } from '../../../scripts/lib/source-representation.ts';
 import { hasRunCapability } from '../../../scripts/lib/run-model.ts';
 import {
@@ -88,6 +89,11 @@ const ROLE_SPECS: Partial<Record<LoaRoleId, RoleSpec>> = {
   'merge-judge': {
     path: 'docs/architecture/prompts/workers-intake-extraction.md',
     heading: 'Role: Merge Judge (S4, global barrier)',
+    stages: ['S4'],
+  },
+  'relation-producer': {
+    path: 'docs/architecture/prompts/workers-intake-extraction.md',
+    heading: 'Role: Global Relation Producer (S4)',
     stages: ['S4'],
   },
   'ambiguity-producer': {
@@ -187,6 +193,7 @@ const VERIFIER_SPECS: Partial<Record<LoaRoleId, VerifierSpec>> = {
   'verifier-l2f': { heading: 'L2F — formal/table/layout use challenge (S3/S4)', stages: ['S3', 'S4'] },
   'verifier-l2s': { heading: SEMANTIC_LENS, stages: ['S2', 'S3', 'S4'] },
   'verifier-l3': { heading: 'L3 — merge-refuter (S4 DoD)', stages: ['S4'] },
+  'verifier-l3r': { heading: 'L3R — typed-relation semantic challenge (S4 closure)', stages: ['S4'] },
   'verifier-l4': { heading: 'L4 — disposition-refuter (S5 DoD)', stages: ['S5'] },
   'verifier-l5': { heading: 'L5 — contradiction-sweep (S4/S5)', stages: ['S4', 'S5'] },
   'verifier-l6': { heading: 'L6 — evidence-role-refuter (S6/S9a)', stages: ['S6', 'S9a'] },
@@ -365,8 +372,9 @@ function roleParts(
   contract: ReturnType<typeof loadOutputContract>;
   policyPartIndex: number;
 } {
-  if (role === 'criteria-reviewer' && !hasRunCapability(bundle.lock.run_format_version, 'orchestrator-work-transitions')) {
-    throw new Error('criteria reviewer requires the pinned orchestrator-work-transitions capability');
+  if (['criteria-reviewer', 'relation-producer', 'verifier-l3r'].includes(role)
+    && !hasRunCapability(bundle.lock.run_format_version, 'orchestrator-work-transitions')) {
+    throw new Error(`${role} requires the pinned orchestrator-work-transitions capability`);
   }
   const duplicateTask = duplicateTaskForRole(bundle.lock.run_format_version, role, stage, taskLine);
   if (duplicateTask) {
@@ -540,6 +548,10 @@ export function assembleWorkerBundle(
     throw new Error('worker allowlist contains duplicate paths');
   }
   validateDuplicateRoleDelivery(options.bundle.lock.run_format_version, options.role, options.stage, options.taskLine, allowlist);
+  if (options.role === 'relation-producer' || options.role === 'verifier-l3r') {
+    validateRelationWorkDelivery(loadRun(runDir), options.role, options.stage, options.callId, options.taskLine,
+      options.producerContextId || null, allowlist.map((path) => ({ path, bytes: readStableRegularFile(join(runDir, path)).bytes })));
+  }
   if (hasRunCapability(options.bundle.lock.run_format_version, 'semantic-unit-review')
     && (options.role === 'extractor' || options.role === 'normalizer')) {
     validateSemanticProducerDelivery(loadRun(runDir), options.role, options.stage as 'S2' | 'S3' | 'S4', options.callId,
@@ -553,9 +565,12 @@ export function assembleWorkerBundle(
     let reservation: Record<string, unknown>;
     if (hasRunCapability(loadRun(runDir).manifest!.runFormatVersion, 'orchestrator-work-transitions')) {
       const bytes = readStableRegularFile(join(runDir, 'verification/harness/material-use-reservations', `${match[1]}.json`)).bytes;
-      const retained = JSON.parse(bytes.toString('utf8')) as { semantic_id: string };
-      const derived = workMaterialReviewReservation(loadRun(runDir), retained.semantic_id);
-      if (!bytes.equals(workJson(derived)) || derived.call_id !== options.callId) throw new Error('L2F requires the exact Core work reservation');
+      const retained = JSON.parse(bytes.toString('utf8')) as { format: string; semantic_id: string; relation_key: string };
+      const relation = retained.format === 'aleph-core-relation-material-reservation/v1';
+      const derived = relation ? relationMaterialReservation(loadRun(runDir), retained.relation_key)
+        : workMaterialReviewReservation(loadRun(runDir), retained.semantic_id);
+      const exact = relation ? Buffer.from(JSON.stringify(derived)) : workJson(derived);
+      if (!bytes.equals(exact) || derived.call_id !== options.callId) throw new Error('L2F requires the exact Core work reservation');
       reservation = derived;
     } else {
       reservation = readJsonFile(join(runDir, 'control', 'transactions', `RES-material-${match[1]}.json`)) as Record<string, unknown>;
@@ -790,6 +805,8 @@ export function verifyWorkerBundle(root: string): WorkerRequest {
   const duplicateTask = duplicateTaskForRole(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line);
   validateDuplicateRoleDelivery(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line, request.allowlist.map((a) => a.run_path));
   if (duplicateTask) validateDuplicateBundleDelivery(model, duplicateTask, request.call_id, request.task_line,
+    request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
+  validateRelationWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
     request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
   return request;
 }

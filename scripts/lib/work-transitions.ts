@@ -132,6 +132,7 @@ export interface WorkTransition {
   simulation: boolean;
   source_completion?: SourceWalkProjection;
   stationary_capture?: StationaryCapture;
+  s4_closure?: import('./internal-ambiguity.ts').ClosurePhase;
   semantic?: { stage: SemanticStage; semantic_id: string; subject_digest: string; operation: SemanticOperation;
     record_id: string; producer_call_id: string; reviewer_call_ids: string[] };
   duplicate?: { proposal_id: string; subject_digest: string;
@@ -356,7 +357,13 @@ function deriveGapReview(model: RunModel, work: Extract<NextWork, { kind: 'worke
     format: 'aleph-source-gap-review-return/v1', source_id: sourceId, review_basis_digest: subject.digest,
     review_basis_cursor_id: subject.cursor.values.cursorId, call_id: accepted.call_id, raw_digest: accepted.raw_digest,
     receipt_digest: accepted.receipt_digest, context_id: accepted.context_id, simulation: accepted.simulation, verdict: value.verdict,
-    candidate_evidence: value.candidate_evidence,
+    // L1 transport canonicalizes object keys. The retained Core gap subject
+    // has its own exact field order; preserve every value and array position.
+    candidate_evidence: value.candidate_evidence.map((candidate) => {
+      const row = candidate as Record<string, WorkerJsonValue>;
+      return { start_byte: row.start_byte, end_byte: row.end_byte,
+        source_locator: row.source_locator, exact_bytes_base64: row.exact_bytes_base64 };
+    }),
   })));
   // A found candidate is retained for its separate producer proposal. L1
   // supplies neither MaterialUseInput nor atomicity semantics.
@@ -1676,7 +1683,7 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
   assertWork(!Number.isNaN(Date.parse(now)), 'WORK_IDENTITY', 'retained operation time');
   const base = { format: 'aleph-core-work-transition/v1' as const, obligation: work.obligation,
     next_execution: { ...execution }, simulation: accepted?.simulation || false };
-  if (work.obligation.operation.startsWith('s4.')) return { ...base, ...deriveS4Transition(model, work, accepted) };
+  if (work.obligation.operation.startsWith('s4.')) return { ...base, ...deriveS4Transition(model, work, accepted, now) };
   if (work.obligation.operation === 's3.prepare-widening') {
     assertWork(work.kind === 'local' && accepted === null, 'WORK_ACCEPTANCE', 'mechanical widening preparation');
     const basis = wideningBasisForWork(model, work), call = wideningCallId(basis), view = packetWideningProducerView(model, basis);
@@ -1872,7 +1879,7 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
 
 /** Existing Core plan validators remain mandatory for the exact derived bytes. */
 export function validateDerivedWorkTransition(model: RunModel, proposedModel: RunModel, transition: WorkTransition): void {
-  if (transition.duplicate) validateS4Transition(model, proposedModel, transition);
+  if (transition.duplicate || transition.s4_closure) validateS4Transition(model, proposedModel, transition);
   for (const write of transition.effects) {
     assertWork(workDigest(readFileSync(join(proposedModel.runDir, write.path))) === write.after_digest,
       'WORK_PLAN', 'proposed bytes differ from Core derivation');

@@ -44,6 +44,7 @@ const EXPECTED_CONTRACT_IDENTITIES = [
   'workers-intake-extraction.md#Role: Normalizer (S3)',
   'workers-intake-extraction.md#Role: Merge Judge (S4, global barrier)',
   'workers-intake-extraction.md#Role: Local Relation Producer (S2 or S3)',
+  'workers-intake-extraction.md#Role: Global Relation Producer (S4)',
   'workers-intake-extraction.md#Role: Successor Semantic Normalizer (S4 pre-C1)',
   'workers-judgment.md#Role: Disposition Judge (S5)',
   'workers-judgment.md#Role: Evidence-Role Judge (S6)',
@@ -153,9 +154,9 @@ function main(): number {
   const results: CaseResult[] = [];
   const discovered = outputContracts(), contracts = discovered.map((entry) => entry.contract);
 
-  runCase(results, 'all twenty-five pinned prompt contracts accept a valid materialization', () => {
+  runCase(results, `all ${EXPECTED_CONTRACT_IDENTITIES.length} exact pinned prompt contracts accept a valid materialization`, () => {
     expect(JSON.stringify(discovered.map((entry) => entry.identity)) === JSON.stringify(EXPECTED_CONTRACT_IDENTITIES),
-      `expected exact 25 contract identities; discovered ${JSON.stringify(discovered.map((entry) => entry.identity))}`);
+      `expected exact ${EXPECTED_CONTRACT_IDENTITIES.length} contract identities; discovered ${JSON.stringify(discovered.map((entry) => entry.identity))}`);
     contracts.forEach((contract, index) => {
       const validation = validateWorkerReturnContract(
         json(isDuplicateOutputContract(contract) ? duplicateMaterialization(contract)

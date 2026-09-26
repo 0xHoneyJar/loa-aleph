@@ -1503,6 +1503,69 @@ external facts, final density targets, and downstream decisions.
 **Output contract:** the same `relation_proposals` contract as the local
 producer, with `owner_stage = S4`.
 
+The explicit executable exemplar below repeats that shared contract with only
+the already-required S4 owner binding. It does not change relation taxonomy,
+review authority, material declarations, or the canonical write barrier.
+
+**Output contract — executable shared exemplar:**
+```json
+{
+  "relation_proposals": [
+    {
+      "owner_stage": "S4",
+      "family": "claim-dependency|source-context|formal-reference|discourse|none",
+      "type": "semantic-prerequisite|antecedent-context|qualifier-context|configuration-context|structural-anchor|notation-definition|continuation-context|parallel-contrast-context|none",
+      "source_kind": "PKT|CC",
+      "source_id": "PKT-…|CC-…",
+      "target_kind": "PKT|CC|source-locus|null",
+      "target_id": "PKT-…|CC-…|none",
+      "target_source_id": "SRC-…|none",
+      "target_locator": "",
+      "target_span_hash": "sha256:…|none",
+      "record_state": "asserted|unresolved-target|explicitly-absent|indeterminate",
+      "null_reason": "none|unresolved-in-frozen-corpus|outside-frozen-corpus|target-not-materialized|bounded-review-found-none|insufficient-frozen-context|conflicting-durable-representations|unsupported-source-structure",
+      "basis_packet_ids": ["PKT-…"],
+      "proposed_by": "human:…|invocation:…",
+      "review_subject_digest": "sha256:…",
+      "rationale": "",
+      "flags": [],
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": ["BND-…"]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ],
+  "not_applicable": [],
+  "material_findings": [
+    {
+      "object_id": "OBJ-…",
+      "material_use": {
+        "requirements": [
+          {
+            "object_id": "OBJ-…",
+            "feature": "text-bytes|table-grid|header-association|caption-association|formal-structure|image|chart-values|spatial-region",
+            "binding_ids": ["BND-…"]
+          }
+        ],
+        "use_state": "usable|CANNOT_DETERMINE",
+        "fidelity_claim": "none|exact-representation|gold",
+        "limitation_refs": [],
+        "reason": ""
+      }
+    }
+  ]
+}
+```
+
 ## Material producer obligations — run format 1.6
 
 The material constraint block in the assembly rules applies verbatim. Intake

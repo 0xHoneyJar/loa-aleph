@@ -16,6 +16,8 @@ import { makeTreeOwnerWritable, stableJsonBytes } from '../src/fs.ts';
 import { materialHash, materialFragmentsHash, prepareRepresentationCapture, readRepresentationContext } from '../../../scripts/lib/source-representation.ts';
 import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, type DuplicateSubject } from '../../../scripts/lib/duplicate-review.ts';
 import { duplicateFixtureProposal, duplicateFixtureSuccessorProposal, duplicateFixtureResult } from '../../../scripts/duplicate-fixture-support.ts';
+import { relationReviewSubjectDigest, parseRelations } from '../../../scripts/lib/relations.ts';
+import { semanticRelationRow } from '../../../scripts/lib/semantic-review.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 if (process.argv[2] === '--fixture-worker') {
@@ -219,6 +221,13 @@ if (process.argv[2] === '--fixture-worker') {
           end_byte: fragment.length, exact_bytes_base64: fragment.toString('base64') }], semantics: fixtureSemantics(fragment.toString()),
       }] : [],
     };
+    if (process.env.F03_S2_GAP === '1' && !packetMode) {
+      // A missed candidate may reconcile a no-candidate primary interval.
+      // An excluded interval instead retains its explicit exclusion, which
+      // the ordinary K2.14 reconciliation predicate correctly refuses.
+      extraction.walk_intervals[0] = { ...extraction.walk_intervals[0],
+        outcome: 'no-candidate-observed', criterion_ref: 'none', reason: null };
+    }
     if (degradedMode) {
       const use = { requirements: [{ object_id: 'OBJ-0002', feature: 'formal-structure', binding_ids: ['BND-0001'] }],
         use_state: 'CANNOT_DETERMINE', fidelity_claim: 'none', limitation_refs: ['OBJ-0002'],
@@ -549,19 +558,28 @@ if (process.argv[2] === '--fixture-worker') {
         runFixture(gap, { ...noGap, verdict: 'refuted', rationale: 'Synthetic challenge identifies one missed exact candidate.',
           candidate_evidence: [{ start_byte: 0, end_byte: fragment.length, source_locator: 'L1-L1',
             exact_bytes_base64: fragment.toString('base64') }] });
+        const l1RawPath = join(gap.return_root, 'raw.json'), l1Raw = readFileSync(l1RawPath);
         resumed = cli('resume', id);
         const producer = resumed.details.work;
         assert.equal(JSON.parse(readFileSync(join(producer.worker_bundle, 'request.json'), 'utf8')).role, 'extractor');
-        runFixture(producer, { source_id: sourceRow.sourceId, producer_invocation_id: producer.call_id,
-          walk_intervals: [], extraction_events: [], packets: [{ evidence_state: 'exact', join_policy: 'single-fragment',
+        const gapTargets = readdirSync(join(run, 'verification/harness/gap-producer-subjects'))
+          .map((name) => JSON.parse(readFileSync(join(run, 'verification/harness/gap-producer-subjects', name), 'utf8')));
+        assert.equal(gapTargets.length, 1);
+        assert.deepEqual(Object.keys(gapTargets[0].candidates[0]), ['start_byte', 'end_byte', 'source_locator', 'exact_bytes_base64']);
+        assert.deepEqual(gapTargets[0].candidates, JSON.parse(l1Raw.toString()).candidate_evidence);
+        assert(readFileSync(l1RawPath).equals(l1Raw), 'gap projection preserves exact accepted L1 bytes');
+        const gapExtraction = { source_id: sourceRow.sourceId, producer_invocation_id: producer.call_id,
+          walk_intervals: [], packets: [{ evidence_state: 'exact', join_policy: 'single-fragment',
             fragments: [{ fragment_order: 1, locator: 'L1-L1', exact_bytes_base64: fragment.toString('base64') }],
             rendered_text: fragment.toString(), degraded_source_locator: null, degradation_reason: null,
-            criterion: 1, flags: [], material_use: TEXT_USE }],
+            criterion: 1, flags: [], material_use: TEXT_USE }], extraction_events: [],
           next_cursor: { ...extraction.next_cursor, predecessor_walk_index: null, predecessor_event_index: null },
           walk_exhausted: true, notes: [], material_findings: [], semantic_units: [{ output_kind: 'packet-candidate',
             output_index: 0, review_mode: 'proposal', origin_unit_refs: [], anchors: [{ anchor_id: 'A1',
               source_id: sourceRow.sourceId, locator: 'L1-L1', start_byte: 0, end_byte: fragment.length,
-              exact_bytes_base64: fragment.toString('base64') }], semantics: fixtureSemantics(fragment.toString()) }] });
+              exact_bytes_base64: fragment.toString('base64') }], semantics: fixtureSemantics(fragment.toString()) }] };
+        assert.deepEqual(Object.keys(gapExtraction), Object.keys(extraction), 'gap producer retains the ordinary extractor contract field order');
+        runFixture(producer, gapExtraction);
         if (process.env.F03_S2_GAP_FAULTS === '1') crashSequence('s2.reconcile-gap',
           ['derived', 'commit-intent', 'writer-prepared', 'effect:ledgers/packet-index.md',
             'effect:ledgers/source-walk.md', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], () => {
@@ -907,6 +925,28 @@ if (process.argv[2] === '--fixture-worker') {
               returned = { claims: [{ normalized_claim: claim.proposed_claim, packets: claim.packet_ids, claim_type: claim.claim_type,
                 widen_requests: [], rationale: 'Synthetic fresh successor normalization.', flags: [], material_use: claim.material_use }],
               no_claim_packets: [], lineage_proposals: [], material_findings: [], semantic_units: [entry] };
+            } else if (request.role === 'relation-producer') {
+              const shown = JSON.parse(readFileSync(join(run, request.allowlist[0].run_path), 'utf8'));
+              const source = shown.claims.at(-1);
+              assert(source, 'nonempty S4 relation fixture requires its current claim');
+              const subject = { format: 'aleph-relation-review-subject/v1', owner_stage: 'S4',
+                family: 'source-context', type: 'qualifier-context', source_kind: 'CC', source_id: source.claim_id,
+                target_kind: 'null', target_id: 'none', target_source_id: 'none', target_locator: 'none',
+                target_span_hash: 'none', record_state: 'explicitly-absent', null_reason: 'bounded-review-found-none',
+                basis_packet_ids: source.packets.split(',').map((id: string) => id.trim()), proposed_by: `invocation:${work.call_id}` };
+              const { format: _format, ...fields } = subject;
+              const projection = { subject, review_subject_digest: '', material_use: TEXT_USE };
+              returned = { relation_proposals: [{ ...fields, review_subject_digest: relationReviewSubjectDigest(semanticRelationRow(projection).values),
+                rationale: 'Synthetic bounded relation absence proposal.', flags: [], material_use: TEXT_USE }],
+              not_applicable: [], material_findings: [] };
+            } else if (request.role === 'verifier-l3r') {
+              assert.equal(parseRelations(current).rows.length, 0, 'L3R precedes all canonical REL serialization');
+              const shown = JSON.parse(readFileSync(join(run, request.allowlist[0].run_path), 'utf8'));
+              assert(!JSON.stringify(shown).includes('Synthetic bounded relation absence proposal.'));
+              returned = { verdict: 'upheld', rationale: 'Synthetic independent relation challenge.',
+                attacks_tried: ['Challenged the declared bounded absence and exact current source.'],
+                evidence_ids: [`relation-review-subject:${shown.review_subject_digest}`], candidate_evidence: [],
+                missing_for_determination: null, flags: [] };
             } else if (request.role === 'verifier-l2s') {
               const path = request.allowlist.find((entry: any) => entry.run_path.includes('/semantic-subjects/')).run_path;
               returned = fixtureResult(JSON.parse(readFileSync(join(run, path), 'utf8')));
@@ -921,7 +961,9 @@ if (process.argv[2] === '--fixture-worker') {
           assert(rows.effects.length > 0);
           assert.equal(loadRun(run).claims.length, process.env.F03_S4 === 'successor' ? 3 : 2);
           assert.equal(rows.effects[0].effect, process.env.F03_S4 === 'successor' ? 'canonicalized' : 'kept-separate');
-          console.log('PASS supported CLI S4 duplicate composition; relation/ambiguity/closure continuation remains separately required');
+          assert.equal(parseRelations(loadRun(run)).rows.length, 1);
+          assert(readFileSync(join(run, 'run-log.md'), 'utf8').includes('closure_phase: S4-C1-relations-closed'));
+          console.log('PASS supported CLI S4 duplicate, global relation producer, fresh L3R and composed C1; C2/C3 remain separately required');
         }
       }
     }

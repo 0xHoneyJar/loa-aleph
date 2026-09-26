@@ -1,10 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { selectRelationWork, deriveRelationTransition, relationClosureEffects, validateRelationClosure } from './work-transitions-relations.js';
+import { closurePhases } from './internal-ambiguity.js';
+import { runK2Ambiguities } from './checks-k2-ambiguities.js';
+import { ResultCollector } from './results.js';
 import { parseStrictJson } from './worker-return-contract.js';
 import { parseLineage, lineageCurrentClaimIds, LINEAGE_TABLE_HEADER } from './lineage.js';
-import { semanticJson, semanticProducerSelections, semanticProducerView, semanticProducerViewPaths, semanticProducerTask, validateSemanticReturn, semanticAdmissionProblems } from './semantic-review.js';
-import { readRepresentationContext, materialFindingRows, representationUsesMarkdown, REPRESENTATION_USE_PATH, planRepresentationUseWrite } from './source-representation.js';
-import { DUPLICATE_PATH, DUPLICATE_TASKS, DUPLICATE_ASSIGNMENT_FORMAT, DUPLICATE_EFFECT_FORMAT, emptyDuplicateLedger, parseDuplicateLedger, duplicateLedgerMarkdown, duplicatePath, duplicateProducerPaths, duplicateProducerView, duplicateProducerBinding, buildDuplicateDiscovery, buildDuplicateSubject, duplicateAttachmentPaths, duplicateQuorum, duplicateAdmissionProblems, planDuplicateWrite, duplicateAdmissionSubplans, } from './duplicate-review.js';
+import { semanticJson, semanticProducerSelections, semanticProducerView, semanticProducerViewPaths, semanticProducerTask, validateSemanticReturn, semanticAdmissionProblems, validateSemanticRun, planSemanticWrite, SEMANTIC_PATH } from './semantic-review.js';
+import { readRepresentationContext, materialFindingRows, representationUsesMarkdown, REPRESENTATION_USE_PATH, planRepresentationUseWrite, validateRepresentationRun } from './source-representation.js';
+import { DUPLICATE_PATH, DUPLICATE_TASKS, DUPLICATE_ASSIGNMENT_FORMAT, DUPLICATE_EFFECT_FORMAT, emptyDuplicateLedger, parseDuplicateLedger, duplicateLedgerMarkdown, duplicatePath, duplicateProducerPaths, duplicateProducerView, duplicateProducerBinding, buildDuplicateDiscovery, buildDuplicateSubject, duplicateAttachmentPaths, duplicateQuorum, duplicateAdmissionProblems, planDuplicateWrite, duplicateAdmissionSubplans, validateDuplicateRun, } from './duplicate-review.js';
 import { assertWork, workDigest, workJson, file, required, obligation, effect, table, nextId, appendRows, selectSemanticWork, selectMaterialReview, semanticDependencies, semanticLedger, semanticTransition, materialReviewResult, } from './work-transitions.js';
 const PREPARATIONS = 'verification/harness/work-preparations/S4/';
 const CAPTURES = 'verification/harness/work-captures/S4/';
@@ -128,6 +132,10 @@ function selectSuccessor(model, subject) {
     return local(model, admittedCandidate ? 's4.admit-successor' : 's4.failed-successor', subject.proposal_id, Buffer.from(semanticJson(subject)), allCalls);
 }
 export function selectS4Work(model) {
+    if (closurePhases(model.runLog).length)
+        return {
+            kind: 'halt', code: 'WORK_S4_C2_UNIMPLEMENTED', reason: 'S4 C1 is sealed; ambiguity lifecycle composition remains required.'
+        };
     if (!file(model, DUPLICATE_PATH))
         return local(model, 's4.initialize', 'S4', Buffer.from(duplicateLedgerMarkdown(emptyDuplicateLedger())));
     const rows = ledger(model);
@@ -183,7 +191,11 @@ export function selectS4Work(model) {
         }
         return local(model, 's4.record-discovery', 'current-claim-catalogue', workJson(inputs.selection), inputs.selection.member_ids.length ? [inputs.discovery.call_id, inputs.sweep.call_id] : []);
     }
-    return { kind: 'halt', code: 'WORK_S4_CLOSURE_UNIMPLEMENTED', reason: 'S4 relation, ambiguity and stage closure composition remains required.' };
+    const relation = selectRelationWork(model);
+    if (relation)
+        return relation;
+    const closure = relationClosureEffects(model);
+    return local(model, 's4.close-C1', 'C1', Buffer.from(semanticJson(closure)), closure.dependencies);
 }
 function selectedPreparation(model, work) {
     const existing = pendingPreparations(model).find((p) => p.call_id === work.obligation.subject_id);
@@ -201,8 +213,27 @@ function selectedPreparation(model, work) {
     assertWork(found, 'WORK_PREPARATION', 'exact selected S4 producer');
     return found;
 }
-export function deriveS4Transition(model, work, accepted) {
+export function deriveS4Transition(model, work, accepted, now) {
     const operation = work.obligation.operation;
+    if (operation.startsWith('s4.relation.'))
+        return deriveRelationTransition(model, work, accepted);
+    if (operation === 's4.close-C1') {
+        assertWork(accepted === null && closurePhases(model.runLog).length === 0, 'WORK_S4_CLOSURE', 'single deterministic C1 barrier');
+        const semantic = validateSemanticRun(model), duplicate = validateDuplicateRun(model);
+        assertWork(!semantic.pending.length && !duplicate.pending.length, 'WORK_S4_CLOSURE', 'semantic or duplicate work remains');
+        validateRepresentationRun(model);
+        const closure = relationClosureEffects(model);
+        const uses = closure.effects.find((e) => e.path === REPRESENTATION_USE_PATH);
+        const useBytes = uses ? Buffer.from(uses.after_base64, 'base64') : required(model, REPRESENTATION_USE_PATH);
+        const log = Buffer.from(`${required(model, 'run-log.md')}\n## ${now} — S4 — C1\n\n`
+            + 'closure_phase: S4-C1-relations-closed\n'
+            + `representation_use_closure_hash: ${workDigest(useBytes)}\n`
+            + `semantic_review_closure_hash: ${workDigest(required(model, SEMANTIC_PATH))}\n`
+            + `duplicate_review_closure_hash: ${workDigest(required(model, DUPLICATE_PATH))}\n`);
+        return { family: 'stage', s4_closure: 'S4-C1-relations-closed',
+            effects: [...closure.effects, effect(model, 'run-log.md', log)],
+            origins: [{ artifact: 'ledgers/relations.md', field: '*', from: { kind: 'rule', rule: 'S4-C1:exact-reviewed-proposals-and-composed-seals' } }] };
+    }
     const origins = [{ artifact: DUPLICATE_PATH, field: '*', from: { kind: 'rule', rule: operation } }];
     if (operation === 's4.prepare-successor' || operation === 's4.capture-successor') {
         const row = ledger(model).proposals.find((row) => row.proposal_id === work.obligation.subject_id);
@@ -415,6 +446,22 @@ export function deriveS4Transition(model, work, accepted) {
     return bounded('record-effect', id, row.proposal_id, row.subject_digest, [effect(model, DUPLICATE_PATH, Buffer.from(duplicateLedgerMarkdown(rows))), effect(model, path, bytes)]);
 }
 export function validateS4Transition(model, proposedModel, transition) {
+    if (transition.s4_closure === 'S4-C1-relations-closed') {
+        validateRelationClosure(proposedModel);
+        const phaseChecks = new ResultCollector('S4 C1 retained phase consistency');
+        runK2Ambiguities(phaseChecks, proposedModel);
+        const phaseFailures = phaseChecks.checks.filter((c) => c.status === 'FAIL');
+        assertWork(phaseFailures.length === 0, 'WORK_S4_CLOSURE', phaseFailures.map((c) => c.message).join('; '));
+        validateRepresentationRun(proposedModel);
+        const writes = transition.effects.filter((w) => w.path === 'run-log.md').map((w) => ({
+            path: w.path, before_hash: w.before_digest, after_base64: w.after_base64, after_hash: w.after_digest
+        }));
+        planSemanticWrite({ model, proposedModel, stage: 'S4', semantic_id: 'none',
+            subject_digest: workDigest(required(model, SEMANTIC_PATH)), operation: 'seal', record_id: 'C1', prerequisite_paths: [], writes });
+        planDuplicateWrite({ model, proposedModel, proposal_id: 'none', subject_digest: workDigest(required(model, DUPLICATE_PATH)),
+            operation: 'seal', record_id: 'C1', prerequisite_paths: [], acceptance_bindings: [], writes });
+        return;
+    }
     const meta = transition.duplicate;
     const bindings = meta.accepted_call_ids.map((call_id) => {
         const root = join(proposedModel.runDir, `control/worker-returns/${call_id}`);
