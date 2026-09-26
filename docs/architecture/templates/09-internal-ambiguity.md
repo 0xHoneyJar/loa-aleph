@@ -136,3 +136,45 @@ row, response, authority subject, and operative impact rows. Its key is
 `affected_id + operation_kind + requirement_ref`. It is not evidence removal,
 source invalidation, exclusion, disposition, support weight, evidence-role
 assignment, relation mutation, or a replacement semantic disposition.
+
+## Cumulative 1.9 bounded work preparation
+
+With `orchestrator-work-transitions`, the adopted constrained-proposal
+mechanism represents expression selection as orchestration metadata:
+
+```json
+{
+  "format": "aleph-ambiguity-expression-selection/v1",
+  "expressions": [
+    {
+      "source_entity_kind": "PKT",
+      "source_entity_id": "PKT-0001",
+      "source_id": "SRC-0001",
+      "locator": "L1-L1",
+      "start_byte": 0,
+      "end_byte": 1,
+      "basis_packet_ids": ["PKT-0001"]
+    }
+  ]
+}
+```
+
+These example identities and bounds must be replaced by exact existing
+same-source, lineage-current, packet-covered selections. Core retains the
+submitted bytes and derives each producer view; the proposal supplies no
+destination, after-image, assessment, candidate choice or material scope.
+Selection is a question, not a finding or evidence that no ambiguity exists.
+Existing semantic findings and their dispositions remain retained.
+
+The ambiguity producer supplies the existing definition and assessment
+fields for each selected expression. Core retains the exact subject and
+requires fresh ambiguity review before canonical T5.1/T5.2 publication.
+Unresolved assessments require the existing separate material-impact
+producer and fresh reviewer; Class B creates no human request, and Class C
+retains the existing procedural-authority requirement. No selection metadata
+can satisfy those review or authority predicates.
+
+The C1 relation, representation, semantic and duplicate seals remain
+immutable throughout C2/C3. Only complete C2 permits C3 and deterministic S5
+entry. The implemented S0–S4 orchestration frontier then returns
+`WORK_UNSUPPORTED_CAPABILITY`; this is not an implementation of S5 work.

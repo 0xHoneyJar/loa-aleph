@@ -10,6 +10,7 @@ import { assertDownstreamOperationsAllowed, retainedRestrictionOverlays, } from 
 import { loadRun, usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
 import { workMaterialReviewReservation, workJson } from '../../../scripts/lib/work-transitions.js';
 import { relationMaterialReservation, validateRelationWorkDelivery } from '../../../scripts/lib/work-transitions-relations.js';
+import { validateAmbiguityWorkDelivery } from '../../../scripts/lib/work-transitions-ambiguities.js';
 import { materialHash, REPRESENTATION_PATH, validateRepresentationRun } from '../../../scripts/lib/source-representation.js';
 import { hasRunCapability } from '../../../scripts/lib/run-model.js';
 import { SEMANTIC_LENS, semanticPromptRequirements, validateSemanticAttachmentDelivery, parseSemanticJson, validateSemanticSubject, parseSemanticLedger, SEMANTIC_PATH, validateSemanticProducerDelivery, } from '../../../scripts/lib/semantic-review.js';
@@ -386,6 +387,9 @@ export function assembleWorkerBundle(options) {
         throw new Error('worker allowlist contains duplicate paths');
     }
     validateDuplicateRoleDelivery(options.bundle.lock.run_format_version, options.role, options.stage, options.taskLine, allowlist);
+    if (['ambiguity-producer', 'ambiguity-reviewer', 'material-impact-producer', 'material-impact-reviewer'].includes(options.role)) {
+        validateAmbiguityWorkDelivery(loadRun(runDir), options.role, options.stage, options.callId, options.taskLine, options.producerContextId || null, allowlist.map((path) => ({ path, bytes: readStableRegularFile(join(runDir, path)).bytes })));
+    }
     if (options.role === 'relation-producer' || options.role === 'verifier-l3r') {
         validateRelationWorkDelivery(loadRun(runDir), options.role, options.stage, options.callId, options.taskLine, options.producerContextId || null, allowlist.map((path) => ({ path, bytes: readStableRegularFile(join(runDir, path)).bytes })));
     }
@@ -646,5 +650,6 @@ export function verifyWorkerBundle(root) {
     if (duplicateTask)
         validateDuplicateBundleDelivery(model, duplicateTask, request.call_id, request.task_line, request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
     validateRelationWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line, request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
+    validateAmbiguityWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line, request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
     return request;
 }

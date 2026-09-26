@@ -106,6 +106,7 @@ export interface WorkCall {
 export type NextWork =
   | { kind: 'halt'; code: string; reason: string }
   | { kind: 'proposal'; operation: 'criteria.samples'; input_path: typeof CRITERIA_SAMPLE_INPUT_PATH }
+  | { kind: 'proposal'; operation: 'ambiguity.expressions'; input_path: 'control/work-proposals/S4-ambiguity-expressions.json' }
   | { kind: 'local'; obligation: WorkObligation; accepted_dependencies?: string[] }
   | { kind: 'worker'; obligation: WorkObligation; call: WorkCall; accepted_dependencies?: string[] };
 
@@ -1611,6 +1612,8 @@ export function selectNextWork(model: RunModel, execution: WorkExecution): NextW
   }
   if (execution.stage === 'S3') return selectS3Work(model);
   if (execution.stage === 'S4') return selectS4Work(model);
+  if (execution.stage === 'S5') return { kind: 'halt', code: 'WORK_UNSUPPORTED_CAPABILITY',
+    reason: 'The retained S0–S4 orchestration capability ends after authenticated S4 C3 and S5 entry; no S5 work family is implemented.' };
   return { kind: 'halt', code: 'WORK_FRONTIER_UNIMPLEMENTED', reason: `No work family is registered for ${execution.stage}.` };
 }
 
@@ -1879,7 +1882,8 @@ export function deriveWorkTransition(model: RunModel, execution: WorkExecution, 
 
 /** Existing Core plan validators remain mandatory for the exact derived bytes. */
 export function validateDerivedWorkTransition(model: RunModel, proposedModel: RunModel, transition: WorkTransition): void {
-  if (transition.duplicate || transition.s4_closure) validateS4Transition(model, proposedModel, transition);
+  if (transition.duplicate || transition.s4_closure || transition.obligation.operation.startsWith('s4.ambiguity.'))
+    validateS4Transition(model, proposedModel, transition);
   for (const write of transition.effects) {
     assertWork(workDigest(readFileSync(join(proposedModel.runDir, write.path))) === write.after_digest,
       'WORK_PLAN', 'proposed bytes differ from Core derivation');

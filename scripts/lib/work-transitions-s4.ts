@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { selectRelationWork, deriveRelationTransition, relationClosureEffects, validateRelationClosure } from './work-transitions-relations.ts';
 import { closurePhases } from './internal-ambiguity.ts';
+import { selectAmbiguityWork, deriveAmbiguityTransition, validateAmbiguityWorkState } from './work-transitions-ambiguities.ts';
 import { runK2Ambiguities } from './checks-k2-ambiguities.ts';
 import { ResultCollector } from './results.ts';
 import type { RunModel } from './run-model.ts';
@@ -53,7 +54,7 @@ interface Capture {
   receipt_digest: string; simulation: boolean; binding_path: string | null; review_id: string | null;
 }
 type LocalWork = Extract<NextWork, { kind: 'local' | 'worker' }>;
-type Derived = Pick<WorkTransition, 'family' | 'effects' | 'origins'> & Partial<Pick<WorkTransition, 'duplicate' | 'simulation' | 's4_closure'>>;
+type Derived = Pick<WorkTransition, 'family' | 'effects' | 'origins'> & Partial<Pick<WorkTransition, 'duplicate' | 'simulation' | 's4_closure' | 'next_execution'>>;
 const json = <T>(bytes: Buffer): T => parseStrictJson(bytes, true) as T;
 const ledger = (model: RunModel) => parseDuplicateLedger(required(model, DUPLICATE_PATH).toString());
 const currentIds = (model: RunModel) => model.claims.map((row) => row.values.claimId).filter((id) => lineageCurrentClaimIds(model).has(id));
@@ -157,8 +158,17 @@ function selectSuccessor(model: RunModel, subject: DuplicateSubject): NextWork {
     Buffer.from(semanticJson(subject)), allCalls);
 }
 export function selectS4Work(model: RunModel): NextWork {
-  if (closurePhases(model.runLog).length) return {
-    kind: 'halt', code: 'WORK_S4_C2_UNIMPLEMENTED', reason: 'S4 C1 is sealed; ambiguity lifecycle composition remains required.' };
+  const phases = closurePhases(model.runLog);
+  if (phases.length) {
+    if (phases.length === 1) {
+      const ambiguity = selectAmbiguityWork(model);
+      if (ambiguity) return ambiguity;
+      return local(model, 's4.close-C2', 'C2', required(model, 'ledgers/internal-ambiguities.md'));
+    }
+    validateAmbiguityWorkState(model);
+    return local(model, phases.length === 2 ? 's4.close-C3' : 's4.enter-S5', phases.length === 2 ? 'C3' : 'S5',
+      required(model, 'run-log.md'));
+  }
   if (!file(model, DUPLICATE_PATH)) return local(model, 's4.initialize', 'S4', Buffer.from(duplicateLedgerMarkdown(emptyDuplicateLedger())));
   const rows = ledger(model);
   for (const row of rows.proposals) {
@@ -227,6 +237,19 @@ function selectedPreparation(model: RunModel, work: LocalWork): Preparation {
 export function deriveS4Transition(model: RunModel, work: LocalWork, accepted: WorkValue | null, now: string): Derived {
   const operation = work.obligation.operation;
   if (operation.startsWith('s4.relation.')) return deriveRelationTransition(model, work, accepted);
+  if (operation.startsWith('s4.ambiguity.')) return deriveAmbiguityTransition(model, work, accepted);
+  if (['s4.close-C2', 's4.close-C3', 's4.enter-S5'].includes(operation)) {
+    assertWork(accepted === null, 'WORK_S4_CLOSURE', 'closure consumes reviewed state only');
+    validateAmbiguityWorkState(model);
+    const s5 = operation === 's4.enter-S5', c2 = operation === 's4.close-C2';
+    const phase = c2 ? 'S4-C2-ambiguities-finalized' : 'S4-C3-exit';
+    return { family: 'stage', s4_closure: phase,
+      ...(s5 ? { next_execution: { stage: 'S5', stage_status: 'entered', core_state: 'DISTILLING', blocked: false } }
+        : !c2 ? { next_execution: { stage: 'S4', stage_status: 'closed', core_state: 'DISTILLING', blocked: false } } : {}),
+      effects: [effect(model, 'run-log.md', Buffer.from(`${required(model, 'run-log.md')}\n## ${now} — ${s5 ? 'S5 — entry' : `S4 — ${c2 ? 'C2' : 'C3'}`}\n\n`
+        + (s5 ? 'S4 composite closure is durable; later orchestration is capability-bounded.\n' : `closure_phase: ${phase}\n`)))],
+      origins: [{ artifact: 'run-log.md', field: '*', from: { kind: 'rule', rule: operation } }] };
+  }
   if (operation === 's4.close-C1') {
     assertWork(accepted === null && closurePhases(model.runLog).length === 0, 'WORK_S4_CLOSURE', 'single deterministic C1 barrier');
     const semantic = validateSemanticRun(model), duplicate = validateDuplicateRun(model);
@@ -450,6 +473,14 @@ export function deriveS4Transition(model: RunModel, work: LocalWork, accepted: W
     [effect(model, DUPLICATE_PATH, Buffer.from(duplicateLedgerMarkdown(rows))), effect(model, path, bytes)]);
 }
 export function validateS4Transition(model: RunModel, proposedModel: RunModel, transition: WorkTransition): void {
+  if (transition.obligation.operation.startsWith('s4.ambiguity.')
+    || transition.s4_closure && transition.s4_closure !== 'S4-C1-relations-closed') {
+    validateAmbiguityWorkState(proposedModel);
+    for (const path of ['ledgers/relations.md', 'ledgers/representation-uses.md', SEMANTIC_PATH, DUPLICATE_PATH]) {
+      assertWork(required(model, path).equals(required(proposedModel, path)), 'WORK_S4_CLOSURE', `C2/C3 cannot rewrite ${path}`);
+    }
+    return;
+  }
   if (transition.s4_closure === 'S4-C1-relations-closed') {
     validateRelationClosure(proposedModel);
     const phaseChecks = new ResultCollector('S4 C1 retained phase consistency');

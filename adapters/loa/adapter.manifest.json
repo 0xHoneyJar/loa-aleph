@@ -71,6 +71,7 @@
     "adapters/loa/tests/test-semantic-review-process.ts",
     "adapters/loa/tests/test-orchestration-process.ts",
     "adapters/loa/tests/test-f03-relation-work.ts",
+    "adapters/loa/tests/test-f03-ambiguity-work.ts",
     "adapters/loa/tests/test-f03-stationary-degraded-capture-conflict.ts",
     "adapters/loa/tests/test-f03-stationary-capture.ts",
     "adapters/loa/tests/test-f03-degraded-binding-conflict.ts",

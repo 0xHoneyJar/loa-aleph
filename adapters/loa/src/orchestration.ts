@@ -27,6 +27,7 @@ import { checkWorkerReturn, type ValidatedWorkerReturn } from './worker-return.t
 import { reopenNativeWorkerEvidence } from './worker-dispatch.ts';
 import { LedgerWriter } from './ledger-writer.ts';
 import { verifyAndLoadLoaBundle } from './core-loader.ts';
+import { AMBIGUITY_SELECTION_INPUT, ambiguityExpressionSelection } from '../../../scripts/lib/work-transitions-ambiguities.ts';
 
 const ROOT = 'control/orchestration';
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
@@ -669,5 +670,19 @@ export function proposeOrchestrationSamples(runDir: string, raw: Buffer, clock: 
       'WORK_PROPOSAL_WINDOW', 'unconsumed work exists');
     criteriaSampleProposal(loadRun(runDir), Buffer.alloc(0), raw);
     immutable(runDir, CRITERIA_SAMPLE_INPUT_PATH, workJson(parseStrictJson(raw)));
+  }, clock);
+}
+
+export function proposeOrchestrationAmbiguities(runDir: string, raw: Buffer, clock: Clock = clockDefault): void {
+  withOrchestrationLock(runDir, () => {
+    const state = verifyRunControl(runDir);
+    verifyRetainedRuntimeIdentity(runDir, state);
+    const selected = selectNextWork(loadRun(runDir), execution(state));
+    assertWork(selected.kind === 'proposal' && selected.operation === 'ambiguity.expressions',
+      'WORK_PROPOSAL_WINDOW', 'ambiguity expression selection is not the first unmet preparation');
+    assertWork(allWorkIds(runDir).every((id) => existsSync(canonicalPath(runDir, consumedPath(id)))),
+      'WORK_PROPOSAL_WINDOW', 'unconsumed work exists');
+    ambiguityExpressionSelection(loadRun(runDir), raw);
+    immutable(runDir, AMBIGUITY_SELECTION_INPUT, raw);
   }, clock);
 }

@@ -18,6 +18,8 @@ import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, typ
 import { duplicateFixtureProposal, duplicateFixtureSuccessorProposal, duplicateFixtureResult } from '../../../scripts/duplicate-fixture-support.ts';
 import { relationReviewSubjectDigest, parseRelations } from '../../../scripts/lib/relations.ts';
 import { semanticRelationRow } from '../../../scripts/lib/semantic-review.ts';
+import { lineageCurrentPacketIds } from '../../../scripts/lib/lineage.ts';
+import { searchBasisDigest, ambiguityReviewSubjectDigest, materialImpactSubjectDigest, parseInternalAmbiguities, type AmbiguityReviewSubject } from '../../../scripts/lib/internal-ambiguity.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 if (process.argv[2] === '--fixture-worker') {
@@ -964,6 +966,83 @@ if (process.argv[2] === '--fixture-worker') {
           assert.equal(parseRelations(loadRun(run)).rows.length, 1);
           assert(readFileSync(join(run, 'run-log.md'), 'utf8').includes('closure_phase: S4-C1-relations-closed'));
           console.log('PASS supported CLI S4 duplicate, global relation producer, fresh L3R and composed C1; C2/C3 remain separately required');
+          if (process.env.F03_C2) {
+            assert.equal(resumed.details.work.operation, 'ambiguity.expressions');
+            const model = loadRun(run), packet = model.packets.find((p) => lineageCurrentPacketIds(model).has(p.values.packetId))!.values;
+            const semantic = model.files.filter((f) => f.relativePath.startsWith('verification/harness/semantic-subjects/'))
+              .map((f) => JSON.parse(f.text) as SemanticSubject).find((s) => s.anchors.some((a) => a.source_id === packet.sourceId))!;
+            const anchor = semantic.anchors.find((a) => a.source_id === packet.sourceId)!;
+            const selectionPath = join(scratch, 'ambiguity-expressions.json');
+            writeFileSync(selectionPath, semanticJson({ format: 'aleph-ambiguity-expression-selection/v1',
+              expressions: [{ source_entity_kind: 'PKT', source_entity_id: packet.packetId, source_id: packet.sourceId,
+                locator: anchor.locator, start_byte: anchor.start_byte, end_byte: anchor.end_byte, basis_packet_ids: [packet.packetId] }] }));
+            const sealed = new Map(['ledgers/relations.md', 'ledgers/representation-uses.md', 'ledgers/semantic-review.md', 'ledgers/duplicate-review.md']
+              .map((path) => [path, readFileSync(join(run, path))]));
+            const preserved = () => { for (const [path, bytes] of sealed) assert(readFileSync(join(run, path)).equals(bytes)); };
+            resumed = cli('--work-ambiguity-expressions', selectionPath, id);
+            let calls = 0;
+            while (resumed.stage === 'S4' && resumed.details.work?.action === 'prepare') {
+              assert(calls++ < 4, 'bounded C2 fixture roles');
+              const work = resumed.details.work, request = JSON.parse(readFileSync(join(work.worker_bundle, 'request.json'), 'utf8'));
+              const view = JSON.parse(readFileSync(join(run, request.allowlist[0].run_path), 'utf8'));
+              let returned: unknown, operation: string;
+              if (request.role === 'ambiguity-producer') {
+                const e = view.expression, completion = view.source_walk.completion[0], classB = process.env.F03_C2 === 'B';
+                const subject: AmbiguityReviewSubject = { source_entity_kind: e.source_entity_kind, source_entity_id: e.source_entity_id,
+                  source_id: e.source_id, expression_locator: e.locator, expression_start_byte: e.start_byte, expression_end_byte: e.end_byte,
+                  expression_sha256: e.expression_sha256, expression_bytes_base64: e.expression_bytes_base64, basis_packet_ids: e.basis_packet_ids,
+                  search_scope_kind: 'full-same-source', search_completion_ref: `${e.source_id}@${completion.finalCursorId}@${completion.sourceHash}`,
+                  search_basis_digest: '', candidate_state: classB ? 'null-cannot-determine' : 'single',
+                  candidate_refs: classB ? [] : [{ kind: 'PKT', id: e.source_entity_id }], affected_relation_ids: [],
+                  resolution_state: classB ? 'unresolved' : 'resolved-local', carry_state: 'none', proposed_by: `invocation:${work.call_id}` };
+                subject.search_basis_digest = searchBasisDigest({ source_id: e.source_id, source_hash: view.source.contentHash,
+                  source_length_bytes: Buffer.from(view.frozen_source_base64, 'base64').length, scope_kind: subject.search_scope_kind,
+                  scope_refs: [], completion_ref: subject.search_completion_ref, expression_start_byte: e.start_byte, expression_end_byte: e.end_byte,
+                  expression_sha256: e.expression_sha256, basis_packet_ids: e.basis_packet_ids, candidate_state: subject.candidate_state,
+                  candidate_refs: subject.candidate_refs });
+                returned = { definition: { source_entity_kind: e.source_entity_kind, source_entity_id: e.source_entity_id, source_id: e.source_id,
+                  expression_locator: e.locator, expression_start_byte: e.start_byte, expression_end_byte: e.end_byte, expression_sha256: e.expression_sha256,
+                  expression_bytes_base64: e.expression_bytes_base64, basis_packet_ids: e.basis_packet_ids, detected_by: subject.proposed_by },
+                assessment: { search_scope_kind: subject.search_scope_kind, search_source_id: e.source_id, search_completion_ref: subject.search_completion_ref,
+                  search_basis_digest: subject.search_basis_digest, candidate_state: subject.candidate_state, candidate_refs: subject.candidate_refs,
+                  affected_relation_ids: [], resolution_state: subject.resolution_state, carry_state: subject.carry_state, proposed_by: subject.proposed_by,
+                  review_subject_digest: ambiguityReviewSubjectDigest(subject) }, flags: [] };
+                operation = 'capture';
+              } else if (request.role === 'material-impact-producer') {
+                returned = { materiality_class: 'B', operative_scope: { affected_ids: [], impact_rows: [] }, source_locators: [], reviewed_unaffected_ids: [],
+                  unresolved_statement: 'Synthetic Class B declaration only.', proposed_by: `invocation:${work.call_id}`, flags: [] };
+                operation = 'material-capture';
+              } else {
+                assert(['ambiguity-reviewer', 'material-impact-reviewer'].includes(request.role));
+                const material = request.role === 'material-impact-reviewer';
+                const digest = material ? materialImpactSubjectDigest(view.subject) : ambiguityReviewSubjectDigest(view.subject);
+                returned = { target: `${material ? 'internal-ambiguity-material-impact' : 'internal-ambiguity'}-review-subject:${digest}`,
+                  verdict: 'upheld', shown: request.allowlist[0].run_path, withheld: 'Human actions and producer rationale.',
+                  consequence: 'Synthetic fresh review declaration only.', flags: [] };
+                operation = material ? 'material-review' : 'review';
+              }
+              runFixture(work, returned);
+              if (process.env.F03_C2_FAULTS === '1') crashSequence(`s4.ambiguity.${operation}`,
+                ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
+              if (request.role === 'ambiguity-reviewer' && process.env.F03_C2_FAULTS === '1')
+                crashSequence('s4.ambiguity.admit', ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
+              if ((request.role === 'material-impact-reviewer' || request.role === 'ambiguity-reviewer' && process.env.F03_C2 !== 'B')
+                && process.env.F03_C2_FAULTS === '1') for (const phase of ['s4.close-C2', 's4.close-C3', 's4.enter-S5'])
+                crashSequence(phase, ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
+              resumed = cli('resume', id); preserved();
+              console.log(`PASS supported CLI C2 fixture ${request.role}; exact retained subject and fresh-process work consumption`);
+            }
+            assert.equal(calls, process.env.F03_C2 === 'B' ? 4 : 2);
+            assert.equal(resumed.stage, 'S5'); assert.equal(resumed.details.work.code, 'WORK_UNSUPPORTED_CAPABILITY');
+            assert.equal(parseInternalAmbiguities(loadRun(run)).t5_2Rows.length, 1);
+            const state = readFileSync(join(run, 'control/run-state.json')), chain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
+            for (let n = 0; n < 2; n++) {
+              const repeat = cli('resume', id); assert.equal(repeat.details.work.code, 'WORK_UNSUPPORTED_CAPABILITY');
+              assert(readFileSync(join(run, 'control/run-state.json')).equals(state));
+              assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(chain)); preserved();
+            }
+            console.log(`PASS supported CLI C2 ${process.env.F03_C2}, C3, S5 entry and repeated explicit capability halt; no S5 worker dispatch`);
+          }
         }
       }
     }

@@ -26,6 +26,11 @@ the exact first unmet obligation, persists its work identity, and returns
 - For `kind=proposal`, supply only the exact typed proposal requested by Core
   through its named control surface. An extraction-criteria sample proposal
   contains source IDs and exact locators, never destinations or after-images.
+  For `operation=ambiguity.expressions`, the bounded selection identifies
+  existing source entities, exact frozen spans and packet bases under the
+  retained Core template. Submit it through `--work-ambiguity-expressions
+  FILE RUN-id`. Do not add an ambiguity verdict, candidate choice, materiality,
+  human action, ledger destination, or canonical after-image.
 - For `kind=halt` or `BLOCKED`, retain the exact code and evidence. Unknown
   dispatch outcome prohibits automatic redispatch. Present a human request
   only when the controller has actually returned that required gate.

@@ -96,7 +96,7 @@ import {
 import { usesFormalLayoutBindings } from '../../../scripts/lib/run-model.ts';
 import { representationUsesMarkdown, REPRESENTATION_USE_PATH, assertRepresentationExtractionSupported, readRepresentationContext, RepresentationError } from '../../../scripts/lib/source-representation.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
-import { usesOrchestration, withOrchestrationLock, resumeOrchestration, proposeOrchestrationSamples } from './orchestration.ts';
+import { usesOrchestration, withOrchestrationLock, resumeOrchestration, proposeOrchestrationSamples, proposeOrchestrationAmbiguities } from './orchestration.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_CAPABILITIES_PATH = 'grimoires/loa/aleph/host-capabilities.json';
@@ -118,6 +118,7 @@ interface ParsedCli {
   authorityResponsePath?: string;
   openGatePath?: string;
   samplesProposalPath?: string;
+  ambiguityProposalPath?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1197,6 +1198,7 @@ function parseCli(argv: string[]): ParsedCli {
   let authorityResponsePath: string | undefined;
   let openGatePath: string | undefined;
   let samplesProposalPath: string | undefined;
+  let ambiguityProposalPath: string | undefined;
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
     if (arg === '--json') json = true;
@@ -1206,18 +1208,29 @@ function parseCli(argv: string[]): ParsedCli {
     else if (arg === '--authority-response') authorityResponsePath = argv[++index];
     else if (arg === '--open-gate') openGatePath = argv[++index];
     else if (arg === '--work-samples') samplesProposalPath = argv[++index];
+    else if (arg === '--work-ambiguity-expressions') ambiguityProposalPath = argv[++index];
     else forwarded.push(arg);
   }
-  return { argv: forwarded, options, json, authorityResponsePath, openGatePath, samplesProposalPath };
+  return { argv: forwarded, options, json, authorityResponsePath, openGatePath, samplesProposalPath, ambiguityProposalPath };
 }
 
 export function runLoaCli(argv = process.argv.slice(2)): number {
   const parsed = parseCli(argv);
   let commandResult: LoaCommandResult;
-  if ([parsed.authorityResponsePath, parsed.openGatePath, parsed.samplesProposalPath].filter(Boolean).length > 1) {
+  if ([parsed.authorityResponsePath, parsed.openGatePath, parsed.samplesProposalPath, parsed.ambiguityProposalPath].filter(Boolean).length > 1) {
     commandResult = result('resume', 'FAIL', {
       errors: ['authority and work-preparation inputs are mutually exclusive'],
     });
+  } else if (parsed.ambiguityProposalPath) {
+    const runId = parsed.argv[0];
+    try {
+      if (!runId || parsed.argv.length !== 1) throw new Error('--work-ambiguity-expressions requires exactly one RUN-id');
+      const runDir = runDirectory(resolve(parsed.options.loaRoot || process.cwd()), runId);
+      proposeOrchestrationAmbiguities(runDir, readFileSync(parsed.ambiguityProposalPath), parsed.options.clock);
+      commandResult = resumeLoaRun(runId, parsed.options);
+    } catch (error) {
+      commandResult = result('resume', 'FAIL', { run_id: runId || null, errors: [error instanceof Error ? error.message : String(error)] });
+    }
   } else if (parsed.samplesProposalPath) {
     const runId = parsed.argv[0];
     try {

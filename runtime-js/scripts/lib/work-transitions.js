@@ -1494,6 +1494,9 @@ export function selectNextWork(model, execution) {
         return selectS3Work(model);
     if (execution.stage === 'S4')
         return selectS4Work(model);
+    if (execution.stage === 'S5')
+        return { kind: 'halt', code: 'WORK_UNSUPPORTED_CAPABILITY',
+            reason: 'The retained S0–S4 orchestration capability ends after authenticated S4 C3 and S5 entry; no S5 work family is implemented.' };
     return { kind: 'halt', code: 'WORK_FRONTIER_UNIMPLEMENTED', reason: `No work family is registered for ${execution.stage}.` };
 }
 function intakeEffects(model, accepted, now) {
@@ -1770,7 +1773,7 @@ export function deriveWorkTransition(model, execution, work, accepted, now) {
 }
 /** Existing Core plan validators remain mandatory for the exact derived bytes. */
 export function validateDerivedWorkTransition(model, proposedModel, transition) {
-    if (transition.duplicate || transition.s4_closure)
+    if (transition.duplicate || transition.s4_closure || transition.obligation.operation.startsWith('s4.ambiguity.'))
         validateS4Transition(model, proposedModel, transition);
     for (const write of transition.effects) {
         assertWork(workDigest(readFileSync(join(proposedModel.runDir, write.path))) === write.after_digest, 'WORK_PLAN', 'proposed bytes differ from Core derivation');
