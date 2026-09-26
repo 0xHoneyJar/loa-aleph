@@ -13,7 +13,7 @@ import { installLoaBundle } from '../src/installer.ts';
 import { semanticJson, parseSemanticLedger, type SemanticSubject, type SemanticEntry } from '../../../scripts/lib/semantic-review.ts';
 import { fixtureSemantics, fixtureResult, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
 import { makeTreeOwnerWritable, stableJsonBytes } from '../src/fs.ts';
-import { materialHash, materialFragmentsHash, prepareRepresentationCapture } from '../../../scripts/lib/source-representation.ts';
+import { materialHash, materialFragmentsHash, prepareRepresentationCapture, readRepresentationContext } from '../../../scripts/lib/source-representation.ts';
 import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, type DuplicateSubject } from '../../../scripts/lib/duplicate-review.ts';
 import { duplicateFixtureProposal, duplicateFixtureSuccessorProposal, duplicateFixtureResult } from '../../../scripts/duplicate-fixture-support.ts';
 
@@ -156,6 +156,8 @@ if (process.argv[2] === '--fixture-worker') {
     assert.equal(extractor.action, 'prepare');
     const sharedPause = process.env.F03_SHARED_PAUSE === '1';
     const packetMode = process.env.F03_PACKET === '1' || sharedPause;
+    const degradedMode = process.env.F03_S2_DEGRADED === '1';
+    assert(!degradedMode || !packetMode && !wideningMode, 'degraded fixture has no affirmative packet');
     const fragment = Buffer.from('The synthetic counter increased.' + (wideningMode ? '\n' : ''));
     const extraction: any = {
       source_id: sourceRow.sourceId, producer_invocation_id: extractor.call_id,
@@ -180,6 +182,21 @@ if (process.argv[2] === '--fixture-worker') {
           end_byte: fragment.length, exact_bytes_base64: fragment.toString('base64') }], semantics: fixtureSemantics(fragment.toString()),
       }] : [],
     };
+    if (degradedMode) {
+      const use = { requirements: [{ object_id: 'OBJ-0002', feature: 'formal-structure', binding_ids: ['BND-0001'] }],
+        use_state: 'CANNOT_DETERMINE', fidelity_claim: 'none', limitation_refs: ['OBJ-0002'],
+        reason: 'Synthetic required grouping is unavailable.' };
+      extraction.walk_intervals[0] = { ...extraction.walk_intervals[0], outcome: 'unsupported',
+        criterion_ref: 'none', closure_state: 'open', reason: use.reason };
+      extraction.packets = [{ evidence_state: 'degraded-non-exact', join_policy: 'not-applicable', fragments: [],
+        rendered_text: 'Synthetic unresolvable material.', degraded_source_locator: 'L1-L1',
+        degradation_reason: use.reason, criterion: 1, flags: [], material_use: use }];
+      extraction.semantic_units = [{ output_kind: 'packet-candidate', output_index: 0, review_mode: 'proposal',
+        origin_unit_refs: [], anchors: [], semantics: { atomicity: 'CANNOT_DETERMINE', units: [], contexts: [],
+          couplings: [], relation_proposals: [], unresolved_findings: [{ finding_id: 'F1',
+            field_path: '/semantics/atomicity', code: 'material-unavailable', anchor_ids: [],
+            material_requirement_indexes: [0], unknown_dimension: 'none', missing: use.reason, requested_context: [] }] } }];
+    }
     if (sharedPause) {
       extraction.packets = [0, 1, 2].map(() => structuredClone(extraction.packets[0]));
       extraction.walk_intervals[0].packet_candidate_indexes = [0, 1, 2];
@@ -290,6 +307,10 @@ if (process.argv[2] === '--fixture-worker') {
     assert.equal(s2After.sourceWalk.completions[0].values.completionState, 'blocked', 'fresh L1 is still required');
     assert.notEqual(s2After.sourceWalk.completions[0].raw, priorRow);
     assert.equal(s2After.packets.length, packetMode ? 1 : 0, 'capture preserves exact declared candidate cardinality');
+    for (const transform of s2After.exactEvidence.transformations) {
+      assert.match(transform.values.transformKey, /^XFORM-[0-9]+$/u);
+      assert.equal(transform.values.outputTextHash, materialHash(transform.values.outputText));
+    }
     const journal = readdirSync(join(run, 'control/transactions')).map((name) => JSON.parse(readFileSync(join(run, 'control/transactions', name), 'utf8')))
       .find((entry) => entry.plan?.family === 's2-capture');
     assert.equal(journal.plan.source_completion.completions[0].before_row, priorRow);
@@ -304,25 +325,94 @@ if (process.argv[2] === '--fixture-worker') {
     const afterChain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
     cli('resume', id);
     assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(afterChain), 'repeated resume adds no duplicate semantic effect');
-    if (packetMode) {
+    if (packetMode || degradedMode) {
       const review = resumed.details.work;
       const request = JSON.parse(readFileSync(join(review.worker_bundle, 'request.json'), 'utf8'));
       assert.equal(request.role, 'verifier-l2s');
       const path = request.allowlist.find((entry: { run_path: string }) => entry.run_path.startsWith('verification/harness/semantic-subjects/')).run_path;
       const subject = JSON.parse(readFileSync(join(run, path), 'utf8')) as SemanticSubject;
+      if (degradedMode) {
+        assert.equal(subject.subject_kind, 'degraded-packet');
+        assert.equal(subject.output_binding.kind, 'degraded-packet');
+      }
       runFixture(review, fixtureResult(subject));
       resumed = cli('resume', id);
-      assert(readFileSync(join(run, 'ledgers/semantic-review.md'), 'utf8').includes('| admitted |'));
-      console.log('PASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission');
+      assert(readFileSync(join(run, 'ledgers/semantic-review.md'), 'utf8').includes(degradedMode ? '| not-admitted |' : '| admitted |'));
+      console.log(degradedMode ? 'PASS supported CLI degraded packet retains its original selector and receives fresh L2S without admission'
+        : 'PASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission');
     }
-    if (process.env.F03_S2_CLOSE === '1') {
+    if (degradedMode) {
+      const gap = resumed.details.work;
+      assert.equal(JSON.parse(readFileSync(join(gap.worker_bundle, 'request.json'), 'utf8')).role, 'verifier-l1');
+      runFixture(gap, { verdict: 'upheld', rationale: 'Synthetic challenge found no additional candidate; the unsupported interval remains open.',
+        attacks_tried: ['Reopened the complete frozen source.'], evidence_ids: [], candidate_evidence: [],
+        missing_for_determination: null, flags: [] });
+      resumed = cli('resume', id);
+      assert.equal(resumed.result, 'BLOCKED'); assert.equal(resumed.stage, 'S2');
+      assert.equal(resumed.details.work.code, 'S2_SOURCE_COMPLETION_UNMET');
+      const current = loadRun(run);
+      assert.equal(current.packets.length, 0); assert.equal(current.claims.length, 0);
+      assert.equal(readRepresentationContext(current).uses.length, 0);
+      assert.equal(current.sourceWalk.intervals[0].values.closureState, 'open');
+      assert.equal(current.sourceWalk.completions[0].values.completionState, 'blocked');
+      assert(!existsSync(join(run, 'verification/harness/semantic-stage-seals/S2.json')));
+      assert(readFileSync(producerRawPath).equals(producerRaw));
+      console.log('PASS supported CLI degraded accounting preserves the open interval and halts S2 without canonical PKT, CC, USE or seal');
+    }
+    if (process.env.F03_S2_CLOSE === '1' && !degradedMode) {
       resumed = cli('resume', id);
       const gap = resumed.details.work;
       const request = JSON.parse(readFileSync(join(gap.worker_bundle, 'request.json'), 'utf8'));
       assert.equal(request.role, 'verifier-l1');
-      runFixture(gap, { verdict: 'upheld', rationale: 'Synthetic coverage challenge found no additional candidate.',
+      const noGap = { verdict: 'upheld', rationale: 'Synthetic coverage challenge found no additional candidate.',
         attacks_tried: ['Rechecked each frozen source position against the fixture criteria.'],
-        evidence_ids: [], candidate_evidence: [], missing_for_determination: null, flags: [] });
+        evidence_ids: [], candidate_evidence: [], missing_for_determination: null, flags: [] };
+      if (process.env.F03_S2_GAP === '1') {
+        const beforeGap = loadRun(run), primary = beforeGap.sourceWalk.intervals.map((row) => row.raw),
+          cursors = beforeGap.sourceWalk.cursors.map((row) => row.raw);
+        runFixture(gap, { ...noGap, verdict: 'refuted', rationale: 'Synthetic challenge identifies one missed exact candidate.',
+          candidate_evidence: [{ start_byte: 0, end_byte: fragment.length, source_locator: 'L1-L1',
+            exact_bytes_base64: fragment.toString('base64') }] });
+        resumed = cli('resume', id);
+        const producer = resumed.details.work;
+        assert.equal(JSON.parse(readFileSync(join(producer.worker_bundle, 'request.json'), 'utf8')).role, 'extractor');
+        runFixture(producer, { source_id: sourceRow.sourceId, producer_invocation_id: producer.call_id,
+          walk_intervals: [], extraction_events: [], packets: [{ evidence_state: 'exact', join_policy: 'single-fragment',
+            fragments: [{ fragment_order: 1, locator: 'L1-L1', exact_bytes_base64: fragment.toString('base64') }],
+            rendered_text: fragment.toString(), degraded_source_locator: null, degradation_reason: null,
+            criterion: 1, flags: [], material_use: TEXT_USE }],
+          next_cursor: { ...extraction.next_cursor, predecessor_walk_index: null, predecessor_event_index: null },
+          walk_exhausted: true, notes: [], material_findings: [], semantic_units: [{ output_kind: 'packet-candidate',
+            output_index: 0, review_mode: 'proposal', origin_unit_refs: [], anchors: [{ anchor_id: 'A1',
+              source_id: sourceRow.sourceId, locator: 'L1-L1', start_byte: 0, end_byte: fragment.length,
+              exact_bytes_base64: fragment.toString('base64') }], semantics: fixtureSemantics(fragment.toString()) }] });
+        if (process.env.F03_S2_GAP_FAULTS === '1') crashSequence('s2.reconcile-gap',
+          ['derived', 'commit-intent', 'writer-prepared', 'effect:ledgers/packet-index.md',
+            'effect:ledgers/source-walk.md', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], () => {
+            const current = loadRun(run);
+            assert.deepEqual(current.sourceWalk.intervals.map((row) => row.raw), primary);
+            assert.deepEqual(current.sourceWalk.cursors.map((row) => row.raw), cursors);
+            assert([beforeGap.packets.length, beforeGap.packets.length + 1].includes(current.packets.length));
+          });
+        resumed = cli('resume', id);
+        const review = resumed.details.work;
+        const reviewed = JSON.parse(readFileSync(join(review.worker_bundle, 'request.json'), 'utf8'));
+        assert.equal(reviewed.role, 'verifier-l2s');
+        const subject = JSON.parse(readFileSync(join(run, reviewed.allowlist.find((entry: any) =>
+          entry.run_path.startsWith('verification/harness/semantic-subjects/')).run_path), 'utf8')) as SemanticSubject;
+        runFixture(review, fixtureResult(subject));
+        resumed = cli('resume', id);
+        assert.equal(JSON.parse(readFileSync(join(resumed.details.work.worker_bundle, 'request.json'), 'utf8')).role, 'verifier-l1');
+        const afterGap = loadRun(run);
+        assert.deepEqual(afterGap.sourceWalk.intervals.map((row) => row.raw), primary);
+        assert.deepEqual(afterGap.sourceWalk.cursors.map((row) => row.raw), cursors);
+        assert.equal(afterGap.packets.length, beforeGap.packets.length + 1);
+        assert.equal(afterGap.sourceWalk.events.filter((row) => row.values.origin === 'gap-reconciliation').length, 1);
+        assert(afterGap.sourceWalk.gapReviews.some((row) => row.values.status === 'reconciled'));
+        assert(readFileSync(producerRawPath).equals(producerRaw));
+        console.log('PASS supported CLI L1 gap discovery, separate exact producer, fresh L2S, committed gap event and preserved primary history');
+        runFixture(resumed.details.work, noGap);
+      } else runFixture(gap, noGap);
       if (process.env.F03_S2_BOUNDARY_FAULTS === '1') {
         for (const operation of ['stage.seal-S2', 'stage.enter-S3']) {
           const effectPath = operation === 'stage.seal-S2' ? 'verification/harness/semantic-stage-seals/S2.json' : 'ledgers/claim-inventory.md';
