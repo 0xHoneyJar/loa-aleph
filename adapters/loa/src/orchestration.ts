@@ -22,6 +22,7 @@ import {
   type WorkValue, type WorkTransition, CRITERIA_SAMPLE_INPUT_PATH, criteriaSampleProposal,
   validateDerivedWorkTransition,
   validateConsumedWorkTransition,
+  LATE_LINEAGE_INPUT_PATH, validateLateLineageProposal,
 } from '../../../scripts/lib/work-transitions.ts';
 import { assembleWorkerBundle, verifyWorkerBundle, coreBlindPolicyReference } from './worker-bundle.ts';
 import { checkWorkerReturn, type ValidatedWorkerReturn } from './worker-return.ts';
@@ -739,5 +740,24 @@ export function proposeOrchestrationAuthorityContact(runDir: string, raw: Buffer
       'WORK_PROPOSAL_WINDOW', 'unconsumed work exists');
     validateAuthorityContact(raw);
     immutable(runDir, selected.input_path, raw);
+  }, clock);
+}
+
+/** Refusal-only proposal entry. Core selects a journaled halt; no correction
+ * renderer, destination, successor or accepted-return brand is an input. */
+export function proposeOrchestrationLateLineage(runDir: string, raw: Buffer, clock: Clock = clockDefault): void {
+  withOrchestrationLock(runDir, () => {
+    const state = verifyRunControl(runDir);
+    verifyRetainedRuntimeIdentity(runDir, state);
+    validateLateLineageProposal(loadRun(runDir), execution(state), raw);
+    const path = canonicalPath(runDir, LATE_LINEAGE_INPUT_PATH);
+    if (existsSync(path) && readStableRegularFile(path).bytes.equals(raw)) return;
+    assertWork(!state.execution.halt && state.execution.gate?.status !== 'awaiting-authority',
+      'WORK_EXISTING_GATE_OR_HALT', 'late lineage proposal preserves the existing halt');
+    assertWork(allWorkIds(runDir).every((id) => {
+      if (!existsSync(canonicalPath(runDir, consumedPath(id)))) return false;
+      readConsumption(runDir, id); return true;
+    }), 'WORK_PROPOSAL_WINDOW', 'resume pending work before submitting a late correction');
+    immutable(runDir, LATE_LINEAGE_INPUT_PATH, raw);
   }, clock);
 }

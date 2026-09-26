@@ -16,7 +16,7 @@ import { CLOSURE_PHASES, closurePhasesFromText, nextClosurePhase, } from '../../
 import { usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
 import { representationUsesMarkdown, REPRESENTATION_USE_PATH, assertRepresentationExtractionSupported, readRepresentationContext, RepresentationError } from '../../../scripts/lib/source-representation.js';
 import { loadRun } from '../../../scripts/lib/run-model.js';
-import { usesOrchestration, withOrchestrationLock, resumeOrchestration, proposeOrchestrationSamples, proposeOrchestrationAmbiguities, proposeOrchestrationAuthorityContact } from './orchestration.js';
+import { usesOrchestration, withOrchestrationLock, resumeOrchestration, proposeOrchestrationSamples, proposeOrchestrationAmbiguities, proposeOrchestrationAuthorityContact, proposeOrchestrationLateLineage } from './orchestration.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_CAPABILITIES_PATH = 'grimoires/loa/aleph/host-capabilities.json';
 function isRecord(value) {
@@ -897,6 +897,7 @@ function parseCli(argv) {
     let samplesProposalPath;
     let ambiguityProposalPath;
     let authorityContactPath;
+    let lateLineagePath;
     for (let index = 0; index < argv.length; index++) {
         const arg = argv[index];
         if (arg === '--json')
@@ -917,18 +918,33 @@ function parseCli(argv) {
             ambiguityProposalPath = argv[++index];
         else if (arg === '--work-authority-contact')
             authorityContactPath = argv[++index];
+        else if (arg === '--work-late-lineage')
+            lateLineagePath = argv[++index];
         else
             forwarded.push(arg);
     }
-    return { argv: forwarded, options, json, authorityResponsePath, openGatePath, samplesProposalPath, ambiguityProposalPath, authorityContactPath };
+    return { argv: forwarded, options, json, authorityResponsePath, openGatePath, samplesProposalPath, ambiguityProposalPath, authorityContactPath, lateLineagePath };
 }
 export function runLoaCli(argv = process.argv.slice(2)) {
     const parsed = parseCli(argv);
     let commandResult;
-    if ([parsed.authorityResponsePath, parsed.openGatePath, parsed.samplesProposalPath, parsed.ambiguityProposalPath, parsed.authorityContactPath].filter(Boolean).length > 1) {
+    if ([parsed.authorityResponsePath, parsed.openGatePath, parsed.samplesProposalPath, parsed.ambiguityProposalPath, parsed.authorityContactPath, parsed.lateLineagePath].filter(Boolean).length > 1) {
         commandResult = result('resume', 'FAIL', {
             errors: ['authority and work-preparation inputs are mutually exclusive'],
         });
+    }
+    else if (parsed.lateLineagePath) {
+        const runId = parsed.argv[0];
+        try {
+            if (!runId || parsed.argv.length !== 1)
+                throw new Error('--work-late-lineage requires exactly one RUN-id');
+            const runDir = runDirectory(resolve(parsed.options.loaRoot || process.cwd()), runId);
+            proposeOrchestrationLateLineage(runDir, readFileSync(parsed.lateLineagePath), parsed.options.clock);
+            commandResult = resumeLoaRun(runId, parsed.options);
+        }
+        catch (error) {
+            commandResult = result('resume', 'FAIL', { run_id: runId || null, errors: [error instanceof Error ? error.message : String(error)] });
+        }
     }
     else if (parsed.authorityContactPath) {
         const runId = parsed.argv[0];

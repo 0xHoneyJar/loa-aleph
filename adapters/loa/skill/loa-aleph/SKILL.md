@@ -36,6 +36,13 @@ the exact first unmet obligation, persists its work identity, and returns
   contains only `format: aleph-ambiguity-authority-contact/v1` and `identity`.
   This names the recipient of the Core-derived request; it grants no
   authority and contains no response or selected action.
+- At the supported S5 boundary, if a correction discovered after S4 would require new unit
+  lineage, retain its notice through `--work-late-lineage FILE RUN-id`.
+  The exact notice fields are `format: aleph-late-lineage-proposal/v1`,
+  `run_id`, existing lineage `type`, nonempty existing `predecessors`, and
+  `basis`. This surface only records Core's late-lineage refusal and durable
+  halt. It accepts no successor, destination or after-image and preserves an
+  unrelated existing halt. It supplies no correction or rewind path.
 - For `kind=halt` or `BLOCKED`, retain the exact code and evidence. Unknown
   dispatch outcome prohibits automatic redispatch. Present a human request
   only when the controller has actually returned that required gate.
@@ -48,6 +55,10 @@ the chain/checkpoint, consumes the work, and selects the next obligation.
 L2S accounting is separate from affirmative admission. C-04 nonaffirmative
 claims cannot become canonical CCs through review. C-05 packet widening is
 bounded S3 work and preserves the S2 seal.
+The cumulative S3 exit and S4 entry are one journaled Core bootstrap, including
+the exact empty duplicate ledger. Resume recovers a prepared transaction
+before strict verification and ordinary work selection. There is no separate
+production `s4.initialize` step.
 
 The explicit controller capability halt is the supported frontier. Do not
 infer S5–S13 work or describe the partial controller as a complete autonomous

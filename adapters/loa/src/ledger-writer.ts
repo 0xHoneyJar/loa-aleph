@@ -821,6 +821,7 @@ export class LedgerWriter {
           stateAfter.execution.gate = plan.authority.gate;
           stateAfter.execution.halt = plan.authority.halt;
         }
+        if (plan.operational_halt) stateAfter.execution.halt = plan.operational_halt;
         stateAfter.execution.resume.sequence = nextDecimal(stateAfter.execution.resume.sequence);
         stateAfter.execution.resume.last_verified_at = authenticated.work.created_at;
         stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);

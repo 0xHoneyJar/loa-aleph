@@ -1164,6 +1164,33 @@ if (process.argv[2] === '--fixture-worker') {
               assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(chain)); preserved();
             }
             console.log(`PASS supported CLI C2 ${process.env.F03_C2}, C3, S5 entry and repeated explicit capability halt; no S5 worker dispatch`);
+            if (process.env.F03_F05 === '1') {
+              cpSync(run, join(scratch, 'post-S4-before-late-notice'), { recursive: true });
+              const semanticBefore = new Map(['ledgers/lineage.md', 'ledgers/relations.md', 'ledgers/claim-inventory.md',
+                'ledgers/packet-index.md', 'run-log.md'].map((path) => [path, readFileSync(join(run, path))]));
+              const checkPreserved = () => {
+                preserved();
+                for (const [path, bytes] of semanticBefore) assert(readFileSync(join(run, path)).equals(bytes));
+              };
+              const notice = join(scratch, 'late-lineage-notice.json');
+              writeFileSync(notice, stableJsonBytes({ format: 'aleph-late-lineage-proposal/v1', run_id: id, type: 'replace',
+                predecessors: [loadRun(run).claims.at(-1)!.values.claimId], basis: 'Synthetic new structural correction discovered after S4.' }));
+              if (process.env.F03_F05_FAULTS === '1') crashSequence('lineage.refuse-late-correction',
+                ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'],
+                checkPreserved, ['--work-late-lineage', notice, id]);
+              const refused = cli('--work-late-lineage', notice, id);
+              assert.equal(refused.result, 'BLOCKED'); checkPreserved();
+              const blocked = readFileSync(join(run, 'control/run-state.json'));
+              assert.equal(JSON.parse(blocked.toString()).execution.halt.code, 'LATE_UNIT_LINEAGE_CORRECTION');
+              assert.equal(JSON.parse(blocked.toString()).execution.stage, 'S5');
+              const refusedChain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
+              for (let n = 0; n < 2; n++) {
+                cli('resume', id); cli('--work-late-lineage', notice, id);
+                assert(readFileSync(join(run, 'control/run-state.json')).equals(blocked));
+                assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(refusedChain)); checkPreserved();
+              }
+              console.log('PASS supported CLI late lineage proposal, durable refusal and repeated resume preserve all semantic bytes; F-05 remains OPEN');
+            }
           }
         }
       }

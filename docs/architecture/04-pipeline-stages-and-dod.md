@@ -570,3 +570,14 @@ production `s4.initialize` gap. See K2.20 for the closed bootstrap composition.
 Exactly one fresh round-one L3 review is required. Only cannot-determine requires exactly one round-two review of the identical subject. Round-two upheld cannot erase indeterminacy; refuted yields refuted; otherwise unknown remains. No third round, extra reviewer, majority or preferred-answer retry is permitted. Absorption requires round-one upheld and every admission predicate, independently upheld successor SEM/L2S and required L2F. A revised basis requires a new subject. Existing L2S does not decide equivalence.
 
 C1 adds exactly duplicate_review_closure_hash over the complete duplicate ledger. Pending candidates/proposals/effects block closure. Final current claims require final discovery and L5 inventory coverage. After C1, all duplicate-related writes are refused before changing bytes. Structural PASS is no semantic warrant, recall claim or acceptance.
+
+For cumulative `1.9.0-provisional` work transitions, the adopted F-03
+post-S4 lineage refusal has a registered notice input at the supported S5
+boundary. Its closed fields are
+`format: aleph-late-lineage-proposal/v1`, `run_id`, an existing lineage `type`,
+nonempty existing `predecessors`, and `basis`. The notice is retained proposal
+data, not a lineage effect or acceptance. Core derives only a refusal receipt
+and the existing `LATE_UNIT_LINEAGE_CORRECTION` blocked consequence through
+the work journal, chain, checkpoint and consumption. Existing unrelated halts
+take precedence. No successor bytes, destination, correction, rewind or
+later-stage semantic work is authorized by this input.

@@ -561,7 +561,8 @@ export async function runInstalledLauncher(loaRoot, argv) {
                 throw new Error('--root requires a path');
             root = resolve(loaRoot, argv[++index]);
         }
-        else if (['--authority-response', '--open-gate', '--work-samples'].includes(arg)) {
+        else if (['--authority-response', '--open-gate', '--work-samples',
+            '--work-ambiguity-expressions', '--work-authority-contact', '--work-late-lineage'].includes(arg)) {
             authorityInput = true;
             if (!argv[++index])
                 throw new Error(`${arg} requires a path`);

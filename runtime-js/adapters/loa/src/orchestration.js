@@ -5,7 +5,7 @@ import { assertNoSymlinkComponents, assertSafeRelativePath, readStableRegularFil
 import { acquireDurableProcessLock, readRunState, stateCheckpointDigest, verifyRetainedRuntimeIdentity, verifyRunControl, } from './run-control.js';
 import { loadRun, hasRunCapability } from '../../../scripts/lib/run-model.js';
 import { parseStrictJson } from '../../../scripts/lib/worker-return-contract.js';
-import { selectNextWork, deriveWorkTransition, workDigest, workJson, assertWork, WORK_STAGE_CONTRACT, WORK_TRANSITION_CAPABILITY, CRITERIA_SAMPLE_INPUT_PATH, criteriaSampleProposal, validateDerivedWorkTransition, validateConsumedWorkTransition, } from '../../../scripts/lib/work-transitions.js';
+import { selectNextWork, deriveWorkTransition, workDigest, workJson, assertWork, WORK_STAGE_CONTRACT, WORK_TRANSITION_CAPABILITY, CRITERIA_SAMPLE_INPUT_PATH, criteriaSampleProposal, validateDerivedWorkTransition, validateConsumedWorkTransition, LATE_LINEAGE_INPUT_PATH, validateLateLineageProposal, } from '../../../scripts/lib/work-transitions.js';
 import { assembleWorkerBundle, verifyWorkerBundle, coreBlindPolicyReference } from './worker-bundle.js';
 import { checkWorkerReturn } from './worker-return.js';
 import { reopenNativeWorkerEvidence } from './worker-dispatch.js';
@@ -660,5 +660,25 @@ export function proposeOrchestrationAuthorityContact(runDir, raw, clock = clockD
         assertWork(allWorkIds(runDir).every((id) => existsSync(canonicalPath(runDir, consumedPath(id)))), 'WORK_PROPOSAL_WINDOW', 'unconsumed work exists');
         validateAuthorityContact(raw);
         immutable(runDir, selected.input_path, raw);
+    }, clock);
+}
+/** Refusal-only proposal entry. Core selects a journaled halt; no correction
+ * renderer, destination, successor or accepted-return brand is an input. */
+export function proposeOrchestrationLateLineage(runDir, raw, clock = clockDefault) {
+    withOrchestrationLock(runDir, () => {
+        const state = verifyRunControl(runDir);
+        verifyRetainedRuntimeIdentity(runDir, state);
+        validateLateLineageProposal(loadRun(runDir), execution(state), raw);
+        const path = canonicalPath(runDir, LATE_LINEAGE_INPUT_PATH);
+        if (existsSync(path) && readStableRegularFile(path).bytes.equals(raw))
+            return;
+        assertWork(!state.execution.halt && state.execution.gate?.status !== 'awaiting-authority', 'WORK_EXISTING_GATE_OR_HALT', 'late lineage proposal preserves the existing halt');
+        assertWork(allWorkIds(runDir).every((id) => {
+            if (!existsSync(canonicalPath(runDir, consumedPath(id))))
+                return false;
+            readConsumption(runDir, id);
+            return true;
+        }), 'WORK_PROPOSAL_WINDOW', 'resume pending work before submitting a late correction');
+        immutable(runDir, LATE_LINEAGE_INPUT_PATH, raw);
     }, clock);
 }

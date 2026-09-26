@@ -15,7 +15,7 @@ import { mdLineSpan, sourceFilePath } from './check-helpers.js';
 import { semanticClaimCell, SEMANTIC_PATH, emptySemanticLedger, semanticLedgerMarkdown, degradedPacketBinding, semanticProducerBinding, semanticDegradedMaterialViews, buildSemanticSubject, semanticProducerSelections, semanticProducerView, semanticProducerViewPaths, semanticProducerTask, semanticJson, validateSemanticReturn, parseSemanticLedger, semanticSubjectPath, semanticAssignmentPath, semanticResultPath, semanticAttachmentPaths, semanticMaterialViews, semanticAdmissionProblems, semanticStageSeal, planSemanticWrite, validateSemanticAcceptedBindings, validateSemanticRun, claimProposalModel, useRowFromSubject, semanticOriginProjection, indeterminateClaimBinding, semanticIndeterminateClaimMaterialViews, SEMANTIC_ASSIGNMENT_FORMAT, SEMANTIC_TASK, packetWideningProducerView, semanticRelationContexts, } from './semantic-review.js';
 import { framedExactEvidenceHash, runK2, sourceWalkReviewBasisDigest } from './checks-k2.js';
 import { ResultCollector } from './results.js';
-import { parseLineage, lineageCurrentPacketIds, LINEAGE_TABLE_HEADER } from './lineage.js';
+import { parseLineage, lineageCurrentPacketIds, LINEAGE_TABLE_HEADER, LINEAGE_TYPES } from './lineage.js';
 import { deriveSourceWalkCompletion, derivePendingEventCommitment, validateSourceWalkCompletionWrite, projectSourceWalk } from './source-walk-transition.js';
 import { readMaterialFile, readRepresentationContext, representationUseDigest, representationUsesMarkdown, validateRepresentationRun, planRepresentationUseWrite, validateRepresentationUse, REPRESENTATION_USE_PATH, materialFindingRows, selectRepresentationInventory, representationUseNeedsReview, representationReviewView, assertMaterialReviewUpheld, } from './source-representation.js';
 export const WORK_TRANSITION_CAPABILITY = 'orchestrator-work-transitions';
@@ -25,6 +25,7 @@ export const INTAKE_WORK_TASK = 'Finalize the frozen source inventory and draft 
 export const CRITERIA_SUBJECT_PATH = 'verification/harness/S1/criteria-subject.json';
 export const CRITERIA_SAMPLE_PROPOSAL_PATH = 'verification/harness/S1/criteria-sample-proposal.json';
 export const CRITERIA_SAMPLE_INPUT_PATH = 'control/work-proposals/S1-criteria-samples.json';
+export const LATE_LINEAGE_INPUT_PATH = 'control/work-proposals/late-lineage.json';
 export const CRITERIA_REVIEW_PATHS = [
     'verification/harness/S1/criteria-review-1.json',
     'verification/harness/S1/criteria-review-2.json',
@@ -1440,6 +1441,21 @@ export function criteriaSampleProposal(model, criteria, proposalBytes = required
         sample_proposal: { path: CRITERIA_SAMPLE_PROPOSAL_PATH, digest: workDigest(proposalBytes), claim: 'bounded-proposal-not-representative-coverage' },
         samples };
 }
+/** A notice of proposed lineage is retained data, never authority to perform
+ * the correction. The adopted post-S4 refusal needs no successor after-image. */
+export function validateLateLineageProposal(model, execution, bytes) {
+    assertWork(hasRunCapability(model.manifest?.runFormatVersion || '', WORK_TRANSITION_CAPABILITY)
+        && execution.stage === 'S5', 'WORK_LATE_LINEAGE_WINDOW', 'late-lineage refusal requires the cumulative supported S5 boundary');
+    const value = parseStrictJson(bytes);
+    record(value, ['format', 'run_id', 'type', 'predecessors', 'basis'], 'late lineage notice');
+    const units = new Set([...model.packets.map((r) => r.values.packetId), ...model.claims.map((r) => r.values.claimId)]);
+    assertWork(value.format === 'aleph-late-lineage-proposal/v1' && value.run_id === model.manifest.runId
+        && typeof value.type === 'string' && LINEAGE_TYPES.includes(value.type)
+        && Array.isArray(value.predecessors) && value.predecessors.length > 0
+        && new Set(value.predecessors).size === value.predecessors.length
+        && value.predecessors.every((id) => typeof id === 'string' && units.has(id))
+        && typeof value.basis === 'string' && value.basis.trim().length > 0, 'WORK_LATE_LINEAGE_PROPOSAL', 'exact run and existing units required; no canonical effect is proposed');
+}
 export function selectNextWork(model, execution) {
     assertWork(hasRunCapability(model.manifest?.runFormatVersion || '', WORK_TRANSITION_CAPABILITY), 'WORK_CAPABILITY', 'run does not select work transitions');
     if (execution.stage === 'S3' || execution.stage === 'S4')
@@ -1447,6 +1463,11 @@ export function selectNextWork(model, execution) {
     if (execution.blocked)
         return (execution.stage === 'S4' ? selectBlockedProceduralWork(model) : null)
             || { kind: 'halt', code: 'WORK_EXISTING_GATE_OR_HALT', reason: 'Retained authority or operational halt has precedence.' };
+    if (execution.stage === 'S5' && existsSync(join(model.runDir, LATE_LINEAGE_INPUT_PATH))) {
+        const bytes = readMaterialFile(model.runDir, LATE_LINEAGE_INPUT_PATH);
+        validateLateLineageProposal(model, execution, bytes);
+        return { kind: 'local', obligation: obligation(execution.stage, 'lineage.late-correction-refused', 'lineage.refuse-late-correction', model.manifest.runId, bytes) };
+    }
     if (execution.stage === 'S0') {
         assertWork(execution.stage_status === 'closed' && execution.core_state === 'CORPUS-FROZEN', 'WORK_STAGE', 'S0 freeze is incomplete');
         return { kind: 'local', obligation: obligation('S0', 'S0.frozen', 'stage.enter-S1', model.manifest.runId, required(model, 'run-manifest.md')) };
@@ -1576,6 +1597,19 @@ export function deriveWorkTransition(model, execution, work, accepted, now) {
     assertWork(!Number.isNaN(Date.parse(now)), 'WORK_IDENTITY', 'retained operation time');
     const base = { format: 'aleph-core-work-transition/v1', obligation: work.obligation,
         next_execution: { ...execution }, simulation: accepted?.simulation || false };
+    if (work.obligation.operation === 'lineage.refuse-late-correction') {
+        assertWork(work.kind === 'local' && accepted === null, 'WORK_ACCEPTANCE', 'refusal is a local Core boundary');
+        const bytes = readMaterialFile(model.runDir, LATE_LINEAGE_INPUT_PATH);
+        validateLateLineageProposal(model, execution, bytes);
+        const operational_halt = { code: 'LATE_UNIT_LINEAGE_CORRECTION',
+            reason: `new unit lineage is forbidden after S4; retained stage is ${execution.stage}`, at: now, blocking: true };
+        const path = `verification/harness/late-lineage-refusals/${workDigest(bytes).slice(7)}.json`;
+        return { ...base, family: 'stage', operational_halt,
+            next_execution: { ...execution, core_state: 'BLOCKED', blocked: true },
+            effects: [effect(model, path, workJson({ format: 'aleph-late-lineage-refusal/v1', run_id: model.manifest.runId,
+                    proposal_path: LATE_LINEAGE_INPUT_PATH, proposal_digest: workDigest(bytes), retained_stage: execution.stage, ...operational_halt }))],
+            origins: [{ artifact: path, field: '*', from: { kind: 'rule', rule: 'orchestrator:post-S4-lineage-refusal' } }] };
+    }
     if (work.obligation.operation.startsWith('s4.'))
         return { ...base, ...deriveS4Transition(model, work, accepted, now) };
     if (work.obligation.operation === 's3.prepare-widening') {
@@ -1852,6 +1886,20 @@ export function validateConsumedWorkTransition(runDir, transition) {
 }
 /** Existing Core plan validators remain mandatory for the exact derived bytes. */
 export function validateDerivedWorkTransition(model, proposedModel, transition) {
+    if (transition.obligation.operation === 'lineage.refuse-late-correction' || transition.operational_halt) {
+        const state = parseStrictJson(readMaterialFile(model.runDir, 'control/run-state.json'));
+        const execution = { stage: state.execution.stage, stage_status: state.execution.stage_status,
+            core_state: state.execution.core_state, blocked: Boolean(state.execution.halt || state.execution.gate?.status === 'awaiting-authority') };
+        const expected = deriveWorkTransition(model, execution, selectNextWork(model, execution), null, transition.operational_halt?.at || '');
+        assertWork(workJson(transition).equals(workJson(expected)), 'WORK_LATE_LINEAGE_PLAN', 'exact refusal transaction required');
+        const changed = new Set(expected.effects.map((e) => e.path)), before = new Map(model.files.map((f) => [f.relativePath, f]));
+        for (const f of proposedModel.files) {
+            assertWork(changed.has(f.relativePath) || before.has(f.relativePath)
+                && required(model, f.relativePath).equals(required(proposedModel, f.relativePath)), 'WORK_LATE_LINEAGE_PLAN', 'refusal cannot mutate another file');
+            before.delete(f.relativePath);
+        }
+        assertWork(before.size === 0, 'WORK_LATE_LINEAGE_PLAN', 'refusal cannot remove history');
+    }
     if (transition.obligation.operation === 'stage.seal-S3' || transition.s3_to_s4_bootstrap) {
         validateS3ToS4Bootstrap(model, proposedModel, transition);
         return;
