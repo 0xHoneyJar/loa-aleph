@@ -32,13 +32,15 @@ import type {
   BundleLock,
   CoreManifest,
 } from './lib/bundle-format.ts';
-import {
+const {
   assembleBundles,
   humanVerificationPrefix,
   verifyBundle,
   verifyBundleSet,
   verifyDefaultBundleOutput,
-} from './assemble-bundles.ts';
+} = await import(process.argv.includes('--runtime')
+  ? '../runtime-js/scripts/assemble-bundles.js'
+  : './assemble-bundles.ts') as typeof import('./assemble-bundles.ts');
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
@@ -80,6 +82,7 @@ const options: CliOptions = {
 
 for (const arg of process.argv.slice(2)) {
   if (arg === '--json') options.json = true;
+  else if (arg === '--runtime') continue;
   else if (arg === '--help' || arg === '-h') options.help = true;
   else options.error = `unknown argument "${arg}"`;
 }
@@ -904,6 +907,7 @@ function execute(): TestReport {
         baseline.loa,
         join(tempRoot, 'bundle-missing'),
       );
+      expectEqual(verifyBundle(bundle).result, 'PASS', 'warm intact bundle');
       rmSync(join(bundle, 'README.md'));
       expectVerificationFailure(bundle, /missing bundle file|digest mismatch/i);
     });
@@ -913,6 +917,7 @@ function execute(): TestReport {
         baseline.loa,
         join(tempRoot, 'bundle-extra'),
       );
+      expectEqual(verifyBundle(bundle).result, 'PASS', 'warm intact bundle');
       writeFileSync(join(bundle, 'EXTRA.txt'), 'not in the lock\n');
       expectVerificationFailure(bundle, /extra bundle file/i);
     });
@@ -922,8 +927,26 @@ function execute(): TestReport {
         baseline.loa,
         join(tempRoot, 'bundle-modified'),
       );
+      expectEqual(verifyBundle(bundle).result, 'PASS', 'warm intact bundle');
       appendBytes(join(bundle, 'README.md'), '\nmodified\n');
       expectVerificationFailure(bundle, /modified bundle file|digest mismatch/i);
+    });
+
+    runCase(results, 'warm verification independently rejects coherently resealed Core-boundary violations', () => {
+      const bundle = cloneBundle(baseline.loa, join(tempRoot, 'bundle-warm-resealed'));
+      const beforeLock = readFileSync(join(bundle, 'bundle.lock.json'));
+      const writer = join(bundle, 'adapters/loa/src/ledger-writer.ts');
+      const beforeWriter = readFileSync(writer);
+      const intact = verifyBundle(bundle);
+      expectEqual(intact.result, 'PASS', 'initial independent bundle verification');
+      expectEqual(JSON.stringify(verifyBundle(bundle)), JSON.stringify(intact), 'repeated intact verification');
+      appendBytes(writer, "\nconst forbiddenAdapterSemanticBranch = material.materiality_class === 'C' && verifier.verdict === 'upheld';\n");
+      resealPayloadFromDisk(bundle);
+      expect(!readFileSync(join(bundle, 'bundle.lock.json')).equals(beforeLock), 'mutation must coherently change lock bytes');
+      expectVerificationFailure(bundle, /CB10|Core-owned procedural authority/i);
+      writeFileSync(writer, beforeWriter);
+      writeFileSync(join(bundle, 'bundle.lock.json'), beforeLock);
+      expectEqual(JSON.stringify(verifyBundle(bundle)), JSON.stringify(intact), 'failed mutation cannot poison intact verification');
     });
 
     runCase(results, 'failed implemented bundle is not READY or VERIFIED', () => {
@@ -1153,7 +1176,7 @@ function execute(): TestReport {
 
 function main(): void {
   if (options.help) {
-    console.log('Usage: node scripts/test-bundle-assembly.ts [--json]');
+    console.log('Usage: node scripts/test-bundle-assembly.ts [--json] [--runtime]');
     process.exit(0);
   }
   if (options.error) {

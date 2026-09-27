@@ -490,6 +490,12 @@ function compareBoundaryDigests(report, lock, errors) {
         errors.push('emitted Core-boundary bundle digest disagrees with lock');
     }
 }
+// Only the deterministic emitted-boundary reconstruction is memoized. Each
+// invocation still reopens the complete inventory, hashes every payload file,
+// checks the canonical lock and rederives all digests before this can be used.
+// A coherently changed lock cannot reuse the prior independently checked bytes.
+// Keep one private entry, never a caller-supplied verification flag or run plan.
+let lastVerifiedBoundaryLock = null;
 export function verifyBundle(bundlePath) {
     const bundleRoot = resolve(bundlePath);
     const errors = [];
@@ -675,10 +681,12 @@ export function verifyBundle(bundlePath) {
         }
     }
     errors.push(...adapterForeignProblems(bundleRoot, lock));
-    if (errors.length === 0) {
+    if (errors.length === 0 && !lastVerifiedBoundaryLock?.equals(rawLock)) {
         try {
             const boundary = emittedBoundaryReport(bundleRoot, lock);
             compareBoundaryDigests(boundary, lock, errors);
+            if (errors.length === 0)
+                lastVerifiedBoundaryLock = Buffer.from(rawLock);
         }
         catch (error) {
             errors.push(error instanceof Error ? error.message : String(error));

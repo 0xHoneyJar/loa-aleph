@@ -1,0 +1,241 @@
+{
+  "format": "aleph-f03-bundle-recheck-evidence/v1",
+  "recorded_at": "2026-09-27T12:33:25.810798+00:00",
+  "parent_head": "066da3c0f21209458455cb6e3b5c9d5405998f93",
+  "parent_tree": "0be19e7eb63628c609f313709ff8f16ac586b8c8",
+  "status": "IMPLEMENTATION_IN_PROGRESS_NOT_PRODUCER_COMPLETE",
+  "findings": {
+    "F-03": "OPEN / MUST PRESERVE",
+    "F-04": "OPEN / MUST PRESERVE",
+    "F-05": "OPEN / MUST PRESERVE"
+  },
+  "reason": "Required historical consumed-work authentication repeatedly reconstructs an identical emitted Core boundary. An observed S3 read took 468422.541524ms; 283313.207ms of its V8 profile included emittedBoundaryReport. The isolated source experiment took 203383.811218ms. These are observations, not a controlled performance comparison.",
+  "change": "One private in-memory canonical lock-byte entry skips only a previously successful deterministic emitted-boundary reconstruction. Every invocation still inventories physical payload, hashes every file, checks canonical lock bytes, all digests and fresh adapter checks first. Any coherently changed lock requires independent reconstruction. No run, work, accepted evidence, transaction, plan or authority is cached or trusted from a stored digest.",
+  "source_paths": {
+    "scripts/assemble-bundles.ts": "30eb6436599556d3dc244b10682be0f9f3b2cbed00a0cbd3718b9857555058ad",
+    "runtime-js/scripts/assemble-bundles.js": "8d3901538648be9b723c16ed6a4ccd894870d96aa906a0fab37e2b3b14d280dc",
+    "scripts/test-bundle-assembly.ts": "4e584a0930ead60eaf202052caf6be0343fdcf89b0a74dbc61349269a958da0a"
+  },
+  "results": {
+    "source": {
+      "repository_bundle_cases": 32,
+      "isolated_probe_cases": 12,
+      "isolated_probe_root": "/tmp/f03-bundle-boundary-recheck-probe-TpSdQC",
+      "cases": [
+        {
+          "name": "cold complete bundle independently reconstructs Core boundary",
+          "result": "PASS",
+          "rebuilds": 1
+        },
+        {
+          "name": "identical freshly rehashed bytes reuse only deterministic boundary proof",
+          "result": "PASS",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize changed payload",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize extra file",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize missing file",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize symlink",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize noncanonical equivalent lock",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "coherently rehashed policy violation is independently reconstructed and rejected",
+          "result": "FAIL",
+          "rebuilds": 2
+        },
+        {
+          "name": "failed new byte set cannot poison prior independent proof",
+          "result": "PASS",
+          "rebuilds": 2
+        },
+        {
+          "name": "valid changed byte set requires new independent reconstruction",
+          "result": "PASS",
+          "rebuilds": 3
+        },
+        {
+          "name": "new identical byte set reuses only its own proof",
+          "result": "PASS",
+          "rebuilds": 3
+        },
+        {
+          "name": "single-entry memo does not retain unbounded historical proofs",
+          "result": "PASS",
+          "rebuilds": 4
+        }
+      ]
+    },
+    "runtime": {
+      "repository_bundle_cases": 32,
+      "isolated_probe_cases": 12,
+      "isolated_probe_root": "/tmp/f03-bundle-boundary-recheck-probe-xKwr9U",
+      "cases": [
+        {
+          "name": "cold complete bundle independently reconstructs Core boundary",
+          "result": "PASS",
+          "rebuilds": 1
+        },
+        {
+          "name": "identical freshly rehashed bytes reuse only deterministic boundary proof",
+          "result": "PASS",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize changed payload",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize extra file",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize missing file",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize symlink",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "warm proof does not authorize noncanonical equivalent lock",
+          "result": "FAIL",
+          "rebuilds": 1
+        },
+        {
+          "name": "coherently rehashed policy violation is independently reconstructed and rejected",
+          "result": "FAIL",
+          "rebuilds": 2
+        },
+        {
+          "name": "failed new byte set cannot poison prior independent proof",
+          "result": "PASS",
+          "rebuilds": 2
+        },
+        {
+          "name": "valid changed byte set requires new independent reconstruction",
+          "result": "PASS",
+          "rebuilds": 3
+        },
+        {
+          "name": "new identical byte set reuses only its own proof",
+          "result": "PASS",
+          "rebuilds": 3
+        },
+        {
+          "name": "single-entry memo does not retain unbounded historical proofs",
+          "result": "PASS",
+          "rebuilds": 4
+        }
+      ]
+    }
+  },
+  "receipts": [
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-build.command.json",
+      "sha256": "d03ea98f90041c05d2ecb054eac37bcae3bce3eb25fd4ab97c2f5204e3260345",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"runtime:build\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:26:34.475943+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-build.log",
+      "sha256": "18af49028a105c72ae1ecad3775fefd1e6951c143b0f007ee838855de195e576",
+      "text": "\n> loa-aleph@0.0.0 runtime:build\n> node packaging/build-runtime-js.ts build\n\nRUNTIME-JS PASS (51 files)\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-build.exit.json",
+      "sha256": "421f58d9c347b96b9c33039763e5f7b1892cb07213414d4edfec85896c687874",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:26:35.594457+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-typecheck.command.json",
+      "sha256": "30b08575cd45a4d41cf95fcde2aa9162aa0867ff66a9f262d693fe2270514bef",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"typecheck\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:26:35.594712+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-typecheck.log",
+      "sha256": "9262126f8ee07080abcb6ec22fe8c7f90f73c0b28038b80322796c9bede8e9e6",
+      "text": "\n> loa-aleph@0.0.0 typecheck\n> tsc --noEmit && tsc -p adapters/loa/tsconfig.json --noEmit\n\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-typecheck.exit.json",
+      "sha256": "c61d5b4ca04341f915366d98b0e058cd5da6fef79cfb12cf0e9591d81646175c",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:26:37.296434+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-parity.command.json",
+      "sha256": "06ff6d0aa0fe3aac561b8bfbabb72597b509583a0fca97e6bf0f2c721e6f05b0",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"runtime:check\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:26:37.296638+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-parity.log",
+      "sha256": "2db692aa71955256d13b21b130bbed39c421ccf29350944a90c1e1a4cd4365cc",
+      "text": "\n> loa-aleph@0.0.0 runtime:check\n> node packaging/build-runtime-js.ts check\n\nRUNTIME-JS PASS (51 files)\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-parity.exit.json",
+      "sha256": "745e7db9dec986d6c64c92fa8faa33763935b01c70fae362e049d6228bb2ba36",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:26:38.184862+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-bundles-source.command.json",
+      "sha256": "a6582f191e8b2090c5e981ae9205596f804c715f753c7f63653d3f19ae655778",
+      "text": "{\"cmd\": [\"node\", \"scripts/test-bundle-assembly.ts\", \"--json\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:26:38.185473+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-bundles-source.log",
+      "sha256": "e0206636331f6c42076239da8322a9e84880eed41175421817a8eef8b3dab28e",
+      "text": "{\n  \"result\": \"PASS\",\n  \"cases\": [\n    {\n      \"name\": \"repeated assembly is byte-identical\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"identical payload under a different commit changes only provenance-bound identities\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"canonical JSON rejects unpaired UTF-16 surrogates\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"both bundles contain byte-identical Core\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"independent verification accepts both baseline bundles\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"Core mutation changes both bundle identities\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"Loa-only mutation changes only aleph-for-loa\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"Hermes-only mutation changes only aleph-for-hermes\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"foreign-adapter reference injection fails\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"release verification rejects divergent Core bundles\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"release verification rejects duplicate host bundles\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"default verification rejects swapped host directories\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"adapter Core override fails\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"nonignored untracked unclassified source file fails\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"tracked source deletion cannot escape inventory\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"unresolved source repository provenance fails\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"missing emitted file fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"extra emitted file fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"modified emitted file fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"warm verification independently rejects coherently resealed Core-boundary violations\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"failed implemented bundle is not READY or VERIFIED\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"renamed emitted file fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"unresealed lock tampering fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed decoded foreign-host injection fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed decoded foreign-host object key fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed lifecycle mismatch fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"provenance object-ID substitution fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed malformed lifecycle fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed malformed provenance fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed mutable provenance fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed unresolved provenance fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"valid rename and deletion remove stale output paths\",\n      \"status\": \"PASS\"\n    }\n  ]\n}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-bundles-source.exit.json",
+      "sha256": "0a8b07abd2fc90780034104d65c5e6ed72bea526c173a13e2f09acd8a09dccdc",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:28:10.333877+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-bundles-runtime.command.json",
+      "sha256": "607725dbc5056f8281e71caabce48b65be31c57224801f94a686dd4e8983eebc",
+      "text": "{\"cmd\": [\"node\", \"scripts/test-bundle-assembly.ts\", \"--json\", \"--runtime\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:26:38.186171+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-bundles-runtime.log",
+      "sha256": "e0206636331f6c42076239da8322a9e84880eed41175421817a8eef8b3dab28e",
+      "text": "{\n  \"result\": \"PASS\",\n  \"cases\": [\n    {\n      \"name\": \"repeated assembly is byte-identical\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"identical payload under a different commit changes only provenance-bound identities\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"canonical JSON rejects unpaired UTF-16 surrogates\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"both bundles contain byte-identical Core\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"independent verification accepts both baseline bundles\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"Core mutation changes both bundle identities\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"Loa-only mutation changes only aleph-for-loa\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"Hermes-only mutation changes only aleph-for-hermes\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"foreign-adapter reference injection fails\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"release verification rejects divergent Core bundles\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"release verification rejects duplicate host bundles\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"default verification rejects swapped host directories\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"adapter Core override fails\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"nonignored untracked unclassified source file fails\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"tracked source deletion cannot escape inventory\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"unresolved source repository provenance fails\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"missing emitted file fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"extra emitted file fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"modified emitted file fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"warm verification independently rejects coherently resealed Core-boundary violations\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"failed implemented bundle is not READY or VERIFIED\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"renamed emitted file fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"unresealed lock tampering fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed decoded foreign-host injection fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed decoded foreign-host object key fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed lifecycle mismatch fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"provenance object-ID substitution fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed malformed lifecycle fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed malformed provenance fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed mutable provenance fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"resealed unresolved provenance fails verification\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"valid rename and deletion remove stale output paths\",\n      \"status\": \"PASS\"\n    }\n  ]\n}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-bundles-runtime.exit.json",
+      "sha256": "278e8e355c29219c7b230ce943c1ac6937ab35901cad7327c2ee504c75a7804d",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:28:09.577779+00:00\"}"
+    }
+  ],
+  "profile_summary": {
+    "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/S3-read-auth-profile-summary.json",
+    "sha256": "e5a304fe933a3f33e56e0fe2378508c38f2260ff558586db14e13e5e34f8a873",
+    "text": "{\n  \"elapsed_ms\": 468554.277,\n  \"self_ms\": [\n    {\n      \"function\": \"spawnSync\",\n      \"file\": \"child_process\",\n      \"ms\": 149932.594\n    },\n    {\n      \"function\": \"mkdir\",\n      \"file\": \"\",\n      \"ms\": 88727.033\n    },\n    {\n      \"function\": \"open\",\n      \"file\": \"\",\n      \"ms\": 25163.172\n    },\n    {\n      \"function\": \"read\",\n      \"file\": \"\",\n      \"ms\": 22904.596\n    },\n    {\n      \"function\": \"lstat\",\n      \"file\": \"\",\n      \"ms\": 22573.2\n    },\n    {\n      \"function\": \"update\",\n      \"file\": \"hash\",\n      \"ms\": 18068.777\n    },\n    {\n      \"function\": \"unlink\",\n      \"file\": \"\",\n      \"ms\": 16281.94\n    },\n    {\n      \"function\": \"existsSync\",\n      \"file\": \"\",\n      \"ms\": 12905.035\n    },\n    {\n      \"function\": \"(garbage collector)\",\n      \"file\": \"\",\n      \"ms\": 9071.125\n    },\n    {\n      \"function\": \"rmdir\",\n      \"file\": \"\",\n      \"ms\": 8544.866\n    },\n    {\n      \"function\": \"canonicalJson\",\n      \"file\": \"bundle-format.js\",\n      \"ms\": 7281.31\n    },\n    {\n      \"function\": \"readdir\",\n      \"file\": \"\",\n      \"ms\": 6644.55\n    },\n    {\n      \"function\": \"cpSyncCopyDir\",\n      \"file\": \"\",\n      \"ms\": 6007.811\n    },\n    {\n      \"function\": \"writeBuffer\",\n      \"file\": \"\",\n      \"ms\": 5984.007\n    }\n  ],\n  \"inclusive_ms\": {\n    \"readConsumption\": 387500.93,\n    \"readOrchestrationWork\": 348125.702,\n    \"deriveRetainedWork\": 330018.368,\n    \"verifyAndLoadLoaBundle\": 323398.503,\n    \"reopenAcceptedWorkReturn\": 291539.753,\n    \"emittedBoundaryReport\": 283313.207,\n    \"withBasis\": 174180.74,\n    \"runGit\": 145122.138,\n    \"loadRun\": 4568.683,\n    \"validateSemanticRun\": 2345.193,\n    \"validateRepresentationRun\": 34.879\n  }\n}\n"
+  },
+  "pending": "Fresh installed controller and consumed-plan source/runtime controls are running against fresh pinned current fixtures. Existing earlier long installed frontier fixtures keep their exact executable pins and remain incomplete.",
+  "scope": "All fixture source construction excludes the entire calibration directory before file reads. No pinned runtime substitution. Synthetic local correctness controls only.",
+  "historical_incident": "The closed-reference copying incident at c6ca7d0e26fbf166b8ce39b3c3fd3f778c37c92a remains visible. This record does not assert an overall zero prohibited-operation count.",
+  "new_core_policy_conflict": null
+}

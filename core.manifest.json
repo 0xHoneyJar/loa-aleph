@@ -1008,7 +1008,8 @@
       "calibration/src-001/core-design-basis/EVIDENCE-f03-authority-lock-original-20260927.json",
       "calibration/src-001/core-design-basis/IMPLEMENTED-f03-consumed-plan-reauthentication-checkpoint-20260927.md",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-consumed-auth-and-conformance-continuation-20260927.json",
-      "calibration/src-001/core-design-basis/EVIDENCE-f03-multisource-c04-fixture-corrections-20260927.json"
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-multisource-c04-fixture-corrections-20260927.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-independent-bundle-recheck-20260927.json"
     ]
   },
   "checker_paths": [
