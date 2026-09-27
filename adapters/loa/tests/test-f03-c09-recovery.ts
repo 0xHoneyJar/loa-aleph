@@ -2,7 +2,7 @@
 /** Exact partial subsets of a fresh installed, corrected prepared bootstrap.
  * These are disposable fixture fault injections, never repairs to the seed or historical C09. */
 import assert from 'node:assert/strict';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -187,6 +187,7 @@ test('resume refuses forged consumption before bootstrap completion', (run) => {
     journal_digest: sha256Digest(readFileSync(join(run, journalRef))),
     after_checkpoint: journal.state_after.execution.resume.checkpoint_digest, after_chain: journal.state_after.ledger.chain_head };
   write(run, consumedRef, stableJsonBytes({ ...body, digest: sha256Digest(stableJsonBytes(body)) }));
+  chmodSync(join(run, consumedRef), 0o400);
 }, /WORK_CONSUMPTION/u, workId, 'resume');
 const evidence = { result: 'PASS', cases, root, seed: seedRecord, seed_unchanged: true,
   scope: 'Fresh installed pinned writer in separate processes; authenticated partial subsets and tamper controls. Full CLI crash progression is separate. No provider/native/semantic evidence or finding closure.' };
