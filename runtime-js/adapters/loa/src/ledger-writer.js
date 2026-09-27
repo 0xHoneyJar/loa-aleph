@@ -3,7 +3,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, wri
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { CORE_STAGES, LOA_LEDGER_RECEIPT_FORMAT, } from './types.js';
-import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, nextDecimal, sha256Digest, stableJson, stableJsonBytes, readStableRegularFile, writeFileAtomic, } from './fs.js';
+import { assertNoSymlinkComponents, assertPathWithin, assertSafeRelativePath, nextDecimal, sha256Digest, stableJson, stableJsonBytes, readStableRegularFile, writeFileAtomic, makeTreeOwnerWritable, } from './fs.js';
 import { acquireDurableProcessLock, openHumanAuthorityGate, readRunState, stateCheckpointDigest, writeRunState, updateRunState, verifyRunControl, verifyRetainedRuntimeIdentity, } from './run-control.js';
 import { ValidatedWorkerReturn } from './worker-return.js';
 import { deriveAuthenticatedWork, prepareOrchestrationCommit, readOrchestrationCommit, orchestrationFixtureFault, withOrchestrationLock, orchestrationCommitPath, recordOrchestrationConsumption, assertRecoveryPrerequisites, pendingOrchestrationCommitWork, } from './orchestration.js';
@@ -779,6 +779,7 @@ export class LedgerWriter {
                     verifyRunControl(after);
                 }
                 finally {
+                    makeTreeOwnerWritable(after);
                     rmSync(after, { recursive: true, force: true });
                 }
             }

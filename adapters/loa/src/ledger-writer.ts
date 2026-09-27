@@ -31,6 +31,7 @@ import {
   stableJsonBytes,
   readStableRegularFile,
   writeFileAtomic,
+  makeTreeOwnerWritable,
 } from './fs.ts';
 import {
   acquireDurableProcessLock,
@@ -901,7 +902,7 @@ export class LedgerWriter {
           writeFileAtomic(join(after, 'control/ledger-chain.jsonl'), Buffer.from(transaction.chain_after));
           writeRunState(after, transaction.state_after);
           verifyRunControl(after);
-        } finally { rmSync(after, { recursive: true, force: true }); }
+        } finally { makeTreeOwnerWritable(after); rmSync(after, { recursive: true, force: true }); }
       }
       for (const effect of plan.effects) {
         const path = join(this.runDir, effect.path), after = Buffer.from(effect.after_base64, 'base64');

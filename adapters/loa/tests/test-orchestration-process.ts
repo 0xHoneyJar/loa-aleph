@@ -12,7 +12,7 @@ import { sourceWalkReviewBasisDigest } from '../../../scripts/lib/checks-k2.ts';
 import { installLoaBundle } from '../src/installer.ts';
 import { semanticJson, parseSemanticLedger, type SemanticSubject, type SemanticEntry } from '../../../scripts/lib/semantic-review.ts';
 import { fixtureSemantics, fixtureResult, fixtureUnit, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
-import { makeTreeOwnerWritable, stableJsonBytes } from '../src/fs.ts';
+import { makeTreeOwnerWritable, sha256Digest, stableJsonBytes } from '../src/fs.ts';
 import { materialHash, materialFragmentsHash, prepareRepresentationCapture, readRepresentationContext } from '../../../scripts/lib/source-representation.ts';
 import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, duplicateLedgerMarkdown,
   emptyDuplicateLedger, validateDuplicateRun, type DuplicateSubject } from '../../../scripts/lib/duplicate-review.ts';
@@ -952,6 +952,15 @@ if (process.argv[2] === '--fixture-worker') {
       assert.equal(entry.plan.next_execution.stage, 'S3');
       if (process.env.F03_NORMALIZE) {
         const mode = process.env.F03_NORMALIZE;
+        const runtimeRoot = join(run, 'control/runtime');
+        const runtimeInventory = () => ['', ...readdirSync(runtimeRoot, { recursive: true, encoding: 'utf8' })].sort().map((path) => {
+          const full = join(runtimeRoot, path), metadata = statSync(full);
+          return { path, mode: metadata.mode & 0o777,
+            digest: metadata.isFile() ? sha256Digest(readFileSync(full)) : null };
+        });
+        const retainedRuntime = runtimeInventory();
+        assert.equal(statSync(join(runtimeRoot, 'bundle')).mode & 0o222, 0);
+        assert.equal(statSync(join(runtimeRoot, 'bundle/AGENTS.md')).mode & 0o222, 0);
         const normalizer = resumed.details.work;
         assert.equal(JSON.parse(readFileSync(join(normalizer.worker_bundle, 'request.json'), 'utf8')).role, 'normalizer');
         const model = loadRun(run), packet = model.packets[0].values.packetId;
@@ -1167,6 +1176,7 @@ if (process.argv[2] === '--fixture-worker') {
           resumed = cli('resume', id); reviews++;
           assert(reviews <= entries.length + (wideningMode ? 3 : 1), 'no repeated fresh review until preferred verdict');
         }
+        assert.deepEqual(runtimeInventory(), retainedRuntime, 'bootstrap private-copy cleanup cannot thaw or change the retained runtime');
         for (const subject of nonaffirmative) {
           assert.equal(subject.output_binding.kind, 'indeterminate-claim');
           if (subject.output_binding.kind !== 'indeterminate-claim') throw Error('fixture');

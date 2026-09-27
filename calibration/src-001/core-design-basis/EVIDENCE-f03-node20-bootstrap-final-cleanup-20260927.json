@@ -1,0 +1,190 @@
+{
+  "format": "aleph-f03-node20-private-cleanup-evidence/v1",
+  "recorded_at": "2026-09-27T13:15:30.242111+00:00",
+  "parent_head": "257d9df30d0c6ca5b1199540a7fcf638a54d4a90",
+  "status": "IMPLEMENTATION_IN_PROGRESS_NOT_PRODUCER_COMPLETE",
+  "findings": {
+    "F-03": "OPEN / MUST PRESERVE",
+    "F-04": "OPEN / MUST PRESERVE",
+    "F-05": "OPEN / MUST PRESERVE"
+  },
+  "original_reproduction": {
+    "recorded_at": "2026-09-27T13:01:41.083574+00:00",
+    "classification": "IMPLEMENTATION_BUG_NODE20_PRIVATE_FINAL_PROJECTION_CLEANUP",
+    "head": "257d9df30d0c6ca5b1199540a7fcf638a54d4a90",
+    "fixture": "/tmp/aleph-orchestration-process-5dprnN",
+    "run": "/tmp/aleph-orchestration-process-5dprnN/host/grimoires/loa/aleph/runs/RUN-20260927T094147176Z-9ec210cd058e",
+    "private_projection": "/tmp/aleph-bootstrap-final-zKVqfS",
+    "node_binary": "/home/eileenspectremoon/.nvm/versions/node/v20.20.2/bin/node",
+    "pinned_writer_matches_current": {
+      "adapters/loa/src/ledger-writer.ts": {
+        "current_sha256": "a18b33fe8790fccb867b743bec9469b61862cf50fb7d215a8c7aaf535f62fb2e",
+        "pinned_sha256": "a18b33fe8790fccb867b743bec9469b61862cf50fb7d215a8c7aaf535f62fb2e",
+        "exact": true
+      },
+      "runtime-js/adapters/loa/src/ledger-writer.js": {
+        "current_sha256": "34342dd55d442dceb4a6e0ca7de4038f57d944486d4510c79af22a27b1163294",
+        "pinned_sha256": "34342dd55d442dceb4a6e0ca7de4038f57d944486d4510c79af22a27b1163294",
+        "exact": true
+      }
+    },
+    "pending_transaction": [
+      {
+        "path": "/tmp/aleph-orchestration-process-5dprnN/host/grimoires/loa/aleph/runs/RUN-20260927T094147176Z-9ec210cd058e/control/transactions/TXN-work-b96d1514f7650569c9be21acba28e4ec8166727e88d09b2ba1993ca1d1d8f7e1.json",
+        "sha256": "bca3db589d790288094d9355fb6d1ebc54163708c60f7a0a00d58b93ebd88310",
+        "status": "prepared",
+        "work_id": "WORK-b96d1514f7650569c9be21acba28e4ec8166727e88d09b2ba1993ca1d1d8f7e1",
+        "before_stage": "S3",
+        "after_stage": "S4",
+        "current_state_equals_before": true,
+        "consumption_exists": false
+      }
+    ],
+    "root_cause": "The bootstrap precommit final-AFTER projection copies read-only runtime directories, then raw rmSync recursively removes them without making only the private copy writable. Node20 refuses unlink. The finally exception can mask an earlier verification exception, so final-AFTER validity is not established by this failure.",
+    "repair_scope": "Reuse existing makeTreeOwnerWritable on the private mkdtemp projection immediately before removal. Preserve original run/runtime modes, bytes and pins. No semantic/Core policy change.",
+    "receipts": {
+      "command.json": {
+        "sha256": "481330b7e118f1be4e25b00e8b06a822a4c2b4543ec3c49cf1ac0aa13527cffd",
+        "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-orchestration-process.ts\"], \"flags\": {\"F03_KEEP_TEST\": \"1\", \"F03_PACKET\": \"1\", \"F03_S2_CLOSE\": \"1\", \"F03_NORMALIZE\": \"no-claim\", \"F03_NODE_BINARY\": \"/home/eileenspectremoon/.nvm/versions/node/v20.20.2/bin/node\"}, \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T09:41:30.225199+00:00\"}\n"
+      },
+      "log": {
+        "sha256": "a28afaba21fe2dde174e8cdd08ff24eb1af4e2c829fa0730fb5552dcd0e6f0b7",
+        "text": "PASS supported CLI S0/S1 fixture transport, restart after accept, canonical writer and criteria agreement\nPASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission\nPASS supported CLI fresh fixture L1, complete source projection, S2 seal and S3 entry\nretained test scratch: /tmp/aleph-orchestration-process-5dprnN\nnode:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: {\"command\":\"resume\",\"details\":null,\"errors\":[\"EACCES: permission denied, unlink '/tmp/aleph-bootstrap-final-zKVqfS/control/runtime/bundle/AGENTS.md'\"],\"format\":\"aleph-loa-command-result/v1\",\"full_mode\":\"not-started\",\"gate\":null,\"result\":\"FAIL\",\"run_id\":\"RUN-20260927T094147176Z-9ec210cd058e\",\"stage\":null,\"state\":null}\n\n\n\n1 !== 0\n\n    at command (file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:242:14)\n    at cli (file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:245:40)\n    at file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:1152:21\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n"
+      },
+      "exit.json": {
+        "sha256": "e45564ec0a4cb75804e7b4eb3de34e21abf6ade4f56ab7d37b46a257393430ce",
+        "text": "{\"exit\": 1, \"end\": \"2026-09-27T12:53:19.634964+00:00\"}\n"
+      }
+    },
+    "current_status_correction": "257d9df evidence correctly reports Node20 S1 pass, but its full-bootstrap running label was based on the last inspected log. That full attempt ended1 at12:53:19Z and was inspected after the evidence commit. It is now recorded failed, with no bootstrap pass claimed.",
+    "new_core_policy_conflict": null
+  },
+  "repair": "Reuse existing makeTreeOwnerWritable only on the private mkdtemp final-AFTER projection immediately before removal. The canonical run and its retained runtime keep their bytes, modes, identity and pins. No authority, plan, operation, verification or recovery ordering changes.",
+  "regression": "Installed S3/bootstrap fixture records every retained runtime file/directory mode and file digest, asserts read-only bundle root and AGENTS.md, then requires exact equality after bootstrap. Fresh Node20 C09 run NLyRRi exercises this current writer and all recorded crash boundaries; still in progress.",
+  "source_runtime_sha256": {
+    "adapters/loa/src/ledger-writer.ts": "f931f2024aeecf5ed6364b9fdb30f3bab691b406f952aebf90b4577dbaa59ac6",
+    "runtime-js/adapters/loa/src/ledger-writer.js": "82024fb0dad958e47e16ae4f1eaaaf46139f866fbcfa002bc26da797ceb75dd5",
+    "adapters/loa/tests/test-orchestration-process.ts": "974565b552e20404d44f8dd20119c4480a9ff374e2991c4c1eb5b9b24a513cc7"
+  },
+  "independent_node20_discriminator": {
+    "result": "PASS",
+    "root": "/tmp/f03-bootstrap-final-cleanup-discriminator-uoa6Qf",
+    "controls": 3,
+    "original_run": "/tmp/aleph-orchestration-process-5dprnN/host/grimoires/loa/aleph/runs/RUN-20260927T094147176Z-9ec210cd058e",
+    "work_id": "WORK-b96d1514f7650569c9be21acba28e4ec8166727e88d09b2ba1993ca1d1d8f7e1",
+    "node": "v20.20.2",
+    "negative_failure": {
+      "code": "EACCES",
+      "message": "EACCES: permission denied, unlink '/tmp/f03-bootstrap-final-cleanup-discriminator-uoa6Qf/raw-rm-failure/control/runtime/bundle/AGENTS.md'"
+    },
+    "scope": "Original pinned Core and pure journal rederivation, read-only canonical run. Private AFTER is never canonical authority. Fresh installed corrected-writer proof is separate and still running."
+  },
+  "discriminator_sha256": "921022e1e8bfabd2696e6efd6979356d7053539a6df57b317485d7a303ffa1c3",
+  "receipts": [
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-build.command.json",
+      "sha256": "3c824b180392bd58e8e8bc17e2f77651e0d2e90882b70222a5ef36afe0bc7fbe",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"runtime:build\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T13:03:30.430773+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-build.log",
+      "sha256": "18af49028a105c72ae1ecad3775fefd1e6951c143b0f007ee838855de195e576",
+      "text": "\n> loa-aleph@0.0.0 runtime:build\n> node packaging/build-runtime-js.ts build\n\nRUNTIME-JS PASS (51 files)\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-build.exit.json",
+      "sha256": "acf2c4b9414867598add773b48107b534baef406e393fe5ec28f7337e09ecff1",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T13:03:32.069223+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-typecheck-second.command.json",
+      "sha256": "c26f6fc2f5421b4b5301ee91c1fecada6b05aa2174078fae272ce16605e71327",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"typecheck\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"flags\": {}, \"start\": \"2026-09-27T13:05:08.364996+00:00\", \"scope\": \"Local synthetic fixture verification only. Calibration excluded before source copying; original pinned fixtures untouched.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-typecheck-second.log",
+      "sha256": "9262126f8ee07080abcb6ec22fe8c7f90f73c0b28038b80322796c9bede8e9e6",
+      "text": "\n> loa-aleph@0.0.0 typecheck\n> tsc --noEmit && tsc -p adapters/loa/tsconfig.json --noEmit\n\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-typecheck-second.exit.json",
+      "sha256": "fa2781642894624812cf9d5c3c009b3ef68ef30facda26209e5b31581ef51d85",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T13:05:10.214790+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-parity.command.json",
+      "sha256": "cb0fdb8325eb3142ff89505479f9abd9693d1a00bf755d1837873c70edfcf93f",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"runtime:check\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"flags\": {}, \"start\": \"2026-09-27T13:05:10.215187+00:00\", \"scope\": \"Local synthetic fixture verification only. Calibration excluded before source copying; original pinned fixtures untouched.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-parity.log",
+      "sha256": "2db692aa71955256d13b21b130bbed39c421ccf29350944a90c1e1a4cd4365cc",
+      "text": "\n> loa-aleph@0.0.0 runtime:check\n> node packaging/build-runtime-js.ts check\n\nRUNTIME-JS PASS (51 files)\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-parity.exit.json",
+      "sha256": "672fb513ed0a9e2b7a6a85a754a1e358e690440b0a3ef08a7fe58a36737728aa",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T13:05:11.347081+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-c09-source.command.json",
+      "sha256": "36f86b168eca6e6ec9460e70f4d2ce80d4164aa9f9556fe21c6f08def60984c8",
+      "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-f03-c09-bootstrap.ts\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"flags\": {}, \"start\": \"2026-09-27T13:05:11.349938+00:00\", \"scope\": \"Local synthetic fixture verification only. Calibration excluded before source copying; original pinned fixtures untouched.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-c09-source.log",
+      "sha256": "4f40453528875f21e5674ddb48b83143b8ebfded5347298ab617191fbbfe741f",
+      "text": "PASS legal S3 has no duplicate artifact\nPASS pre-S4 duplicate ledger is rejected by state and selection\nPASS exact S3 seal is derived by the existing constructor\nPASS exact existing S3 exit and S4 entry event is derived\nPASS zero claims and candidates still receive exactly the canonical six empty tables\nPASS dedicated planner and production derivation are identical\nPASS final composite passes existing seal, duplicate and open-window predicates\nPASS canonical AFTER selection uses initialized ledger without s4.initialize\nPASS caller-authored duplicate_bytes is rejected\nPASS caller-authored stage_entry_bytes is rejected\nPASS caller-authored destination_paths is rejected\nPASS caller-authored after_images is rejected\nPASS caller-authored projected_entry is rejected\nPASS caller-authored write_allowlist is rejected\nPASS changed verification/harness/semantic-stage-seals/S3.json invalidates composite even with recomputed digests\nPASS changed verification/harness/semantic-stage-seals/S3.json AFTER bytes cannot reuse an unchanged composite\nPASS changed run-log.md invalidates composite even with recomputed digests\nPASS changed run-log.md AFTER bytes cannot reuse an unchanged composite\nPASS changed ledgers/duplicate-review.md invalidates composite even with recomputed digests\nPASS changed ledgers/duplicate-review.md AFTER bytes cannot reuse an unchanged composite\nPASS nonempty bootstrap ledger is rejected\nPASS unrelated extra planned write is rejected\nPASS unplanned persisted projection or other artifact is rejected\nPASS projected missing-ledger S4 is rejected by ordinary validation and selection\nPASS ordinary S3 semantic plan cannot include duplicate ledger\nPASS ordinary duplicate write in S3 retains DUP_WINDOW refusal\nPASS ordinary duplicate plan cannot write stage-transition log\nPASS duplicate initializer cannot run twice even with a current preimage hash\nPASS bootstrap cannot reuse a consumed stage or initialize twice\nPASS wrong stage is rejected\nPASS stale or different run work is rejected\nPASS changed authenticated S3 semantic history cannot reuse the plan\nPASS missing S2 seal prerequisite refuses bootstrap\nPASS missing S3 review prerequisite refuses bootstrap\nPASS altered BEFORE log cannot reuse the derived projection\nPASS predecessor format cannot acquire cumulative bootstrap\nPASS read-only authenticated BEFORE can derive its disposable validator projection\nPASS nested read-only evidence keeps its bytes and modes during projection validation\nPASS consumption requires the completed Core bootstrap anchors\nPASS consumed bootstrap cannot hide a missing duplicate ledger\nPASS consumed bootstrap cannot change its S3 seal\nPASS later log appends preserve the exact bootstrap prefix\nPASS consumed composition cannot substitute alternate initial duplicate bytes\n{\"result\":\"PASS\",\"runtime\":false,\"cases\":[{\"name\":\"legal S3 has no duplicate artifact\"},{\"name\":\"pre-S4 duplicate ledger is rejected by state and selection\",\"error\":\"DUP_WINDOW ledgers/duplicate-review.md: duplicate artifacts forbidden before S4\"},{\"name\":\"exact S3 seal is derived by the existing constructor\"},{\"name\":\"exact existing S3 exit and S4 entry event is derived\"},{\"name\":\"zero claims and candidates still receive exactly the canonical six empty tables\"},{\"name\":\"dedicated planner and production derivation are identical\"},{\"name\":\"final composite passes existing seal, duplicate and open-window predicates\"},{\"name\":\"canonical AFTER selection uses initialized ledger without s4.initialize\"},{\"name\":\"caller-authored duplicate_bytes is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored stage_entry_bytes is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored destination_paths is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored after_images is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored projected_entry is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored write_allowlist is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"changed verification/harness/semantic-stage-seals/S3.json invalidates composite even with recomputed digests\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"changed verification/harness/semantic-stage-seals/S3.json AFTER bytes cannot reuse an unchanged composite\",\"error\":\"SEM_SUBJECT verification/harness/semantic-stage-seals/S3.json: proposed after-image differs\"},{\"name\":\"changed run-log.md invalidates composite even with recomputed digests\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"changed run-log.md AFTER bytes cannot reuse an unchanged composite\",\"error\":\"SEM_SUBJECT run-log.md: proposed after-image differs\"},{\"name\":\"changed ledgers/duplicate-review.md invalidates composite even with recomputed digests\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"changed ledgers/duplicate-review.md AFTER bytes cannot reuse an unchanged composite\",\"error\":\"DUP_SUBJECT ledgers/duplicate-review.md: prospective after-image differs\"},{\"name\":\"nonempty bootstrap ledger is rejected\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"unrelated extra planned write is rejected\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"unplanned persisted projection or other artifact is rejected\",\"error\":\"WORK_BOOTSTRAP_PLAN: unrelated after-image: verification/projected-entry.json\"},{\"name\":\"projected missing-ledger S4 is rejected by ordinary validation and selection\",\"error\":\"DUP_FORMAT ledgers/duplicate-review.md: ledger required on real S4 entry, including zero candidates\"},{\"name\":\"ordinary S3 semantic plan cannot include duplicate ledger\",\"error\":\"SEM_WINDOW ledgers/duplicate-review.md: outside bounded semantic operation\"},{\"name\":\"ordinary duplicate write in S3 retains DUP_WINDOW refusal\",\"error\":\"DUP_WINDOW S4: duplicate writes require open S4 before C1\"},{\"name\":\"ordinary duplicate plan cannot write stage-transition log\",\"error\":\"DUP_WINDOW run-log.md: outside exact operation path limits\"},{\"name\":\"duplicate initializer cannot run twice even with a current preimage hash\",\"error\":\"DUP_STATE initialize: only exact empty ledger at S4 entry\"},{\"name\":\"bootstrap cannot reuse a consumed stage or initialize twice\",\"error\":\"WORK_STALE: work is not the first unmet obligation\"},{\"name\":\"wrong stage is rejected\",\"error\":\"WORK_STAGE: bootstrap requires pre-entry S3\"},{\"name\":\"stale or different run work is rejected\",\"error\":\"WORK_STALE: exact S3-seal obligation\"},{\"name\":\"changed authenticated S3 semantic history cannot reuse the plan\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"missing S2 seal prerequisite refuses bootstrap\",\"error\":\"CAPTURE_HASH verification/harness/semantic-stage-seals/S2.json field locus: missing path or symlink\"},{\"name\":\"missing S3 review prerequisite refuses bootstrap\",\"error\":\"SEM_REVIEW VER-0702: assigned JSON result missing\"},{\"name\":\"altered BEFORE log cannot reuse the derived projection\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"predecessor format cannot acquire cumulative bootstrap\",\"error\":\"WORK_CAPABILITY: C09 cumulative bootstrap only\"},{\"name\":\"read-only authenticated BEFORE can derive its disposable validator projection\"},{\"name\":\"nested read-only evidence keeps its bytes and modes during projection validation\"},{\"name\":\"consumption requires the completed Core bootstrap anchors\",\"error\":\"CAPTURE_HASH verification/harness/semantic-stage-seals/S3.json field locus: missing path or symlink\"},{\"name\":\"consumed bootstrap cannot hide a missing duplicate ledger\",\"error\":\"CAPTURE_HASH ledgers/duplicate-review.md field locus: missing path or symlink\"},{\"name\":\"consumed bootstrap cannot change its S3 seal\",\"error\":\"WORK_CONSUMPTION: S3-seal consumption requires the complete S4 bootstrap\"},{\"name\":\"later log appends preserve the exact bootstrap prefix\"},{\"name\":\"consumed composition cannot substitute alternate initial duplicate bytes\",\"error\":\"WORK_CONSUMPTION: S3-seal consumption requires the complete S4 bootstrap\"}],\"root\":\"/tmp/f03-c09-bootstrap-ZPDCZ8\",\"scope\":\"Synthetic Core bootstrap composition; no installed/process proof, semantic acceptance or finding closure.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-c09-source.exit.json",
+      "sha256": "ef884437605e9b82c3b09deff09beadfc88557400e9edd657a7f5ae3d87e7725",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T13:05:15.980900+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-c09-runtime.command.json",
+      "sha256": "da1501ecb8e357d5f77f4cb6f4d269c3a46f28793f7eb67c9411b60550de9a06",
+      "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-f03-c09-bootstrap.ts\", \"--runtime\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"flags\": {}, \"start\": \"2026-09-27T13:05:11.353320+00:00\", \"scope\": \"Local synthetic fixture verification only. Calibration excluded before source copying; original pinned fixtures untouched.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-c09-runtime.log",
+      "sha256": "136ea08f9581b9aefcf03e1045783ff7ef07b629d6e89b645923dda588f0914c",
+      "text": "PASS legal S3 has no duplicate artifact\nPASS pre-S4 duplicate ledger is rejected by state and selection\nPASS exact S3 seal is derived by the existing constructor\nPASS exact existing S3 exit and S4 entry event is derived\nPASS zero claims and candidates still receive exactly the canonical six empty tables\nPASS dedicated planner and production derivation are identical\nPASS final composite passes existing seal, duplicate and open-window predicates\nPASS canonical AFTER selection uses initialized ledger without s4.initialize\nPASS caller-authored duplicate_bytes is rejected\nPASS caller-authored stage_entry_bytes is rejected\nPASS caller-authored destination_paths is rejected\nPASS caller-authored after_images is rejected\nPASS caller-authored projected_entry is rejected\nPASS caller-authored write_allowlist is rejected\nPASS changed verification/harness/semantic-stage-seals/S3.json invalidates composite even with recomputed digests\nPASS changed verification/harness/semantic-stage-seals/S3.json AFTER bytes cannot reuse an unchanged composite\nPASS changed run-log.md invalidates composite even with recomputed digests\nPASS changed run-log.md AFTER bytes cannot reuse an unchanged composite\nPASS changed ledgers/duplicate-review.md invalidates composite even with recomputed digests\nPASS changed ledgers/duplicate-review.md AFTER bytes cannot reuse an unchanged composite\nPASS nonempty bootstrap ledger is rejected\nPASS unrelated extra planned write is rejected\nPASS unplanned persisted projection or other artifact is rejected\nPASS projected missing-ledger S4 is rejected by ordinary validation and selection\nPASS ordinary S3 semantic plan cannot include duplicate ledger\nPASS ordinary duplicate write in S3 retains DUP_WINDOW refusal\nPASS ordinary duplicate plan cannot write stage-transition log\nPASS duplicate initializer cannot run twice even with a current preimage hash\nPASS bootstrap cannot reuse a consumed stage or initialize twice\nPASS wrong stage is rejected\nPASS stale or different run work is rejected\nPASS changed authenticated S3 semantic history cannot reuse the plan\nPASS missing S2 seal prerequisite refuses bootstrap\nPASS missing S3 review prerequisite refuses bootstrap\nPASS altered BEFORE log cannot reuse the derived projection\nPASS predecessor format cannot acquire cumulative bootstrap\nPASS read-only authenticated BEFORE can derive its disposable validator projection\nPASS nested read-only evidence keeps its bytes and modes during projection validation\nPASS consumption requires the completed Core bootstrap anchors\nPASS consumed bootstrap cannot hide a missing duplicate ledger\nPASS consumed bootstrap cannot change its S3 seal\nPASS later log appends preserve the exact bootstrap prefix\nPASS consumed composition cannot substitute alternate initial duplicate bytes\n{\"result\":\"PASS\",\"runtime\":true,\"cases\":[{\"name\":\"legal S3 has no duplicate artifact\"},{\"name\":\"pre-S4 duplicate ledger is rejected by state and selection\",\"error\":\"DUP_WINDOW ledgers/duplicate-review.md: duplicate artifacts forbidden before S4\"},{\"name\":\"exact S3 seal is derived by the existing constructor\"},{\"name\":\"exact existing S3 exit and S4 entry event is derived\"},{\"name\":\"zero claims and candidates still receive exactly the canonical six empty tables\"},{\"name\":\"dedicated planner and production derivation are identical\"},{\"name\":\"final composite passes existing seal, duplicate and open-window predicates\"},{\"name\":\"canonical AFTER selection uses initialized ledger without s4.initialize\"},{\"name\":\"caller-authored duplicate_bytes is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored stage_entry_bytes is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored destination_paths is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored after_images is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored projected_entry is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"caller-authored write_allowlist is rejected\",\"error\":\"WORK_BOOTSTRAP_INPUT: only authenticated basis, execution, work and retained time\"},{\"name\":\"changed verification/harness/semantic-stage-seals/S3.json invalidates composite even with recomputed digests\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"changed verification/harness/semantic-stage-seals/S3.json AFTER bytes cannot reuse an unchanged composite\",\"error\":\"SEM_SUBJECT verification/harness/semantic-stage-seals/S3.json: proposed after-image differs\"},{\"name\":\"changed run-log.md invalidates composite even with recomputed digests\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"changed run-log.md AFTER bytes cannot reuse an unchanged composite\",\"error\":\"SEM_SUBJECT run-log.md: proposed after-image differs\"},{\"name\":\"changed ledgers/duplicate-review.md invalidates composite even with recomputed digests\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"changed ledgers/duplicate-review.md AFTER bytes cannot reuse an unchanged composite\",\"error\":\"DUP_SUBJECT ledgers/duplicate-review.md: prospective after-image differs\"},{\"name\":\"nonempty bootstrap ledger is rejected\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"unrelated extra planned write is rejected\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"unplanned persisted projection or other artifact is rejected\",\"error\":\"WORK_BOOTSTRAP_PLAN: unrelated after-image: verification/projected-entry.json\"},{\"name\":\"projected missing-ledger S4 is rejected by ordinary validation and selection\",\"error\":\"DUP_FORMAT ledgers/duplicate-review.md: ledger required on real S4 entry, including zero candidates\"},{\"name\":\"ordinary S3 semantic plan cannot include duplicate ledger\",\"error\":\"SEM_WINDOW ledgers/duplicate-review.md: outside bounded semantic operation\"},{\"name\":\"ordinary duplicate write in S3 retains DUP_WINDOW refusal\",\"error\":\"DUP_WINDOW S4: duplicate writes require open S4 before C1\"},{\"name\":\"ordinary duplicate plan cannot write stage-transition log\",\"error\":\"DUP_WINDOW run-log.md: outside exact operation path limits\"},{\"name\":\"duplicate initializer cannot run twice even with a current preimage hash\",\"error\":\"DUP_STATE initialize: only exact empty ledger at S4 entry\"},{\"name\":\"bootstrap cannot reuse a consumed stage or initialize twice\",\"error\":\"WORK_STALE: work is not the first unmet obligation\"},{\"name\":\"wrong stage is rejected\",\"error\":\"WORK_STAGE: bootstrap requires pre-entry S3\"},{\"name\":\"stale or different run work is rejected\",\"error\":\"WORK_STALE: exact S3-seal obligation\"},{\"name\":\"changed authenticated S3 semantic history cannot reuse the plan\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"missing S2 seal prerequisite refuses bootstrap\",\"error\":\"CAPTURE_HASH verification/harness/semantic-stage-seals/S2.json field locus: missing path or symlink\"},{\"name\":\"missing S3 review prerequisite refuses bootstrap\",\"error\":\"SEM_REVIEW VER-0702: assigned JSON result missing\"},{\"name\":\"altered BEFORE log cannot reuse the derived projection\",\"error\":\"WORK_BOOTSTRAP_PLAN: exact Core bootstrap composition required\"},{\"name\":\"predecessor format cannot acquire cumulative bootstrap\",\"error\":\"WORK_CAPABILITY: C09 cumulative bootstrap only\"},{\"name\":\"read-only authenticated BEFORE can derive its disposable validator projection\"},{\"name\":\"nested read-only evidence keeps its bytes and modes during projection validation\"},{\"name\":\"consumption requires the completed Core bootstrap anchors\",\"error\":\"CAPTURE_HASH verification/harness/semantic-stage-seals/S3.json field locus: missing path or symlink\"},{\"name\":\"consumed bootstrap cannot hide a missing duplicate ledger\",\"error\":\"CAPTURE_HASH ledgers/duplicate-review.md field locus: missing path or symlink\"},{\"name\":\"consumed bootstrap cannot change its S3 seal\",\"error\":\"WORK_CONSUMPTION: S3-seal consumption requires the complete S4 bootstrap\"},{\"name\":\"later log appends preserve the exact bootstrap prefix\"},{\"name\":\"consumed composition cannot substitute alternate initial duplicate bytes\",\"error\":\"WORK_CONSUMPTION: S3-seal consumption requires the complete S4 bootstrap\"}],\"root\":\"/tmp/f03-c09-bootstrap-tL0lMK\",\"scope\":\"Synthetic Core bootstrap composition; no installed/process proof, semantic acceptance or finding closure.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-cleanup-c09-runtime.exit.json",
+      "sha256": "a4da81f87a24abf00418fe654a670232b01d83f82e695b81e90f8a8882618cb6",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T13:05:15.888239+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-projection-discriminator.command.json",
+      "sha256": "1c9613674fededa63ede6ec537a2e3f9af8542c9f9391f806ae2d0186c09ce36",
+      "text": "{\"cmd\": [\"/home/eileenspectremoon/.nvm/versions/node/v20.20.2/bin/node\", \"--input-type=module\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"stdin_source\": \"/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-projection-discriminator.ts\", \"stdin_sha256\": \"73c5ecfcef564e271bf3095b64d5b5e1a7b707f0d3e92098b706f2acc9c6a610\", \"start\": \"2026-09-27T13:06:53.139861+00:00\", \"scope\": \"Read-only original pinned work authentication and pure transaction derivation; disposable AFTER/removal probes only. No original run mutation, runtime replacement or source copying.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-projection-discriminator.log",
+      "sha256": "234b4014bc53ad62508d2d16cd63be86a2dc469e62baa3be80cd6a110b9ae74d",
+      "text": "{\"root\":\"/tmp/f03-bootstrap-final-cleanup-discriminator-uoa6Qf\",\"phase\":\"reauthenticating original pinned work; no writer invocation\"}\nPASS original pinned Core independently verifies the exact private bootstrap AFTER\nPASS raw removal reproduces EACCES on the independently verified private AFTER\n{\"result\":\"PASS\",\"root\":\"/tmp/f03-bootstrap-final-cleanup-discriminator-uoa6Qf\",\"controls\":3,\"original_run\":\"/tmp/aleph-orchestration-process-5dprnN/host/grimoires/loa/aleph/runs/RUN-20260927T094147176Z-9ec210cd058e\",\"work_id\":\"WORK-b96d1514f7650569c9be21acba28e4ec8166727e88d09b2ba1993ca1d1d8f7e1\",\"node\":\"v20.20.2\",\"negative_failure\":{\"code\":\"EACCES\",\"message\":\"EACCES: permission denied, unlink '/tmp/f03-bootstrap-final-cleanup-discriminator-uoa6Qf/raw-rm-failure/control/runtime/bundle/AGENTS.md'\"},\"scope\":\"Original pinned Core and pure journal rederivation, read-only canonical run. Private AFTER is never canonical authority. Fresh installed corrected-writer proof is separate and still running.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/bootstrap-final-projection-discriminator.exit.json",
+      "sha256": "2922d992d5e5c402197aafa8bc86d5c9f75acf17796571d4843ee794af61aaac",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T13:10:03.817035+00:00\"}\n"
+    }
+  ],
+  "retained_failed_followups": [
+    {
+      "name": "bootstrap-final-cleanup-typecheck",
+      "reason": "Test readdirSync overload admitted Buffer paths; explicit encoding utf8 fixed the test. Original typecheck failure retained.",
+      "log": "\n> loa-aleph@0.0.0 typecheck\n> tsc --noEmit && tsc -p adapters/loa/tsconfig.json --noEmit\n\nadapters/loa/tests/test-orchestration-process.ts(957,42): error TS2345: Argument of type 'string | NonSharedBuffer' is not assignable to parameter of type 'string'.\n  Type 'NonSharedBuffer' is not assignable to type 'string'.\n"
+    },
+    {
+      "name": "bootstrap-final-old-pinned-preview-node20",
+      "reason": "Failed cleanup had already partially removed its private projection, including control/run-state.json. Direct read returned ENOENT. The independent discriminator reconstructed a new private AFTER only after full original pinned work/transaction rederivation; original incomplete projection retained.",
+      "log": "node:fs:573\n  return binding.open(\n                 ^\n\nError: ENOENT: no such file or directory, open '/tmp/aleph-bootstrap-final-zKVqfS/control/run-state.json'\n    at Object.openSync (node:fs:573:18)\n    at readFileSync (node:fs:452:35)\n    at readJsonFile (file:///tmp/aleph-orchestration-process-5dprnN/host/grimoires/loa/aleph/runs/RUN-20260927T094147176Z-9ec210cd058e/control/runtime/bundle/runtime-js/adapters/loa/src/fs.js:218:19)\n    at readRunState (file:///tmp/aleph-orchestration-process-5dprnN/host/grimoires/loa/aleph/runs/RUN-20260927T094147176Z-9ec210cd058e/control/runtime/bundle/runtime-js/adapters/loa/src/run-control.js:311:19)\n    at verifyRunControl (file:///tmp/aleph-orchestration-process-5dprnN/host/grimoires/loa/aleph/runs/RUN-20260927T094147176Z-9ec210cd058e/control/runtime/bundle/runtime-js/adapters/loa/src/run-control.js:551:19)\n    at file:///tmp/loa-aleph-f03-implementation-20260917/[eval1]:1:128 {\n  errno: -2,\n  code: 'ENOENT',\n  syscall: 'open',\n  path: '/tmp/aleph-bootstrap-final-zKVqfS/control/run-state.json'\n}\n\nNode.js v20.20.2\n"
+    }
+  ],
+  "qualification_limits": "Source/runtime Core43controls and Node20 original-pinned private-projection3controls PASS. Full fixed-writer installed Node20 bootstrap/recovery remains pending. Previously qualified current33+1source,33+1runtime,47controller and packaging results remain at their exact prior attempts; authentication logic is unchanged. FullS4/C2/ClassC/F05 and other installed DoD remain incomplete.",
+  "scope": "All fresh fixture source copies exclude calibration before reads; no old runtime substitution or predecessor migration. Historical c6ca7d0 source-copy incident remains visible; no overall zero prohibited-operation claim. No new provider/model/native/livecorpus/release/PR/merge/acceptance/closure/v1 activity.",
+  "new_core_policy_conflict": null
+}
