@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { duplicateFixtureBase } from '../../../scripts/duplicate-fixture-support.ts';
 import { writeFixtureFile, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
+import { canonicalJsonBytes } from '../../../scripts/lib/bundle-format.ts';
 import { semanticJson } from '../../../scripts/lib/semantic-review.ts';
 import { relationReviewSubjectDigest, parseRelations } from '../../../scripts/lib/relations.ts';
 import type { WorkValue, NextWork } from '../../../scripts/lib/work-transitions.ts';
@@ -17,6 +18,8 @@ const core = await import(runtime ? '../../../runtime-js/scripts/lib/work-transi
   : '../../../scripts/lib/work-transitions.ts') as typeof import('../../../scripts/lib/work-transitions.ts');
 const sem = await import(runtime ? '../../../runtime-js/scripts/lib/semantic-review.js'
   : '../../../scripts/lib/semantic-review.ts') as typeof import('../../../scripts/lib/semantic-review.ts');
+const material = await import(runtime ? '../../../runtime-js/scripts/lib/source-representation.js'
+  : '../../../scripts/lib/source-representation.ts') as typeof import('../../../scripts/lib/source-representation.ts');
 const scratch = mkdtempSync(join(tmpdir(), 'f03-relations-'));
 let run = join(scratch, 'before'), serial = 0;
 duplicateFixtureBase(run, undefined, undefined, { runFormatVersion: '1.9.0-provisional' });
@@ -34,11 +37,11 @@ function apply(work: NextWork, value: WorkValue | null): void {
 }
 function returned(work: NextWork, value: unknown, producerContext: string | null = null): WorkValue {
   assert(work.kind === 'worker');
-  const call = work.call.prepared_call_id!, raw = Buffer.from(semanticJson(value));
+  const call = work.call.prepared_call_id!, raw = canonicalJsonBytes(value);
   writeFixtureFile(run, `control/worker-returns/${call}/raw.json`, raw);
   return { call_id: call, role: work.call.role, context_id: `CTX-${call}`, producer_context_id: producerContext,
     raw_digest: core.workDigest(raw), receipt_digest: `sha256:${'a'.repeat(64)}`, simulation: true,
-    value: value as WorkValue['value'] };
+    value: JSON.parse(raw.toString()) as WorkValue['value'] };
 }
 const noCanonicalRelation = () => assert.equal(parseRelations(loadRun(run)).rows.length, 0);
 const sourceSeal = readFileSync(join(run, 'verification/harness/semantic-stage-seals/S2.json'));
@@ -76,6 +79,26 @@ function rawWith(s = subject) {
     rationale: 'Synthetic relation proposal only.', flags: [], material_use: TEXT_USE }], not_applicable: [], material_findings: [] };
 }
 const value = returned(capture, rawWith());
+test('transport-sorted material use derives the exact retained relation capture', () => {
+  const input = (value.value as any).relation_proposals[0].material_use;
+  assert.deepEqual(Object.keys(input), Object.keys(input).sort());
+  assert.notDeepEqual(Object.keys(input), Object.keys(TEXT_USE));
+  const plan = rel.deriveRelationTransition(loadRun(run), capture, value);
+  const retained = JSON.parse(Buffer.from(plan.effects[0].after_base64, 'base64').toString());
+  assert.deepEqual(retained, value);
+});
+for (const [name, change] of [
+  ['missing material-use field', (input: any) => { delete input.reason; }],
+  ['unknown material-use field', (input: any) => { input.unknown = true; }],
+  ['unknown material requirement field', (input: any) => { input.requirements[0].unknown = true; }],
+] as const) test(name, () => {
+  const altered = structuredClone(value);
+  change((altered.value as any).relation_proposals[0].material_use);
+  assert.throws(() => rel.deriveRelationTransition(loadRun(run), capture, altered), /UNDECLARED_FEATURE/u);
+}, 'adversarial');
+test('canonical ledger material-use validation still requires declared field order', () =>
+  assert.throws(() => material.validateMaterialUseInput((value.value as any).relation_proposals[0].material_use),
+    /UNDECLARED_FEATURE/u), 'adversarial');
 for (const [name, change] of [
   ['wrong owner stage', { owner_stage: 'S3' }],
   ['wrong producer identity', { proposed_by: 'invocation:another-call' }],

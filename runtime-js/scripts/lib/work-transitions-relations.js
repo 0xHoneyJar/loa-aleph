@@ -89,7 +89,8 @@ function globalProjection(raw) {
         target_source_id: raw.target_source_id, target_locator: raw.target_locator,
         target_span_hash: raw.target_span_hash, record_state: raw.record_state,
         null_reason: raw.null_reason, basis_packet_ids: raw.basis_packet_ids, proposed_by: raw.proposed_by };
-    return { subject: s, review_subject_digest: raw.review_subject_digest, material_use: validateMaterialUseInput(raw.material_use) };
+    // Transport JSON can reorder fields; normalize input before canonical USE serialization.
+    return { subject: s, review_subject_digest: raw.review_subject_digest, material_use: validateMaterialUseInput(raw.material_use, false) };
 }
 export function relationWorkProposals(model) {
     const result = localProposals(model), captured = accepted(model, CAPTURE);

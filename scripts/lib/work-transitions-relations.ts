@@ -107,7 +107,8 @@ function globalProjection(raw: Record<string, unknown>): RelationProjection {
     target_source_id: raw.target_source_id as string, target_locator: raw.target_locator as string,
     target_span_hash: raw.target_span_hash as string, record_state: raw.record_state as string,
     null_reason: raw.null_reason as string, basis_packet_ids: raw.basis_packet_ids as string[], proposed_by: raw.proposed_by as string };
-  return { subject: s, review_subject_digest: raw.review_subject_digest as string, material_use: validateMaterialUseInput(raw.material_use) };
+  // Transport JSON can reorder fields; normalize input before canonical USE serialization.
+  return { subject: s, review_subject_digest: raw.review_subject_digest as string, material_use: validateMaterialUseInput(raw.material_use, false) };
 }
 export function relationWorkProposals(model: RunModel): Proposal[] {
   const result = localProposals(model), captured = accepted(model, CAPTURE);
