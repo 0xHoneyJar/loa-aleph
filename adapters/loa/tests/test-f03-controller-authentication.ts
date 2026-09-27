@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Separate installed-process attacks on a fresh accepted, unconsumed S1 work.
 import assert from 'node:assert/strict';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -191,6 +191,18 @@ refusal('missing sealed work basis member', (run) => {
   const work = JSON.parse(readFileSync(join(run, workRef), 'utf8'));
   rmSync(join(run, `control/orchestration/basis/${work.basis_digest.slice(7)}/manifest.json`));
 }, /ENOENT|WORK_BASIS/u);
+refusal('missing predecessor consumption leaves an ambiguous authenticated work queue', (run) => {
+  const workDirectory = join(run, 'control/orchestration/work');
+  const predecessor = readdirSync(workDirectory)
+    .map((path) => JSON.parse(readFileSync(join(workDirectory, path), 'utf8')))
+    .find((work) => work.identity.work.obligation.operation === 'criteria.prepare-samples');
+  assert(predecessor && predecessor.work_id !== seed.work_id, 'seed must retain the actual completed predecessor');
+  const consumption = join(run, `control/orchestration/commits/${predecessor.work_id}-consumed.json`);
+  assert(existsSync(consumption), 'predecessor must be consumed before the mutation');
+  assert(!existsSync(join(run, `control/orchestration/commits/${seed.work_id}-consumed.json`)),
+    'accepted successor must still be unconsumed');
+  rmSync(consumption);
+}, /WORK_QUEUE_AMBIGUOUS/u);
 refusal('changed installed immutable bundle refuses before work recovery', (run) => {
   const path = 'control/runtime/bundle/runtime-js/adapters/loa/src/orchestration.js';
   replace(run, path, Buffer.concat([readFileSync(join(run, path)), Buffer.from('\n// altered pinned bytes\n')]));
