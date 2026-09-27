@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { stableJsonBytes, sha256Digest, makeTreeOwnerWritable } from '../src/fs.ts';
 import { stateCheckpointDigest } from '../src/run-control.ts';
@@ -29,6 +29,10 @@ assert.equal(journal.state_after.execution.stage, 'S4');
 assert(!existsSync(join(seed, consumedRef)));
 const effects = journal.plan.effects as Array<{ path: string; after_base64: string; after_digest: string }>;
 const cases: Array<{ name: string; run: string; exit: number | null; error?: string }> = [];
+function copy(from: string, to: string): void {
+  cpSync(from, to, { recursive: true,
+    filter: (path) => !relative(from, path).split(sep).includes('calibration') });
+}
 function write(run: string, path: string, bytes: Buffer | string): void {
   const full = join(run, path); mkdirSync(dirname(full), { recursive: true });
   rmSync(full, { force: true }); writeFileSync(full, bytes);
@@ -37,6 +41,7 @@ function inventory(run: string): Array<{ path: string; mode: number; digest: str
   const rows: Array<{ path: string; mode: number; digest: string }> = [];
   function visit(prefix: string) {
     for (const name of readdirSync(join(run, prefix)).sort()) {
+      assert.notEqual(name, 'calibration', 'fixture contains excluded calibration administration');
       const path = prefix ? `${prefix}/${name}` : name;
       if (/^control\/(?:orchestration\/lock|ledger-writer\.lock)(?:\/|\.|$)/u.test(path)) continue;
       const s = statSync(join(run, path));
@@ -53,11 +58,11 @@ const slot = join(seedRecord.host, 'grimoires/loa/aleph/runs', journal.state_bef
 assert(seedRecord.host.startsWith(join(tmpdir(), 'aleph-orchestration-process-')));
 assert.equal(JSON.parse(readFileSync(join(slot, 'control/run-state.json'), 'utf8')).full_mode, 'fixture-simulated');
 const original = join(root, 'original-completed-fixture');
-cpSync(slot, original, { recursive: true });
+copy(slot, original);
 const originalInventory = inventory(original);
 function restoreSlot(from: string): void {
   makeTreeOwnerWritable(slot); rmSync(slot, { recursive: true });
-  cpSync(from, slot, { recursive: true });
+  copy(from, slot);
 }
 const script = `
 import { pathToFileURL } from 'node:url';
@@ -81,7 +86,7 @@ function invoke(run: string, id = workId, action = 'commit') {
   });
   attempts++;
   writeFileSync(join(root, `attempt-${attempts}.log`), result.stdout + result.stderr);
-  cpSync(slot, join(root, `attempt-${attempts}-after`), { recursive: true });
+  copy(slot, join(root, `attempt-${attempts}-after`));
   return result;
 }
 function test(name: string, change: (run: string) => void, refusal?: RegExp, id = workId, action = 'commit'): void {
