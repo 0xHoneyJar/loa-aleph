@@ -68,9 +68,9 @@ production `s4.initialize` step.
 
 The explicit controller capability halt is the supported frontier. Do not
 infer S5–S13 work or describe the partial controller as a complete autonomous
-pipeline. The repository default remains 1.8. The legacy assembly/writer
-instructions below apply only to retained predecessor execution surfaces;
-they are not a 1.9 bypass.
+pipeline. New runs use the cumulative 1.9 controller. The legacy assembly/writer
+instructions below apply only to retained predecessor execution surfaces
+under their own immutable pins; they are not a 1.9 bypass.
 
 For a new run, provide the exact host-capability receipt at
 `grimoires/loa/aleph/host-capabilities.json`, or pass its unmanaged path with
