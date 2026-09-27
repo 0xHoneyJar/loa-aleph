@@ -28,7 +28,11 @@ export function predecessorSource(repository: string, root: string, version = '1
   }
   stripFixtureCalibrationInventory(target);
   for (const path of ['core.manifest.json', 'adapters/loa/adapter.manifest.json', 'adapters/hermes/adapter.manifest.json', 'adapter-protocol/adapter.schema.json']) {
-    writeFileSync(join(target, path), readFileSync(join(target, path), 'utf8').replaceAll('1.8.0-provisional', version));
+    const value = JSON.parse(readFileSync(join(target, path), 'utf8'));
+    if (path === 'core.manifest.json') value.core.run_format_version = version;
+    else if (path === 'adapter-protocol/adapter.schema.json') value.properties.adapter.properties.run_format_version.const = version;
+    else value.adapter.run_format_version = version;
+    writeFileSync(join(target, path), JSON.stringify(value, null, 2) + '\n');
   }
   const prompts = join(target, 'docs/architecture/prompts/workers-intake-extraction.md');
   const strip = (value: unknown): unknown => Array.isArray(value) ? value.map(strip)

@@ -7,7 +7,7 @@ import { selectBlockedProceduralWork, type WorkAuthority } from './work-transiti
 import { WIDENING_PREPARATIONS, WIDENING_CAPTURES, WIDENING_CONTRACT, WIDENING_TASK,
   derivePacketWideningBasis, validatePacketWideningBasis, wideningCallId, packetWideningCaptures,
   type PacketWideningBasis, type PacketWideningCapture } from './packet-widening.ts';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parseStrictJson, type WorkerJsonValue } from './worker-return-contract.ts';
@@ -1981,7 +1981,17 @@ function validateS3ToS4Bootstrap(model: RunModel, proposedModel: RunModel, trans
     planDuplicateWrite({ model: loadRun(projected), proposedModel, proposal_id: 'none',
       subject_digest: expected.effects[2].after_digest, operation: 'initialize', record_id: 'S4',
       writes: writes.slice(2), prerequisite_paths: [], acceptance_bindings: [] });
-  } finally { rmSync(projected, { recursive: true, force: true }); }
+  } finally {
+    // Only the disposable copy is thawed; retained evidence keeps its modes.
+    function writableDirectories(path: string): void {
+      chmodSync(path, 0o700);
+      for (const entry of readdirSync(path, { withFileTypes: true })) {
+        if (entry.isDirectory()) writableDirectories(join(path, entry.name));
+      }
+    }
+    writableDirectories(projected);
+    rmSync(projected, { recursive: true, force: true });
+  }
   validateRepresentationRun(proposedModel);
   validateDuplicateRun(proposedModel);
   assertDuplicateWindow(proposedModel);

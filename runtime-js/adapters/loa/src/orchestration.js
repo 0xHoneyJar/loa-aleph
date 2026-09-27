@@ -1,15 +1,15 @@
 import { existsSync, readFileSync, mkdirSync, mkdtempSync, rmSync, linkSync, unlinkSync, openSync, closeSync, fsyncSync, readdirSync, lstatSync, writeFileSync, cpSync, } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
-import { assertNoSymlinkComponents, assertSafeRelativePath, readStableRegularFile, stableJsonBytes, sha256Digest, walkRegularFiles, writeFileAtomic, } from './fs.js';
-import { acquireDurableProcessLock, readRunState, stateCheckpointDigest, verifyRetainedRuntimeIdentity, verifyRunControl, } from './run-control.js';
+import { assertNoSymlinkComponents, assertSafeRelativePath, readStableRegularFile, stableJsonBytes, sha256Digest, walkRegularFiles, writeFileAtomic, makeTreeOwnerWritable, } from './fs.js';
+import { acquireDurableProcessLock, readRunState, verifyRetainedRuntimeIdentity, verifyRunControl, } from './run-control.js';
 import { loadRun, hasRunCapability } from '../../../scripts/lib/run-model.js';
 import { parseStrictJson } from '../../../scripts/lib/worker-return-contract.js';
 import { selectNextWork, deriveWorkTransition, workDigest, workJson, assertWork, WORK_STAGE_CONTRACT, WORK_TRANSITION_CAPABILITY, CRITERIA_SAMPLE_INPUT_PATH, criteriaSampleProposal, validateDerivedWorkTransition, validateConsumedWorkTransition, LATE_LINEAGE_INPUT_PATH, validateLateLineageProposal, } from '../../../scripts/lib/work-transitions.js';
 import { assembleWorkerBundle, verifyWorkerBundle, coreBlindPolicyReference } from './worker-bundle.js';
 import { checkWorkerReturn } from './worker-return.js';
 import { reopenNativeWorkerEvidence } from './worker-dispatch.js';
-import { LedgerWriter } from './ledger-writer.js';
+import { LedgerWriter, deriveWorkTransaction } from './ledger-writer.js';
 import { verifyAndLoadLoaBundle } from './core-loader.js';
 import { AMBIGUITY_SELECTION_INPUT, ambiguityExpressionSelection } from '../../../scripts/lib/work-transitions-ambiguities.js';
 import { validateAuthorityContact } from '../../../scripts/lib/work-transitions-authority.js';
@@ -106,18 +106,21 @@ export function orchestrationFixtureFault(runDir, operation, point) {
     if (requested === `${operation}:${point}`)
         process.exit(86);
 }
-export function withOrchestrationLock(runDir, action, clock = clockDefault) {
+export function acquireOrchestrationLock(runDir, clock = clockDefault) {
     if (heldLocks.has(runDir))
-        return action();
+        return () => { };
     const release = acquireDurableProcessLock(join(runDir, ROOT, 'lock'), {
         format: 'aleph-loa-orchestration-lock/v1', label: 'orchestration', acquiredAt: clock.now(),
     });
     heldLocks.add(runDir);
+    return () => { heldLocks.delete(runDir); release(); };
+}
+export function withOrchestrationLock(runDir, action, clock = clockDefault) {
+    const release = acquireOrchestrationLock(runDir, clock);
     try {
         return action();
     }
     finally {
-        heldLocks.delete(runDir);
         release();
     }
 }
@@ -182,6 +185,7 @@ function withBasis(runDir, digest, action) {
         return action(scratch);
     }
     finally {
+        makeTreeOwnerWritable(scratch);
         rmSync(scratch, { recursive: true, force: true });
     }
 }
@@ -422,10 +426,16 @@ export function deriveAuthenticatedWork(runDir, id, recovering = false) {
     assertWork(!existsSync(canonicalPath(runDir, consumedPath(id))), 'WORK_CONSUMED', id);
     if (!recovering)
         assertApplicable(runDir, work);
+    return deriveRetainedWork(runDir, work, new Map());
+}
+/** Private historical derivation uses only the authenticated creation basis.
+ * The public writer entry above continues to reject consumed work. */
+function deriveRetainedWork(runDir, work, consumptions) {
+    const id = work.work_id;
     const accepted = work.call ? reopenAcceptedWorkReturn(runDir, id) : null;
     for (const dependency of work.identity.dependencies) {
         const parent = reopenAcceptedWorkReturn(runDir, dependency.work_id);
-        const consumed = readConsumption(runDir, dependency.work_id);
+        const consumed = readConsumption(runDir, dependency.work_id, consumptions);
         assertWork(parent.receipt.digest === dependency.receipt_digest && consumed.digest === dependency.consumption_digest
             && parent.returned.callId === dependency.call_id, 'WORK_DEPENDENCY', id);
     }
@@ -465,6 +475,7 @@ export function deriveAuthenticatedWork(runDir, id, recovering = false) {
             validateDerivedWorkTransition(model, loadRun(proposed), transition);
         }
         finally {
+            makeTreeOwnerWritable(proposed);
             rmSync(proposed, { recursive: true, force: true });
         }
         return { beforeState, chainBefore: existsSync(chainPath) ? readFileSync(chainPath, 'utf8') : '', transition };
@@ -483,37 +494,44 @@ export function prepareOrchestrationCommit(runDir, authenticated) {
 export function readOrchestrationCommit(runDir, id) {
     return readSealed(runDir, orchestrationCommitPath(id), ['format', 'work_id', 'work_digest', 'acceptance_digest', 'plan_digest', 'before_checkpoint', 'before_chain', 'journal']);
 }
-function readConsumption(runDir, id) {
+function readConsumption(runDir, id, consumptions = new Map()) {
+    if (consumptions.has(id)) {
+        const checked = consumptions.get(id);
+        assertWork(checked, 'WORK_DEPENDENCY', 'cyclic consumption');
+        return checked;
+    }
+    // This memo exists only within one synchronous, read-only authentication
+    // traversal. Nothing is cached across mutations or process boundaries.
+    consumptions.set(id, null);
     const consumed = readSealed(runDir, consumedPath(id), ['format', 'work_id', 'commit_digest', 'journal_digest', 'after_checkpoint', 'after_chain']);
     const intent = readOrchestrationCommit(runDir, id);
-    const work = readSealed(runDir, workPath(id), WORK_KEYS);
+    const work = readOrchestrationWork(runDir, id);
+    assertWork(intent.journal === `control/transactions/TXN-work-${id.slice(5)}.json`, 'WORK_COMMIT_BINDING', id);
     const journal = readStableRegularFile(canonicalPath(runDir, intent.journal)).bytes;
     assertWork(consumed.format === 'aleph-loa-work-consumption/v1' && consumed.work_id === id && consumed.commit_digest === intent.digest
         && consumed.journal_digest === sha256Digest(journal), 'WORK_CONSUMPTION', id);
     const transaction = parseStrictJson(journal);
     closedRecord(transaction, ['format', 'work_id', 'intent_digest', 'plan', 'state_before', 'state_after',
         'chain_before', 'chain_after', 'digest', 'status'], 'consumed journal');
-    const { digest, status, ...body } = transaction;
+    const authenticated = deriveRetainedWork(runDir, work, consumptions);
+    assertWork(workJson(transaction.plan).equals(workJson(authenticated.transition)), 'WORK_CONSUMPTION_PLAN', 'committed transition differs from exact Core rederivation');
+    const expected = deriveWorkTransaction(authenticated, intent);
+    assertWork(journal.equals(stableJsonBytes({ ...expected, status: 'committed' })), 'WORK_CONSUMPTION_TRANSACTION', 'committed transaction differs from authenticated BEFORE and Core transition');
     const chain = readStableRegularFile(canonicalPath(runDir, 'control/ledger-chain.jsonl')).bytes.toString();
-    assertWork(transaction.format === 'aleph-loa-work-transaction/v1' && transaction.work_id === id
-        && transaction.intent_digest === intent.digest && status === 'committed' && digest === sha256Digest(stableJsonBytes(body))
-        && intent.work_digest === work.digest && intent.work_id === id
-        && intent.before_checkpoint === work.identity.checkpoint && intent.before_chain === work.identity.ledger.chain_head
-        && workJson(transaction.plan.obligation).equals(workJson(work.identity.work.obligation))
-        && workDigest(workJson(transaction.plan)) === intent.plan_digest
-        && consumed.after_checkpoint === stateCheckpointDigest(transaction.state_after)
-        && consumed.after_checkpoint === transaction.state_after.execution.resume.checkpoint_digest
-        && consumed.after_chain === transaction.state_after.ledger.chain_head
-        && chain.startsWith(transaction.chain_after), 'WORK_CONSUMPTION', 'committed canonical chain/checkpoint required');
-    validateConsumedWorkTransition(runDir, transaction.plan);
+    assertWork(consumed.after_checkpoint === expected.state_after.execution.resume.checkpoint_digest
+        && consumed.after_chain === expected.state_after.ledger.chain_head
+        && chain.startsWith(expected.chain_after), 'WORK_CONSUMPTION', 'committed canonical chain/checkpoint required');
+    validateConsumedWorkTransition(runDir, authenticated.transition);
+    consumptions.set(id, consumed);
     return consumed;
 }
 export function pendingOrchestrationCommitWork(runDir) {
+    const consumptions = new Map();
     const pending = allWorkIds(runDir).filter((id) => {
         readOrchestrationWork(runDir, id);
         if (!existsSync(canonicalPath(runDir, consumedPath(id))))
             return true;
-        readConsumption(runDir, id);
+        readConsumption(runDir, id, consumptions);
         return false;
     });
     assertWork(pending.length <= 1, 'WORK_QUEUE_AMBIGUOUS', 'multiple unconsumed work items');
@@ -601,11 +619,12 @@ export function resumeOrchestration(runDir, clock = clockDefault) {
             return halt ? { kind: 'halt', code: halt.code, reason: halt.reason } : null;
         };
         for (;;) {
+            const consumptions = new Map();
             const works = allWorkIds(runDir).map((id) => readOrchestrationWork(runDir, id));
             const pending = works.filter((work) => {
                 if (!existsSync(canonicalPath(runDir, consumedPath(work.work_id))))
                     return true;
-                readConsumption(runDir, work.work_id);
+                readConsumption(runDir, work.work_id, consumptions);
                 return false;
             });
             assertWork(pending.length <= 1, 'WORK_QUEUE_AMBIGUOUS', 'multiple unconsumed work items');

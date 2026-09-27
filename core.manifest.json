@@ -4,7 +4,7 @@
     "id": "aleph-core",
     "version": "0.1.0-provisional",
     "adapter_protocol_version": "1.0.0-provisional",
-    "run_format_version": "1.8.0-provisional",
+    "run_format_version": "1.9.0-provisional",
     "digest_algorithm": "sha256-path-file-digest-v1"
   },
   "manual_execution_binding": {
@@ -723,7 +723,9 @@
         "adapters/loa/tests/test-f03-c09-recovery.ts",
         "adapters/loa/tests/test-f03-late-lineage.ts",
         "adapters/loa/tests/test-f03-controller-authentication.ts",
-        "adapters/loa/tests/test-f03-retained-runtime-routing.ts"
+        "adapters/loa/tests/test-f03-retained-runtime-routing.ts",
+        "adapters/loa/tests/test-f03-consumed-plan-authentication.ts",
+        "adapters/loa/tests/test-f03-concurrency.ts"
       ]
     },
     "packaging": [
@@ -1001,7 +1003,10 @@
       "calibration/src-001/core-design-basis/ADOPTED-f03-c2-frozen-source-identity-clarification-20260926.md",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-continuation-and-c09-s4-entry-stop-20260926.json",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-c08-c09-fixture-snapshots-20260926.json",
-      "calibration/src-001/core-design-basis/STOPPED-f03-c09-s4-entry-bootstrap-conflict-20260926.md"
+      "calibration/src-001/core-design-basis/STOPPED-f03-c09-s4-entry-bootstrap-conflict-20260926.md",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-consumed-plan-original-20260927.json",
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-authority-lock-original-20260927.json",
+      "calibration/src-001/core-design-basis/IMPLEMENTED-f03-consumed-plan-reauthentication-checkpoint-20260927.md"
     ]
   },
   "checker_paths": [

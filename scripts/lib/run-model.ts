@@ -52,8 +52,8 @@ export const FORMAL_LAYOUT_RUN_FORMAT_VERSION = '1.6.0-provisional';
 export const SEMANTIC_REVIEW_RUN_FORMAT_VERSION = '1.7.0-provisional';
 export const DUPLICATE_REVIEW_RUN_FORMAT_VERSION = '1.8.0-provisional';
 export const ORCHESTRATOR_WORK_RUN_FORMAT_VERSION = '1.9.0-provisional';
-// Activation follows completion of the bounded orchestration implementation.
-export const CURRENT_RUN_FORMAT_VERSION = DUPLICATE_REVIEW_RUN_FORMAT_VERSION;
+// New bundles select the adopted format; existing runs keep their exact pins.
+export const CURRENT_RUN_FORMAT_VERSION = ORCHESTRATOR_WORK_RUN_FORMAT_VERSION;
 export const PACKET_DEFINITION_HEADER = [
   'packet id',
   'source id',

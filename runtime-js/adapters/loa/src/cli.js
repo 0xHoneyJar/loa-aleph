@@ -16,7 +16,7 @@ import { CLOSURE_PHASES, closurePhasesFromText, nextClosurePhase, } from '../../
 import { usesFormalLayoutBindings } from '../../../scripts/lib/run-model.js';
 import { representationUsesMarkdown, REPRESENTATION_USE_PATH, assertRepresentationExtractionSupported, readRepresentationContext, RepresentationError } from '../../../scripts/lib/source-representation.js';
 import { loadRun } from '../../../scripts/lib/run-model.js';
-import { usesOrchestration, withOrchestrationLock, resumeOrchestration, proposeOrchestrationSamples, proposeOrchestrationAmbiguities, proposeOrchestrationAuthorityContact, proposeOrchestrationLateLineage } from './orchestration.js';
+import { usesOrchestration, acquireOrchestrationLock, withOrchestrationLock, resumeOrchestration, proposeOrchestrationSamples, proposeOrchestrationAmbiguities, proposeOrchestrationAuthorityContact, proposeOrchestrationLateLineage } from './orchestration.js';
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_CAPABILITIES_PATH = 'grimoires/loa/aleph/host-capabilities.json';
 function isRecord(value) {
@@ -603,11 +603,25 @@ function s0TransactionPayload(transaction) {
     return sha256Digest(stableJsonBytes(transaction));
 }
 function acquireS0TransactionLock(runDir, acquiredAt, _recoverDeadOwner) {
-    return acquireDurableProcessLock(join(runDir, 'control', 's0-transaction.lock'), {
-        format: 'aleph-loa-s0-transaction-lock/v1',
-        label: 'S0 transaction writer lock',
-        acquiredAt,
-    });
+    const releaseOrchestration = usesOrchestration(runDir)
+        ? acquireOrchestrationLock(runDir, { now: () => acquiredAt }) : () => { };
+    try {
+        const release = acquireDurableProcessLock(join(runDir, 'control', 's0-transaction.lock'), {
+            format: 'aleph-loa-s0-transaction-lock/v1',
+            label: 'S0 transaction writer lock',
+            acquiredAt,
+        });
+        return () => { try {
+            release();
+        }
+        finally {
+            releaseOrchestration();
+        } };
+    }
+    catch (error) {
+        releaseOrchestration();
+        throw error;
+    }
 }
 function parseS0Transaction(path) {
     const value = readJsonFile(path);

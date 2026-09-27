@@ -3,7 +3,7 @@ import { captureGeneration, stationaryCursor, stationaryCaptureWork, stationaryC
 import { selectS4Work, deriveS4Transition, validateS4Transition, s4SemanticCaptures } from './work-transitions-s4.js';
 import { selectBlockedProceduralWork } from './work-transitions-authority.js';
 import { WIDENING_PREPARATIONS, WIDENING_CAPTURES, WIDENING_CONTRACT, WIDENING_TASK, derivePacketWideningBasis, validatePacketWideningBasis, wideningCallId, packetWideningCaptures } from './packet-widening.js';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parseStrictJson } from './worker-return-contract.js';
@@ -1862,6 +1862,15 @@ function validateS3ToS4Bootstrap(model, proposedModel, transition) {
             writes: writes.slice(2), prerequisite_paths: [], acceptance_bindings: [] });
     }
     finally {
+        // Only the disposable copy is thawed; retained evidence keeps its modes.
+        function writableDirectories(path) {
+            chmodSync(path, 0o700);
+            for (const entry of readdirSync(path, { withFileTypes: true })) {
+                if (entry.isDirectory())
+                    writableDirectories(join(path, entry.name));
+            }
+        }
+        writableDirectories(projected);
         rmSync(projected, { recursive: true, force: true });
     }
     validateRepresentationRun(proposedModel);

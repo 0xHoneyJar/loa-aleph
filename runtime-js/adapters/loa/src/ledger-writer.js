@@ -18,7 +18,9 @@ import { ResultCollector } from '../../../scripts/lib/results.js';
 import { loadRun, usesFormalLayoutBindings, usesInternalAmbiguityLifecycle, hasRunCapability } from '../../../scripts/lib/run-model.js';
 import { assertSemanticWindow, validateSemanticPlan, validateSemanticRun, planSemanticWrite, semanticJson, semanticClosureHash, validateSemanticAcceptedBindings, SEMANTIC_PATH, semanticRequiresWritePlan, validateCompletedSemanticPlan, } from '../../../scripts/lib/semantic-review.js';
 import { materialHash, assertMaterialReturnWritable, assertMaterialUseProduced, assertMaterialReviewUpheld, materialFindingRows, materialSubjectWritePaths, validateMaterialPlanIdentity, assertMaterialWriteWindow, requiresMaterialUsePlan, planRepresentationUseWrite, representationReviewView, representationUseDigest, representationUseClosureHash, representationUseNeedsReview, validateMaterialUseInput, REPRESENTATION_PATH, REPRESENTATION_USE_PATH, validateRepresentationRun, readMaterialFile, } from '../../../scripts/lib/source-representation.js';
-function authenticateWorkTransaction(runDir, authenticated, intent) {
+/** Pure transaction derivation, shared by pending recovery and consumed history.
+ * Neither a retained plan nor a later physical checkpoint is an input. */
+export function deriveWorkTransaction(authenticated, intent) {
     const workId = authenticated.work.work_id, plan = authenticated.transition;
     assertWork(intent.format === 'aleph-loa-orchestration-commit/v1' && intent.work_id === workId
         && intent.work_digest === authenticated.work.digest
@@ -27,8 +29,6 @@ function authenticateWorkTransaction(runDir, authenticated, intent) {
         && intent.before_checkpoint === authenticated.work.identity.checkpoint
         && intent.before_chain === authenticated.work.identity.ledger.chain_head
         && intent.journal === `control/transactions/TXN-work-${workId.slice(5)}.json`, 'WORK_COMMIT_BINDING', workId);
-    assertRecoveryPrerequisites(runDir, authenticated.work, plan);
-    const journalPath = join(runDir, intent.journal);
     const stateBefore = authenticated.beforeState, stateAfter = structuredClone(stateBefore);
     assertWork(stateBefore.execution.resume.checkpoint_digest === intent.before_checkpoint
         && stateBefore.ledger.chain_head === intent.before_chain, 'WORK_CHECKPOINT_STALE', workId);
@@ -62,7 +62,14 @@ function authenticateWorkTransaction(runDir, authenticated, intent) {
     stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
     const body = { format: 'aleph-loa-work-transaction/v1', work_id: workId, intent_digest: intent.digest,
         plan, state_before: stateBefore, state_after: stateAfter, chain_before: chainBefore, chain_after: chainAfter };
-    let transaction = { ...body, digest: sha256Digest(stableJsonBytes(body)), status: 'prepared' };
+    return { ...body, digest: sha256Digest(stableJsonBytes(body)), status: 'prepared' };
+}
+function authenticateWorkTransaction(runDir, authenticated, intent) {
+    let transaction = deriveWorkTransaction(authenticated, intent);
+    const workId = authenticated.work.work_id, plan = authenticated.transition;
+    const stateBefore = authenticated.beforeState, chainBefore = authenticated.chainBefore;
+    assertRecoveryPrerequisites(runDir, authenticated.work, plan);
+    const journalPath = join(runDir, intent.journal);
     if (existsSync(journalPath)) {
         const bytes = readFileSync(journalPath), retained = parseStrictJson(bytes);
         assertWork(['prepared', 'committed'].includes(retained.status)

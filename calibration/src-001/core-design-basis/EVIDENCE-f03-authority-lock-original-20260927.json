@@ -1,0 +1,19 @@
+{
+  "root": "/tmp/f03-authority-lock-probe-4OVjOm",
+  "args": [
+    "/tmp/aleph-orchestration-process-Rni4eV/host/.claude/aleph/bin/loa-aleph.mjs",
+    "--root",
+    "/tmp/aleph-orchestration-process-Rni4eV/host",
+    "--json",
+    "--allow-fixture-simulation",
+    "--open-gate",
+    "/tmp/f03-authority-lock-probe-4OVjOm/gate.json",
+    "RUN-20260926T213458494Z-352ac1e4d02c"
+  ],
+  "status": 0,
+  "stdout": "{\"command\":\"resume\",\"details\":{\"adapter_digest\":\"sha256:2bb1761b8d848fc3697e57a0802f8ca42b6b12bafe3708c18044fe7df45409e8\",\"bundle_digest\":\"sha256:aac156c9f631380bd69dde61f118396cd25f9743e477d302e7858c3bc3b0b2ac\",\"checker_digest\":\"sha256:4af05977886ea56c6810cf168c99207fd9cd2355a61564f3d29fdf5e335a6d6e\",\"core_digest\":\"sha256:7cb984df6b38f12743c8078abdebcabb907ef36e00ca59cf0161372aab15547d\",\"corpus_digest\":\"sha256:3533f668250ca20a028b0c7ce84f3cb71e610100667b0938975168fe34e10e47\",\"resume_sequence\":\"4\",\"runtime_digest\":\"sha256:2cae2ce74b17177c4d049452971bee9893a0380a5fc0dd745d7988d6c9de9f00\"},\"errors\":[],\"format\":\"aleph-loa-command-result/v1\",\"full_mode\":\"fixture-simulated\",\"gate\":{\"id\":\"GATE-F03-CONCURRENCY\",\"request_ref\":\"control/gates/GATE-F03-CONCURRENCY-request.json\",\"response_ref\":null,\"status\":\"awaiting-authority\",\"type\":\"suspected-contamination\"},\"result\":\"BLOCKED\",\"run_id\":\"RUN-20260926T213458494Z-352ac1e4d02c\",\"stage\":\"S1\",\"state\":\"CORPUS-FROZEN\"}\n",
+  "stderr": "",
+  "changed_while_orchestration_lock_held": true,
+  "lock_owner": 678544,
+  "scope": "Read-only lock ownership plus supported installed fixture-human gate; original slot restored. No worker/provider calls."
+}

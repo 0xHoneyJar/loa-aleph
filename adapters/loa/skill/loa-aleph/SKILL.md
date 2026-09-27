@@ -48,9 +48,8 @@ the exact first unmet obligation, persists its work identity, and returns
   dispatch outcome prohibits automatic redispatch. Present a human request
   only when the controller has actually returned that required gate.
 
-Route by the returned `details.work.kind`: a command-level `BLOCKED` result
-can still carry the exact next worker or proposal action. When `status` or
-`validate` reports `details.kind=pending-transaction`, it has authenticated
+Route by the returned `details.work.kind`. When `status` or `validate`
+reports `details.kind=pending-transaction`, it has authenticated
 pending work without verifying a canonical intermediate. Invoke `resume`
 to recover before ordinary verification or selection.
 

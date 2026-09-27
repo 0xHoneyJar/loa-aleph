@@ -725,6 +725,10 @@ function prepareContext(tempRoot: string): AdapterTestContext {
     verified.result === 'PASS' && verified.summary?.id === LOA_BUNDLE_ID,
     `assembled Loa bundle failed verification: ${verified.errors.join('; ')}`,
   );
+  expect(
+    JSON.parse(readFileSync(join(selected.path, 'bundle.lock.json'), 'utf8')).run_format_version === '1.6.0-provisional',
+    'retained adapter fixture must pin the requested 1.6 run format',
+  );
 
   const loaRoot = join(tempRoot, 'synthetic-loa-host');
   const installation = installLoaBundle(selected.path, loaRoot);

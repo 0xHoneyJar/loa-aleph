@@ -97,7 +97,7 @@ import {
 import { usesFormalLayoutBindings } from '../../../scripts/lib/run-model.ts';
 import { representationUsesMarkdown, REPRESENTATION_USE_PATH, assertRepresentationExtractionSupported, readRepresentationContext, RepresentationError } from '../../../scripts/lib/source-representation.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
-import { usesOrchestration, withOrchestrationLock, resumeOrchestration, proposeOrchestrationSamples, proposeOrchestrationAmbiguities, proposeOrchestrationAuthorityContact, proposeOrchestrationLateLineage } from './orchestration.ts';
+import { usesOrchestration, acquireOrchestrationLock, withOrchestrationLock, resumeOrchestration, proposeOrchestrationSamples, proposeOrchestrationAmbiguities, proposeOrchestrationAuthorityContact, proposeOrchestrationLateLineage } from './orchestration.ts';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_CAPABILITIES_PATH = 'grimoires/loa/aleph/host-capabilities.json';
@@ -853,11 +853,16 @@ function acquireS0TransactionLock(
   acquiredAt: string,
   _recoverDeadOwner: boolean,
 ): () => void {
-  return acquireDurableProcessLock(join(runDir, 'control', 's0-transaction.lock'), {
-    format: 'aleph-loa-s0-transaction-lock/v1',
-    label: 'S0 transaction writer lock',
-    acquiredAt,
-  });
+  const releaseOrchestration = usesOrchestration(runDir)
+    ? acquireOrchestrationLock(runDir, { now: () => acquiredAt }) : () => {};
+  try {
+    const release = acquireDurableProcessLock(join(runDir, 'control', 's0-transaction.lock'), {
+      format: 'aleph-loa-s0-transaction-lock/v1',
+      label: 'S0 transaction writer lock',
+      acquiredAt,
+    });
+    return () => { try { release(); } finally { releaseOrchestration(); } };
+  } catch (error) { releaseOrchestration(); throw error; }
 }
 
 function parseS0Transaction(path: string): S0FreezeTransaction {

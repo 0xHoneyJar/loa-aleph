@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /** Synthetic Core composition controls; installed writer/recovery proof is separate. */
 import assert from 'node:assert/strict';
-import { chmodSync, cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { makeSemanticFixture, addFixtureNormalization, writeFixtureFile } from '../../../scripts/semantic-fixture-support.ts';
@@ -170,6 +171,41 @@ test('read-only authenticated BEFORE can derive its disposable validator project
   const run = copy(); chmodSync(join(run, 'run-log.md'), 0o400);
   core.validateDerivedWorkTransition(loadRun(run), after, plan);
   assert(readFileSync(join(run, 'run-log.md')).equals(readFileSync(join(f.run, 'run-log.md'))));
+});
+test('nested read-only evidence keeps its bytes and modes during projection validation', () => {
+  const run = copy(), proposed = copy(afterPath);
+  const evidence = 'control/fixture-projection/contracts/contract.json';
+  for (const path of [run, proposed]) {
+    writeFixtureFile(path, evidence, '{"fixture":true}\n');
+    chmodSync(join(path, evidence), 0o400);
+    chmodSync(join(path, 'control/fixture-projection/contracts'), 0o500);
+    chmodSync(join(path, 'control/fixture-projection'), 0o500);
+  }
+  core.validateDerivedWorkTransition(loadRun(run), loadRun(proposed), plan);
+  const node20 = process.env.F03_NODE_BINARY;
+  if (node20) {
+    assert.match(spawnSync(node20, ['--version'], { encoding: 'utf8' }).stdout, /^v20\./u);
+    const planPath = join(root, 'node20-projection-plan.json');
+    writeFileSync(planPath, JSON.stringify(plan));
+    const args = ['--input-type=module', '-e', `
+      import {readFileSync} from 'node:fs';
+      const {validateDerivedWorkTransition} = await import(process.argv[1]);
+      const {loadRun} = await import(process.argv[2]);
+      validateDerivedWorkTransition(loadRun(process.argv[3]), loadRun(process.argv[4]),
+        JSON.parse(readFileSync(process.argv[5], 'utf8')));
+    `, new URL('../../../runtime-js/scripts/lib/work-transitions.js', import.meta.url).href,
+    new URL('../../../runtime-js/scripts/lib/run-model.js', import.meta.url).href, run, proposed, planPath];
+    const result = spawnSync(node20, args, { encoding: 'utf8' });
+    writeFileSync(join(root, 'node20-projection-result.json'), JSON.stringify({ node20, args, ...result }, null, 2) + '\n');
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+  }
+  for (const path of [run, proposed]) {
+    assert.equal(readFileSync(join(path, evidence), 'utf8'), '{"fixture":true}\n');
+    assert.equal(statSync(join(path, evidence)).mode & 0o777, 0o400);
+    for (const directory of ['control/fixture-projection', 'control/fixture-projection/contracts']) {
+      assert.equal(statSync(join(path, directory)).mode & 0o777, 0o500);
+    }
+  }
 });
 test('consumption requires the completed Core bootstrap anchors', () => {
   core.validateConsumedWorkTransition(afterPath, plan);

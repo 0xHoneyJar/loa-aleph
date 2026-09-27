@@ -70,6 +70,7 @@ import {
   loadLoaProfile,
   verifyRuntimeSnapshot,
 } from './runtime-snapshot.ts';
+import { acquireOrchestrationLock } from './orchestration.ts';
 
 export const RUN_CONTROL_PATH = 'control/run-state.json';
 export const ORIGINAL_BUNDLE_LOCK_PATH = 'control/original-bundle.lock.json';
@@ -852,11 +853,17 @@ function acquireAuthorityLock(
   _recoverDeadOwner: boolean,
 ): () => void {
   const lockPath = join(runDir, 'control', 'authority-transactions.lock');
-  return acquireDurableProcessLock(lockPath, {
-    format: AUTHORITY_LOCK_FORMAT,
-    label: 'authority transaction writer lock',
-    acquiredAt,
-  });
+  const releaseOrchestration = existsSync(join(runDir, RUN_CONTROL_PATH))
+    && hasRunCapability(readRunState(runDir).identity.run_format_version, 'orchestrator-work-transitions')
+    ? acquireOrchestrationLock(runDir, { now: () => acquiredAt }) : () => {};
+  try {
+    const release = acquireDurableProcessLock(lockPath, {
+      format: AUTHORITY_LOCK_FORMAT,
+      label: 'authority transaction writer lock',
+      acquiredAt,
+    });
+    return () => { try { release(); } finally { releaseOrchestration(); } };
+  } catch (error) { releaseOrchestration(); throw error; }
 }
 
 function assertGateTypeStage(gateType: string, stage: CoreStage): asserts gateType is GenericGateType {

@@ -104,7 +104,9 @@ import {
   type MaterialWritePlan,
 } from '../../../scripts/lib/source-representation.ts';
 
-function authenticateWorkTransaction(runDir: string, authenticated: AuthenticatedWork, intent: OrchestrationCommit & { digest: string }) {
+/** Pure transaction derivation, shared by pending recovery and consumed history.
+ * Neither a retained plan nor a later physical checkpoint is an input. */
+export function deriveWorkTransaction(authenticated: AuthenticatedWork, intent: OrchestrationCommit & { digest: string }) {
   const workId = authenticated.work.work_id, plan = authenticated.transition;
   assertWork(intent.format === 'aleph-loa-orchestration-commit/v1' && intent.work_id === workId
     && intent.work_digest === authenticated.work.digest
@@ -114,13 +116,6 @@ function authenticateWorkTransaction(runDir: string, authenticated: Authenticate
     && intent.before_chain === authenticated.work.identity.ledger.chain_head
     && intent.journal === `control/transactions/TXN-work-${workId.slice(5)}.json`,
   'WORK_COMMIT_BINDING', workId);
-  assertRecoveryPrerequisites(runDir, authenticated.work, plan);
-  const journalPath = join(runDir, intent.journal);
-  type Transaction = {
-    format: 'aleph-loa-work-transaction/v1'; work_id: string; intent_digest: string;
-    plan: WorkTransition; state_before: LoaRunState; state_after: LoaRunState;
-    chain_before: string; chain_after: string; digest: string; status: 'prepared' | 'committed';
-  };
   const stateBefore = authenticated.beforeState, stateAfter = structuredClone(stateBefore);
   assertWork(stateBefore.execution.resume.checkpoint_digest === intent.before_checkpoint
     && stateBefore.ledger.chain_head === intent.before_chain, 'WORK_CHECKPOINT_STALE', workId);
@@ -153,9 +148,17 @@ function authenticateWorkTransaction(runDir: string, authenticated: Authenticate
   stateAfter.execution.resume.checkpoint_digest = stateCheckpointDigest(stateAfter);
   const body = { format: 'aleph-loa-work-transaction/v1' as const, work_id: workId, intent_digest: intent.digest,
     plan, state_before: stateBefore, state_after: stateAfter, chain_before: chainBefore, chain_after: chainAfter };
-  let transaction: Transaction = { ...body, digest: sha256Digest(stableJsonBytes(body)), status: 'prepared' };
+  return { ...body, digest: sha256Digest(stableJsonBytes(body)), status: 'prepared' as 'prepared' | 'committed' };
+}
+
+function authenticateWorkTransaction(runDir: string, authenticated: AuthenticatedWork, intent: OrchestrationCommit & { digest: string }) {
+  let transaction = deriveWorkTransaction(authenticated, intent);
+  const workId = authenticated.work.work_id, plan = authenticated.transition;
+  const stateBefore = authenticated.beforeState, chainBefore = authenticated.chainBefore;
+  assertRecoveryPrerequisites(runDir, authenticated.work, plan);
+  const journalPath = join(runDir, intent.journal);
   if (existsSync(journalPath)) {
-    const bytes = readFileSync(journalPath), retained = parseStrictJson(bytes) as unknown as Transaction;
+    const bytes = readFileSync(journalPath), retained = parseStrictJson(bytes) as unknown as typeof transaction;
     assertWork(['prepared', 'committed'].includes(retained.status)
       && bytes.equals(stableJsonBytes({ ...transaction, status: retained.status })), 'WORK_JOURNAL_BINDING', workId);
     transaction = retained;

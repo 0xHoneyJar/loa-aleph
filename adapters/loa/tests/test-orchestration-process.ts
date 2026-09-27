@@ -5,14 +5,13 @@ import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, re
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pathToFileURL } from 'node:url';
 import { assembleBundles } from '../../../scripts/assemble-bundles.ts';
 import { predecessorSource } from '../../../scripts/compatibility-fixture-source.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
 import { sourceWalkReviewBasisDigest } from '../../../scripts/lib/checks-k2.ts';
 import { installLoaBundle } from '../src/installer.ts';
 import { semanticJson, parseSemanticLedger, type SemanticSubject, type SemanticEntry } from '../../../scripts/lib/semantic-review.ts';
-import { fixtureSemantics, fixtureResult, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
+import { fixtureSemantics, fixtureResult, fixtureUnit, TEXT_USE } from '../../../scripts/semantic-fixture-support.ts';
 import { makeTreeOwnerWritable, stableJsonBytes } from '../src/fs.ts';
 import { materialHash, materialFragmentsHash, prepareRepresentationCapture, readRepresentationContext } from '../../../scripts/lib/source-representation.ts';
 import { buildComparisonBasis, duplicateProducerPaths, parseDuplicateLedger, duplicateLedgerMarkdown,
@@ -24,9 +23,13 @@ import { lineageCurrentPacketIds } from '../../../scripts/lib/lineage.ts';
 import { searchBasisDigest, ambiguityReviewSubjectDigest, materialImpactSubjectDigest, parseInternalAmbiguities,
   buildProceduralAuthorityResponse, exactTextBlob, type ProceduralAction, type AmbiguityReviewSubject } from '../../../scripts/lib/internal-ambiguity.ts';
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-if (process.argv[2] === '--fixture-worker') {
-  const [workerBundleRoot, returnRoot, rawPath] = process.argv.slice(3);
+async function fixtureWorker(workerBundleRoot: string, returnRoot: string, rawPath: string): Promise<void> {
+  // Self-contained TypeScript function; the host's type-stripped function
+  // source is also executable by the run-pinned Node 20 fixture process.
+  const { dirname, join } = await import('node:path');
+  const { pathToFileURL } = await import('node:url');
+  const { readFileSync } = await import('node:fs');
+  const assert: typeof import('node:assert/strict') = (await import('node:assert/strict')).default;
   const pinned = join(dirname(dirname(workerBundleRoot)), 'runtime/bundle/runtime-js/adapters/loa/src/worker-dispatch.js');
   const { dispatchPreparedLoaWorker } = await import(pathToFileURL(pinned).href) as typeof import('../src/worker-dispatch.ts');
   dispatchPreparedLoaWorker({ workerBundleRoot, returnRoot, host: { invokeFreshContext(invocation) {
@@ -38,6 +41,10 @@ if (process.argv[2] === '--fixture-worker') {
       model_identity: invocation.model_identity, simulation: { kind: 'fixture-simulated' } },
     structured_return: JSON.parse(readFileSync(rawPath, 'utf8')) };
   } } });
+}
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+if (process.argv[2] === '--fixture-worker') {
+  await fixtureWorker(process.argv[3], process.argv[4], process.argv[5]);
 } else if (process.argv[2] === '--request-byte-regression') {
   const original = resolve(process.argv[3]);
   assert.equal(JSON.parse(readFileSync(join(original, 'control/run-state.json'), 'utf8')).full_mode, 'fixture-simulated');
@@ -75,7 +82,9 @@ if (process.argv[2] === '--fixture-worker') {
   const scratch = mkdtempSync(join(tmpdir(), 'aleph-orchestration-process-'));
   const keep = process.env.F03_KEEP_TEST === '1';
   try {
-    const source = predecessorSource(ROOT, scratch, '1.9.0-provisional');
+    const declaredVersion = JSON.parse(readFileSync(join(ROOT, 'core.manifest.json'), 'utf8')).core.run_format_version;
+    assert.equal(declaredVersion, '1.9.0-provisional', 'ordinary new bundles must select the adopted work-transition format');
+    const source = predecessorSource(ROOT, scratch, declaredVersion);
     if (process.env.F03_AUTH_MUTATION === '1') {
       // Deliberately defective, separately pinned fixture bundle. Never edit
       // a retained run's executable or treat this as positive product evidence.
@@ -96,9 +105,21 @@ if (process.argv[2] === '--fixture-worker') {
     cpSync(join(ROOT, 'adapters/loa/tests/fixtures/host-capabilities.json'), capabilities);
     const input = join(host, 'input.md');
     const wideningMode = process.env.F03_WIDEN === '1';
-    const inputText = 'The synthetic counter increased.\n' + (wideningMode ? 'Under the retained synthetic condition.\n' : '');
+    const multiSourceProgress = process.env.F03_S2_MULTI_SOURCE === '1';
+    const multiSource = process.env.F03_S1_MULTI === '1' || multiSourceProgress;
+    const multiFragment = process.env.F03_S2_MULTI === '1';
+    assert(!multiFragment || !wideningMode && process.env.F03_PACKET === '1');
+    assert(!multiSourceProgress || !multiFragment && !wideningMode
+      && process.env.F03_PACKET === '1' && process.env.F03_S2_CLOSE === '1');
+    const inputText = 'The synthetic counter increased.\n' + (multiFragment
+      ? 'A separate synthetic observation.\nThe battery discharged.' : wideningMode ? 'Under the retained synthetic condition.\n' : '');
     writeFileSync(input, inputText);
     let selectedInput = input;
+    if (multiSource) {
+      selectedInput = join(host, 'inputs'); mkdirSync(selectedInput);
+      cpSync(input, join(selectedInput, 'first.md'));
+      writeFileSync(join(selectedInput, 'second.md'), 'A second synthetic source with a distinct frozen ruling.\n');
+    }
     if (process.env.F03_L2F === '1') {
       const bytes = Buffer.from('The synthetic counter increased.');
       const captured = readFileSync(input);
@@ -126,11 +147,16 @@ if (process.argv[2] === '--fixture-worker') {
     }
     let run = '';
     let c09Exercised = false;
+    const commandNode = process.env.F03_NODE_BINARY || process.execPath;
+    if (process.env.F03_NODE_BINARY) {
+      const version = spawnSync(commandNode, ['--version'], { encoding: 'utf8' });
+      assert.equal(version.status, 0); assert.match(version.stdout, /^v20\./u);
+    }
     function command(module: string, args: string[], expected = 0): any {
       const entrypoint = module === 'cli' ? join(host, '.claude/aleph/bin/loa-aleph.mjs')
         : join(run, `control/runtime/bundle/runtime-js/adapters/loa/src/${module}.js`);
       const c09Probe = process.env.F03_C09_FAULTS === '1' && !c09Exercised && module === 'cli' && args.includes('resume');
-      let processResult = spawnSync(process.execPath, [entrypoint, ...args],
+      let processResult = spawnSync(commandNode, [entrypoint, ...args],
         { encoding: 'utf8', cwd: host, env: c09Probe
           ? { ...process.env, ALEPH_FIXTURE_WORK_FAULT: 'stage.seal-S3:derived' } : process.env });
       if (c09Probe && processResult.status === 86) {
@@ -146,7 +172,7 @@ if (process.argv[2] === '--fixture-worker') {
           'effect:verification/harness/semantic-stage-seals/S3.json', 'effect:run-log.md',
           'effect:ledgers/duplicate-review.md', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'];
         for (const point of points) {
-          const crash = spawnSync(process.execPath, [entrypoint, ...args], { encoding: 'utf8', cwd: host,
+          const crash = spawnSync(commandNode, [entrypoint, ...args], { encoding: 'utf8', cwd: host,
             env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: `stage.seal-S3:${point}` } });
           assert.equal(crash.status, 86, `${point}: ${crash.stdout}\n${crash.stderr}`);
           const works = readdirSync(join(run, 'control/orchestration/work'))
@@ -178,7 +204,7 @@ if (process.argv[2] === '--fixture-worker') {
             const ledger = existsSync(join(run, 'ledgers/duplicate-review.md'))
               ? readFileSync(join(run, 'ledgers/duplicate-review.md')) : null;
             for (const action of ['status', 'validate']) {
-              const reader = spawnSync(process.execPath, [entrypoint, ...args.map((arg) => arg === 'resume' ? action : arg)],
+              const reader = spawnSync(commandNode, [entrypoint, ...args.map((arg) => arg === 'resume' ? action : arg)],
                 { encoding: 'utf8', cwd: host });
               assert.equal(reader.status, 0, reader.stdout + reader.stderr);
               const report = JSON.parse(reader.stdout);
@@ -197,14 +223,14 @@ if (process.argv[2] === '--fixture-worker') {
           }
           console.log(`PASS C09 installed restart recovery ${point}; consumption last`);
         }
-        processResult = spawnSync(process.execPath, [entrypoint, ...args], { encoding: 'utf8', cwd: host });
+        processResult = spawnSync(commandNode, [entrypoint, ...args], { encoding: 'utf8', cwd: host });
         assert.equal(processResult.status, expected, `${processResult.stdout}\n${processResult.stderr}`);
         const work = JSON.parse(processResult.stdout).details.work;
         assert.equal(JSON.parse(processResult.stdout).stage, 'S4');
         assert.equal(work.action, 'prepare');
         validateDuplicateRun(loadRun(run));
         const afterState = readFileSync(join(run, 'control/run-state.json')), afterChain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
-        const repeat = spawnSync(process.execPath, [entrypoint, ...args], { encoding: 'utf8', cwd: host });
+        const repeat = spawnSync(commandNode, [entrypoint, ...args], { encoding: 'utf8', cwd: host });
         assert.equal(repeat.status, expected, repeat.stderr);
         assert.deepEqual(JSON.parse(repeat.stdout).details.work, work);
         assert(readFileSync(join(run, 'control/run-state.json')).equals(afterState));
@@ -221,7 +247,7 @@ if (process.argv[2] === '--fixture-worker') {
     const cli = (...args: string[]) => command('cli', ['--root', host, '--json', '--allow-fixture-simulation', ...args]);
     function crashSequence(operation: string, points: string[], verify: () => void, firstArgs: string[] = ['resume', id]): void {
       for (const [index, point] of points.entries()) {
-        const crashed = spawnSync(process.execPath, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
+        const crashed = spawnSync(commandNode, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
           '--root', host, '--json', '--allow-fixture-simulation', ...index === 0 ? firstArgs : ['resume', id]],
         { encoding: 'utf8', cwd: host, env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: `${operation}:${point}` } });
         assert.equal(crashed.status, 86, `${operation}/${point}: ${crashed.stdout}\n${crashed.stderr}`);
@@ -237,8 +263,13 @@ if (process.argv[2] === '--fixture-worker') {
     writeFileSync(response, JSON.stringify({ format: 'aleph-loa-authority-response/v1', gate_id: 'S0', run_id: id,
       authority: { kind: 'human', identity: 'fixture-simulated-authority' }, decision: 'approve-freeze',
       declared_scope: 'Synthetic structural test input only.', exclusions: [],
-      sensitivity_rulings: snapshot.files.map((file: { source_id: string }) => ({ source_id: file.source_id, labels: ['none'], decision: 'admit-exact-bytes' })),
+      sensitivity_rulings: snapshot.files.map((file: { source_id: string }, index: number) =>
+        ({ source_id: file.source_id, labels: [multiSource && index === 1 ? 'confidential' : 'none'], decision: 'admit-exact-bytes' })),
       freeze: true, recorded_at: new Date().toISOString(), simulation: { kind: 'fixture-simulated' } }));
+    if (process.env.F03_CONCURRENCY_SEEDS === '1') {
+      const seed = join(scratch, 'awaiting-S0-seed'); cpSync(run, seed, { recursive: true });
+      writeFileSync(join(scratch, 's0-seed.json'), JSON.stringify({ run: seed, host, run_id: id, response }));
+    }
     assert.equal(cli('--authority-response', response, id).result, 'PASS');
     let resumed = cli('resume', id);
     assert.equal(resumed.details.work.kind, 'proposal');
@@ -253,16 +284,23 @@ if (process.argv[2] === '--fixture-worker') {
       command('worker-dispatch', ['prepare', '--worker-bundle', work.worker_bundle, '--return-root', work.return_root, '--capabilities', work.host_capabilities, '--json']);
       const rawPath = join(scratch, `${work.call_id}.json`);
       writeFileSync(rawPath, semanticJson(raw));
-      const dispatched = spawnSync(process.execPath, [join(source, 'adapters/loa/tests/test-orchestration-process.ts'),
-        '--fixture-worker', work.worker_bundle, work.return_root, rawPath],
+      if (process.env.F03_CONCURRENCY_SEEDS === '1' && work.call_id === initialWork.call_id) {
+        const seed = join(scratch, 'prepared-dispatch-seed'); cpSync(run, seed, { recursive: true });
+        writeFileSync(join(scratch, 'dispatch-seed.json'), JSON.stringify({ run: seed, host, run_id: id, work, raw_path: rawPath }));
+      }
+      const dispatched = spawnSync(commandNode, ['--input-type=module', '-e',
+        `await (${fixtureWorker.toString()})(...process.argv.slice(1));`,
+        work.worker_bundle, work.return_root, rawPath],
         { encoding: 'utf8', cwd: host });
       assert.equal(dispatched.status, 0, dispatched.stderr);
       command('worker-dispatch', ['accept', '--worker-bundle', work.worker_bundle, '--return-root', work.return_root, '--json']);
     }
     const sourceRow = loadRun(run).corpus.sources[0].values;
-    runFixture(initialWork, { sources: [{ source_id: sourceRow.sourceId, kind: 'design-note', locus: sourceRow.locus,
-      scheme: sourceRow.scheme, content_hash: sourceRow.contentHash, dates: '2026-09-17', trust_class: 'model-generated',
-      sensitivity: [process.env.F03_S1_SENSITIVITY === '1' ? 'private' : 'none'], admission_note: 'Synthetic structural fixture only.', flags: [] }],
+    const frozenSources = loadRun(run).corpus.sources.map((row) => row.values);
+    runFixture(initialWork, { sources: frozenSources.map((source, index) => ({ source_id: source.sourceId, kind: 'design-note', locus: source.locus,
+      scheme: source.scheme, content_hash: source.contentHash, dates: '2026-09-17', trust_class: 'model-generated',
+      sensitivity: [process.env.F03_S1_SENSITIVITY === '1' ? 'private' : multiSource && index === 1 ? 'confidential' : 'none'],
+      admission_note: 'Synthetic structural fixture only.', flags: [] })),
     criteria: { candidate_definition: 'Explicit observations.', admission: [{ n: 1, criterion: 'Explicit observations.', example: 'The counter increased.' }],
       exclusion_classes: [{ class: 'scaffolding', description: 'Headings without assertions.', example: 'Introduction' }],
       granularity_policy: 'One assertion per candidate.', normalization_conventions: 'Preserve scope and qualifiers.' } });
@@ -272,7 +310,7 @@ if (process.argv[2] === '--fixture-worker') {
       chmodSync(path, 0o600); writeFileSync(path, Buffer.concat([before, Buffer.from('\n')]));
       chmodSync(path, 0o400);
       const attempted = cli('resume', id);
-      assert.equal(attempted.result, 'BLOCKED');
+      assert.equal(attempted.result, 'PASS');
       assert(existsSync(join(run, 'ledgers/extraction-criteria.md')),
         'removed-guard mutation must demonstrate the illicit canonical effect detected by the intact refusal test');
       assert(!readFileSync(path).equals(before));
@@ -324,13 +362,28 @@ if (process.argv[2] === '--fixture-worker') {
       assert(readFileSync(join(run, 'control/run-state.json')).equals(state));
       assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(chain));
       console.log('PASS installed S1 independent disagreement remains unmet without repeated reviewers or S2 entry');
+    } else if (multiSource && !multiSourceProgress) {
+      assert.equal(resumed.stage, 'S2');
+      const current = loadRun(run);
+      assert.equal(current.corpus.sources.length, 2); assert.equal(current.sourceWalk.completions.length, 2);
+      current.corpus.sources.forEach((row, index) => {
+        for (const field of ['sourceId', 'locus', 'scheme', 'contentHash', 'sensitivity'] as const)
+          assert.equal(row.values[field], frozenSources[index][field]);
+      });
+      assert.equal(current.corpus.sources[1].values.sensitivity, 'confidential');
+      assert.deepEqual(cli('resume', id).details.work, resumed.details.work);
+      console.log('PASS installed S1 preserves both exact frozen source identities and distinct human sensitivity rulings into S2');
     } else {
     assert.equal(resumed.stage, 'S2');
     assert(readFileSync(join(run, 'run-manifest.md'), 'utf8').includes('| DISTILLING |'));
     assert.equal(readdirSync(join(run, 'control/orchestration/accepted')).length, 3);
     console.log('PASS supported CLI S0/S1 fixture transport, restart after accept, canonical writer and criteria agreement');
     const s2Before = loadRun(run);
-    assert.equal(s2Before.sourceWalk.completions.length, 1);
+    assert.equal(s2Before.sourceWalk.completions.length, multiSourceProgress ? 2 : 1);
+    if (multiSourceProgress) s2Before.corpus.sources.forEach((row, index) => {
+      for (const field of ['sourceId', 'locus', 'scheme', 'contentHash', 'sensitivity'] as const)
+        assert.equal(row.values[field], frozenSources[index][field]);
+    });
     const priorRow = s2Before.sourceWalk.completions[0].raw;
     assert.equal(s2Before.sourceWalk.completions[0].values.completionState, 'blocked');
     const extractor = resumed.details.work;
@@ -343,7 +396,7 @@ if (process.argv[2] === '--fixture-worker') {
     const stationaryAccounting = process.env.F03_C07_ACCOUNTING === '1';
     const degradedMode = process.env.F03_S2_DEGRADED === '1' || stationaryMode || stationaryAccounting;
     assert(!degradedMode || !packetMode && !wideningMode, 'degraded fixture has no affirmative packet');
-    const fragment = Buffer.from('The synthetic counter increased.' + (wideningMode ? '\n' : ''));
+    const fragment = Buffer.from('The synthetic counter increased.' + (wideningMode || multiFragment ? '\n' : ''));
     const extraction: any = {
       source_id: sourceRow.sourceId, producer_invocation_id: extractor.call_id,
       walk_intervals: [{ start_byte: 0, end_byte: Buffer.byteLength(inputText),
@@ -367,6 +420,35 @@ if (process.argv[2] === '--fixture-worker') {
           end_byte: fragment.length, exact_bytes_base64: fragment.toString('base64') }], semantics: fixtureSemantics(fragment.toString()),
       }] : [],
     };
+    if (multiFragment) {
+      const middle = Buffer.from('A separate synthetic observation.\n'), last = Buffer.from('The battery discharged.');
+      const thirdStart = fragment.length + middle.length;
+      extraction.packets = [
+        { ...structuredClone(extraction.packets[0]), join_policy: 'separate-fragments',
+          fragments: [{ fragment_order: 1, locator: 'L1-L1', exact_bytes_base64: fragment.toString('base64') },
+            { fragment_order: 2, locator: 'L3-L3', exact_bytes_base64: last.toString('base64') }],
+          rendered_text: fragment.toString().trim() + ' ' + last.toString() },
+        { ...structuredClone(extraction.packets[0]),
+          fragments: [{ fragment_order: 1, locator: 'L2-L2', exact_bytes_base64: middle.toString('base64') }],
+          rendered_text: middle.toString() },
+      ];
+      extraction.walk_intervals[0].packet_candidate_indexes = [0, 1];
+      extraction.extraction_events = [[0, fragment.length, 0], [fragment.length, thirdStart, 1], [thirdStart, Buffer.byteLength(inputText), 0]]
+        .map(([start_byte, end_byte, packet_candidate_index], index) => ({
+          start_byte, end_byte, packet_candidate_index, shared_position_key: `SP-000${index + 1}`, event_ordinal: 1, origin: 'primary',
+        }));
+      extraction.next_cursor.predecessor_event_index = 2;
+      extraction.semantic_units = [
+        { ...structuredClone(extraction.semantic_units[0]),
+          anchors: [extraction.semantic_units[0].anchors[0], { anchor_id: 'A2', source_id: sourceRow.sourceId,
+            locator: 'L3-L3', start_byte: thirdStart, end_byte: Buffer.byteLength(inputText), exact_bytes_base64: last.toString('base64') }],
+          semantics: { atomicity: 'multiple-separable', units: [fixtureUnit(fragment.toString().trim(), fragment.toString()),
+            fixtureUnit(last.toString(), last.toString(), 'U2', 'A2')], contexts: [], couplings: [], relation_proposals: [], unresolved_findings: [] } },
+        { ...structuredClone(extraction.semantic_units[0]), output_index: 1,
+          anchors: [{ anchor_id: 'A1', source_id: sourceRow.sourceId, locator: 'L2-L2', start_byte: fragment.length,
+            end_byte: thirdStart, exact_bytes_base64: middle.toString('base64') }], semantics: fixtureSemantics(middle.toString()) },
+      ];
+    }
     if (process.env.F03_S2_GAP === '1' && !packetMode) {
       // A missed candidate may reconcile a no-candidate primary interval.
       // An excluded interval instead retains its explicit exclusion, which
@@ -550,7 +632,7 @@ if (process.argv[2] === '--fixture-worker') {
       let beforeChain: Buffer | null = null, pendingRow = '';
       for (const point of ['derived', 'commit-intent', 'writer-prepared', 'effect:ledgers/source-walk.md',
         'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed']) {
-        const crashed = spawnSync(process.execPath, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
+        const crashed = spawnSync(commandNode, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
           '--root', host, '--json', '--allow-fixture-simulation', 'resume', id],
         { encoding: 'utf8', cwd: host, env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: `s2.commit-event:${point}` } });
         assert.equal(crashed.status, 86, `${point}: ${crashed.stdout}\n${crashed.stderr}`);
@@ -615,7 +697,7 @@ if (process.argv[2] === '--fixture-worker') {
       const beforeChain = readFileSync(join(run, 'control/ledger-chain.jsonl'));
       for (const point of ['derived', 'commit-intent', 'writer-prepared', 'effect:ledgers/source-walk.md',
         'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed']) {
-        const crashed = spawnSync(process.execPath, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
+        const crashed = spawnSync(commandNode, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
           '--root', host, '--json', '--allow-fixture-simulation', 'resume', id],
         { encoding: 'utf8', cwd: host, env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: `s2.capture:${point}` } });
         assert.equal(crashed.status, 86, `${point}: ${crashed.stdout}\n${crashed.stderr}`);
@@ -634,10 +716,10 @@ if (process.argv[2] === '--fixture-worker') {
     }
     resumed = cli('resume', id);
     const s2After = loadRun(run);
-    assert.equal(s2After.sourceWalk.completions.length, 1);
+    assert.equal(s2After.sourceWalk.completions.length, multiSourceProgress ? 2 : 1);
     assert.equal(s2After.sourceWalk.completions[0].values.completionState, 'blocked', 'fresh L1 is still required');
     assert.notEqual(s2After.sourceWalk.completions[0].raw, priorRow);
-    assert.equal(s2After.packets.length, packetMode ? 1 : 0, 'capture preserves exact declared candidate cardinality');
+    assert.equal(s2After.packets.length, multiFragment ? 3 : packetMode ? 1 : 0, 'capture preserves exact declared candidate/fragment cardinality');
     for (const transform of s2After.exactEvidence.transformations) {
       assert.match(transform.values.transformKey, /^XFORM-[0-9]+$/u);
       assert.equal(transform.values.outputTextHash, materialHash(transform.values.outputText));
@@ -657,6 +739,8 @@ if (process.argv[2] === '--fixture-worker') {
     cli('resume', id);
     assert(readFileSync(join(run, 'control/ledger-chain.jsonl')).equals(afterChain), 'repeated resume adds no duplicate semantic effect');
     if (packetMode || degradedMode) {
+      let reviews = 0;
+      do {
       const review = resumed.details.work;
       const request = JSON.parse(readFileSync(join(review.worker_bundle, 'request.json'), 'utf8'));
       assert.equal(request.role, 'verifier-l2s');
@@ -668,7 +752,18 @@ if (process.argv[2] === '--fixture-worker') {
       }
       runFixture(review, fixtureResult(subject));
       resumed = cli('resume', id);
+      reviews++;
       assert(readFileSync(join(run, 'ledgers/semantic-review.md'), 'utf8').includes(degradedMode ? '| not-admitted |' : '| admitted |'));
+      } while (multiFragment && reviews < 2);
+      if (multiFragment) {
+        const current = loadRun(run);
+        assert.equal(current.exactEvidence.records.length, 2);
+        assert.equal(current.exactEvidence.fragments.length, 3);
+        assert.equal(current.sourceWalk.events.length, 3);
+        assert.equal(new Set(current.packets.map((row) => row.values.packetId)).size, 3);
+        assert(readFileSync(producerRawPath).equals(producerRaw));
+        console.log('PASS installed S2 two candidates, ordered separate fragments and three event identities receive two fresh L2S reviews');
+      }
       console.log(degradedMode ? 'PASS supported CLI degraded packet retains its original selector and receives fresh L2S without admission'
         : 'PASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission');
     }
@@ -754,12 +849,60 @@ if (process.argv[2] === '--fixture-worker') {
         assert(readFileSync(producerRawPath).equals(producerRaw));
         console.log('PASS supported CLI L1 gap discovery, exact reconciliation and accepted fresh L2S; original review basis and primary history preserved');
       } else runFixture(gap, noGap);
+      if (multiSourceProgress) {
+        resumed = cli('resume', id);
+        assert.equal(resumed.stage, 'S2', 'one complete source cannot close S2');
+        const firstComplete = loadRun(run), second = frozenSources[1], secondWork = resumed.details.work;
+        assert.equal(firstComplete.sourceWalk.completions[0].values.completionState, 'complete');
+        assert.equal(firstComplete.sourceWalk.completions[1].values.completionState, 'blocked');
+        assert(!existsSync(join(run, 'verification/harness/semantic-stage-seals/S2.json')));
+        const secondRequest = JSON.parse(readFileSync(join(secondWork.worker_bundle, 'request.json'), 'utf8'));
+        assert.equal(secondRequest.role, 'extractor');
+        const secondBytes = Buffer.from('A second synthetic source with a distinct frozen ruling.');
+        const next = structuredClone(extraction);
+        next.source_id = second.sourceId;
+        next.producer_invocation_id = secondWork.call_id;
+        next.walk_intervals[0].end_byte = secondBytes.length + 1;
+        next.packets[0].fragments[0].exact_bytes_base64 = secondBytes.toString('base64');
+        next.packets[0].rendered_text = secondBytes.toString();
+        next.extraction_events[0].end_byte = secondBytes.length;
+        next.next_cursor.byte_offset = secondBytes.length + 1;
+        next.next_cursor.source_hash = second.contentHash;
+        next.semantic_units[0].anchors[0] = { anchor_id: 'A1', source_id: second.sourceId, locator: 'L1-L1',
+          start_byte: 0, end_byte: secondBytes.length, exact_bytes_base64: secondBytes.toString('base64') };
+        next.semantic_units[0].semantics = fixtureSemantics(secondBytes.toString());
+        runFixture(secondWork, next);
+        resumed = cli('resume', id);
+        const review = resumed.details.work;
+        const request = JSON.parse(readFileSync(join(review.worker_bundle, 'request.json'), 'utf8'));
+        assert.equal(request.role, 'verifier-l2s');
+        const subjectPath = request.allowlist.find((entry: any) =>
+          entry.run_path.startsWith('verification/harness/semantic-subjects/')).run_path;
+        const subject = JSON.parse(readFileSync(join(run, subjectPath), 'utf8')) as SemanticSubject;
+        runFixture(review, fixtureResult(subject));
+        resumed = cli('resume', id);
+        assert.equal(resumed.stage, 'S2');
+        const secondGap = resumed.details.work;
+        assert.equal(JSON.parse(readFileSync(join(secondGap.worker_bundle, 'request.json'), 'utf8')).role, 'verifier-l1');
+        assert(!existsSync(join(run, 'verification/harness/semantic-stage-seals/S2.json')));
+        runFixture(secondGap, noGap);
+        resumed = cli('resume', id);
+        const complete = loadRun(run);
+        assert.equal(resumed.stage, 'S3');
+        assert(complete.sourceWalk.completions.every((row) => row.values.completionState === 'complete'));
+        assert.deepEqual(complete.corpus.sources.map((row) => row.values), s2Before.corpus.sources.map((row) => row.values));
+        assert.deepEqual(complete.packets.map((row) => row.values.sourceId), frozenSources.map((s) => s.sourceId));
+        assert.equal(new Set(complete.packets.map((row) => row.values.packetId)).size, 2);
+        assert.equal(complete.sourceWalk.gapReviews.length, 2);
+        assert(readFileSync(producerRawPath).equals(producerRaw));
+        console.log('PASS installed two-source S2 follows frozen order, binds distinct packets and requires both exact source completions and L1 reviews');
+      }
       if (process.env.F03_S2_BOUNDARY_FAULTS === '1') {
         for (const operation of ['stage.seal-S2', 'stage.enter-S3']) {
           const effectPath = operation === 'stage.seal-S2' ? 'verification/harness/semantic-stage-seals/S2.json' : 'ledgers/claim-inventory.md';
           for (const point of ['derived', 'commit-intent', 'writer-prepared', `effect:${effectPath}`,
             'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed']) {
-            const crashed = spawnSync(process.execPath, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
+            const crashed = spawnSync(commandNode, [join(host, '.claude/aleph/bin/loa-aleph.mjs'),
               '--root', host, '--json', '--allow-fixture-simulation', 'resume', id],
             { encoding: 'utf8', cwd: host, env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: `${operation}:${point}` } });
             assert.equal(crashed.status, 86, `${operation}/${point}: ${crashed.stdout}\n${crashed.stderr}`);
