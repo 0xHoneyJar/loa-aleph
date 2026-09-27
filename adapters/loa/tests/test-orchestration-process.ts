@@ -1134,13 +1134,20 @@ if (process.argv[2] === '--fixture-worker') {
           }
           if (request.role === 'verifier-l2f') {
             assert.equal(process.env.F03_L2F, '1');
-            assert.equal(loadRun(run).claims.length, 0, 'L2S cannot bypass required L2F');
+            const view = JSON.parse(readFileSync(join(run, request.allowlist[0].run_path), 'utf8'));
+            assert.equal(view.format, 'aleph-representation-review-view/v1');
+            assert.equal(view.subject.owner_stage, 'S3'); assert.equal(view.subject.subject_kind, 'CC');
+            const subjectId = view.subject.subject_id;
+            assert(!loadRun(run).claims.some((claim) => claim.values.claimId === subjectId),
+              'this claim cannot be admitted before its required L2F');
             const verdict = process.env.F03_L2F_VERDICT || 'upheld';
             runFixture(work, { verdict, rationale: 'Synthetic material fidelity challenge.',
               attacks_tried: ['Tested omission of the declared formal structure.'], evidence_ids: [packet], candidate_evidence: [],
               missing_for_determination: verdict === 'cannot-determine' ? 'Synthetic missing material.' : null, flags: [] });
             resumed = cli('resume', id);
-            console.log(`PASS supported CLI exact affirmative L2F ${verdict} before any canonical admission`);
+            const admitted = loadRun(run).claims.some((claim) => claim.values.claimId === subjectId);
+            assert.equal(admitted, verdict === 'upheld', 'this claim requires its own upheld L2F');
+            console.log(`PASS supported CLI exact L2F ${verdict} binds ${subjectId}; admission=${admitted}`);
             continue;
           }
           assert.equal(request.role, 'verifier-l2s');
