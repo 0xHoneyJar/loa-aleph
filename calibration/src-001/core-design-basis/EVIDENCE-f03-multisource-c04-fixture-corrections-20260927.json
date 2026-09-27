@@ -1,0 +1,299 @@
+{
+  "format": "aleph-f03-fixture-correction-evidence/v1",
+  "recorded_at": "2026-09-27T11:26:51.994446+00:00",
+  "parent_head": "b79235dfbd8e6b910ab3bdca12d19e3097f2e30c",
+  "parent_tree": "5d49bcd6905ce4ea8141969f3f9881dbd4740616",
+  "status": "IMPLEMENTATION_IN_PROGRESS_NOT_PRODUCER_COMPLETE",
+  "findings": {
+    "F-03": "OPEN / MUST PRESERVE",
+    "F-04": "OPEN / MUST PRESERVE",
+    "F-05": "OPEN / MUST PRESERVE"
+  },
+  "changed_source": {
+    "path": "adapters/loa/tests/test-orchestration-process.ts",
+    "sha256": "c9c7fe8d0234d52f2bbd556a032ffaec53847970620415bad5c1e58fa10478e1"
+  },
+  "repairs": [
+    {
+      "fixture": "two-source S2",
+      "failure": "Second source reused first-source OBJ-0002/BND-0001. Existing Core rejected material outside assigned source scope.",
+      "repair": "Resolve the second frozen source representation, its text object and binding IDs from the retained inventory. Assert source/carrier membership and distinct object.",
+      "verification": "Original failed return rejects; corrected return passes exact semantic context binding. Fresh installed completion remains in progress."
+    },
+    {
+      "fixture": "two-source S2 shared position",
+      "failure": "A further preflight found reused SP-0001 spanning two source positions. Existing Core full capture derivation rejects it.",
+      "repair": "Use distinct SP-0002 for the second fixture source, assert it is unclaimed, and verify final two-key uniqueness.",
+      "verification": "Supplemental full Core derivation rejects original SP alias and derives corrected source-two capture. It leaves source two incomplete until L1. Installed third attempt was already running and retains the old alias; fourth includes both fixes."
+    },
+    {
+      "fixture": "C04 six-case matrix",
+      "failure": "The whole-source source-object binding included a trailing LF outside the exact L1-L1 packet union. Retained pre-pause installed attempt failed at this existing Core check.",
+      "repair": "Fresh single-line indeterminate/mixed fixtures omit the trailing LF. Existing multi-line and widening inputs retain their original bytes.",
+      "verification": "Original span rejects and corrected exact span yields one indeterminate-claim material preview. Installed six-case/fault qualification remains running."
+    }
+  ],
+  "unchanged_policy": "No Core validation, authority, retained run, pinned runtime, accepted worker evidence or canonical effect was weakened or rewritten. These are fixture-input repairs.",
+  "retained_failed_probe_setup": "First shared-position supplemental helper used workJson on a numeric worker return and failed before derivation; its script/log/exit are retained separately. Corrected helper uses worker JSON bytes.",
+  "qualification_class": "Local synthetic transport, Core derivation and process controls only. Supplemental helper does not establish installed accepted-return execution.",
+  "active_attempts": [
+    {
+      "cmd": [
+        "node",
+        "adapters/loa/tests/test-orchestration-process.ts"
+      ],
+      "flags": {
+        "F03_KEEP_TEST": "1",
+        "F03_PACKET": "1",
+        "F03_S2_CLOSE": "1",
+        "F03_S2_MULTI_SOURCE": "1"
+      },
+      "cwd": "/tmp/loa-aleph-f03-implementation-20260917",
+      "start": "2026-09-27T11:15:27.751865+00:00",
+      "name": "current-multi-source-S2-third",
+      "completed": false
+    },
+    {
+      "cmd": [
+        "node",
+        "adapters/loa/tests/test-orchestration-process.ts"
+      ],
+      "flags": {
+        "F03_KEEP_TEST": "1",
+        "F03_PACKET": "1",
+        "F03_S2_CLOSE": "1",
+        "F03_S2_MULTI_SOURCE": "1"
+      },
+      "cwd": "/tmp/loa-aleph-f03-implementation-20260917",
+      "start": "2026-09-27T11:24:34.889268+00:00",
+      "name": "current-multi-source-S2-fourth",
+      "completed": false
+    },
+    {
+      "cmd": [
+        "node",
+        "adapters/loa/tests/test-orchestration-process.ts"
+      ],
+      "flags": {
+        "F03_KEEP_TEST": "1",
+        "F03_PACKET": "1",
+        "F03_S2_CLOSE": "1",
+        "F03_NORMALIZE": "indeterminate-matrix",
+        "F03_C04_FAULTS": "1"
+      },
+      "cwd": "/tmp/loa-aleph-f03-implementation-20260917",
+      "start": "2026-09-27T11:15:27.752592+00:00",
+      "name": "current-C04-matrix-corrected",
+      "completed": false
+    }
+  ],
+  "retained_evidence": [
+    {
+      "path": "/home/eileenspectremoon/loa-dev/f03-pause-20260926-q38oe1m4/retained-previous-receipts/installed-1771059-C04-matrix.command.json",
+      "bytes": 367,
+      "sha256": "16d2cdaf1620f3ef765a7137eaa19d5e3435b24edfb706f0fb9f7d957ccd4783",
+      "text": "{\n  \"cmd\": [\n    \"node\",\n    \"adapters/loa/tests/test-orchestration-process.ts\"\n  ],\n  \"flags\": {\n    \"F03_KEEP_TEST\": \"1\",\n    \"F03_PACKET\": \"1\",\n    \"F03_S2_CLOSE\": \"1\",\n    \"F03_NORMALIZE\": \"indeterminate-matrix\",\n    \"F03_C04_FAULTS\": \"1\"\n  },\n  \"head\": \"1771059ae75c31f21422220384323af9f10cf13d\",\n  \"pid\": 393192,\n  \"start\": \"2026-09-26T20:55:19.978548+00:00\"\n}\n"
+    },
+    {
+      "path": "/home/eileenspectremoon/loa-dev/f03-pause-20260926-q38oe1m4/retained-previous-receipts/installed-1771059-C04-matrix.log",
+      "bytes": 2206,
+      "sha256": "d45b136b80f1beceae752d3407ae70f8d142395fe8fdcb7fdf17fd9adf1e2728",
+      "text": "PASS supported CLI S0/S1 fixture transport, restart after accept, canonical writer and criteria agreement\nPASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission\nPASS supported CLI fresh fixture L1, complete source projection, S2 seal and S3 entry\nPASS supported CLI fixture crash/recovery sem.resolve/derived\nPASS supported CLI fixture crash/recovery sem.resolve/commit-intent\nPASS supported CLI fixture crash/recovery sem.resolve/writer-prepared\nPASS supported CLI fixture crash/recovery sem.resolve/effect:ledgers/semantic-review.md\nPASS supported CLI fixture crash/recovery sem.resolve/canonical-bytes\nPASS supported CLI fixture crash/recovery sem.resolve/chain\nPASS supported CLI fixture crash/recovery sem.resolve/checkpoint\nPASS supported CLI fixture crash/recovery sem.resolve/journal-committed\nPASS supported CLI fixture crash/recovery sem.resolve/consumed\nretained test scratch: /tmp/aleph-orchestration-process-APU24g\nnode:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: {\"command\":\"resume\",\"details\":null,\"errors\":[\"USE_CLOSURE sha256:419196c880fb89ec949f493733322853066800ed292ff2edcad7f4d0ab92b2db field binding_ids: SRC binding outside exact packet-basis union\"],\"format\":\"aleph-loa-command-result/v1\",\"full_mode\":\"not-started\",\"gate\":null,\"result\":\"FAIL\",\"run_id\":\"RUN-20260926T205540502Z-8612a2903eae\",\"stage\":null,\"state\":null}\n\n\n\n1 !== 0\n\n    at command (file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:184:14)\n    at cli (file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:187:40)\n    at file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:931:21\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-multi-source-S2-second.command.json",
+      "bytes": 269,
+      "sha256": "1d2260d7c7b923d5950436bffa0eafdcb1658692dd20bb6a9cca2e7e6220a217",
+      "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-orchestration-process.ts\"], \"flags\": {\"F03_KEEP_TEST\": \"1\", \"F03_PACKET\": \"1\", \"F03_S2_CLOSE\": \"1\", \"F03_S2_MULTI_SOURCE\": \"1\"}, \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T09:41:30.224781+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-multi-source-S2-second.log",
+      "bytes": 1228,
+      "sha256": "ab350ca2bbf584974971890333add69b100a0787f704e45140bc51624db283ed",
+      "text": "PASS supported CLI S0/S1 fixture transport, restart after accept, canonical writer and criteria agreement\nPASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission\nretained test scratch: /tmp/aleph-orchestration-process-UDrD8D\nnode:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: \nWORK_RETURN_REJECTED: SEM_REFERENCE OBJ-0002: material outside assigned source scope\n\n\n1 !== 0\n\n    at command (file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:242:14)\n    at runFixture (file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:294:7)\n    at file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:872:9\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-multi-source-S2-second.exit.json",
+      "bytes": 55,
+      "sha256": "c8fe4a1178d1d98230834ba714aed1cbd54b65a5cd66f9a33fce085a895deb29",
+      "text": "{\"exit\": 1, \"end\": \"2026-09-27T11:06:53.341796+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-discriminator.ts",
+      "bytes": 3402,
+      "sha256": "090c4be224fbbd5f8d7d5791a3c022b5b441bbeefffe8aa57c8a1d45e3ec2356",
+      "text": "import assert from 'node:assert/strict';\nimport { readFileSync, readdirSync, mkdtempSync } from 'node:fs';\nimport { join } from 'node:path';\nimport { loadRun } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/run-model.ts';\nimport { readRepresentationContext, materialHash } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/source-representation.ts';\nimport { semanticProducerView, validateSemanticReturn, semanticIndeterminateClaimMaterialViews } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/semantic-review.ts';\nimport { makeSemanticFixture } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/semantic-fixture-support.ts';\nconst parent='/tmp/aleph-orchestration-process-UDrD8D';\nconst run=join(parent,'host/grimoires/loa/aleph/runs',readdirSync(join(parent,'host/grimoires/loa/aleph/runs'))[0]);\nconst call='CALL-F03-0ac08f5bb96e64777011ec71ed9554d7b3365f8554f6990c27063ca53c86eb82';\nconst model=loadRun(run), raw=JSON.parse(readFileSync(join(parent,call+'.json'),'utf8'));\nconst selections=JSON.parse(readFileSync(join(run,'control/semantic-producer-context',call+'.json'),'utf8'));\nconst view=semanticProducerView(model,'extractor','S2',selections);\nconst bad=validateSemanticReturn('extractor','1.9.0-provisional',raw,view.context);\nassert.equal(bad.result,'FAIL');assert.match(bad.errors.join(';'),/material outside assigned source scope/);\nconst inventory=readRepresentationContext(model).inventory;\nconst rep=inventory.representations.find(r=>r.source_id===raw.source_id)!;\nconst text=inventory.objects.find(o=>o.representation_id===rep.representation_id&&o.kind==='text')!;\nconst corrected=structuredClone(raw);\ncorrected.packets[0].material_use.requirements=[{object_id:text.object_id,feature:'text-bytes',binding_ids:JSON.parse(text.binding_ids)}];\nconst good=validateSemanticReturn('extractor','1.9.0-provisional',corrected,view.context);\nassert.equal(good.result,'PASS',good.errors.join(';'));assert.equal(good.binding,'checked');\nconsole.log(JSON.stringify({case:'second-source material scope',original:bad,corrected:good.result,source:raw.source_id,requirement:corrected.packets[0].material_use.requirements}));\nconst temp=mkdtempSync('/tmp/f03-c04-span-discriminator-');\nfor(const lf of [true,false]){\n const f=makeSemanticFixture(join(temp,lf?'old':'corrected'),'The synthetic counter increased.'+(lf?'\\n':''),undefined,undefined,'1.9.0-provisional');\n const m=loadRun(f.run);\n const output={kind:'indeterminate-claim' as const, output_selector:'claim-candidate:0',output_index:0,reserved_claim_id:'CC-0702',normalized_claim:'Tentative unadmitted interpretation.',packet_ids:['PKT-0701'],source_ids:['SRC-701'],claim_type:'factual'};\n const use={requirements:[{object_id:'OBJ-0002',feature:'formal-structure' as const,binding_ids:['BND-0001']},{object_id:'OBJ-0001',feature:'table-grid' as const,binding_ids:['BND-0001']}],use_state:'CANNOT_DETERMINE' as const,fidelity_claim:'none' as const,limitation_refs:['OBJ-0002'],reason:'Synthetic structure unavailable.'};\n const derive=()=>semanticIndeterminateClaimMaterialViews(m,output,materialHash('fixture'),use);\n if(lf) assert.throws(derive,/SRC binding outside exact packet-basis union/);\n else assert.equal(derive().length,1);\n console.log(JSON.stringify({case:'C04 multi-object packet union',source_trailing_LF:lf,result:lf?'expected Core refusal':'PASS exact preview',run:f.run}));\n}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-discriminator.command.json",
+      "bytes": 141,
+      "sha256": "4d8ba1281e176038c6abd5b4eab53c5c72efd3db1c149d30f0539d47eb1e3125",
+      "text": "{\"cmd\": [\"node\", \"/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-discriminator.ts\"], \"start\": \"2026-09-27T11:14:27.896905+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-discriminator.log",
+      "bytes": 622,
+      "sha256": "063b2be1c51b0ad63483854a5090743b85374a5b248e1a2df3fc3615c80f32fa",
+      "text": "{\"case\":\"second-source material scope\",\"original\":{\"result\":\"FAIL\",\"errors\":[\"SEM_REFERENCE OBJ-0002: material outside assigned source scope\"],\"canonicalValue\":null,\"binding\":\"checked\"},\"corrected\":\"PASS\",\"source\":\"SRC-002\",\"requirement\":[{\"object_id\":\"OBJ-0004\",\"feature\":\"text-bytes\",\"binding_ids\":[\"BND-0002\"]}]}\n{\"case\":\"C04 multi-object packet union\",\"source_trailing_LF\":true,\"result\":\"expected Core refusal\",\"run\":\"/tmp/f03-c04-span-discriminator-uuWycY/old\"}\n{\"case\":\"C04 multi-object packet union\",\"source_trailing_LF\":false,\"result\":\"PASS exact preview\",\"run\":\"/tmp/f03-c04-span-discriminator-uuWycY/corrected\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-discriminator.exit.json",
+      "bytes": 54,
+      "sha256": "cb945acea999c1b47d8a3f86277ae007dcd39ec170096cd087fe5e436949e558",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T11:14:28.792522+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator.ts",
+      "bytes": 2468,
+      "sha256": "a19cc47d2dc0cb77af40cf24ee0f4c715f4ef65656636e104e0e819f404e5cbb",
+      "text": "import assert from 'node:assert/strict';\nimport { readFileSync,readdirSync } from 'node:fs';\nimport { join } from 'node:path';\nimport { loadRun } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/run-model.ts';\nimport { readRepresentationContext } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/source-representation.ts';\nimport { deriveWorkTransition,workJson,workDigest } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/work-transitions.ts';\nconst parent='/tmp/aleph-orchestration-process-UDrD8D';\nconst run=join(parent,'host/grimoires/loa/aleph/runs',readdirSync(join(parent,'host/grimoires/loa/aleph/runs'))[0]);\nconst call='CALL-F03-0ac08f5bb96e64777011ec71ed9554d7b3365f8554f6990c27063ca53c86eb82';\nconst model=loadRun(run), raw=JSON.parse(readFileSync(join(parent,call+'.json'),'utf8'));\nconst work=readdirSync(join(run,'control/orchestration/work')).map(p=>JSON.parse(readFileSync(join(run,'control/orchestration/work',p),'utf8'))).find(w=>w.call?.call_id===call);\nconst inv=readRepresentationContext(model).inventory,rep=inv.representations.find(r=>r.source_id===raw.source_id)!;\nconst obj=inv.objects.find(o=>o.representation_id===rep.representation_id&&o.kind==='text')!;\nraw.packets[0].material_use.requirements=[{object_id:obj.object_id,feature:'text-bytes',binding_ids:JSON.parse(obj.binding_ids)}];\nconst state=JSON.parse(readFileSync(join(run,'control/run-state.json'),'utf8'));\nconst execution={stage:state.execution.stage,stage_status:state.execution.stage_status,core_state:state.execution.core_state,blocked:false};\nfunction derive(){return deriveWorkTransition(model,execution,work.identity.work,{call_id:call,role:'extractor',context_id:'CTX-'+call,producer_context_id:null,raw_digest:workDigest(workJson(raw)),receipt_digest:'sha256:'+'a'.repeat(64),simulation:true,value:raw},work.created_at);}\nassert.throws(derive,/SP-0001 spans more than one source position/);\nconsole.log('PASS unchanged Core rejects cross-source SP-0001 alias in second-source fixture');\nraw.extraction_events[0].shared_position_key='SP-0002';\nconst plan=derive();assert.equal(plan.family,'s2-capture');assert.equal(plan.obligation.subject_id,'SRC-002');\nconsole.log(JSON.stringify({result:'PASS',scope:'Read-only supplemental Core derivation using corrected synthetic inputs; no installed accepted evidence or canonical effects authored.',effects:plan.effects.map(e=>e.path),source_completion:plan.source_completion?.completions}));\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator.command.json",
+      "bytes": 144,
+      "sha256": "0346afd425232d4158e834d482da2da2026f15c0382f409afc257682fa0cc2ac",
+      "text": "{\"cmd\": [\"node\", \"/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator.ts\"], \"start\": \"2026-09-27T11:23:47.079238+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator.log",
+      "bytes": 1650,
+      "sha256": "383754661f5ded8a3d9f2c3d8c01f9531a192214da92e43242ace969a9257dfc",
+      "text": "node:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: The input did not match the regular expression /SP-0001 spans more than one source position/. Input:\n\n'Error: canonical JSON forbids numbers'\n\n    at file:///tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator.ts:18:8\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: Error: canonical JSON forbids numbers\n      at canonicalJson (file:///tmp/loa-aleph-f03-implementation-20260917/scripts/lib/bundle-format.ts:284:11)\n      at file:///tmp/loa-aleph-f03-implementation-20260917/scripts/lib/bundle-format.ts:293:52\n      at Array.map (<anonymous>)\n      at canonicalJson (file:///tmp/loa-aleph-f03-implementation-20260917/scripts/lib/bundle-format.ts:293:8)\n      at Array.map (<anonymous>)\n      at canonicalJson (file:///tmp/loa-aleph-f03-implementation-20260917/scripts/lib/bundle-format.ts:286:46)\n      at file:///tmp/loa-aleph-f03-implementation-20260917/scripts/lib/bundle-format.ts:293:52\n      at Array.map (<anonymous>)\n      at canonicalJson (file:///tmp/loa-aleph-f03-implementation-20260917/scripts/lib/bundle-format.ts:293:8)\n      at canonicalJsonBytes (file:///tmp/loa-aleph-f03-implementation-20260917/scripts/lib/bundle-format.ts:299:25),\n  expected: /SP-0001 spans more than one source position/,\n  operator: 'throws',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator.exit.json",
+      "bytes": 54,
+      "sha256": "c0bdc8ea5c0e9d70e48db2143549b769003573a18297a19dc9c5c4f6f14fedfe",
+      "text": "{\"exit\": 1, \"end\": \"2026-09-27T11:23:47.466168+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator-second.ts",
+      "bytes": 2487,
+      "sha256": "e4d116ca68cf6567fcbc2947318936c17fa75e043617e5d99174f1b2759ca32b",
+      "text": "import assert from 'node:assert/strict';\nimport { readFileSync,readdirSync } from 'node:fs';\nimport { join } from 'node:path';\nimport { loadRun } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/run-model.ts';\nimport { readRepresentationContext } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/source-representation.ts';\nimport { deriveWorkTransition,workJson,workDigest } from '/tmp/loa-aleph-f03-implementation-20260917/scripts/lib/work-transitions.ts';\nconst parent='/tmp/aleph-orchestration-process-UDrD8D';\nconst run=join(parent,'host/grimoires/loa/aleph/runs',readdirSync(join(parent,'host/grimoires/loa/aleph/runs'))[0]);\nconst call='CALL-F03-0ac08f5bb96e64777011ec71ed9554d7b3365f8554f6990c27063ca53c86eb82';\nconst model=loadRun(run), raw=JSON.parse(readFileSync(join(parent,call+'.json'),'utf8'));\nconst work=readdirSync(join(run,'control/orchestration/work')).map(p=>JSON.parse(readFileSync(join(run,'control/orchestration/work',p),'utf8'))).find(w=>w.call?.call_id===call);\nconst inv=readRepresentationContext(model).inventory,rep=inv.representations.find(r=>r.source_id===raw.source_id)!;\nconst obj=inv.objects.find(o=>o.representation_id===rep.representation_id&&o.kind==='text')!;\nraw.packets[0].material_use.requirements=[{object_id:obj.object_id,feature:'text-bytes',binding_ids:JSON.parse(obj.binding_ids)}];\nconst state=JSON.parse(readFileSync(join(run,'control/run-state.json'),'utf8'));\nconst execution={stage:state.execution.stage,stage_status:state.execution.stage_status,core_state:state.execution.core_state,blocked:false};\nfunction derive(){return deriveWorkTransition(model,execution,work.identity.work,{call_id:call,role:'extractor',context_id:'CTX-'+call,producer_context_id:null,raw_digest:workDigest(Buffer.from(JSON.stringify(raw))),receipt_digest:'sha256:'+'a'.repeat(64),simulation:true,value:raw},work.created_at);}\nassert.throws(derive,/SP-0001 spans more than one source position/);\nconsole.log('PASS unchanged Core rejects cross-source SP-0001 alias in second-source fixture');\nraw.extraction_events[0].shared_position_key='SP-0002';\nconst plan=derive();assert.equal(plan.family,'s2-capture');assert.equal(plan.obligation.subject_id,'SRC-002');\nconsole.log(JSON.stringify({result:'PASS',scope:'Read-only supplemental Core derivation using corrected synthetic inputs; no installed accepted evidence or canonical effects authored.',effects:plan.effects.map(e=>e.path),source_completion:plan.source_completion?.completions}));\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator-second.command.json",
+      "bytes": 256,
+      "sha256": "28526df17d99d6faa58921ad04c516e2b62e4d3091b54f2b6a0e4cc9da9f0151",
+      "text": "{\"cmd\": [\"node\", \"/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator-second.ts\"], \"start\": \"2026-09-27T11:23:59.696883+00:00\", \"correction\": \"Use worker JSON serializer for numeric return; original failed helper attempt retained.\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator-second.log",
+      "bytes": 1566,
+      "sha256": "b7496d89156190b3971878a2b5edbb720de37bb544d3434311b7aafbcef99e60",
+      "text": "PASS unchanged Core rejects cross-source SP-0001 alias in second-source fixture\n{\"result\":\"PASS\",\"scope\":\"Read-only supplemental Core derivation using corrected synthetic inputs; no installed accepted evidence or canonical effects authored.\",\"effects\":[\"ledgers/packet-index.md\",\"ledgers/source-walk.md\",\"ledgers/representation-uses.md\",\"verification/harness/work-captures/CALL-F03-0ac08f5bb96e64777011ec71ed9554d7b3365f8554f6990c27063ca53c86eb82.json\",\"control/semantic-producer-bindings/CALL-F03-0ac08f5bb96e64777011ec71ed9554d7b3365f8554f6990c27063ca53c86eb82/packet-candidate-0.json\"],\"source_completion\":[{\"source_id\":\"SRC-001\",\"progression\":\"complete-no-op\",\"before_row\":\"| SRC-001 | sha256:0af8f0b01f7e240773fc5c80412874c2ea3814c6e4250a59b8de180a9dd3c95c | 33 | CUR-0003 | GAP-0001 | complete | orchestrator | K2.14 procedural closure; no semantic recall claim. |\",\"after_row\":\"| SRC-001 | sha256:0af8f0b01f7e240773fc5c80412874c2ea3814c6e4250a59b8de180a9dd3c95c | 33 | CUR-0003 | GAP-0001 | complete | orchestrator | K2.14 procedural closure; no semantic recall claim. |\"},{\"source_id\":\"SRC-002\",\"progression\":\"blocked-to-blocked\",\"before_row\":\"| SRC-002 | sha256:bca38f35f0d5eb696f252df02f4ff49029ae9f636924344228960b386f5d842f | 57 | CUR-0002 | none | blocked | orchestrator | Current procedural frontier; source completion remains unmet. |\",\"after_row\":\"| SRC-002 | sha256:bca38f35f0d5eb696f252df02f4ff49029ae9f636924344228960b386f5d842f | 57 | CUR-0004 | none | blocked | orchestrator | Current procedural frontier; source completion remains unmet. |\"}]}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/second-source-walk-discriminator-second.exit.json",
+      "bytes": 54,
+      "sha256": "5fa7e22c067c547b771784a5b105c4cb2564d1e52caeb9f7cc5ba8cfac1b6dd4",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T11:24:01.761912+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-second-typecheck.command.json",
+      "bytes": 147,
+      "sha256": "bec273ebe0a64357c993c544e92cdfa3d4ba6ddd6a6d6e8e702eea6efc956836",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"typecheck\"], \"flags\": {}, \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T11:24:32.710788+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-second-typecheck.log",
+      "bytes": 91,
+      "sha256": "9262126f8ee07080abcb6ec22fe8c7f90f73c0b28038b80322796c9bede8e9e6",
+      "text": "\n> loa-aleph@0.0.0 typecheck\n> tsc --noEmit && tsc -p adapters/loa/tsconfig.json --noEmit\n\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-second-typecheck.exit.json",
+      "bytes": 54,
+      "sha256": "7a8b4f8fefad6e0c3742949ad690cf6e3d8e61d310db8234de5082606f7cd971",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T11:24:34.888999+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-runtime-build.command.json",
+      "bytes": 138,
+      "sha256": "e26972888ddccce6c6a5b7659d9de6e3fee1e2345e6357098208398852ab66f7",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"runtime:build\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T11:25:53.445635+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-runtime-build.log",
+      "bytes": 104,
+      "sha256": "18af49028a105c72ae1ecad3775fefd1e6951c143b0f007ee838855de195e576",
+      "text": "\n> loa-aleph@0.0.0 runtime:build\n> node packaging/build-runtime-js.ts build\n\nRUNTIME-JS PASS (51 files)\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-runtime-build.exit.json",
+      "bytes": 54,
+      "sha256": "e4ce466529718c72cb05f632d13b1acf32b9dec37f53cf036a85f0a0e6694640",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T11:25:54.524645+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-runtime-check.command.json",
+      "bytes": 138,
+      "sha256": "cd5d34ce617d3ad9438df3fd7a1dcbb2bbcdec5ce466dca9d18302f011557047",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"runtime:check\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T11:25:54.524935+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-runtime-check.log",
+      "bytes": 104,
+      "sha256": "2db692aa71955256d13b21b130bbed39c421ccf29350944a90c1e1a4cd4365cc",
+      "text": "\n> loa-aleph@0.0.0 runtime:check\n> node packaging/build-runtime-js.ts check\n\nRUNTIME-JS PASS (51 files)\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-runtime-check.exit.json",
+      "bytes": 54,
+      "sha256": "9b27ee30db93e8223b4d19f271165cdb8d60bc276dd7941e1fc7194342e101d6",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T11:25:55.716440+00:00\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-safe-boundary.command.json",
+      "bytes": 699,
+      "sha256": "3160f17e98bb21cd60ca3de330fe470f8dfd75cca8680e7698d087bbcaa2ba69",
+      "text": "{\"cmd\": [\"node\", \"--input-type=module\", \"-e\", \"import {mkdtempSync} from 'node:fs'; import {predecessorSource} from './scripts/compatibility-fixture-source.ts'; import {spawnSync} from 'node:child_process'; const source=predecessorSource(process.cwd(),mkdtempSync('/tmp/f03-fixture-binding-boundary-'),'1.9.0-provisional'); console.log('SAFE_SOURCE '+source); const result=spawnSync(process.execPath,['scripts/validate-core-boundary.ts'],{cwd:source,stdio:'inherit'}); process.exitCode=result.status ?? 1;\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T11:27:46.037626+00:00\", \"scope\": \"Calibration excluded before source reads; local source boundary validation only.\"}"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-safe-boundary.log",
+      "bytes": 2260,
+      "sha256": "79c9ea1202da2e7d2ec95d3072508bc0367fe8d8875135c6950f4f69e65a1b5f",
+      "text": "SAFE_SOURCE /tmp/f03-fixture-binding-boundary-f0sxpw/source-1.9.0-provisional\nPASS CORE-BOUNDARY CB1 (core manifest): core manifest format and required fields are valid\nPASS CORE-BOUNDARY CB2 (inventory classification): 714 tracked and nonignored untracked files have exactly one classification\nPASS CORE-BOUNDARY CB3 (Core completeness and class boundaries): doctrine, contracts, fixtures, goldens, checkers, and manual binding remain in Core\nPASS CORE-BOUNDARY CB4 (checker and typed manifest references): checker and typed boundary references resolve to classified paths\nPASS CORE-BOUNDARY CB5 (adapter manifest shape): adapter manifests and protocol schema are structurally valid\nPASS CORE-BOUNDARY CB6 (adapter lifecycle honesty): lifecycle labels, capabilities, entrypoints, installation, profiles, and evidence agree\nPASS CORE-BOUNDARY CB7 (adapter ownership and Core non-override): adapters own only their host paths and cannot override or duplicate Core\nPASS CORE-BOUNDARY CB8 (foreign-adapter exclusion): selected-adapter payloads, typed dependencies, and bundle inventories exclude foreign adapters\nPASS CORE-BOUNDARY CB10 (Core-owned procedural authority semantics): Loa delegates structured material-impact authority eligibility to the Core helper\nPASS CORE-BOUNDARY CB9 (bundle digests and Core equality): all bundle targets share Core digest sha256:927be7cee64d194cc9383ed97d23900b81b5e33e367731e6375b4f618b195c13\nDIGEST core sha256:927be7cee64d194cc9383ed97d23900b81b5e33e367731e6375b4f618b195c13\nDIGEST checker sha256:11e4ffbf16b1ec079c5fb59ad435825edeb496776d8828ee97f963c8ec448aff\nDIGEST manual-binding sha256:81c536d14dca524a7dea0a1ab0cf263cde985079f7c75e37e5d633ded65c7715\nDIGEST adapter:loa sha256:1de4986b58d5db05d0f7a81308edc50d74b34f3983aee2da9a1d927e70799edc\nDIGEST adapter:hermes sha256:9fa7aeb4f55648649a983d35eb20b2be4fb6e1b49ecb1f1534a8d6154db6e897\nDIGEST bundle:aleph-for-loa sha256:623792d90e29706faca5bce16b15cc3e65b784d6c80e76410051f1d364733402\nDIGEST bundle:aleph-for-hermes sha256:3bf1cd79b30428360927967ac282f07baa124c4d311ddbf3f696599c47d8a807\nPREFLIGHT hermes NOT-READY lifecycle=planned (adapter lifecycle is planned; no runnable entrypoint or installation exists)\nPREFLIGHT loa READY lifecycle=implemented\nRESULT: PASS\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/fixture-binding-safe-boundary.exit.json",
+      "bytes": 54,
+      "sha256": "5358c39df270b107d4c602869700759afffc4be3e57708c7fb7a7a8d35b98134",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T11:27:47.687890+00:00\"}"
+    }
+  ],
+  "durable_failed_fixture_archive": {
+    "path": "failed-multi-source-and-c04-span-probes.tar.gz",
+    "sha256": "537bbb4073fc8f53abe43e71f94b5c37a03245271f76bb4258970501d5f8d791",
+    "bytes": 16318102,
+    "entries": 6246,
+    "calibration": "excluded before recursive reads",
+    "completed": "2026-09-27T11:19:46.411485+00:00"
+  },
+  "containment": "Every fresh source copy excludes the complete calibration/ subtree before opening source files. No further closed-reference access/copy occurred. The historical c6ca7d0e26fbf166b8ce39b3c3fd3f778c37c92a incident remains separately visible; an overall zero count is not claimed.",
+  "prohibited_operations_this_checkpoint": {
+    "provider_or_model_calls": 0,
+    "genuine_native_workers": 0,
+    "live_corpus_or_SRC001_replay": 0,
+    "closed_reference_read_or_copy": 0,
+    "release_preparation_or_publication": 0,
+    "Loa_ingestion": 0,
+    "PR_or_merge": 0,
+    "acceptance_closure_or_v1": 0
+  },
+  "preservation": {
+    "at": "2026-09-27T11:28:53.598048+00:00",
+    "head": "b79235dfbd8e6b910ab3bdca12d19e3097f2e30c",
+    "tree": "5d49bcd6905ce4ea8141969f3f9881dbd4740616",
+    "status": "M adapters/loa/tests/test-orchestration-process.ts\n M core.manifest.json\n?? calibration/src-001/core-design-basis/EVIDENCE-f03-multisource-c04-fixture-corrections-20260927.json",
+    "staged": "",
+    "worktrees": "worktree /home/eileenspectremoon/loa-dev/loa-aleph\nHEAD a568f499db6707e4787ee3da969dbd6193b04944\nbranch refs/heads/agent/src-001-blind-replay-preparation-20260914\n\nworktree /tmp/loa-aleph-f03-design-20260917\nHEAD 484fa227e1ed23c81dc4cf37987aa0be16eded8f\nbranch refs/heads/agent/f03-production-reachability-design-20260917\nprunable gitdir file points to non-existent location\n\nworktree /tmp/loa-aleph-f03-implementation-20260917\nHEAD b79235dfbd8e6b910ab3bdca12d19e3097f2e30c\nbranch refs/heads/agent/f03-production-reachability-implementation-20260917\n\nworktree /tmp/loa-aleph-s5a2-final-17e1d1a.lkyTtl\nHEAD 17e1d1acda17a38d72214af5022b8145220f96d8\ndetached\nprunable gitdir file points to non-existent location\n\nworktree /tmp/loa-aleph-s5a2-repair-20260908.EoH8Ki\nHEAD 17e1d1acda17a38d72214af5022b8145220f96d8\ndetached\nprunable gitdir file points to non-existent location\n\nworktree /tmp/loa-aleph-s7-retained-adoption-094a7ce\nHEAD 094a7ce3220631c8d4ee4c179e79b9b4529b6681\ndetached\nprunable gitdir file points to non-existent location\n\nworktree /tmp/slice6-pre16-authority\nHEAD e45a1d9b1cafc5ef3b6a1fb46a61a8a395d45770\ndetached\nprunable gitdir file points to non-existent location",
+    "primary_head": "a568f499db6707e4787ee3da969dbd6193b04944",
+    "primary_status": "",
+    "primary_index_sha256": "25b75457cdf1b9faace761383199531fca4b82215d7794c3d8deae4df7d3a4be",
+    "release_ref": "b9e2db742a087b8ae659ec39e476ed5e240cfa1f",
+    "stash": "e5b49e873d8a03fcd0d1b3bc65fc7c80cb8b6ce8",
+    "historical_records_exact": 45
+  }
+}

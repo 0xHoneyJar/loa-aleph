@@ -111,8 +111,10 @@ if (process.argv[2] === '--fixture-worker') {
     assert(!multiFragment || !wideningMode && process.env.F03_PACKET === '1');
     assert(!multiSourceProgress || !multiFragment && !wideningMode
       && process.env.F03_PACKET === '1' && process.env.F03_S2_CLOSE === '1');
-    const inputText = 'The synthetic counter increased.\n' + (multiFragment
-      ? 'A separate synthetic observation.\nThe battery discharged.' : wideningMode ? 'Under the retained synthetic condition.\n' : '');
+    // C04's source-object requirement must fit the exact L1-L1 packet union.
+    const inputText = 'The synthetic counter increased.' + (multiFragment
+      ? '\nA separate synthetic observation.\nThe battery discharged.' : wideningMode ? '\nUnder the retained synthetic condition.\n'
+        : process.env.F03_NORMALIZE?.startsWith('indeterminate') || process.env.F03_NORMALIZE === 'mixed' ? '' : '\n');
     writeFileSync(input, inputText);
     let selectedInput = input;
     if (multiSource) {
@@ -865,7 +867,17 @@ if (process.argv[2] === '--fixture-worker') {
         next.walk_intervals[0].end_byte = secondBytes.length + 1;
         next.packets[0].fragments[0].exact_bytes_base64 = secondBytes.toString('base64');
         next.packets[0].rendered_text = secondBytes.toString();
+        const inventory = readRepresentationContext(firstComplete).inventory;
+        const representation = inventory.representations.find((row) => row.source_id === second.sourceId)!;
+        const textObject = inventory.objects.find((row) => row.representation_id === representation.representation_id && row.kind === 'text')!;
+        const bindingIds = JSON.parse(textObject.binding_ids) as string[];
+        assert.notEqual(textObject.object_id, TEXT_USE.requirements[0].object_id);
+        assert(bindingIds.every((id) => inventory.bindings.some((row) =>
+          row.binding_id === id && row.carrier_id === second.sourceId && row.representation_id === representation.representation_id)));
+        next.packets[0].material_use.requirements = [{ object_id: textObject.object_id, feature: 'text-bytes', binding_ids: bindingIds }];
         next.extraction_events[0].end_byte = secondBytes.length;
+        next.extraction_events[0].shared_position_key = 'SP-0002';
+        assert(!firstComplete.sourceWalk.events.some((row) => row.values.sharedPositionKey === 'SP-0002'));
         next.next_cursor.byte_offset = secondBytes.length + 1;
         next.next_cursor.source_hash = second.contentHash;
         next.semantic_units[0].anchors[0] = { anchor_id: 'A1', source_id: second.sourceId, locator: 'L1-L1',
@@ -893,6 +905,7 @@ if (process.argv[2] === '--fixture-worker') {
         assert.deepEqual(complete.corpus.sources.map((row) => row.values), s2Before.corpus.sources.map((row) => row.values));
         assert.deepEqual(complete.packets.map((row) => row.values.sourceId), frozenSources.map((s) => s.sourceId));
         assert.equal(new Set(complete.packets.map((row) => row.values.packetId)).size, 2);
+        assert.equal(new Set(complete.sourceWalk.events.map((row) => row.values.sharedPositionKey)).size, 2);
         assert.equal(complete.sourceWalk.gapReviews.length, 2);
         assert(readFileSync(producerRawPath).equals(producerRaw));
         console.log('PASS installed two-source S2 follows frozen order, binds distinct packets and requires both exact source completions and L1 reviews');
