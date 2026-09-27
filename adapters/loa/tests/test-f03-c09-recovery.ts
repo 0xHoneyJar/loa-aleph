@@ -9,6 +9,11 @@ import { tmpdir } from 'node:os';
 import { stableJsonBytes, sha256Digest, makeTreeOwnerWritable } from '../src/fs.ts';
 import { stateCheckpointDigest } from '../src/run-control.ts';
 const seedRecord = JSON.parse(readFileSync(resolve(process.argv[2]), 'utf8')) as { run: string; host: string; work_id: string };
+const commandNode = process.env.F03_NODE_BINARY || process.execPath;
+if (process.env.F03_NODE_BINARY) {
+  const version = spawnSync(commandNode, ['--version'], { encoding: 'utf8' });
+  assert.equal(version.status, 0); assert.match(version.stdout, /^v20\./u);
+}
 const seed = resolve(seedRecord.run), workId = seedRecord.work_id;
 const root = mkdtempSync(join(tmpdir(), 'f03-c09-recovery-'));
 const journalRef = `control/transactions/TXN-work-${workId.slice(5)}.json`;
@@ -71,7 +76,7 @@ console.log('VERIFIED_FINAL_AFTER');
 `;
 let attempts = 0;
 function invoke(run: string, id = workId, action = 'commit') {
-  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script, run, id, action], {
+  const result = spawnSync(commandNode, ['--input-type=module', '-e', script, run, id, action], {
     encoding: 'utf8', env: { ...process.env, ALEPH_FIXTURE_WORK_FAULT: '' }, maxBuffer: 8 * 1024 * 1024,
   });
   attempts++;

@@ -1,0 +1,118 @@
+{
+  "format": "aleph-f03-node20-fragment-recovery-qualification/v1",
+  "recorded_at": "2026-09-27T14:02:52.751560+00:00",
+  "parent_head": "a92d5684eed4aa913bfd01207054f50d278a8d59",
+  "status": "IMPLEMENTATION_IN_PROGRESS_NOT_PRODUCER_COMPLETE",
+  "completed_fixture": {
+    "recorded_at": "2026-09-27T14:01:05.239927+00:00",
+    "fixture": "/tmp/aleph-orchestration-process-zwCWUX",
+    "run": "/tmp/aleph-orchestration-process-zwCWUX/host/grimoires/loa/aleph/runs/RUN-20260927T125452619Z-f103b22856bf",
+    "result": "PASS",
+    "scope": "Fresh installed Node20 fixture S0 through complete multi-candidate, multi-fragment S2 and S3 entry. This run stops before S3 normalization and does not execute the bootstrap cleanup branch. No native or semantic evidence.",
+    "receipts": {
+      "command.json": {
+        "sha256": "a88b64d1030fef8aa1fb9c6db147776d9830465690d5211a157c132c08b5578a",
+        "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-orchestration-process.ts\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"flags\": {\"F03_KEEP_TEST\": \"1\", \"F03_PACKET\": \"1\", \"F03_S2_MULTI\": \"1\", \"F03_S2_CLOSE\": \"1\", \"F03_NODE_BINARY\": \"/home/eileenspectremoon/.nvm/versions/node/v20.20.2/bin/node\"}, \"start\": \"2026-09-27T12:54:37.621174+00:00\", \"basis\": \"Fresh intact multi-candidate/multi-fragment installed qualification after exact consumed-plan repair, using current a40e259 executable bytes and existing Node20. Prior prepause pass remains preserved; no pinned runtime replacement. Calibration excluded before source copy.\"}\n"
+      },
+      "log": {
+        "sha256": "b32998161a927ead4d43596e74fe6fe759f02cac3e39d973ea27b968c37a96df",
+        "text": "PASS supported CLI S0/S1 fixture transport, restart after accept, canonical writer and criteria agreement\nPASS installed S2 two candidates, ordered separate fragments and three event identities receive two fresh L2S reviews\nPASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission\nPASS supported CLI fresh fixture L1, complete source projection, S2 seal and S3 entry\nPASS supported CLI retained S2 capture and completion path; fixture controls only\nEVIDENCE: fixture-simulated only. No provider/model/native/live execution. F-03 OPEN / MUST PRESERVE.\nretained test scratch: /tmp/aleph-orchestration-process-zwCWUX\n"
+      },
+      "exit.json": {
+        "sha256": "ab877f4c64cf1605b402f4c2854fb4d1b6929f36f8f90ccaafb15fd7e9ab766d",
+        "text": "{\"exit\": 0, \"end\": \"2026-09-27T13:53:14.060370+00:00\"}\n"
+      }
+    },
+    "final_execution": {
+      "core_state": "DISTILLING",
+      "gate": {
+        "id": "GATE-S0",
+        "request_ref": "control/gates/GATE-S0-request.json",
+        "response_ref": "control/gates/GATE-S0-response.json",
+        "status": "approved",
+        "type": "corpus-scope-sensitivity-freeze"
+      },
+      "halt": null,
+      "resume": {
+        "checkpoint_digest": "sha256:fd4a55eb62e4f705c3a639264b1086a8878f6002ec85b94a3051e7df479381e1",
+        "last_verified_at": "2026-09-27T13:48:40.188Z",
+        "sequence": "22"
+      },
+      "stage": "S3",
+      "stage_status": "entered"
+    },
+    "pinned_source_runtime_sha256": {
+      "adapters/loa/src/orchestration.ts": "91f0d837c7ca2cf10af2fdfb6d58c0738c4d1771275c4b47bca3ca50363a006a",
+      "adapters/loa/src/ledger-writer.ts": "a18b33fe8790fccb867b743bec9469b61862cf50fb7d215a8c7aaf535f62fb2e",
+      "scripts/assemble-bundles.ts": "30eb6436599556d3dc244b10682be0f9f3b2cbed00a0cbd3718b9857555058ad",
+      "runtime-js/adapters/loa/src/orchestration.js": "256cd5f401f75dee4c38cb9804162275d2e7729f22166c0688d01f9c15b2e838",
+      "runtime-js/adapters/loa/src/ledger-writer.js": "34342dd55d442dceb4a6e0ca7de4038f57d944486d4510c79af22a27b1163294",
+      "runtime-js/scripts/assemble-bundles.js": "8d3901538648be9b723c16ed6a4ccd894870d96aa906a0fab37e2b3b14d280dc"
+    },
+    "findings": {
+      "F-03": "OPEN / MUST PRESERVE",
+      "F-04": "OPEN / MUST PRESERVE",
+      "F-05": "OPEN / MUST PRESERVE"
+    },
+    "scope_accounting_reference": "scope-accounting-misdirected-boundary-check.json; historical c6ca7d0 actual copy incident separately retained",
+    "run_identity": {
+      "run_format_version": "1.9.0-provisional",
+      "core": {
+        "id": "aleph-core",
+        "tree_digest": "sha256:ae86bfafd4b1c93837466ab15ee0980372edd364b89a320555caf791501c2714",
+        "version": "0.1.0-provisional"
+      },
+      "adapter": {
+        "id": "loa",
+        "lifecycle": "implemented",
+        "tree_digest": "sha256:1de4986b58d5db05d0f7a81308edc50d74b34f3983aee2da9a1d927e70799edc",
+        "version": "0.1.0-provisional"
+      },
+      "bundle": {
+        "digest": "sha256:4001c555b856fa994c3c9b7d17c63ba29fa52c9d14c3227447e4c2fed36d0cdf",
+        "id": "aleph-for-loa",
+        "installation_ref": ".claude/aleph/install.lock.json",
+        "lock_digest": "sha256:a450f88b703d11963054b4e48969ebecf306ff78fb0358d15ac1978be7808db1",
+        "lock_ref": "control/original-bundle.lock.json",
+        "payload_digest": "sha256:a3777b5b6bbd591dd78d28105edd7238f4eeb62e41cc58683b18e2040dd426be",
+        "version": "0.1.0-provisional"
+      },
+      "checker_digest": "sha256:a340f1541bceb9078c94ca1fec6bf0097699dfece595b044056a9a5b03004b65"
+    }
+  },
+  "test_harness_change": {
+    "path": "adapters/loa/tests/test-f03-c09-recovery.ts",
+    "sha256": "8d070d8c0664be7e46f341693795fd577e42d2d79687f1c9552942d50e98d4d2",
+    "behavior": "Optional F03_NODE_BINARY selects and verifies an existing Node20 executable for child recovery processes. Default remains process.execPath. No pinned runtime bytes, execution semantics, authority or Core logic changed.",
+    "scope": "The exhaustive fixed Node20 recovery battery is queued until its original fixture parent completes successfully; this checkpoint does not claim it passed."
+  },
+  "validation": {
+    "typecheck": {
+      "receipt": "node20-exhaustive-harness-typecheck",
+      "exit": {
+        "exit": 0,
+        "end": "2026-09-27T13:50:57.913248+00:00"
+      },
+      "log": "\n> loa-aleph@0.0.0 typecheck\n> tsc --noEmit && tsc -p adapters/loa/tsconfig.json --noEmit\n\n"
+    },
+    "source_runtime_parity": {
+      "receipt": "node20-exhaustive-harness-parity",
+      "exit": {
+        "exit": 0,
+        "end": "2026-09-27T13:50:59.015583+00:00"
+      },
+      "log": "\n> loa-aleph@0.0.0 runtime:check\n> node packaging/build-runtime-js.ts check\n\nRUNTIME-JS PASS (51 files)\n"
+    }
+  },
+  "findings": {
+    "F-03": "OPEN / MUST PRESERVE",
+    "F-04": "OPEN / MUST PRESERVE",
+    "F-05": "OPEN / MUST PRESERVE"
+  },
+  "execution_scope": {
+    "new_closed_reference_content_reads_or_copies": 0,
+    "historical_actual_copy_incident": "c6ca7d0e26fbf166b8ce39b3c3fd3f778c37c92a remains visible and nonzero",
+    "excluded_namespace_checks": "The separately retained wrong-root validator attempt issued 20 missing-path diagnostics; see EVIDENCE-f03-excluded-path-accounting-clarification-20260927.json. No blanket zero across the continuation.",
+    "other_prohibited_activities": "No provider/model, genuine native, live corpus, SRC-001 replay, release publication, ingestion, PR, merge, acceptance, closure or v1 operations."
+  }
+}
