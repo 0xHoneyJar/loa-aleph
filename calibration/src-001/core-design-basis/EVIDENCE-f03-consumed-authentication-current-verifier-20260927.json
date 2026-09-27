@@ -1,0 +1,630 @@
+{
+  "format": "aleph-f03-post-verifier-qualification/v1",
+  "recorded_at": "2026-09-27T12:56:33.075245+00:00",
+  "qualified_implementation_head": "a40e25914e225c141a1654915a02093972d0cc04",
+  "qualified_implementation_tree": "a2a7954d36b0389f797eec81f792f9408b2b1a81",
+  "status": "IMPLEMENTATION_IN_PROGRESS_NOT_PRODUCER_COMPLETE",
+  "findings": {
+    "F-03": "OPEN / MUST PRESERVE",
+    "F-04": "OPEN / MUST PRESERVE",
+    "F-05": "OPEN / MUST PRESERVE"
+  },
+  "source_runtime_bytes": {
+    "scripts/assemble-bundles.ts": "30eb6436599556d3dc244b10682be0f9f3b2cbed00a0cbd3718b9857555058ad",
+    "runtime-js/scripts/assemble-bundles.js": "8d3901538648be9b723c16ed6a4ccd894870d96aa906a0fab37e2b3b14d280dc",
+    "adapters/loa/src/orchestration.ts": "91f0d837c7ca2cf10af2fdfb6d58c0738c4d1771275c4b47bca3ca50363a006a",
+    "runtime-js/adapters/loa/src/orchestration.js": "256cd5f401f75dee4c38cb9804162275d2e7729f22166c0688d01f9c15b2e838",
+    "adapters/loa/src/ledger-writer.ts": "a18b33fe8790fccb867b743bec9469b61862cf50fb7d215a8c7aaf535f62fb2e",
+    "runtime-js/adapters/loa/src/ledger-writer.js": "34342dd55d442dceb4a6e0ca7de4038f57d944486d4510c79af22a27b1163294"
+  },
+  "consumed_plan_authentication": {
+    "source": {
+      "result": "PASS",
+      "root": "/tmp/f03-consumed-plan-auth-s1skqB",
+      "result_sha256": "0b0912cdb84382ed25fe9e34c32d4f144c8ff32e668f15d37a335429a4391c05",
+      "tamper_cases": 33,
+      "intact_idempotence_controls": 1,
+      "binding_counts": {
+        "WORK_CONSUMPTION_PLAN": 25,
+        "WORK_COMMIT_BINDING": 4,
+        "WORK_CONSUMPTION_TRANSACTION": 4
+      },
+      "cases": [
+        {
+          "name": "intact consumed resume and repeated resume",
+          "result": "PASS",
+          "exit": 0
+        },
+        {
+          "name": "effect destination",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "effect AFTER bytes",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "effect count",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "effect order",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "next stage",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "stage status",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "Core state",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "authority gate and halt",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "operational halt",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "simulation marker",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "bootstrap composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "obligation",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "subject",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "work operation",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "accepted-return association",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "work association",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "BEFORE checkpoint",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "BEFORE chain",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "effect BEFORE digest",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "extra effect",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "transition family",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "field origins",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "source completion composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "stationary capture composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "S4 closure marker",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "semantic composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "duplicate composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "next blocked marker",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "unknown transition field",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "journal BEFORE state",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "journal BEFORE chain bytes",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "journal AFTER state",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "journal AFTER chain bytes",
+          "result": "REFUSED",
+          "exit": 1
+        }
+      ]
+    },
+    "runtime": {
+      "result": "PASS",
+      "root": "/tmp/f03-consumed-plan-auth-I3GZJo",
+      "result_sha256": "3bcc22471d6e453d01414469f994f66d6bddaaed66e878d981c6ce190cbbf46b",
+      "tamper_cases": 33,
+      "intact_idempotence_controls": 1,
+      "binding_counts": {
+        "WORK_CONSUMPTION_PLAN": 25,
+        "WORK_COMMIT_BINDING": 4,
+        "WORK_CONSUMPTION_TRANSACTION": 4
+      },
+      "cases": [
+        {
+          "name": "intact consumed resume and repeated resume",
+          "result": "PASS",
+          "exit": 0
+        },
+        {
+          "name": "effect destination",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "effect AFTER bytes",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "effect count",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "effect order",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "next stage",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "stage status",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "Core state",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "authority gate and halt",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "operational halt",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "simulation marker",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "bootstrap composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "obligation",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "subject",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "work operation",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "accepted-return association",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "work association",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "BEFORE checkpoint",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "BEFORE chain",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "effect BEFORE digest",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "extra effect",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "transition family",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "field origins",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "source completion composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "stationary capture composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "S4 closure marker",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "semantic composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "duplicate composition",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "next blocked marker",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "unknown transition field",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "journal BEFORE state",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "journal BEFORE chain bytes",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "journal AFTER state",
+          "result": "REFUSED",
+          "exit": 1
+        },
+        {
+          "name": "journal AFTER chain bytes",
+          "result": "REFUSED",
+          "exit": 1
+        }
+      ]
+    }
+  },
+  "controller": {
+    "at": "2026-09-27T12:53:16.081617+00:00",
+    "current_root": "/tmp/f03-controller-auth-ntd9r6",
+    "current_result_sha256": "027e64960198f873b2d97df36631870f3857e278a43500fb19537682dafb3aba",
+    "result": "PASS",
+    "cases": 47,
+    "exit_counts": {
+      "0": 3,
+      "1": 38,
+      "86": 6
+    },
+    "legacy_writer_refusals": 10,
+    "same_case_names_as_retained_prior_47": true,
+    "retained_prior_root": "/tmp/f03-controller-auth-vSwmC2",
+    "scope": "Current a40e259 implementation bytes installed into a fresh pinned synthetic fixture. Earlier47case result and slot remain preserved. No provider/native execution."
+  },
+  "additional_results": {
+    "retained_formats": "All unchanged1.0-1.8 bundles passed cold/warm verification in source and runtime;36read-only verifications, exact byte/mode preservation. Earlier installed routing passes remain separate.",
+    "node20": "Fresh current-byte two-source S1 passed on v20.20.2; full installed Node20 bootstrap and fresh multi-candidate/fragment S2 remain running.",
+    "runtime": {
+      "result": "PASS",
+      "cases": 6
+    },
+    "installer": {
+      "result": "PASS",
+      "cases": 17
+    },
+    "synthetic_package": {
+      "result": "PASS",
+      "cases": 23
+    },
+    "core_boundary": {
+      "result": "PASS",
+      "checks": 10
+    },
+    "earlier_same_code_bundle_controls": {
+      "source": 32,
+      "runtime": 32,
+      "canonical_projection_files": 51
+    }
+  },
+  "receipts": [
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-consumed-runtime.command.json",
+      "sha256": "328a6c89a6b682fd1446091bc4d92fa87eb14333ee3defaaa66e8b9a973b9a69",
+      "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-f03-consumed-plan-authentication.ts\", \"/tmp/aleph-orchestration-process-z2SCx5/controller-auth-seed.json\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:35:44.812240+00:00\", \"basis\": \"Fresh independently pinned fixture; reuse successful seed from prior wrapper.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-consumed-runtime.log",
+      "sha256": "b5bc8023d293cc5bdd83daecb94abafa53e07588bc783bd74fe614acddd07b54",
+      "text": "PASS rehashed consumed effect destination refused by exact rederivation/binding\nPASS rehashed consumed effect AFTER bytes refused by exact rederivation/binding\nPASS rehashed consumed effect count refused by exact rederivation/binding\nPASS rehashed consumed effect order refused by exact rederivation/binding\nPASS rehashed consumed next stage refused by exact rederivation/binding\nPASS rehashed consumed stage status refused by exact rederivation/binding\nPASS rehashed consumed Core state refused by exact rederivation/binding\nPASS rehashed consumed authority gate and halt refused by exact rederivation/binding\nPASS rehashed consumed operational halt refused by exact rederivation/binding\nPASS rehashed consumed simulation marker refused by exact rederivation/binding\nPASS rehashed consumed bootstrap composition refused by exact rederivation/binding\nPASS rehashed consumed obligation refused by exact rederivation/binding\nPASS rehashed consumed subject refused by exact rederivation/binding\nPASS rehashed consumed work operation refused by exact rederivation/binding\nPASS rehashed consumed accepted-return association refused by exact rederivation/binding\nPASS rehashed consumed work association refused by exact rederivation/binding\nPASS rehashed consumed BEFORE checkpoint refused by exact rederivation/binding\nPASS rehashed consumed BEFORE chain refused by exact rederivation/binding\nPASS rehashed consumed effect BEFORE digest refused by exact rederivation/binding\nPASS rehashed consumed extra effect refused by exact rederivation/binding\nPASS rehashed consumed transition family refused by exact rederivation/binding\nPASS rehashed consumed field origins refused by exact rederivation/binding\nPASS rehashed consumed source completion composition refused by exact rederivation/binding\nPASS rehashed consumed stationary capture composition refused by exact rederivation/binding\nPASS rehashed consumed S4 closure marker refused by exact rederivation/binding\nPASS rehashed consumed semantic composition refused by exact rederivation/binding\nPASS rehashed consumed duplicate composition refused by exact rederivation/binding\nPASS rehashed consumed next blocked marker refused by exact rederivation/binding\nPASS rehashed consumed unknown transition field refused by exact rederivation/binding\nPASS rehashed consumed journal BEFORE state refused by exact rederivation/binding\nPASS rehashed consumed journal BEFORE chain bytes refused by exact rederivation/binding\nPASS rehashed consumed journal AFTER state refused by exact rederivation/binding\nPASS rehashed consumed journal AFTER chain bytes refused by exact rederivation/binding\n{\"result\":\"PASS\",\"controls\":1,\"adversarial\":33,\"root\":\"/tmp/f03-consumed-plan-auth-I3GZJo\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-consumed-runtime.exit.json",
+      "sha256": "0cb9bfc85404c05b8a0b46d9b3de79d63a30c1b1dec0531801fbe1a0ad47f467",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:47:01.012312+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-consumed-source.command.json",
+      "sha256": "f1a7e02ffa3552395efb1afb7a592d5b22dd37421234ea225217e41da92cac97",
+      "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-f03-consumed-plan-authentication.ts\", \"/tmp/aleph-orchestration-process-z2SCx5/controller-auth-seed.json\", \"--source\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:47:01.012597+00:00\", \"basis\": \"Fresh independently pinned fixture; reuse successful seed from prior wrapper.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-consumed-source.log",
+      "sha256": "638d1ab98bc9db2b8c5286f4e10afa11b0d5d983871ecb98ae40e74995341d4d",
+      "text": "PASS rehashed consumed effect destination refused by exact rederivation/binding\nPASS rehashed consumed effect AFTER bytes refused by exact rederivation/binding\nPASS rehashed consumed effect count refused by exact rederivation/binding\nPASS rehashed consumed effect order refused by exact rederivation/binding\nPASS rehashed consumed next stage refused by exact rederivation/binding\nPASS rehashed consumed stage status refused by exact rederivation/binding\nPASS rehashed consumed Core state refused by exact rederivation/binding\nPASS rehashed consumed authority gate and halt refused by exact rederivation/binding\nPASS rehashed consumed operational halt refused by exact rederivation/binding\nPASS rehashed consumed simulation marker refused by exact rederivation/binding\nPASS rehashed consumed bootstrap composition refused by exact rederivation/binding\nPASS rehashed consumed obligation refused by exact rederivation/binding\nPASS rehashed consumed subject refused by exact rederivation/binding\nPASS rehashed consumed work operation refused by exact rederivation/binding\nPASS rehashed consumed accepted-return association refused by exact rederivation/binding\nPASS rehashed consumed work association refused by exact rederivation/binding\nPASS rehashed consumed BEFORE checkpoint refused by exact rederivation/binding\nPASS rehashed consumed BEFORE chain refused by exact rederivation/binding\nPASS rehashed consumed effect BEFORE digest refused by exact rederivation/binding\nPASS rehashed consumed extra effect refused by exact rederivation/binding\nPASS rehashed consumed transition family refused by exact rederivation/binding\nPASS rehashed consumed field origins refused by exact rederivation/binding\nPASS rehashed consumed source completion composition refused by exact rederivation/binding\nPASS rehashed consumed stationary capture composition refused by exact rederivation/binding\nPASS rehashed consumed S4 closure marker refused by exact rederivation/binding\nPASS rehashed consumed semantic composition refused by exact rederivation/binding\nPASS rehashed consumed duplicate composition refused by exact rederivation/binding\nPASS rehashed consumed next blocked marker refused by exact rederivation/binding\nPASS rehashed consumed unknown transition field refused by exact rederivation/binding\nPASS rehashed consumed journal BEFORE state refused by exact rederivation/binding\nPASS rehashed consumed journal BEFORE chain bytes refused by exact rederivation/binding\nPASS rehashed consumed journal AFTER state refused by exact rederivation/binding\nPASS rehashed consumed journal AFTER chain bytes refused by exact rederivation/binding\n{\"result\":\"PASS\",\"controls\":1,\"adversarial\":33,\"root\":\"/tmp/f03-consumed-plan-auth-s1skqB\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-consumed-source.exit.json",
+      "sha256": "fa93b79e80a3edeaff92db48fb411b6280cfadf388ddef0f483b693eacd0d167",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:55:01.898630+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-controller-matrix.command.json",
+      "sha256": "9d404aa0a6689ad73cfb6eb62cbc10e331ab43838ea978f2500df1f0e083e92f",
+      "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-f03-controller-authentication.ts\", \"/tmp/aleph-orchestration-process-HN6DS2/controller-auth-seed.json\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:35:44.811806+00:00\", \"basis\": \"Fresh independently pinned fixture; reuse successful seed from prior wrapper.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-controller-matrix.log",
+      "sha256": "ce25b3a2ca894cbd1c20a0c1c2e7bab886362ea8113651513410c60442ccc7d6",
+      "text": "PASS valid accepted seed commits once through installed resume and returns the next worker\nPASS concurrent installed resume has one canonical transaction and one next work\nPASS durable dispatch intent without completion repeatedly halts without redispatch\nPASS installed readers authenticate and report pending commit-intent without canonical verification\nPASS installed readers authenticate and report pending writer-prepared without canonical verification\nPASS installed readers authenticate and report pending effect:ledgers/extraction-criteria.md without canonical verification\nPASS installed readers authenticate and report pending chain without canonical verification\nPASS installed readers authenticate and report pending checkpoint without canonical verification\nPASS installed readers authenticate and report pending journal-committed without canonical verification\nPASS altered accepted raw.json\nPASS altered accepted validated.json\nPASS altered accepted validation.json\nPASS altered accepted native-return.json\nPASS altered accepted native-dispatch.json\nPASS altered accepted invocation.json\nPASS altered accepted host-capabilities.json\nPASS accepted receipt rebound to another run work\nPASS work identity substitutes another stage and recomputes its content digest\nPASS work replay substitutes run with a valid record digest\nPASS work replay substitutes subject with a valid record digest\nPASS work replay substitutes subphase with a valid record digest\nPASS work replay substitutes DoD with a valid record digest\nPASS work call binding refuses call\nPASS work call binding refuses missing selector\nPASS work call binding refuses extra selector\nPASS work call binding refuses alternate selector\nPASS work call binding refuses changed task\nPASS work call binding refuses changed allowlist\nPASS accepted return rebinds call_id\nPASS accepted return rebinds context_id\nPASS accepted return rebinds producer_context_id\nPASS accepted return rebinds basis_digest\nPASS stale checkpoint refuses accepted work before canonical changes\nPASS canonical prerequisite changed after acceptance\nPASS missing sealed work basis member\nPASS changed installed immutable bundle refuses before work recovery\nPASS caller-authored committed consumption without a writer journal\nPASS new-format append cannot bypass durable work\nPASS new-format reserveMaterialUse cannot bypass durable work\nPASS new-format appendMaterialUse cannot bypass durable work\nPASS new-format appendMaterialFindings cannot bypass durable work\nPASS new-format executeSemanticWrite cannot bypass durable work\nPASS new-format executeDuplicateWrite cannot bypass durable work\nPASS new-format appendProceduralAuthorityResponse cannot bypass durable work\nPASS new-format openProceduralAuthorityFollowup cannot bypass durable work\nPASS new-format advanceSlice5ClosurePhase cannot bypass durable work\nPASS new-format enterS5AfterSlice5Closure cannot bypass durable work\n{\"result\":\"PASS\",\"cases\":47,\"root\":\"/tmp/f03-controller-auth-ntd9r6\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-controller-matrix.exit.json",
+      "sha256": "e033e220f5943b024d8386bddf99b5e13852a746faad6e757c1dd97e37af5fcc",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:51:58.378687+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-node20-S1.command.json",
+      "sha256": "547ff6afe9cb93bba9fc4ce6e6a01a9020d45ee4a25876f71f5480b225cbee7c",
+      "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-orchestration-process.ts\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"flags\": {\"F03_KEEP_TEST\": \"1\", \"F03_S1_MULTI\": \"1\", \"F03_NODE_BINARY\": \"/home/eileenspectremoon/.nvm/versions/node/v20.20.2/bin/node\"}, \"start\": \"2026-09-27T12:36:43.376830+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-node20-S1.log",
+      "sha256": "0dcad5bf62afe6b8a5aeab8756757334851dcdd5af67a492c5389ec10e786d13",
+      "text": "PASS installed S1 preserves both exact frozen source identities and distinct human sensitivity rulings into S2\nretained test scratch: /tmp/aleph-orchestration-process-5V11Lz\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-node20-S1.exit.json",
+      "sha256": "c20c78001e813f570a367432c56ea54f1624230906625ad697e6e0bfdb3baccb",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:46:08.562850+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-runtime.command.json",
+      "sha256": "b8abd96ef5b37a37dd9bc646f42ab4a904a33f50fbec89b98bd80f93e224c6a4",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"test:runtime\"], \"cwd\": \"/tmp/f03-boundary-memo-checkpoint-E6EbOo/source-1.9.0-provisional\", \"start\": \"2026-09-27T12:45:22.358492+00:00\", \"scope\": \"Offline synthetic runtime/installer/package tests only, no real release preparation/publication. Calibration excluded before source copying.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-runtime.log",
+      "sha256": "75c0caed9c115117c85399bd19be4659d0dbda0a8269118a7b308720ad86155e",
+      "text": "\n> loa-aleph@0.0.0 test:runtime\n> node packaging/test-runtime-js.ts\n\nPASS tracked JavaScript is generated TypeScript emit\nPASS tracked TypeScript is classified as TypeScript\nPASS repeated projection emit is byte-identical\nPASS tampered generated byte fails closed\nPASS extra generated file fails closed\nPASS runtime imports contain no TypeScript extension\nRESULT: PASS (6/6)\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-runtime.exit.json",
+      "sha256": "685ec3cfc069c0d6f58db6b71d3a7d3249d08858ec02b3a65f244801cfe9430d",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:45:27.825869+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-loa-installer.command.json",
+      "sha256": "bf2438605d11d0176ba0557d054eda7d86b7a8642db329ac5d8276e1b2af12ac",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"test:loa-installer\"], \"cwd\": \"/tmp/f03-boundary-memo-checkpoint-E6EbOo/source-1.9.0-provisional\", \"start\": \"2026-09-27T12:45:22.358634+00:00\", \"scope\": \"Offline synthetic runtime/installer/package tests only, no real release preparation/publication. Calibration excluded before source copying.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-loa-installer.log",
+      "sha256": "9b0c2b6c2f789698d71fbf6dc9d75d28d4f1afec743de5b07714d06d6c86cd18",
+      "text": "\n> loa-aleph@0.0.0 test:loa-installer\n> node adapters/loa/tests/test-loa-installer.ts\n\nPASS LOA-INSTALLER assemble and discover selected bundle\nPASS LOA-INSTALLER construct alternate verified update bundle\nPASS LOA-INSTALLER fresh install exposes exact command skill launcher and verified bundle\nPASS LOA-INSTALLER idempotent reinstall preserves deterministic receipt\nPASS LOA-INSTALLER two targets receive byte-identical deterministic receipts\nPASS LOA-INSTALLER tampered bundle is rejected before target mutation\nPASS LOA-INSTALLER tampered installed file fails verification and blocks update\nPASS LOA-INSTALLER verified nonselected adapter bundle is rejected by identity\nPASS LOA-INSTALLER self-resealed exposure absent from verified map is rejected\nPASS LOA-INSTALLER stale managed deletion removes exact prior bytes and preserves unmanaged siblings\nPASS LOA-INSTALLER fresh-install interruptions recover on retry without exposing a runnable image\nPASS LOA-INSTALLER update failure rolls back the prior image and preserves unmanaged state\nPASS LOA-INSTALLER update interruptions restore then publish on retry at multiple checkpoints\nPASS LOA-INSTALLER live writer serializes a competing install without recovering its transaction\nPASS LOA-INSTALLER dead writer ownership and interrupted update recover together\nPASS LOA-INSTALLER truncated writer ownership is safely recovered\nPASS LOA-INSTALLER installer imports and operations remain offline-only\nRESULT: PASS\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-loa-installer.exit.json",
+      "sha256": "b9947372cb8c0ebece7a9ad772d8999f8ff9ad49c6697c6550466358012a26d5",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:48:07.821950+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-release-package.command.json",
+      "sha256": "dcb4b5da11cd26a331d759996d1b465015f077194e3be41ccaf70cfa560bf4d9",
+      "text": "{\"cmd\": [\"npm\", \"run\", \"test:release-package\"], \"cwd\": \"/tmp/f03-boundary-memo-checkpoint-E6EbOo/source-1.9.0-provisional\", \"start\": \"2026-09-27T12:45:22.360265+00:00\", \"scope\": \"Offline synthetic runtime/installer/package tests only, no real release preparation/publication. Calibration excluded before source copying.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-release-package.log",
+      "sha256": "6342de52af0efce19469b37693919b5f90e647be10570ca1b5a832ba8afbe8e8",
+      "text": "\n> loa-aleph@0.0.0 test:release-package\n> node packaging/test-loa-release-packaging.ts\n\nPASS clean source produces a round-trip verified release\nPASS package and verify CLI commands emit passing JSON\nPASS repeated packaging is byte-identical\nPASS commit outside bundle closure preserves exact release bytes\nPASS archive is normalized and contains only locked Loa files\nPASS dirty tracked source fails closed\nPASS staged source fails closed\nPASS nonignored untracked source fails closed\nPASS shallow source history fails closed\nPASS version mismatch fails closed\nPASS clean committed runtime projection drift fails closed\nPASS existing release is never overwritten\nPASS modified provenance cannot be released\nPASS planned adapter cannot be released\nPASS archive tampering fails verification\nPASS checksum tampering fails verification\nPASS noncanonical metadata fails verification\nPASS metadata build commit tampering fails verification\nPASS extra release entry fails verification\nPASS release symlink fails verification\nPASS archive traversal path fails verification\nPASS noncanonical tar header encoding fails verification\nPASS release output inside source is rejected\nRESULT: PASS (23/23)\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-test-release-package.exit.json",
+      "sha256": "aa001c4d4e31270b8c127f09e856a3b2e052c8976ce868dd059b02d5b927b1ef",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:46:48.078057+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-retained-format-source.command.json",
+      "sha256": "95b379b80284747fd6de666632871618e1f389c6465fbd69faa0caf5a94a453e",
+      "text": "{\"cmd\": [\"node\", \"/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-retained-format-recheck.ts\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:42:48.508793+00:00\", \"scope\": \"Read-only retained bundle verification; no source copy, run execution or runtime substitution.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-retained-format-source.log",
+      "sha256": "c69c01ec62f8d141c6e2f1aeba1ea1e39d9367962e6636b0f0b7b00363b4ea4a",
+      "text": "PASS 1.0.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.1.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.2.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.3.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.4.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.5.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.6.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.7.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.8.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\n{\"result\":\"PASS\",\"runtime\":false,\"formats\":9,\"verifications\":18,\"cases\":[{\"version\":\"1.0.0-provisional\",\"historical_commit\":\"41979fd7c4e044aead9631a864c33b7d2736b958\",\"bundle\":\"/tmp/f03-retained-routing-3noufy/host/grimoires/loa/aleph/runs/RUN-20260927T100030788Z-338c9c561afc/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":249,\"bundle_digest\":\"sha256:c532ca112cc7cb7b491de4cf09a6cf93ca77338a33779554cad9767161ed111d\"},{\"version\":\"1.1.0-provisional\",\"historical_commit\":\"cecef33991f306c13ccdce0c93cb6ac47b7ffccd\",\"bundle\":\"/tmp/f03-retained-routing-4v2JyU/host/grimoires/loa/aleph/runs/RUN-20260927T100216546Z-6af4fc7adf70/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":249,\"bundle_digest\":\"sha256:76bc01045dfefb112e391d6a23249065b414682a19123518854cb432477d5721\"},{\"version\":\"1.2.0-provisional\",\"historical_commit\":\"03387aff079b02a685dda846ed115cea5d794ea7\",\"bundle\":\"/tmp/f03-retained-routing-cTTEU8/host/grimoires/loa/aleph/runs/RUN-20260927T100319996Z-6d7000ed28c5/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":259,\"bundle_digest\":\"sha256:6118c6dd3667432e8ed4add823c4b9548bcfb62aa1a0f5c076c8b899a9e2a1be\"},{\"version\":\"1.3.0-provisional\",\"historical_commit\":\"be064f53eb347269512a7f3462fc4171ed3aae5d\",\"bundle\":\"/tmp/f03-retained-routing-THW4O9/host/grimoires/loa/aleph/runs/RUN-20260927T100419551Z-dcaebeb958ea/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":285,\"bundle_digest\":\"sha256:3cb487170e7e97768cbefcd73888da82107c939e0ba1b35f73ada62159e0defe\"},{\"version\":\"1.4.0-provisional\",\"historical_commit\":\"066924d3c6f0d5dd0212ca2439cae4f57cc13730\",\"bundle\":\"/tmp/f03-retained-routing-gZnExn/host/grimoires/loa/aleph/runs/RUN-20260927T100504342Z-9c118d6440fa/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":375,\"bundle_digest\":\"sha256:d30173621c31f3bba1191898f638c28cbec3509f1d38778245e0c11dc829a258\"},{\"version\":\"1.5.0-provisional\",\"historical_commit\":\"1a8fcdecb4e554e116828166dc5e806851d9e499\",\"bundle\":\"/tmp/f03-retained-routing-PLKNtb/host/grimoires/loa/aleph/runs/RUN-20260927T100553973Z-d1de6327d1ed/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":395,\"bundle_digest\":\"sha256:c9a788e61fdc16cec0cfe62f3afa00d0fbbafe5846338ec29ad7eeb2402e0287\"},{\"version\":\"1.6.0-provisional\",\"historical_commit\":\"ddc2a3e7caaf9298780ef2795c534a4332357cf8\",\"bundle\":\"/tmp/f03-retained-routing-11TSAl/host/grimoires/loa/aleph/runs/RUN-20260927T100646890Z-05a2b30e0559/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":451,\"bundle_digest\":\"sha256:f68e206f42fab800f5f5527463a9548d38601f74ce84969078fe4b624c9ccf44\"},{\"version\":\"1.7.0-provisional\",\"historical_commit\":\"c913fb2667539e34baa616ada2e50415f0c36291\",\"bundle\":\"/tmp/f03-retained-routing-o3mWcG/host/grimoires/loa/aleph/runs/RUN-20260927T100740680Z-806252b4dbd7/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":496,\"bundle_digest\":\"sha256:1c0efb0895a1d547da4bbb0df2ff2259fbf64ddc3dab683c90f269ab520827b5\"},{\"version\":\"1.8.0-provisional\",\"historical_commit\":\"1ffb8d5d264b5857936895194ee042816feafcbe\",\"bundle\":\"/tmp/f03-retained-routing-fTuao8/host/grimoires/loa/aleph/runs/RUN-20260927T100828943Z-e0f4911d446b/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":709,\"bundle_digest\":\"sha256:b1c9f8d4ac3713e19a14ffbbac8fe153c9b9bc3c546b312b114ebb593b18d924\"}],\"scope\":\"Read-only current verifier qualification on unchanged retained historical bundles; no run migration, runtime substitution, source copying or semantic execution.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-retained-format-source.exit.json",
+      "sha256": "d08d618b19f62f11b12350280c8fcec6987897b2094f12129c09de1e6e96de46",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:42:58.964600+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-retained-format-runtime.command.json",
+      "sha256": "989a308969162cfd4fae7cda8f2d003da68e6245007b36ce98067c84e1611602",
+      "text": "{\"cmd\": [\"node\", \"/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-retained-format-recheck.ts\", \"--runtime\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T12:42:48.509131+00:00\", \"scope\": \"Read-only retained bundle verification; no source copy, run execution or runtime substitution.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-retained-format-runtime.log",
+      "sha256": "d22cb92fedcd0c9e1bef18030e1ffc95f73ddbfdd5292e90d49207dc4f949e6d",
+      "text": "PASS 1.0.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.1.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.2.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.3.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.4.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.5.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.6.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.7.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\nPASS 1.8.0-provisional current verifier cold/warm; retained runtime and canonical files unchanged\n{\"result\":\"PASS\",\"runtime\":true,\"formats\":9,\"verifications\":18,\"cases\":[{\"version\":\"1.0.0-provisional\",\"historical_commit\":\"41979fd7c4e044aead9631a864c33b7d2736b958\",\"bundle\":\"/tmp/f03-retained-routing-3noufy/host/grimoires/loa/aleph/runs/RUN-20260927T100030788Z-338c9c561afc/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":249,\"bundle_digest\":\"sha256:c532ca112cc7cb7b491de4cf09a6cf93ca77338a33779554cad9767161ed111d\"},{\"version\":\"1.1.0-provisional\",\"historical_commit\":\"cecef33991f306c13ccdce0c93cb6ac47b7ffccd\",\"bundle\":\"/tmp/f03-retained-routing-4v2JyU/host/grimoires/loa/aleph/runs/RUN-20260927T100216546Z-6af4fc7adf70/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":249,\"bundle_digest\":\"sha256:76bc01045dfefb112e391d6a23249065b414682a19123518854cb432477d5721\"},{\"version\":\"1.2.0-provisional\",\"historical_commit\":\"03387aff079b02a685dda846ed115cea5d794ea7\",\"bundle\":\"/tmp/f03-retained-routing-cTTEU8/host/grimoires/loa/aleph/runs/RUN-20260927T100319996Z-6d7000ed28c5/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":259,\"bundle_digest\":\"sha256:6118c6dd3667432e8ed4add823c4b9548bcfb62aa1a0f5c076c8b899a9e2a1be\"},{\"version\":\"1.3.0-provisional\",\"historical_commit\":\"be064f53eb347269512a7f3462fc4171ed3aae5d\",\"bundle\":\"/tmp/f03-retained-routing-THW4O9/host/grimoires/loa/aleph/runs/RUN-20260927T100419551Z-dcaebeb958ea/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":285,\"bundle_digest\":\"sha256:3cb487170e7e97768cbefcd73888da82107c939e0ba1b35f73ada62159e0defe\"},{\"version\":\"1.4.0-provisional\",\"historical_commit\":\"066924d3c6f0d5dd0212ca2439cae4f57cc13730\",\"bundle\":\"/tmp/f03-retained-routing-gZnExn/host/grimoires/loa/aleph/runs/RUN-20260927T100504342Z-9c118d6440fa/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":375,\"bundle_digest\":\"sha256:d30173621c31f3bba1191898f638c28cbec3509f1d38778245e0c11dc829a258\"},{\"version\":\"1.5.0-provisional\",\"historical_commit\":\"1a8fcdecb4e554e116828166dc5e806851d9e499\",\"bundle\":\"/tmp/f03-retained-routing-PLKNtb/host/grimoires/loa/aleph/runs/RUN-20260927T100553973Z-d1de6327d1ed/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":395,\"bundle_digest\":\"sha256:c9a788e61fdc16cec0cfe62f3afa00d0fbbafe5846338ec29ad7eeb2402e0287\"},{\"version\":\"1.6.0-provisional\",\"historical_commit\":\"ddc2a3e7caaf9298780ef2795c534a4332357cf8\",\"bundle\":\"/tmp/f03-retained-routing-11TSAl/host/grimoires/loa/aleph/runs/RUN-20260927T100646890Z-05a2b30e0559/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":451,\"bundle_digest\":\"sha256:f68e206f42fab800f5f5527463a9548d38601f74ce84969078fe4b624c9ccf44\"},{\"version\":\"1.7.0-provisional\",\"historical_commit\":\"c913fb2667539e34baa616ada2e50415f0c36291\",\"bundle\":\"/tmp/f03-retained-routing-o3mWcG/host/grimoires/loa/aleph/runs/RUN-20260927T100740680Z-806252b4dbd7/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":496,\"bundle_digest\":\"sha256:1c0efb0895a1d547da4bbb0df2ff2259fbf64ddc3dab683c90f269ab520827b5\"},{\"version\":\"1.8.0-provisional\",\"historical_commit\":\"1ffb8d5d264b5857936895194ee042816feafcbe\",\"bundle\":\"/tmp/f03-retained-routing-fTuao8/host/grimoires/loa/aleph/runs/RUN-20260927T100828943Z-e0f4911d446b/control/runtime/bundle\",\"result\":\"PASS\",\"exact_retained_files\":709,\"bundle_digest\":\"sha256:b1c9f8d4ac3713e19a14ffbbac8fe153c9b9bc3c546b312b114ebb593b18d924\"}],\"scope\":\"Read-only current verifier qualification on unchanged retained historical bundles; no run migration, runtime substitution, source copying or semantic execution.\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-retained-format-runtime.exit.json",
+      "sha256": "23eb856dd8923df0d4a249adebb6e645de787528c7237f1ffed5de6a906f27d8",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:42:59.016535+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-current-boundary-second.command.json",
+      "sha256": "9b90b97bb31dc66384f493064535e72aa698ba3f9e35dc307bfcac5b48ef7ca0",
+      "text": "{\"cmd\": [\"node\", \"--input-type=module\", \"-e\", \"import {validateCoreBoundary} from './scripts/validate-core-boundary.ts';const root='/tmp/f03-boundary-memo-checkpoint-E6EbOo/source-1.9.0-provisional';const report=validateCoreBoundary({root});console.log(JSON.stringify({root,...report}));if(report.result!=='PASS')process.exitCode=1;\"], \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"flags\": {}, \"start\": \"2026-09-27T12:36:43.376033+00:00\"}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-current-boundary-second.log",
+      "sha256": "3a923349bd08fa072545cb540da8a3500f837c76bab8e1a1cf201b414dd6b505",
+      "text": "{\"root\":\"/tmp/f03-boundary-memo-checkpoint-E6EbOo/source-1.9.0-provisional\",\"result\":\"PASS\",\"checks\":[{\"id\":\"CB1\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(core manifest): core manifest format and required fields are valid\"},{\"id\":\"CB2\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(inventory classification): 714 tracked and nonignored untracked files have exactly one classification\"},{\"id\":\"CB3\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(Core completeness and class boundaries): doctrine, contracts, fixtures, goldens, checkers, and manual binding remain in Core\"},{\"id\":\"CB4\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(checker and typed manifest references): checker and typed boundary references resolve to classified paths\"},{\"id\":\"CB5\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(adapter manifest shape): adapter manifests and protocol schema are structurally valid\"},{\"id\":\"CB6\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(adapter lifecycle honesty): lifecycle labels, capabilities, entrypoints, installation, profiles, and evidence agree\"},{\"id\":\"CB7\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(adapter ownership and Core non-override): adapters own only their host paths and cannot override or duplicate Core\"},{\"id\":\"CB8\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(foreign-adapter exclusion): selected-adapter payloads, typed dependencies, and bundle inventories exclude foreign adapters\"},{\"id\":\"CB10\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(Core-owned procedural authority semantics): Loa delegates structured material-impact authority eligibility to the Core helper\"},{\"id\":\"CB9\",\"scope\":\"CORE-BOUNDARY\",\"status\":\"PASS\",\"message\":\"(bundle digests and Core equality): all bundle targets share Core digest sha256:ae86bfafd4b1c93837466ab15ee0980372edd364b89a320555caf791501c2714\"}],\"inventory\":{\"total\":714,\"core\":616,\"adapters\":{\"hermes\":1,\"loa\":84},\"packaging\":8,\"repositoryAdministration\":5},\"digests\":{\"algorithm\":\"sha256-path-file-digest-v1\",\"core\":\"sha256:ae86bfafd4b1c93837466ab15ee0980372edd364b89a320555caf791501c2714\",\"checker\":\"sha256:a340f1541bceb9078c94ca1fec6bf0097699dfece595b044056a9a5b03004b65\",\"manualExecutionBinding\":\"sha256:81c536d14dca524a7dea0a1ab0cf263cde985079f7c75e37e5d633ded65c7715\",\"adapters\":{\"loa\":\"sha256:1de4986b58d5db05d0f7a81308edc50d74b34f3983aee2da9a1d927e70799edc\",\"hermes\":\"sha256:9fa7aeb4f55648649a983d35eb20b2be4fb6e1b49ecb1f1534a8d6154db6e897\"},\"bundles\":{\"aleph-for-loa\":{\"adapterId\":\"loa\",\"coreDigest\":\"sha256:ae86bfafd4b1c93837466ab15ee0980372edd364b89a320555caf791501c2714\",\"adapterDigest\":\"sha256:1de4986b58d5db05d0f7a81308edc50d74b34f3983aee2da9a1d927e70799edc\",\"payloadDigest\":\"sha256:a3777b5b6bbd591dd78d28105edd7238f4eeb62e41cc58683b18e2040dd426be\",\"lockProjectionDigest\":\"sha256:07b639f90601d72490e10f3c3f126f539317f185cd1ce40eb48b59d865627514\",\"bundleDigest\":\"sha256:7162e6ebf68a678ff6dee720e2a3a9ea79c46faf35e20af43416765039875824\"},\"aleph-for-hermes\":{\"adapterId\":\"hermes\",\"coreDigest\":\"sha256:ae86bfafd4b1c93837466ab15ee0980372edd364b89a320555caf791501c2714\",\"adapterDigest\":\"sha256:9fa7aeb4f55648649a983d35eb20b2be4fb6e1b49ecb1f1534a8d6154db6e897\",\"payloadDigest\":\"sha256:e2806502eb67cc4512fe3f8f9621516c6615307834ee77f74f8d8e9c08405e35\",\"lockProjectionDigest\":\"sha256:5d8cfbc371fa39cd57e8216a021c20e8b0958688819f5ac02d5bd33c3e52d2b1\",\"bundleDigest\":\"sha256:02575b76c4c3996f0eed6ddbd9b3e721889cb7ba10676e158598ba29822f8bc3\"}}},\"adapters\":[{\"id\":\"hermes\",\"lifecycle\":\"planned\",\"fullModeClaimed\":false,\"preflight\":\"NOT-READY\",\"preflightReasons\":[\"adapter lifecycle is planned; no runnable entrypoint or installation exists\"]},{\"id\":\"loa\",\"lifecycle\":\"implemented\",\"fullModeClaimed\":true,\"preflight\":\"READY\",\"preflightReasons\":[]}]}\n"
+    },
+    {
+      "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/boundary-memo-current-boundary-second.exit.json",
+      "sha256": "7b8c69cfc586a473fb3bb38db4719d6bff11b8bdf67b20fb56c21454e1aad658",
+      "text": "{\"exit\": 0, \"end\": \"2026-09-27T12:36:44.278508+00:00\"}\n"
+    }
+  ],
+  "retained_source_fixture_refusal": {
+    "at": "2026-09-27T12:48:42.107998+00:00",
+    "classification": "EXPECTED_REJECTION_OF_RETAINED_INVALID_FIXTURE_NOT_PRODUCT_FAILURE",
+    "fixture_root": "/tmp/aleph-orchestration-process-tQocyh",
+    "failure_code": "WORK_SOURCE_COMPLETION",
+    "error": "SP-0001 spans more than one source position; event ordinals must be unique and contiguous 1..2",
+    "existing_correction": "066da3c0f21209458455cb6e3b5c9d5405998f93 assigns SP-0002 to SRC-002 in fresh fixtures. This third attempt started before that key correction and was deliberately retained unchanged.",
+    "corrected_installed_attempt": {
+      "root": "/tmp/aleph-orchestration-process-BoXVhy",
+      "command": "current-multi-source-S2-fourth",
+      "status": "IN_PROGRESS_NOT_PASS"
+    },
+    "receipts": {
+      "command.json": {
+        "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-multi-source-S2-third.command.json",
+        "sha256": "217e7eda2a182327e6c2bcc529529ff259c220ddf64ca16492c3065465aa3deb",
+        "text": "{\"cmd\": [\"node\", \"adapters/loa/tests/test-orchestration-process.ts\"], \"flags\": {\"F03_KEEP_TEST\": \"1\", \"F03_PACKET\": \"1\", \"F03_S2_CLOSE\": \"1\", \"F03_S2_MULTI_SOURCE\": \"1\"}, \"cwd\": \"/tmp/loa-aleph-f03-implementation-20260917\", \"start\": \"2026-09-27T11:15:27.751865+00:00\"}"
+      },
+      "log": {
+        "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-multi-source-S2-third.log",
+        "sha256": "ce1dd4b2aff86e9461362bc991e85a1dc2797d5be7e11531296652309d015e3b",
+        "text": "PASS supported CLI S0/S1 fixture transport, restart after accept, canonical writer and criteria agreement\nPASS supported CLI exact packet capture, retained producer reauthentication, fresh fixture L2S and Core admission\nretained test scratch: /tmp/aleph-orchestration-process-tQocyh\nnode:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: {\"command\":\"resume\",\"details\":null,\"errors\":[\"WORK_SOURCE_COMPLETION invalid retained source-walk evidence: (source walk, gap review, and resume accounting): SP-0001 spans more than one source position; (source walk, gap review, and resume accounting): SP-0001 event ordinals must be unique and contiguous 1..2\"],\"format\":\"aleph-loa-command-result/v1\",\"full_mode\":\"not-started\",\"gate\":null,\"result\":\"FAIL\",\"run_id\":\"RUN-20260927T111544448Z-946a9e123375\",\"stage\":null,\"state\":null}\n\n\n\n1 !== 0\n\n    at command (file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:246:14)\n    at cli (file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:249:40)\n    at file:///tmp/loa-aleph-f03-implementation-20260917/adapters/loa/tests/test-orchestration-process.ts:885:19\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n"
+      },
+      "exit.json": {
+        "path": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-multi-source-S2-third.exit.json",
+        "sha256": "13aa1829152532d9bc99e2aeaec20d48452362b3ca8ea90b50d7365493606cb2",
+        "text": "{\"exit\": 1, \"end\": \"2026-09-27T12:44:33.341505+00:00\"}"
+      }
+    }
+  },
+  "remaining_unmet_dod": [
+    "Fresh installed C09 zero-candidate and exhaustive partial/recovery matrix",
+    "Full installed S4 successor, relation/L2F/L3R/C1/C2A/B/C/C3/S5 boundary",
+    "Installed ClassC exact human gates, T5.3/Q+1 and F05 refusal/recovery",
+    "Corrected multi-source S2 and fresh Node20 multi-candidate/fragment S2",
+    "Corrected C04 six-case matrix and fault controls",
+    "C06,C07 and S3 L2F cannot-determine progression",
+    "Final deterministic repeatability and qualification reconciliation"
+  ],
+  "preservation": "Prior33source/33runtime+intact controls, prior47controller result, all failures, C01-C09 authority/history and scope incident remain retained. No runtime substitution, predecessor migration, mutable-main dependence or new policy.",
+  "operation_accounting": {
+    "this_resumption_prohibited_operations": 0,
+    "historical_closed_reference_copy_incident": "c6ca7d0e26fbf166b8ce39b3c3fd3f778c37c92a remains recorded; historical copies were not zero and their exact invocation count is not established by this record.",
+    "fresh_source_copy_rule": "Exclude all calibration before reads.",
+    "fixture_only": true
+  },
+  "new_core_policy_conflict": null
+}
