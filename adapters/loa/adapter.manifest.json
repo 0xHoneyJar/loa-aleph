@@ -101,7 +101,8 @@
     "adapters/loa/tests/test-f03-controller-authentication.ts",
     "adapters/loa/tests/test-f03-retained-runtime-routing.ts",
     "adapters/loa/tests/test-f03-consumed-plan-authentication.ts",
-    "adapters/loa/tests/test-f03-concurrency.ts"
+    "adapters/loa/tests/test-f03-concurrency.ts",
+    "adapters/loa/tests/test-f03-late-lineage-existing-halt.ts"
   ],
   "references": [
     "adapter-protocol/README.md",
