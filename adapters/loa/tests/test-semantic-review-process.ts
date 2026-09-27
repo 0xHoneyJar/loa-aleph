@@ -59,9 +59,11 @@ function probePrepared(name: string, transactionName: string, before: ReturnType
   assert(readFileSync(join(copy, 'control/run-state.json')).equals(readFileSync(join(run, 'control/run-state.json'))));
   pass(`fresh subprocess recovers ${name}`);
 }
-const assembled = assembleBundles(duplicateSeed ? ROOT : predecessorSource(ROOT, TEMP, '1.7.0-provisional'), join(TEMP, 'bundles'));
+const fixtureVersion = duplicateSeed ? '1.8.0-provisional' : '1.7.0-provisional';
+const assembled = assembleBundles(predecessorSource(ROOT, TEMP, fixtureVersion), join(TEMP, 'bundles'));
 assert.equal(assembled.result, 'PASS', assembled.errors.join('; '));
 const bundle = verifyAndLoadLoaBundle(join(TEMP, 'bundles/aleph-for-loa'));
+assert.equal(bundle.lock.run_format_version, fixtureVersion, 'legacy process fixture must retain its declared format');
 const profile = loadLoaProfile(defaultProfilePath(bundle.root));
 const host = validateResolvedHost(readJsonFile(join(ROOT, 'adapters/loa/tests/fixtures/host-capabilities.json')), profile.value, { allowSimulation: true });
 const run = duplicateSeed || join(TEMP, 'run'), f = makeSemanticFixture(run, undefined, undefined, undefined, duplicateSeed ? '1.8.0-provisional' : '1.7.0-provisional');

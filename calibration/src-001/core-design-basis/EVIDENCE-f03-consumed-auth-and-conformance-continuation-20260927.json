@@ -1,0 +1,510 @@
+{
+  "format": "aleph-f03-local-qualification-checkpoint/v1",
+  "time": "2026-09-27T10:49:38.643979+00:00",
+  "starting_head": "a1cb3f20392dcc1c6b923d0db26ca61e314ca334",
+  "starting_tree": "ffabe224a2718fea4f6284c337b281bc1a80fcb6",
+  "repair": {
+    "path": "adapters/loa/tests/test-semantic-review-process.ts",
+    "root_cause": "Legacy duplicate seed used ROOT directly and selected activated1.9 despite its fixture declaring1.8. The product correctly rejected CALL-PRODUCER without durable work.",
+    "change": "Construct a fresh explicit1.8 predecessor source for duplicate seeds and1.7 for semantic seeds; assert the exact bundle lock version before execution.",
+    "production_guards_changed": false,
+    "historical_runs_mutated": false
+  },
+  "original_failure": {
+    "command": {
+      "cmd": [
+        "npm",
+        "run",
+        "test:duplicate-review"
+      ],
+      "cwd": "/tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional",
+      "start": "2026-09-27T10:18:15.164990+00:00",
+      "scope": "Corrected fixture construction with real ignored dependency directory, calibration excluded before reads; prior symlink attempt retained."
+    },
+    "exit": 1,
+    "log": "\n> loa-aleph@0.0.0 test:duplicate-review\n> node scripts/test-duplicate-review-parity.ts\n\nnode:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: adapters/loa/tests/test-duplicate-review-process.ts 3-source: node:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/scripts/lib/work-transitions.ts:180\n  throw new Error(`${code}: ${detail}`);\n        ^\n\nError: WORK_CALL_BINDING: CALL-PRODUCER\n    at workFailure (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/scripts/lib/work-transitions.ts:180:9)\n    at assertWork (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/scripts/lib/work-transitions.ts:183:19)\n    at workForCall (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/src/orchestration.ts:354:3)\n    at assertWorkRequest (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/src/orchestration.ts:358:16)\n    at prepareLoaWorkerHandoffUnlocked (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/src/worker-dispatch.ts:633:21)\n    at file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/src/worker-dispatch.ts:623:48\n    at withOrchestrationLock (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/src/orchestration.ts:197:16)\n    at prepareLoaWorkerHandoff (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/src/worker-dispatch.ts:623:12)\n    at dispatchLoaWorker (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/src/worker-dispatch.ts:1085:3)\n    at worker (file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/tests/test-semantic-review-process.ts:147:18)\n\nNode.js v22.22.0\n\n\n1 !== 0\n\n    at file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/adapters/loa/tests/test-duplicate-review-process.ts:51:8 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n\n\n1 !== 0\n\n    at file:///tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional/scripts/test-duplicate-review-parity.ts:26:12\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v22.22.0\n",
+    "log_sha256": "931f5cbe9d53d2192a16dc49b15af3e91ece8e3a431d2f43de71248530b75aeb"
+  },
+  "corrected_duplicate_parity": {
+    "result": "PASS",
+    "time": "2026-09-27T10:47:22.727868+00:00",
+    "pairs": [
+      {
+        "original_suite_index": 0,
+        "result": "PASS",
+        "records": 18,
+        "files": [
+          "/tmp/aleph-duplicate-parity-VXEMVq/0-source.stdout",
+          "/tmp/aleph-duplicate-parity-VXEMVq/0-runtime.stdout"
+        ],
+        "sha256": [
+          "f9b2ba57d1e96a805bd3f260d03f03a01777d520faf18f6b1b15a2b59612a694",
+          "f9b2ba57d1e96a805bd3f260d03f03a01777d520faf18f6b1b15a2b59612a694"
+        ]
+      },
+      {
+        "original_suite_index": 1,
+        "result": "PASS",
+        "records": 28,
+        "files": [
+          "/tmp/aleph-duplicate-parity-VXEMVq/1-source.stdout",
+          "/tmp/aleph-duplicate-parity-VXEMVq/1-runtime.stdout"
+        ],
+        "sha256": [
+          "fefeb3a544236dec0ee4625b144a0550de9eff930ccca78e68ed7660f416f333",
+          "fefeb3a544236dec0ee4625b144a0550de9eff930ccca78e68ed7660f416f333"
+        ]
+      },
+      {
+        "original_suite_index": 2,
+        "result": "PASS",
+        "records": 44,
+        "files": [
+          "/tmp/aleph-duplicate-parity-VXEMVq/2-source.stdout",
+          "/tmp/aleph-duplicate-parity-VXEMVq/2-runtime.stdout"
+        ],
+        "sha256": [
+          "feae8d4ca017fb4b4b5a489969a04ad6c91f387188664bb03a193ad20df9db5f",
+          "feae8d4ca017fb4b4b5a489969a04ad6c91f387188664bb03a193ad20df9db5f"
+        ]
+      },
+      {
+        "original_suite_index": 3,
+        "result": "PASS",
+        "records": 20,
+        "files": [
+          "/tmp/f03-reboot-recovery-20260927-vtzscqpm/duplicate-process-second-source.log",
+          "/tmp/f03-reboot-recovery-20260927-vtzscqpm/duplicate-process-second-runtime.log"
+        ],
+        "sha256": [
+          "42652b2a435b0d7c4fa3113b720edfeac69f5ec1f0de37437425a9cf2869c072",
+          "e8acb2afdd4f5b1926e6de7169bc6f0927302c7d19ec43189abae3d20a9fb08d"
+        ],
+        "statuses": {
+          "PASS": 19,
+          "NOT RUN": 1
+        }
+      }
+    ],
+    "retained_failure": {
+      "directory": "/tmp/aleph-duplicate-parity-VXEMVq",
+      "stdout": "/tmp/aleph-duplicate-parity-VXEMVq/3-source.stdout",
+      "stderr": "/tmp/aleph-duplicate-parity-VXEMVq/3-source.stderr",
+      "stderr_sha256": "beba607d3b0c0cbd163b01184f67aaf1ddd765f1f54746966e5a210ff9b6b732"
+    },
+    "normalization": "Only evidence_directory is removed, as in the repository parity script.",
+    "scope": "Reconciliation of unchanged already-passed first three suite pairs and corrected fresh legacy process pair. No native execution and no historical run mutation."
+  },
+  "completed_command_receipts": [
+    {
+      "name": "cleanup-consumed-runtime",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "node",
+          "adapters/loa/tests/test-f03-consumed-plan-authentication.ts",
+          "/tmp/aleph-orchestration-process-WuwReZ/controller-auth-seed.json"
+        ],
+        "cwd": "/tmp/loa-aleph-f03-implementation-20260917",
+        "flags": {},
+        "start": "2026-09-27T09:37:27.807613+00:00"
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/cleanup-consumed-runtime.log",
+      "log_sha256": "1b8a96783e666c04e739704ded03ce1f1184a22a1b2d2a23514790e5ceb4b121"
+    },
+    {
+      "name": "cleanup-consumed-source",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "node",
+          "adapters/loa/tests/test-f03-consumed-plan-authentication.ts",
+          "/tmp/aleph-orchestration-process-WuwReZ/controller-auth-seed.json",
+          "--source"
+        ],
+        "cwd": "/tmp/loa-aleph-f03-implementation-20260917",
+        "flags": {},
+        "start": "2026-09-27T10:03:55.731073+00:00"
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/cleanup-consumed-source.log",
+      "log_sha256": "60a5bee22128f318575f2b8bd740e87950ee2188dfbb3f9fef1512cf5affbd74"
+    },
+    {
+      "name": "cleanup-controller-matrix",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "node",
+          "adapters/loa/tests/test-f03-controller-authentication.ts",
+          "/tmp/aleph-orchestration-process-h3dnfB/controller-auth-seed.json"
+        ],
+        "cwd": "/tmp/loa-aleph-f03-implementation-20260917",
+        "flags": {},
+        "start": "2026-09-27T09:30:53.234321+00:00"
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/cleanup-controller-matrix.log",
+      "log_sha256": "439fc1bf06f723ea580a2dd067c0d651a1efe96cb85e44d816d67131f785f288"
+    },
+    {
+      "name": "cleanup-concurrency",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "node",
+          "adapters/loa/tests/test-f03-concurrency.ts",
+          "/tmp/aleph-orchestration-process-WuwReZ/controller-auth-seed.json"
+        ],
+        "cwd": "/tmp/loa-aleph-f03-implementation-20260917",
+        "flags": {},
+        "start": "2026-09-27T09:30:53.558653+00:00"
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/cleanup-concurrency.log",
+      "log_sha256": "eda56b911806d3604b80a53521f24eca4fdaa80db7e6d49335657039724deb25"
+    },
+    {
+      "name": "activation-auth-mutation",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "node",
+          "adapters/loa/tests/test-orchestration-process.ts"
+        ],
+        "cwd": "/tmp/loa-aleph-f03-implementation-20260917",
+        "flags": {
+          "F03_KEEP_TEST": "1",
+          "F03_AUTH_MUTATION": "1"
+        },
+        "start": "2026-09-27T09:59:17.309012+00:00",
+        "scope": "Local synthetic qualification; calibration excluded before source reads; no release publication or real workers."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/activation-auth-mutation.log",
+      "log_sha256": "dd00f112efdb05c5a1a820e9ba68113a8fcd6c2582ed9d9938b02bf4c3fd6b44"
+    },
+    {
+      "name": "current-adapter-conformance-second",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:loa-adapter"
+        ],
+        "cwd": "/tmp/f03-current-conformance-second-rmvosgdc/source-1.9.0-provisional",
+        "start": "2026-09-27T09:50:53.401374+00:00",
+        "scope": "Continue from first failing conformance surface on corrected fresh source; earlier passes retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-adapter-conformance-second.log",
+      "log_sha256": "6c3e7ca7335b964fee9985cd4ec595ed31f013d903c8f1254df919c853b3d899"
+    },
+    {
+      "name": "current-conformance-after-adapter",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:loa-installer"
+        ],
+        "cwd": "/tmp/f03-current-conformance-second-rmvosgdc/source-1.9.0-provisional",
+        "start": "2026-09-27T09:57:08.283730+00:00",
+        "scope": "Continue from first failing conformance surface on corrected fresh source; earlier passes retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-conformance-after-adapter.log",
+      "log_sha256": "9b0c2b6c2f789698d71fbf6dc9d75d28d4f1afec743de5b07714d06d6c86cd18"
+    },
+    {
+      "name": "current-fixtures",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "validate"
+        ],
+        "cwd": "/tmp/f03-current-conformance-second-rmvosgdc/source-1.9.0-provisional",
+        "start": "2026-09-27T10:03:30.496369+00:00",
+        "scope": "Continue from first failing conformance surface on corrected fresh source; earlier passes retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/current-fixtures.log",
+      "log_sha256": "a12917975d06da97db310efe94a4fecc5d65d6c34025e62863acd13e63a965d6"
+    },
+    {
+      "name": "activation-second-test-slice5-process",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:slice5-process"
+        ],
+        "cwd": "/tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional",
+        "start": "2026-09-27T10:00:08.948854+00:00",
+        "scope": "Corrected fixture construction with real ignored dependency directory, calibration excluded before reads; prior symlink attempt retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/activation-second-test-slice5-process.log",
+      "log_sha256": "f00cdb59398a6aa4c367b1bc9608ee3570349a9d0a8cad28d71f13d2a9841616"
+    },
+    {
+      "name": "activation-second-test-representations",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:representations"
+        ],
+        "cwd": "/tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional",
+        "start": "2026-09-27T10:05:39.585477+00:00",
+        "scope": "Corrected fixture construction with real ignored dependency directory, calibration excluded before reads; prior symlink attempt retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/activation-second-test-representations.log",
+      "log_sha256": "af41a840cf6af759f38b701c66cfdcba3d5db5873b78e2347a694c82b588e5cf"
+    },
+    {
+      "name": "activation-second-test-representation-process",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:representation-process"
+        ],
+        "cwd": "/tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional",
+        "start": "2026-09-27T10:06:25.661756+00:00",
+        "scope": "Corrected fixture construction with real ignored dependency directory, calibration excluded before reads; prior symlink attempt retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/activation-second-test-representation-process.log",
+      "log_sha256": "8ac9b91bc548059de420f201a51503bcec6adfd6c2552b2b752400f04e612a31"
+    },
+    {
+      "name": "activation-second-test-semantic-review-contracts",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:semantic-review-contracts"
+        ],
+        "cwd": "/tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional",
+        "start": "2026-09-27T10:08:15.610727+00:00",
+        "scope": "Corrected fixture construction with real ignored dependency directory, calibration excluded before reads; prior symlink attempt retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/activation-second-test-semantic-review-contracts.log",
+      "log_sha256": "d5674c8dc55ed4485ada13c5a087d04ad1a411da723c8cb8c7207a2cac1f3ffc"
+    },
+    {
+      "name": "activation-second-test-semantic-review-mutations",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:semantic-review-mutations"
+        ],
+        "cwd": "/tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional",
+        "start": "2026-09-27T10:09:46.558385+00:00",
+        "scope": "Corrected fixture construction with real ignored dependency directory, calibration excluded before reads; prior symlink attempt retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/activation-second-test-semantic-review-mutations.log",
+      "log_sha256": "6c9fca06e9745865573e0cc10ccbdf7f3a20c2bcc26c096f4a4768284aafe699"
+    },
+    {
+      "name": "activation-second-test-semantic-review-process",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:semantic-review-process"
+        ],
+        "cwd": "/tmp/f03-activated-conformance-second-yznlzoyg/source-1.9.0-provisional",
+        "start": "2026-09-27T10:11:15.079818+00:00",
+        "scope": "Corrected fixture construction with real ignored dependency directory, calibration excluded before reads; prior symlink attempt retained."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/activation-second-test-semantic-review-process.log",
+      "log_sha256": "e5517fdc5beb66c8da56cd7ba3bcd20ac2d564df4c6ee38788051a329413cae0"
+    },
+    {
+      "name": "remainder-test-mutations",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:mutations"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:26:36.053287+00:00",
+        "scope": "Local fixture qualification. Legacy duplicate process explicitly pins1.8; current1.9 guard remains strict; calibration excluded before source reads."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/remainder-test-mutations.log",
+      "log_sha256": "cf61817ab7a13e05013f2f0195d9d10da72bc7ff117cd9aca277ec604cc2af21"
+    },
+    {
+      "name": "remainder-test-lineage-mutations",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:lineage-mutations"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:27:34.159025+00:00",
+        "scope": "Local fixture qualification. Legacy duplicate process explicitly pins1.8; current1.9 guard remains strict; calibration excluded before source reads."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/remainder-test-lineage-mutations.log",
+      "log_sha256": "808abb4f28e0b81e62c9b3c19c98218bb7fb7c02a5de28dce10fe1c16e8e4bc3"
+    },
+    {
+      "name": "remainder-test-relation-mutations",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:relation-mutations"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:27:35.321918+00:00",
+        "scope": "Local fixture qualification. Legacy duplicate process explicitly pins1.8; current1.9 guard remains strict; calibration excluded before source reads."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/remainder-test-relation-mutations.log",
+      "log_sha256": "1dd165cd3d388cd4bd6f964ae974b95dc8178de009c0e12543f21a3fa6033111"
+    },
+    {
+      "name": "remainder-test-core-mutations",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:core-mutations"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:27:37.954354+00:00",
+        "scope": "Local fixture qualification. Legacy duplicate process explicitly pins1.8; current1.9 guard remains strict; calibration excluded before source reads."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/remainder-test-core-mutations.log",
+      "log_sha256": "d5698ad2ea881411e1a828e095375e50f3135f76894fdb049045824964bb30b5"
+    },
+    {
+      "name": "remainder-test-bundles",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:bundles"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:27:54.797589+00:00",
+        "scope": "Local fixture qualification. Legacy duplicate process explicitly pins1.8; current1.9 guard remains strict; calibration excluded before source reads."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/remainder-test-bundles.log",
+      "log_sha256": "ef387f545099b6081ebde9a8f9b396fafe4380b6561b78551a47aa317b7b28bf"
+    },
+    {
+      "name": "remainder-test-release-package",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:release-package"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:29:36.371677+00:00",
+        "scope": "Local fixture qualification. Legacy duplicate process explicitly pins1.8; current1.9 guard remains strict; calibration excluded before source reads."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/remainder-test-release-package.log",
+      "log_sha256": "6342de52af0efce19469b37693919b5f90e647be10570ca1b5a832ba8afbe8e8"
+    },
+    {
+      "name": "checkpoint-full-runtime-tests",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:runtime"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:39:48.828097+00:00",
+        "scope": "Current default1.9 payload, safe administration-normalized source; fixture-only structural qualification."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/checkpoint-full-runtime-tests.log",
+      "log_sha256": "75c0caed9c115117c85399bd19be4659d0dbda0a8269118a7b308720ad86155e"
+    },
+    {
+      "name": "checkpoint-current-core-boundary",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "validate:core"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:39:51.384737+00:00",
+        "scope": "Current default1.9 payload, safe administration-normalized source; fixture-only structural qualification."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/checkpoint-current-core-boundary.log",
+      "log_sha256": "536999911ce8627e3e863cc4822afd8a01dc94d1b7ffccfa31961d2ade84f826"
+    },
+    {
+      "name": "checkpoint-current-worker-contracts",
+      "exit": 0,
+      "command": {
+        "cmd": [
+          "npm",
+          "run",
+          "test:worker-return"
+        ],
+        "cwd": "/tmp/f03-conformance-remainder-wl3l2du8/source-1.9.0-provisional",
+        "start": "2026-09-27T10:39:52.036808+00:00",
+        "scope": "Current default1.9 payload, safe administration-normalized source; fixture-only structural qualification."
+      },
+      "log": "/tmp/f03-reboot-recovery-20260927-vtzscqpm/checkpoint-current-worker-contracts.log",
+      "log_sha256": "2111528e3c6b5286bdf34f79c78b8bdcbbedb7272f622d08c8809aaf257fa0a5"
+    }
+  ],
+  "consumed_authentication": {
+    "runtime": {
+      "result": "PASS",
+      "tamper": 33,
+      "intact": 1,
+      "path": "/tmp/f03-consumed-plan-auth-Wwqkvh/results.json"
+    },
+    "source": {
+      "result": "PASS",
+      "tamper": 33,
+      "intact": 1,
+      "path": "/tmp/f03-consumed-plan-auth-ymCQhF/results.json",
+      "scope": "Read-only source authentication of installed consumed work; intact repeated installed resume is separately covered by runtime control."
+    }
+  },
+  "durable_evidence_archives": [
+    {
+      "file": "completed-authentication-evidence.tar.gz",
+      "sha256": "b7ca04fc715f397cb32f430c74d64af0b03b33fa17077d98f927dd3693c5a9b3",
+      "bytes": 280345575,
+      "entries": 119169,
+      "calibration_absent": true
+    },
+    {
+      "file": "completed-source-authentication.tar.gz",
+      "sha256": "aaa1467733ed2e1c25fcba9e1ce50ad2c53fcf9e3a244cbb4d5b662b265170ee",
+      "bytes": 83082336
+    }
+  ],
+  "remaining": "Fresh installed C09 zero-candidate/Node20, S4 successor/relation/C1/C2/C3, ClassC gates/F05, multi-source S2, C06/C07/S3L2F and exhaustive recovery are still running or await their completed parent slot. No partial log is a completion.",
+  "lifecycle": "NOT PRODUCER COMPLETE; F03/F04/F05 OPEN / MUST PRESERVE",
+  "scope": {
+    "new_source_copies_exclude_calibration_before_reads": true,
+    "new_closed_reference_access_or_copy": false,
+    "provider_or_genuine_native_execution": false,
+    "historical_source_copy_incident": "c6ca7d0e26fbf166b8ce39b3c3fd3f778c37c92a remains recorded; no overall-zero prohibited-operation claim.",
+    "release_publication_pr_merge_acceptance_or_closure": false
+  }
+}
