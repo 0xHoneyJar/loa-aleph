@@ -36,6 +36,7 @@ import {
   writeJsonAtomic,
 } from './fs.ts';
 import { readRunState } from './run-control.ts';
+import { validateRetainedWorkDelivery } from './orchestration.ts';
 import {
   loadCorePart,
   loadOutputContract,
@@ -811,9 +812,16 @@ export function verifyWorkerBundle(root: string): WorkerRequest {
   validateDuplicateRoleDelivery(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line, request.allowlist.map((a) => a.run_path));
   if (duplicateTask) validateDuplicateBundleDelivery(model, duplicateTask, request.call_id, request.task_line,
     request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
-  validateRelationWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
-    request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
-  validateAmbiguityWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
-    request.isolation.producer_context_id, request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) })));
+  const deliveryAttachments = request.allowlist.map((a) => ({ path: a.run_path, bytes: readFileSync(join(bundleRoot, a.attachment_path)) }));
+  if (hasRunCapability(model.manifest?.runFormatVersion || '', 'orchestrator-work-transitions')
+    && ['relation-producer', 'verifier-l3r', 'ambiguity-producer', 'ambiguity-reviewer',
+      'material-impact-producer', 'material-impact-reviewer'].includes(request.role)) {
+    validateRetainedWorkDelivery(runDir, request, deliveryAttachments);
+  } else {
+    validateRelationWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
+      request.isolation.producer_context_id, deliveryAttachments);
+    validateAmbiguityWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
+      request.isolation.producer_context_id, deliveryAttachments);
+  }
   return request;
 }

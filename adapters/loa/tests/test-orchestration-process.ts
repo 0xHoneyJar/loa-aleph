@@ -42,6 +42,32 @@ async function fixtureWorker(workerBundleRoot: string, returnRoot: string, rawPa
     structured_return: JSON.parse(readFileSync(rawPath, 'utf8')) };
   } } });
 }
+async function fixtureRetainedDelivery(run: string, workId: string): Promise<void> {
+  const { join } = await import('node:path');
+  const { pathToFileURL } = await import('node:url');
+  const { readFileSync, existsSync } = await import('node:fs');
+  const assert: typeof import('node:assert/strict') = (await import('node:assert/strict')).default;
+  const runtime = join(run, 'control/runtime/bundle/runtime-js/adapters/loa/src');
+  const { verifyWorkerBundle } = await import(pathToFileURL(join(runtime, 'worker-bundle.js')).href);
+  const { validateRetainedWorkDelivery } = await import(pathToFileURL(join(runtime, 'orchestration.js')).href);
+  const work = JSON.parse(readFileSync(join(run, `control/orchestration/work/${workId}.json`), 'utf8'));
+  assert(existsSync(join(run, `control/orchestration/commits/${workId}-consumed.json`)));
+  const before = ['control/run-state.json', 'control/ledger-chain.jsonl'].map((path) => readFileSync(join(run, path)));
+  const workerRoot = join(run, 'control/worker-bundles', work.call.call_id);
+  const request = verifyWorkerBundle(workerRoot);
+  const attachments = request.allowlist.map((a: { run_path: string; attachment_path: string }) =>
+    ({ path: a.run_path, bytes: readFileSync(join(workerRoot, a.attachment_path)) }));
+  validateRetainedWorkDelivery(run, request, attachments);
+  assert.throws(() => validateRetainedWorkDelivery(run, { ...request, task_line: `${request.task_line} Changed.` }, attachments),
+    /WORK_REQUEST_BINDING/u);
+  assert.throws(() => validateRetainedWorkDelivery(run, request,
+    attachments.map((a: { path: string; bytes: Buffer }) => ({ ...a, bytes: Buffer.concat([a.bytes, Buffer.from('\n')]) }))),
+  /WORK_(?:RELATION|AMBIGUITY)_ISOLATION/u);
+  assert.throws(() => validateRetainedWorkDelivery(run, request, [...attachments, { path: 'extra.json', bytes: Buffer.from('{}') }]),
+    /WORK_(?:RELATION|AMBIGUITY)_ISOLATION/u);
+  for (const [index, path] of ['control/run-state.json', 'control/ledger-chain.jsonl'].entries())
+    assert(readFileSync(join(run, path)).equals(before[index]), 'retained delivery checking cannot publish another effect');
+}
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 if (process.argv[2] === '--fixture-worker') {
   await fixtureWorker(process.argv[3], process.argv[4], process.argv[5]);
@@ -153,6 +179,12 @@ if (process.argv[2] === '--fixture-worker') {
     if (process.env.F03_NODE_BINARY) {
       const version = spawnSync(commandNode, ['--version'], { encoding: 'utf8' });
       assert.equal(version.status, 0); assert.match(version.stdout, /^v20\./u);
+    }
+    function checkRetainedDelivery(workId: string): void {
+      const checked = spawnSync(commandNode, ['--input-type=module', '-e',
+        `await (${fixtureRetainedDelivery.toString()})(...process.argv.slice(1));`, run, workId],
+      { encoding: 'utf8', cwd: host });
+      assert.equal(checked.status, 0, checked.stdout + checked.stderr);
     }
     function command(module: string, args: string[], expected = 0): any {
       const entrypoint = module === 'cli' ? join(host, '.claude/aleph/bin/loa-aleph.mjs')
@@ -1297,6 +1329,7 @@ if (process.argv[2] === '--fixture-worker') {
             }
             runFixture(work, returned);
             resumed = cli('resume', id);
+            if (['relation-producer', 'verifier-l3r'].includes(request.role)) checkRetainedDelivery(work.work_id);
             console.log(`PASS supported CLI S4 fixture ${request.role}; restart, reauthentication and exact work consumption`);
           }
           const rows = parseDuplicateLedger(readFileSync(join(run, 'ledgers/duplicate-review.md'), 'utf8'));
@@ -1375,6 +1408,7 @@ if (process.argv[2] === '--fixture-worker') {
                 && process.env.F03_C2_FAULTS === '1') for (const phase of ['s4.close-C2', 's4.close-C3', 's4.enter-S5'])
                 crashSequence(phase, ['derived', 'commit-intent', 'writer-prepared', 'canonical-bytes', 'chain', 'checkpoint', 'journal-committed', 'consumed'], preserved);
               resumed = cli('resume', id); preserved();
+              checkRetainedDelivery(work.work_id);
               console.log(`PASS supported CLI C2 fixture ${request.role}; exact retained subject and fresh-process work consumption`);
             }
             assert.equal(calls, unresolved ? 4 : 2);

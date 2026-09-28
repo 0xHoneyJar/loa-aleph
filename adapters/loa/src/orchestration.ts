@@ -29,7 +29,8 @@ import { checkWorkerReturn, type ValidatedWorkerReturn } from './worker-return.t
 import { reopenNativeWorkerEvidence } from './worker-dispatch.ts';
 import { LedgerWriter, deriveWorkTransaction } from './ledger-writer.ts';
 import { verifyAndLoadLoaBundle } from './core-loader.ts';
-import { AMBIGUITY_SELECTION_INPUT, ambiguityExpressionSelection } from '../../../scripts/lib/work-transitions-ambiguities.ts';
+import { AMBIGUITY_SELECTION_INPUT, ambiguityExpressionSelection, validateAmbiguityWorkDelivery } from '../../../scripts/lib/work-transitions-ambiguities.ts';
+import { validateRelationWorkDelivery } from '../../../scripts/lib/work-transitions-relations.ts';
 import { validateAuthorityContact } from '../../../scripts/lib/work-transitions-authority.ts';
 
 const ROOT = 'control/orchestration';
@@ -365,6 +366,19 @@ export function assertWorkRequest(runDir: string, request: WorkerRequest): Seale
     && request.downstream_operations.length === 0 && request.procedural_restrictions.length === 0,
   'WORK_REQUEST_BINDING', request.call_id);
   return work;
+}
+/** Retained delivery obeys its authenticated creation basis, even after the
+ * current selector advances. This does not authorize dispatch or consumption. */
+export function validateRetainedWorkDelivery(runDir: string, request: WorkerRequest,
+  attachments: Array<{ path: string; bytes: Buffer }>): void {
+  const work = assertWorkRequest(runDir, request);
+  withBasis(runDir, work.basis_digest, (basis) => {
+    const model = loadRun(basis);
+    validateRelationWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
+      request.isolation.producer_context_id, attachments);
+    validateAmbiguityWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
+      request.isolation.producer_context_id, attachments);
+  });
 }
 function acceptance(runDir: string, callId: string): Sealed<Acceptance> {
   return readSealed<Acceptance>(runDir, acceptedPath(callId), ['format', 'work_id', 'work_digest', 'call_id', 'checkpoint', 'basis_digest',

@@ -11,7 +11,8 @@ import { checkWorkerReturn } from './worker-return.js';
 import { reopenNativeWorkerEvidence } from './worker-dispatch.js';
 import { LedgerWriter, deriveWorkTransaction } from './ledger-writer.js';
 import { verifyAndLoadLoaBundle } from './core-loader.js';
-import { AMBIGUITY_SELECTION_INPUT, ambiguityExpressionSelection } from '../../../scripts/lib/work-transitions-ambiguities.js';
+import { AMBIGUITY_SELECTION_INPUT, ambiguityExpressionSelection, validateAmbiguityWorkDelivery } from '../../../scripts/lib/work-transitions-ambiguities.js';
+import { validateRelationWorkDelivery } from '../../../scripts/lib/work-transitions-relations.js';
 import { validateAuthorityContact } from '../../../scripts/lib/work-transitions-authority.js';
 const ROOT = 'control/orchestration';
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
@@ -292,6 +293,16 @@ export function assertWorkRequest(runDir, request) {
         && stableJsonBytes(request.withheld).equals(stableJsonBytes(call.withheld))
         && request.downstream_operations.length === 0 && request.procedural_restrictions.length === 0, 'WORK_REQUEST_BINDING', request.call_id);
     return work;
+}
+/** Retained delivery obeys its authenticated creation basis, even after the
+ * current selector advances. This does not authorize dispatch or consumption. */
+export function validateRetainedWorkDelivery(runDir, request, attachments) {
+    const work = assertWorkRequest(runDir, request);
+    withBasis(runDir, work.basis_digest, (basis) => {
+        const model = loadRun(basis);
+        validateRelationWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line, request.isolation.producer_context_id, attachments);
+        validateAmbiguityWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line, request.isolation.producer_context_id, attachments);
+    });
 }
 function acceptance(runDir, callId) {
     return readSealed(runDir, acceptedPath(callId), ['format', 'work_id', 'work_digest', 'call_id', 'checkpoint', 'basis_digest',
