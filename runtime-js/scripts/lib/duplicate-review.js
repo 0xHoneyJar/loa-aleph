@@ -1190,27 +1190,38 @@ export function validateDuplicateDiscovery(value, model, fresh = false) {
             coalesced.push(structuredClone(c));
     }
     const seeded = d.candidates.filter((c) => !coalesced.some((p) => semanticJson(p.member_ids) === semanticJson(c.member_ids)));
+    const validateSeedReference = (candidate, ref) => {
+        requireDuplicate(ref.includes('#/flagged_pairs/'), 'DUP_ACCOUNTING', 'L5 seed', 'only an explicit prior L5 reference may supplement producer basis');
+        const selected = referenced(model, ref), pair = selected.value;
+        requireDuplicate(object(pair) && semanticJson(catalogueIds.filter((id) => id === pair.a || id === pair.b))
+            === semanticJson(candidate.member_ids), 'DUP_REFERENCE', 'L5 seed', 'exact flagged pair in catalogue order required');
+        const rows = parseDuplicateLedger(readMaterialFile(model.runDir, DUPLICATE_PATH).toString('utf8')).discoveries;
+        const currentIndex = rows.findIndex((row) => row.discovery_id === d.discovery_id);
+        const prior = currentIndex < 0 ? rows : rows.slice(0, currentIndex);
+        requireDuplicate(prior.some((row) => {
+            const old = parseDuplicateJson(readMaterialFile(model.runDir, row.record_path));
+            return old.sweep_refs.some((s) => s.result_ref.split('@')[0] === selected.path);
+        }), 'DUP_REFERENCE', 'L5 seed', 'flagged pair requires an earlier retained discovery sweep');
+    };
     for (const candidate of seeded) {
         requireDuplicate(candidate.signal === 'semantic-proposal' && candidate.member_ids.length === 2, 'DUP_ACCOUNTING', 'L5 seed', 'only explicit L5 pair can seed an additional candidate');
         let matched = false;
         for (const ref of candidate.basis_refs) {
             if (!ref.includes('#/flagged_pairs/'))
                 continue;
-            const selected = referenced(model, ref), pair = selected.value;
-            requireDuplicate(object(pair) && semanticJson([pair.a, pair.b]) === semanticJson(candidate.member_ids), 'DUP_REFERENCE', 'L5 seed', 'exact flagged pair required');
-            const rows = parseDuplicateLedger(readMaterialFile(model.runDir, DUPLICATE_PATH).toString('utf8')).discoveries;
-            const currentIndex = rows.findIndex((row) => row.discovery_id === d.discovery_id);
-            const prior = currentIndex < 0 ? rows : rows.slice(0, currentIndex);
-            requireDuplicate(prior.some((row) => {
-                const old = parseDuplicateJson(readMaterialFile(model.runDir, row.record_path));
-                return old.sweep_refs.some((s) => s.result_ref.split('@')[0] === selected.path);
-            }), 'DUP_REFERENCE', 'L5 seed', 'flagged pair requires an earlier retained discovery sweep');
+            validateSeedReference(candidate, ref);
             matched = true;
         }
         requireDuplicate(matched, 'DUP_ACCOUNTING', 'L5 seed', 'orchestrator cannot derive pair from prose');
     }
     requireDuplicate(d.candidates.length === coalesced.length + seeded.length, 'DUP_ACCOUNTING', 'candidates', 'repeated retained candidate group');
-    equal(d.candidates.slice(0, coalesced.length).map(({ candidate_id, ...c }) => c), coalesced, 'DUP_ACCOUNTING', 'retained discovered candidates');
+    equal(d.candidates.slice(0, coalesced.length).map(({ candidate_id, ...c }, index) => {
+        const producerBasis = coalesced[index].basis_refs;
+        equal(c.basis_refs.slice(0, producerBasis.length), producerBasis, 'DUP_ACCOUNTING', 'retained producer candidate basis');
+        for (const ref of c.basis_refs.slice(producerBasis.length))
+            validateSeedReference({ candidate_id, ...c }, ref);
+        return { ...c, basis_refs: producerBasis };
+    }), coalesced, 'DUP_ACCOUNTING', 'retained discovered candidates');
     for (const sweep of d.sweep_refs) {
         keys(sweep, ['review_id', 'verifier_ref', 'result_ref', 'window_member_ids', 'shown_digest'], 'sweep');
         subset(sweep.window_member_ids, catalogueIds, 'sweep members', true);
@@ -1602,7 +1613,8 @@ export function validateDuplicateRun(model) {
             const selected = referenced(model, sweep.result_ref), result = parseStrictJson(selected.bytes);
             for (const [pairIndex, pair] of result.flagged_pairs.entries()) {
                 const reference = `${selected.path}#/flagged_pairs/${pairIndex}@${materialHash(selected.bytes)}`;
-                if (!discoverySequence.slice(index + 1).some((later) => later.candidates.some((c) => semanticJson(c.member_ids) === semanticJson([pair.a, pair.b]) && c.basis_refs.includes(reference))))
+                const members = d.catalogue.filter((claim) => claim.claim_id === pair.a || claim.claim_id === pair.b).map((claim) => claim.claim_id);
+                if (!discoverySequence.slice(index + 1).some((later) => later.candidates.some((c) => semanticJson(c.member_ids) === semanticJson(members) && c.basis_refs.includes(reference))))
                     pending.push(`${d.discovery_id}/${sweep.review_id}/flagged_pairs/${pairIndex}`);
             }
         }

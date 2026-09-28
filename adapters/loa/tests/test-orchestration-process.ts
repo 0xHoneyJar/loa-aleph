@@ -1181,7 +1181,7 @@ if (process.argv[2] === '--fixture-worker') {
               for (const [path, bytes] of historicalS2) assert(readFileSync(join(run, path)).equals(bytes));
             });
           resumed = cli('resume', id); reviews++;
-          assert(reviews <= entries.length + (wideningMode ? 3 : 1), 'no repeated fresh review until preferred verdict');
+          assert(reviews <= entries.length + (mode === 'indeterminate-matrix' ? 2 : wideningMode ? 3 : 1), 'no repeated fresh review until preferred verdict');
         }
         assert.deepEqual(runtimeInventory(), retainedRuntime, 'bootstrap private-copy cleanup cannot thaw or change the retained runtime');
         for (const subject of nonaffirmative) {
@@ -1200,7 +1200,10 @@ if (process.argv[2] === '--fixture-worker') {
           assert.equal(outcome.outcome, 'not-admitted'); assert.equal(outcome.canonical_refs, '[]');
           assert.deepEqual(subject.material_use, claims[output.output_index].material_use);
         }
-        if (mode === 'indeterminate-matrix') assert.equal(nonaffirmative.length, 6, 'one/multiple OBJ across all three L2S verdicts');
+        if (mode === 'indeterminate-matrix') {
+          assert.equal(nonaffirmative.length, 6, 'one/multiple OBJ across all three L2S verdicts');
+          assert.equal(reviews, 8, 'two required fresh reviews for each of the two cannot-determine candidates');
+        }
         assert(readFileSync(rawPath).equals(raw));
         if (wideningMode) {
           assert.equal(wideningInvocations, 1); assert.equal(revisionInvocations, 1);

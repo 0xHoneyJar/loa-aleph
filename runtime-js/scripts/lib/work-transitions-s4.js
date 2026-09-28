@@ -30,11 +30,12 @@ const currentIds = (model) => model.claims.map((row) => row.values.claimId).filt
 function allocate(model, prefix) {
     return nextId(prefix, model.files.flatMap((entry) => [...entry.text.matchAll(new RegExp(`\\b${prefix}-[0-9]+\\b`, 'gu'))].map((m) => m[0])));
 }
-function prep(model, task, selection) {
+function prep(model, task, selection, discoveryBasis) {
     const view = duplicateProducerView(model, task, selection);
     return { format: 'aleph-s4-work-preparation/v1', task,
         call_id: `CALL-F03-${workDigest(workJson({ run_id: model.manifest.runId, stage: 'S4', task,
-            selection, view_digest: workDigest(view.bytes), lineage_digest: workDigest(Buffer.from(semanticJson(parseLineage(model).rows.map((r) => r.cells)))) })).slice(7)}`,
+            selection, view_digest: workDigest(view.bytes), lineage_digest: workDigest(Buffer.from(semanticJson(parseLineage(model).rows.map((r) => r.cells)))),
+            ...(discoveryBasis ? { discovery_basis_digest: discoveryBasis } : {}) })).slice(7)}`,
         selection, view_digest: workDigest(view.bytes) };
 }
 function capture(model, callId) {
@@ -46,16 +47,17 @@ function capture(model, callId) {
         && workDigest(readFileSync(join(model.runDir, `control/worker-returns/${callId}/raw.json`))) === retained.raw_digest, 'WORK_CAPTURE', 'retained S4 return identity');
     return retained;
 }
-function producerWork(model, prepared, dependencies = []) {
+function producerWork(model, prepared, dependencies = [], basisDependencies = []) {
     if (capture(model, prepared.call_id))
         return null;
     const path = `${PREPARATIONS}${prepared.call_id}.json`, paths = duplicateProducerPaths(prepared.call_id);
     const view = duplicateProducerView(model, prepared.task, prepared.selection);
+    const accepted_dependencies = [...new Set([...dependencies, ...basisDependencies])];
     if (!file(model, path))
-        return { kind: 'local', accepted_dependencies: dependencies,
+        return { kind: 'local', accepted_dependencies,
             obligation: obligation('S4', 'S4.duplicate.prepare', 's4.prepare', prepared.call_id, workJson(prepared)) };
     assertWork(required(model, path).equals(workJson(prepared)) && required(model, paths.view).equals(view.bytes), 'WORK_PREPARATION', prepared.call_id);
-    return { kind: 'worker', accepted_dependencies: dependencies,
+    return { kind: 'worker', accepted_dependencies,
         obligation: obligation('S4', 'S4.duplicate.capture', 's4.capture', prepared.call_id, workJson(prepared)),
         call: { prepared_call_id: prepared.call_id, role: prepared.task === 'contradiction-discovery' ? 'verifier-l5' : 'merge-judge',
             kind: prepared.task === 'contradiction-discovery' ? 'refuter' : 'producer', task_line: DUPLICATE_TASKS[prepared.task],
@@ -74,9 +76,46 @@ function subjectDependencies(model, subject) {
 function local(model, operation, id, bytes, dependencies = []) {
     return { kind: 'local', accepted_dependencies: dependencies, obligation: obligation('S4', `S4.${operation}`, operation, id, bytes) };
 }
-function discoveryInputs(model) {
+function pendingL5Seeds(model) {
+    const current = currentIds(model);
+    const discoveries = ledger(model).discoveries.map((row) => json(required(model, row.record_path)));
+    const seeds = [];
+    for (const [index, discovery] of discoveries.entries())
+        for (const sweep of discovery.sweep_refs) {
+            const [path, digest] = sweep.result_ref.split('@');
+            const match = /^control\/worker-returns\/(CALL-F03-[0-9a-f]{64})\/raw\.json$/u.exec(path);
+            assertWork(match, 'WORK_CAPTURE', 'L5 seed requires an exact accepted return path');
+            const bytes = readFileSync(join(model.runDir, path));
+            assertWork(workDigest(bytes) === digest, 'WORK_CAPTURE', 'retained L5 seed bytes changed');
+            const returned = json(bytes);
+            for (const [ordinal, pair] of returned.flagged_pairs.entries()) {
+                const member_ids = discovery.catalogue.filter((claim) => claim.claim_id === pair.a || claim.claim_id === pair.b).map((claim) => claim.claim_id);
+                const reference = `${path}#/flagged_pairs/${ordinal}@${digest}`;
+                if (discoveries.slice(index + 1).some((later) => later.candidates.some((candidate) => semanticJson(candidate.member_ids) === semanticJson(member_ids) && candidate.basis_refs.includes(reference))))
+                    continue;
+                assertWork(member_ids.length === 2 && member_ids.every((id) => current.includes(id)), 'WORK_CAPTURE', 'pending L5 seed requires its exact accepted return and current members');
+                if (!seeds.some((seed) => seed.reference === reference))
+                    seeds.push({ member_ids, reference, call_id: match[1] });
+            }
+        }
+    return seeds;
+}
+function discoveryInputs(model, seeds = pendingL5Seeds(model)) {
     const selection = { member_ids: currentIds(model) };
-    return { selection, discovery: prep(model, 'discovery', selection), sweep: prep(model, 'contradiction-discovery', selection) };
+    const basis = seeds.length ? workDigest(workJson(seeds)) : undefined;
+    return { selection, seeds, seed_calls: [...new Set(seeds.map((seed) => seed.call_id))],
+        discovery: prep(model, 'discovery', selection, basis), sweep: prep(model, 'contradiction-discovery', selection, basis) };
+}
+function selectDiscoveryWork(model, inputs) {
+    if (inputs.selection.member_ids.length) {
+        const discovery = producerWork(model, inputs.discovery, [], inputs.seed_calls);
+        if (discovery)
+            return discovery;
+        const sweep = producerWork(model, inputs.sweep, [inputs.discovery.call_id], inputs.seed_calls);
+        if (sweep)
+            return sweep;
+    }
+    return local(model, 's4.record-discovery', 'current-claim-catalogue', workJson(inputs.seeds.length ? { selection: inputs.selection, seeds: inputs.seeds } : inputs.selection), inputs.selection.member_ids.length ? [...new Set([inputs.discovery.call_id, inputs.sweep.call_id, ...inputs.seed_calls])] : []);
 }
 function successorPreparation(model, subject) {
     const selection = semanticProducerSelections(model, 'normalizer', 'S4', {
@@ -147,6 +186,9 @@ export function selectS4Work(model) {
     if (!file(model, DUPLICATE_PATH))
         return local(model, 's4.initialize', 'S4', Buffer.from(duplicateLedgerMarkdown(emptyDuplicateLedger())));
     const rows = ledger(model);
+    const seeds = pendingL5Seeds(model);
+    if (seeds.length)
+        return selectDiscoveryWork(model, discoveryInputs(model, seeds));
     for (const row of rows.proposals) {
         if (rows.effects.some((effect) => effect.proposal_id === row.proposal_id))
             continue;
@@ -187,17 +229,9 @@ export function selectS4Work(model) {
             return local(model, 's4.reserve-subject', prepared.call_id, required(model, `${CAPTURES}${prepared.call_id}.json`), [prepared.call_id]);
         }
     }
-    const last = rows.discoveries.at(-1), inputs = discoveryInputs(model);
+    const last = rows.discoveries.at(-1), inputs = discoveryInputs(model, seeds);
     if (!last || semanticJson(json(required(model, last.record_path)).catalogue.map((c) => c.claim_id)) !== semanticJson(inputs.selection.member_ids)) {
-        if (inputs.selection.member_ids.length) {
-            const discovery = producerWork(model, inputs.discovery);
-            if (discovery)
-                return discovery;
-            const sweep = producerWork(model, inputs.sweep, [inputs.discovery.call_id]);
-            if (sweep)
-                return sweep;
-        }
-        return local(model, 's4.record-discovery', 'current-claim-catalogue', workJson(inputs.selection), inputs.selection.member_ids.length ? [inputs.discovery.call_id, inputs.sweep.call_id] : []);
+        return selectDiscoveryWork(model, inputs);
     }
     const relation = selectRelationWork(model);
     if (relation)
@@ -340,6 +374,13 @@ export function deriveS4Transition(model, work, accepted, now) {
                 old.basis_refs = [...new Set([...old.basis_refs, ...candidate.basis_refs])];
             else
                 coalesced.push(structuredClone(candidate));
+        }
+        for (const seed of inputs.seeds) {
+            const old = coalesced.find((candidate) => semanticJson(candidate.member_ids) === semanticJson(seed.member_ids));
+            if (old)
+                old.basis_refs = [...new Set([...old.basis_refs, seed.reference])];
+            else
+                coalesced.push({ member_ids: seed.member_ids, basis_refs: [seed.reference], signal: 'semantic-proposal' });
         }
         const d = buildDuplicateDiscovery(model, { discovery_id: allocate(model, 'DCD'),
             windows: produced ? [{ window_id: 'W1', member_ids: inputs.selection.member_ids, shown_digest: inputs.discovery.view_digest,
