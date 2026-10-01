@@ -126,3 +126,42 @@ if (seed) {
   console.log('PASS explicit L5 seed retains exact source bytes and dependencies, fresh discovery calls and later candidate provenance');
 }
 console.log(`retained synthetic S4 evidence: ${scratch}`);
+const retainedIndex = process.argv.indexOf('--successor-capture-run');
+if (retainedIndex !== -1) {
+  // An actual retained installed BEFORE state exercises the complete selector.
+  // This read-only derivation is supplemental to fresh installed CLI qualification.
+  const before = loadRun(process.argv[retainedIndex + 1]);
+  const state = JSON.parse(readFileSync(join(before.runDir, 'control/run-state.json'), 'utf8'));
+  assert.equal(state.full_mode, 'fixture-simulated');
+  assert.equal(state.execution.stage, 'S4');
+  const selected = selectNextWork(before, execution);
+  assert(selected.kind === 'local' && selected.obligation.operation === 'sem.assign');
+  for (const namespace of ['S4/', 'S4-successors/']) {
+    assert(before.files.some((entry) => entry.relativePath.startsWith(`verification/harness/work-captures/${namespace}`)));
+  }
+  for (const path of ['unexpected.json', 'S2/unexpected.json', 'S4-unregistered/unexpected.json']) {
+    const malformed = { ...before, files: [...before.files,
+      { ...before.files[0], relativePath: `verification/harness/work-captures/${path}`, text: '{}' }] };
+    assert.throws(() => deriveWorkTransition(malformed, execution, selected, null, '2026-10-01T15:03:41.095Z'),
+      /WORK_CONTRACT: S2 capture/u, path);
+    console.log(`PASS successor assignment retains malformed S2 refusal: ${path}`);
+  }
+  const plan = deriveWorkTransition(before, execution, selected, null, '2026-10-01T15:03:41.095Z');
+  writeFixtureFile(scratch, 'retained-successor-plan.json', workJson(plan));
+  assert.equal(plan.semantic?.stage, 'S4');
+  assert.equal(plan.semantic?.operation, 'assign-review');
+  assert.equal(plan.effects.length, 2);
+  assert(plan.effects.every((effect) => effect.path === 'ledgers/semantic-review.md'
+    || effect.path.startsWith('verification/harness/semantic-assignments/')));
+  const after = join(scratch, 'retained-successor-after');
+  cpSync(before.runDir, after, { recursive: true, filter: (path) => !path.split('/').includes('calibration') });
+  for (const effect of plan.effects) writeFixtureFile(after, effect.path, Buffer.from(effect.after_base64, 'base64'));
+  validateDerivedWorkTransition(before, loadRun(after), plan);
+  const pending = selectNextWork(loadRun(after), execution);
+  assert(pending.kind === 'worker' && pending.obligation.operation === 'sem.review');
+  assert.equal(pending.obligation.stage, 'S4');
+  assert.equal(pending.call.role, 'verifier-l2s');
+  assert(pending.call.producer_dependency && pending.call.prepared_call_id !== pending.call.producer_dependency);
+  assert(readFileSync(join(after, 'ledgers/claim-inventory.md')).equals(readFileSync(join(before.runDir, 'ledgers/claim-inventory.md'))));
+  console.log('PASS exact retained successor: first-unmet assignment derives fresh S4 L2S work without canonical successor creation');
+}

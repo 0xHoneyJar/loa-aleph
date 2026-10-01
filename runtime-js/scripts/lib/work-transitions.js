@@ -727,7 +727,9 @@ function s2Preparation(model, sourceId) {
 }
 function s2Captures(model) {
     return model.files.filter((entry) => entry.relativePath.startsWith(S2_CAPTURES)
-        && !entry.relativePath.startsWith(S3_CAPTURES)).map((file) => {
+        && !entry.relativePath.startsWith(S3_CAPTURES)
+        && !entry.relativePath.startsWith(`${S2_CAPTURES}S4/`)
+        && !entry.relativePath.startsWith(`${S2_CAPTURES}S4-successors/`)).map((file) => {
         const capture = parseStrictJson(file.text);
         record(capture, ['format', 'source_id', 'call_id', 'raw_digest', 'context_id', 'producer_context_id', 'receipt_digest',
             'simulation', 'cursor_id', 'selectors'], 'S2 capture');
