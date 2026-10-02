@@ -9,6 +9,7 @@ import { duplicateFixtureBase, duplicateFixtureProposal } from '../../../scripts
 import { writeFixtureFile } from '../../../scripts/semantic-fixture-support.ts';
 import { semanticJson } from '../../../scripts/lib/semantic-review.ts';
 import { buildComparisonBasis, DUPLICATE_PATH, parseDuplicateLedger } from '../../../scripts/lib/duplicate-review.ts';
+import { lineageCurrentClaimIds } from '../../../scripts/lib/lineage.ts';
 import type { WorkValue, WorkExecution } from '../../../scripts/lib/work-transitions.ts';
 const runtime = process.argv.includes('--runtime'), seed = process.argv.includes('--l5-seed'),
   coalescedSeed = process.argv.includes('--coalesced-l5-seed'), reversedPair = process.argv.includes('--reverse-l5-pair');
@@ -164,4 +165,36 @@ if (retainedIndex !== -1) {
   assert(pending.call.producer_dependency && pending.call.prepared_call_id !== pending.call.producer_dependency);
   assert(readFileSync(join(after, 'ledgers/claim-inventory.md')).equals(readFileSync(join(before.runDir, 'ledgers/claim-inventory.md'))));
   console.log('PASS exact retained successor: first-unmet assignment derives fresh S4 L2S work without canonical successor creation');
+}
+const admittedIndex = process.argv.indexOf('--successor-admitted-run');
+if (admittedIndex !== -1) {
+  const before = loadRun(process.argv[admittedIndex + 1]);
+  const state = JSON.parse(readFileSync(join(before.runDir, 'control/run-state.json'), 'utf8'));
+  assert.equal(state.full_mode, 'fixture-simulated');
+  assert.equal(state.execution.stage, 'S4');
+  const rows = parseDuplicateLedger(readFileSync(join(before.runDir, DUPLICATE_PATH), 'utf8'));
+  const admitted = rows.effects.filter((entry) => entry.effect === 'canonicalized');
+  assert.equal(admitted.length, 1);
+  const subject = JSON.parse(readFileSync(join(before.runDir,
+    rows.proposals.find((entry) => entry.proposal_id === admitted[0].proposal_id)!.subject_path), 'utf8'));
+  assert.deepEqual([...lineageCurrentClaimIds(before)], [admitted[0].successor_id]);
+  assert.throws(() => buildComparisonBasis(before, subject.proposal.member_ids), /current comparison group/u);
+  const selected = selectNextWork(before, execution);
+  assert(selected.kind === 'local' && selected.obligation.operation === 's4.prepare');
+  const plan = deriveWorkTransition(before, execution, selected, null, '2026-10-02T11:37:17.374Z');
+  assert.equal(plan.effects.length, 3);
+  assert(plan.effects.every((entry) => entry.path.startsWith('verification/harness/work-preparations/S4/')
+    || entry.path.startsWith('verification/harness/duplicate-process/')));
+  writeFixtureFile(scratch, 'retained-successor-discovery-plan.json', workJson(plan));
+  const after = join(scratch, 'retained-successor-discovery-after');
+  cpSync(before.runDir, after, { recursive: true, filter: (path) => !path.split('/').includes('calibration') });
+  for (const effect of plan.effects) writeFixtureFile(after, effect.path, Buffer.from(effect.after_base64, 'base64'));
+  validateDerivedWorkTransition(before, loadRun(after), plan);
+  const pending = selectNextWork(loadRun(after), execution);
+  assert(pending.kind === 'worker' && pending.call.role === 'merge-judge' && pending.call.output_selector === 'discovery');
+  const view = JSON.parse(readFileSync(join(after, pending.call.allowlist[0]), 'utf8'));
+  assert.deepEqual(view.map((entry: any) => entry.claim_id), [admitted[0].successor_id]);
+  for (const path of [DUPLICATE_PATH, 'ledgers/claim-inventory.md', 'ledgers/lineage.md'])
+    assert(readFileSync(join(before.runDir, path)).equals(readFileSync(join(after, path))));
+  console.log('PASS fresh successor discovery skips completed historical comparisons and retains exact currentness');
 }

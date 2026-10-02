@@ -5,11 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import {
-  contractExemplarToJsonSchema,
-  validateWorkerReturnContract,
-  type WorkerJsonValue,
-} from './lib/worker-return-contract.ts';
+import type { WorkerJsonValue } from './lib/worker-return-contract.ts';
 import { isSemanticOutputContract, semanticCoverage, SEMANTIC_RESULT_FORMAT, validateSemanticOutputContract } from './lib/semantic-review.ts';
 import { WIDENING_RETURN_FORMAT, WIDENING_CONTRACT } from './lib/packet-widening.ts';
 import { isDuplicateOutputContract, validateDuplicateOutputContract } from './lib/duplicate-review.ts';
@@ -17,6 +13,9 @@ import { makeDuplicateFixture, duplicateFixtureResult } from './duplicate-fixtur
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(SCRIPT_PATH), '..');
+const runtime = process.argv.includes('--runtime');
+const { contractExemplarToJsonSchema, validateWorkerReturnContract } =
+  await import(runtime ? '../runtime-js/scripts/lib/worker-return-contract.js' : './lib/worker-return-contract.ts') as typeof import('./lib/worker-return-contract.ts');
 const PROMPT_FILES = [
   'docs/architecture/prompts/verifier-lenses.md',
   'docs/architecture/prompts/workers-arms-synthesis.md',
@@ -228,6 +227,46 @@ function main(): number {
     );
   });
 
+  runCase(results, 'ambiguity candidates use the adopted object union in fallback and native schema', () => {
+    const contract = discovered.find((entry) => entry.identity
+      === 'workers-internal-ambiguity.md#Role: Internal Ambiguity Producer (S4-C2)')!.contract;
+    const actual = materialize(contract) as { assessment: Record<string, WorkerJsonValue> };
+    const packet = { kind: 'PKT', id: 'PKT-0001' };
+    const locus = { kind: 'source-locus', source_id: 'SRC-001', locator: 'L1-L1', span_hash: `sha256:${'1'.repeat(64)}` };
+    for (const candidates of [[], [packet], [locus], [packet, locus]]) {
+      actual.assessment.candidate_refs = candidates;
+      const checked = validateWorkerReturnContract(json(actual), contract, '1.9.0-provisional');
+      expect(checked.result === 'PASS', checked.errors.join('; '));
+      expect(json(checked.canonicalValue) === json(actual), 'shape validation changed producer fields');
+    }
+    const schema = contractExemplarToJsonSchema(contract) as any;
+    const variants = schema.properties.assessment.properties.candidate_refs.items.anyOf;
+    expect(variants.length === 2, 'candidate schema must have exactly two shapes');
+    expect(variants.every((entry: any) => entry.type === 'object' && entry.additionalProperties === false),
+      'candidate schema must close both object shapes');
+    expect(json(variants.map((entry: any) => entry.required))
+      === json([['kind', 'id'], ['kind', 'source_id', 'locator', 'span_hash']]), 'candidate fields drifted');
+    expect(schema.properties.assessment.properties.affected_relation_ids.items.type === 'string'
+      && schema.properties.flags.items.type === 'string', 'unrelated string collections changed');
+  });
+
+  runCase(results, 'ambiguity candidate contract refuses other endpoints and missing or extra fields', () => {
+    const contract = discovered.find((entry) => entry.identity
+      === 'workers-internal-ambiguity.md#Role: Internal Ambiguity Producer (S4-C2)')!.contract;
+    const actual = materialize(contract) as { assessment: Record<string, WorkerJsonValue> };
+    for (const candidate of [
+      'PKT-0001', null, [], { kind: 'CC', id: 'CC-0001' }, { kind: 'REL', id: 'REL-0001' },
+      { kind: 'PKT' }, { id: 'PKT-0001' }, { kind: 'PKT', id: 1 }, { kind: 'PKT', id: 'CC-0001' },
+      { kind: 'PKT', id: 'PKT-0001', score: 'high' },
+      { kind: 'source-locus', source_id: 'SRC-001', locator: 'L1-L1' },
+      { kind: 'source-locus', source_id: 'SRC-001', locator: 'L1-L1', span_hash: `sha256:${'1'.repeat(64)}`, url: 'external' },
+    ]) {
+      actual.assessment.candidate_refs = [candidate] as WorkerJsonValue[];
+      expect(validateWorkerReturnContract(json(actual), contract).result === 'FAIL',
+        `invalid candidate passed: ${json(candidate)}`);
+    }
+  });
+
   runCase(results, 'material-impact producer contract admits dynamic Core requirement refs', () => {
     const materialContract = contracts.find((candidate) => (
       typeof candidate === 'object'
@@ -414,7 +453,7 @@ function main(): number {
       writeFileSync(contractPath, `${json(contract)}\n`);
       writeFileSync(returnPath, `${json(valid)}\n`);
       const command = [
-        join(REPO_ROOT, 'scripts', 'validate-worker-return.ts'),
+        join(REPO_ROOT, runtime ? 'runtime-js/scripts/validate-worker-return.js' : 'scripts/validate-worker-return.ts'),
         '--contract',
         contractPath,
         '--return',

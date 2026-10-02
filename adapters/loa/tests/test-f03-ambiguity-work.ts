@@ -9,6 +9,7 @@ import { writeFixtureFile } from '../../../scripts/semantic-fixture-support.ts';
 import { loadRun } from '../../../scripts/lib/run-model.ts';
 import { mdLineSpan, sourceFilePath } from '../../../scripts/lib/check-helpers.ts';
 import { semanticJson } from '../../../scripts/lib/semantic-review.ts';
+import { stableJsonBytes } from '../src/fs.ts';
 import { searchBasisDigest, ambiguityReviewSubjectDigest, materialImpactSubjectDigest, parseInternalAmbiguities,
   buildProceduralAuthorityResponse, proceduralAuthorityResponseJson, exactTextBlob, type ProceduralAction,
   type AmbiguityReviewSubject } from '../../../scripts/lib/internal-ambiguity.ts';
@@ -155,12 +156,30 @@ if (c08) {
     assert.throws(() => amb.deriveAmbiguityTransition(other, producer, value), /candidate crosses the bound frozen source/u);
   }, 'adversarial');
 }
-const accepted = returned(producer, raw);
+if (!unresolved) for (const [name, candidate] of [
+  ['PKT extra field', { kind: 'PKT', id: packet.packetId, score: 'high' }],
+  ['PKT missing field', { kind: 'PKT' }],
+  ['source-locus extra field', { kind: 'source-locus', source_id: packet.sourceId, locator: packet.locator,
+    span_hash: subject.expression_sha256, score: 'high' }],
+  ['source-locus missing field', { kind: 'source-locus', source_id: packet.sourceId, locator: packet.locator }],
+] as const) test(`candidate normalization refuses ${name}`, () => {
+  const changed = structuredClone(raw);
+  changed.assessment.candidate_refs = [candidate as unknown as AmbiguityReviewSubject['candidate_refs'][number]];
+  refuseAfter(producer, changed);
+}, 'adversarial');
+const accepted = returned(producer, JSON.parse(stableJsonBytes(raw).toString()));
 test('changed producer expression fails before canonicalization', () => {
   const changed = structuredClone(accepted); (changed.value as any).definition.expression_start_byte = 1;
   assert.throws(() => amb.deriveAmbiguityTransition(loadRun(run), producer, changed), /WORK_AMBIGUITY_BINDING/u);
 }, 'adversarial');
 apply(producer, accepted);
+test('transport field order preserves exact candidate sequence and review digest', () => {
+  const path = `verification/harness/ambiguity-work/${producer.obligation.subject_id}/capture.json`;
+  const captured = JSON.parse(readFileSync(join(run, path), 'utf8'));
+  assert.equal(JSON.stringify(captured.subject.candidate_refs), JSON.stringify(subject.candidate_refs));
+  assert.equal(ambiguityReviewSubjectDigest(captured.subject), raw.assessment.review_subject_digest);
+  assert.deepEqual(captured.accepted.value, accepted.value);
+});
 test('accepted ambiguity subject creates no canonical T5 rows before fresh review', () => assert.equal(parseInternalAmbiguities(loadRun(run)).t5_2Rows.length, 0));
 const reviewer = s4.selectS4Work(loadRun(run)); assert(reviewer.kind === 'worker');
 test('fresh ambiguity review is selected with exact producer dependency', () => {

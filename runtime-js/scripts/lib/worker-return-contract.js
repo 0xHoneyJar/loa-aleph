@@ -187,6 +187,16 @@ function nonemptyStringSchema() {
         pattern: '^[\\s\\S]*\\S[\\s\\S]*$',
     };
 }
+const AMBIGUITY_CANDIDATE_EXEMPLARS = [
+    { kind: 'PKT', id: 'PKT-…' },
+    { kind: 'source-locus', source_id: 'SRC-…', locator: '', span_hash: 'sha256:…' },
+];
+function isAmbiguityProducerContract(example) {
+    return isRecord(example) && isRecord(example.definition) && isRecord(example.assessment)
+        && example.definition.source_entity_kind === 'PKT|CC'
+        && example.assessment.candidate_state === 'single|multiple|null-no-candidate|null-cannot-determine'
+        && Array.isArray(example.assessment.candidate_refs) && example.assessment.candidate_refs.length === 0;
+}
 /**
  * Convert a pinned Core output-contract exemplar into the closed JSON Schema
  * shape that a host-native constrained-output mechanism may enforce.
@@ -240,6 +250,13 @@ export function contractExemplarToJsonSchema(example) {
     }
     if (isRecord(example)) {
         const properties = Object.fromEntries(Object.entries(example).map(([key, value]) => [key, contractExemplarToJsonSchema(value)]));
+        if (isAmbiguityProducerContract(example)) {
+            const assessment = properties.assessment;
+            assessment.properties.candidate_refs = {
+                type: 'array',
+                items: { anyOf: AMBIGUITY_CANDIDATE_EXEMPLARS.map(contractExemplarToJsonSchema) },
+            };
+        }
         return {
             type: 'object',
             additionalProperties: false,
@@ -295,7 +312,7 @@ function validateStringArray(value, path, errors) {
         validateRequiredString(entry, `${path}[${String(index)}]`, errors);
     });
 }
-function validateAgainstContractExemplar(value, example, path, errors) {
+function validateAgainstContractExemplar(value, example, path, errors, ambiguityProducer = false) {
     if (example === null) {
         if (value !== null)
             validateRequiredString(value, path, errors);
@@ -326,11 +343,20 @@ function validateAgainstContractExemplar(value, example, path, errors) {
             errors.push(`${path} must be an array`);
             return;
         }
-        if (example.length > 0) {
-            value.forEach((entry, index) => (validateAgainstContractExemplar(entry, example[0], `${path}[${String(index)}]`, errors)));
+        if (ambiguityProducer && path === '$.assessment.candidate_refs') {
+            value.forEach((entry, index) => {
+                const candidate = isRecord(entry) && AMBIGUITY_CANDIDATE_EXEMPLARS.find((shape) => shape.kind === entry.kind);
+                if (!candidate)
+                    errors.push(`${path}[${String(index)}] must be a PKT or source-locus candidate object`);
+                else
+                    validateAgainstContractExemplar(entry, candidate, `${path}[${String(index)}]`, errors);
+            });
+        }
+        else if (example.length > 0) {
+            value.forEach((entry, index) => (validateAgainstContractExemplar(entry, example[0], `${path}[${String(index)}]`, errors, ambiguityProducer)));
         }
         else {
-            // Empty arrays in the current Core contracts are string collections.
+            // Other empty-array exemplars are string collections.
             validateStringArray(value, path, errors);
         }
         return;
@@ -349,7 +375,7 @@ function validateAgainstContractExemplar(value, example, path, errors) {
             errors.push(`${path}.${key} is not allowed`);
         }
         for (const key of expectedKeys.filter((key) => actualKeys.includes(key))) {
-            validateAgainstContractExemplar(value[key], example[key], `${path}.${key}`, errors);
+            validateAgainstContractExemplar(value[key], example[key], `${path}.${key}`, errors, ambiguityProducer);
         }
         if (expectedKeys.includes('flags') && actualKeys.includes('flags')) {
             validateStringArray(value.flags, `${path}.flags`, errors);
@@ -432,7 +458,7 @@ export function validateWorkerReturnContract(raw, contractExemplar, pinnedRunFor
         validateUnicode(value, '$', errors);
     }
     if (errors.length === 0) {
-        validateAgainstContractExemplar(value, contractExemplar, '$', errors);
+        validateAgainstContractExemplar(value, contractExemplar, '$', errors, isAmbiguityProducerContract(contractExemplar));
     }
     return {
         result: errors.length === 0 ? 'PASS' : 'FAIL',

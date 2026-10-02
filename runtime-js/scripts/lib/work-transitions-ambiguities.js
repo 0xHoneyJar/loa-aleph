@@ -343,7 +343,19 @@ export function deriveAmbiguityTransition(model, work, value, now) {
                 expression_sha256: e.expression_sha256, expression_bytes_base64: e.expression_bytes_base64, basis_packet_ids: e.basis_packet_ids,
                 detected_by: `invocation:${value.call_id}` };
             assertWork(isDeepStrictEqual(d, definition) && a.search_source_id === e.source_id && a.proposed_by === `invocation:${value.call_id}`, 'WORK_AMBIGUITY_BINDING', 'producer cannot change selected expression or source');
-            const candidates = parseCandidateRefs(JSON.stringify(a.candidate_refs), model);
+            assertWork(Array.isArray(a.candidate_refs), 'WORK_AMBIGUITY_SOURCE', 'candidate references must be an array');
+            // Transport may sort object keys. Preserve the candidate sequence and
+            // every semantic field, then apply the unchanged canonical grammar.
+            const candidateInput = a.candidate_refs.map((value) => {
+                assertWork(value && typeof value === 'object' && !Array.isArray(value), 'WORK_AMBIGUITY_SOURCE', 'candidate must be an object');
+                const candidate = value;
+                const keys = candidate.kind === 'PKT' ? ['kind', 'id']
+                    : candidate.kind === 'source-locus' ? ['kind', 'source_id', 'locator', 'span_hash'] : [];
+                assertWork(keys.length > 0 && Object.keys(candidate).length === keys.length
+                    && keys.every((key) => Object.hasOwn(candidate, key)), 'WORK_AMBIGUITY_SOURCE', 'exact candidate fields required');
+                return Object.fromEntries(keys.map((key) => [key, candidate[key]]));
+            });
+            const candidates = parseCandidateRefs(JSON.stringify(candidateInput), model);
             assertWork(candidates.clean, 'WORK_AMBIGUITY_SOURCE', candidates.error || 'invalid candidate references');
             for (const candidate of candidates.candidates) {
                 if (candidate.kind === 'source-locus') {
@@ -360,7 +372,7 @@ export function deriveAmbiguityTransition(model, work, value, now) {
             const { detected_by: _detected, ...expression } = definition;
             const subject = { ...expression, search_scope_kind: a.search_scope_kind,
                 search_completion_ref: a.search_completion_ref, search_basis_digest: a.search_basis_digest,
-                candidate_state: a.candidate_state, candidate_refs: a.candidate_refs, affected_relation_ids: a.affected_relation_ids,
+                candidate_state: a.candidate_state, candidate_refs: candidates.candidates, affected_relation_ids: a.affected_relation_ids,
                 resolution_state: a.resolution_state, carry_state: a.carry_state, proposed_by: a.proposed_by };
             assertWork(ambiguityReviewSubjectDigest(subject) === a.review_subject_digest, 'WORK_AMBIGUITY_BINDING', 'exact review digest');
             const c = { accepted: value, subject, review_id: allocate(model, 'VER'),

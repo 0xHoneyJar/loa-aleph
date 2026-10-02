@@ -246,7 +246,10 @@ function selectedPreparation(model, work) {
     const rows = ledger(model);
     for (const row of rows.discoveries)
         for (const c of json(required(model, row.record_path)).candidates) {
-            const p = prep(model, 'comparison', { candidate_ref: `${row.discovery_id}/${c.candidate_id}` });
+            const candidateRef = `${row.discovery_id}/${c.candidate_id}`;
+            if (rows.proposals.some((p) => json(required(model, p.subject_path)).proposal.candidate_ref === candidateRef))
+                continue;
+            const p = prep(model, 'comparison', { candidate_ref: candidateRef });
             if (p.call_id === work.obligation.subject_id)
                 return p;
         }
