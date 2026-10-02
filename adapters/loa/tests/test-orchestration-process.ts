@@ -68,9 +68,77 @@ async function fixtureRetainedDelivery(run: string, workId: string): Promise<voi
   for (const [index, path] of ['control/run-state.json', 'control/ledger-chain.jsonl'].entries())
     assert(readFileSync(join(run, path)).equals(before[index]), 'retained delivery checking cannot publish another effect');
 }
+async function fixtureRetainedDuplicateDelivery(run: string, sourceRoot: string, runtime: boolean): Promise<void> {
+  const assert: typeof import('node:assert/strict') = (await import('node:assert/strict')).default;
+  const { readFileSync, readdirSync, lstatSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { pathToFileURL } = await import('node:url');
+  const { createHash } = await import('node:crypto');
+  const hash = (bytes: Buffer) => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  const root = runtime ? join(sourceRoot, 'runtime-js') : sourceRoot, extension = runtime ? 'js' : 'ts';
+  assert.equal(JSON.parse(readFileSync(join(run, 'control/run-state.json'), 'utf8')).full_mode, 'fixture-simulated');
+  const { verifyWorkerBundle } = await import(pathToFileURL(join(root, `adapters/loa/src/worker-bundle.${extension}`)).href) as typeof import('../src/worker-bundle.ts');
+  const { validateRetainedWorkDelivery } = await import(pathToFileURL(join(root, `adapters/loa/src/orchestration.${extension}`)).href) as typeof import('../src/orchestration.ts');
+  const { duplicateTaskForRole } = await import(pathToFileURL(join(root, `scripts/lib/duplicate-review.${extension}`)).href);
+  function inventory() {
+    const rows: Array<{ path: string; mode: number; digest: string | null }> = [];
+    function walk(path: string) {
+      const full = join(run, path), metadata = lstatSync(full);
+      assert(!metadata.isSymbolicLink());
+      rows.push({ path, mode: metadata.mode & 0o7777, digest: metadata.isFile() ? hash(readFileSync(full)) : null });
+      if (metadata.isDirectory()) for (const name of readdirSync(full).sort())
+        if (name !== 'calibration') walk(path === '.' ? name : `${path}/${name}`);
+    }
+    walk('.'); return rows;
+  }
+  const before = inventory(), cases = [];
+  for (const name of readdirSync(join(run, 'control/orchestration/work')).sort()) {
+    const work = JSON.parse(readFileSync(join(run, 'control/orchestration/work', name), 'utf8'));
+    const task = work.call && duplicateTaskForRole(work.identity.pins.run_format_version, work.call.role,
+      work.identity.work.obligation.stage, work.call.task_line);
+    if (!task) continue;
+    const workerRoot = join(run, 'control/worker-bundles', work.call.call_id);
+    const request = verifyWorkerBundle(workerRoot);
+    const attachments = request.allowlist.map((item) =>
+      ({ path: item.run_path, bytes: readFileSync(join(workerRoot, item.attachment_path)) }));
+    validateRetainedWorkDelivery(run, request, attachments);
+    assert.throws(() => validateRetainedWorkDelivery(run,
+      { ...request, task_line: `${request.task_line} Changed.` }, attachments), /WORK_REQUEST_BINDING/u);
+    assert.throws(() => validateRetainedWorkDelivery(run,
+      { ...request, isolation: { ...request.isolation, producer_context_id: 'CTX-unrelated' } }, attachments),
+    /WORK_REQUEST_BINDING/u);
+    assert.throws(() => validateRetainedWorkDelivery(run, request,
+      attachments.map((item) => ({ ...item, bytes: Buffer.concat([item.bytes, Buffer.from('\n')]) }))),
+    task === 'refutation' ? /DUP_FORMAT SEM_FORMAT JSON: canonical compact UTF-8 bytes required/u : /DUP_ISOLATION/u);
+    assert.throws(() => validateRetainedWorkDelivery(run, request, []), /DUP_ISOLATION/u);
+    assert.throws(() => validateRetainedWorkDelivery(run, request,
+      [...attachments, { path: 'extra.json', bytes: Buffer.from('{}') }]), /DUP_ISOLATION/u);
+    assert.deepEqual(verifyWorkerBundle(workerRoot), request);
+    cases.push({ work_id: work.work_id, call_id: work.call.call_id, role: request.role,
+      exact_delivery: 'PASS', intact_idempotence: 'PASS', request_and_attachment_refusals: 5 });
+  }
+  assert(cases.length >= 2, 'retain discovery and independent contradiction delivery controls');
+  assert.deepEqual(inventory(), before, 'read-only delivery authentication preserves every retained file and mode');
+  console.log(JSON.stringify({ result: 'PASS', run, mode: runtime ? 'runtime' : 'source',
+    node: { executable: process.execPath, version: process.version }, cases,
+    retained_entries_unchanged: before.length,
+    scope: 'Read-only retained fixture delivery and refusal regression; installed recovery is separately required.' }));
+}
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 if (process.argv[2] === '--fixture-worker') {
   await fixtureWorker(process.argv[3], process.argv[4], process.argv[5]);
+} else if (process.argv[2] === '--retained-duplicate-delivery-regression') {
+  const run = resolve(process.argv[3]), runtime = process.argv.includes('--runtime');
+  const snapshot = JSON.parse(readFileSync(join(run, 'control/runtime/snapshot.json'), 'utf8'));
+  if (runtime && snapshot.node.executable !== process.execPath) {
+    // Execute the type-stripped fixture function under the actual pinned Node.
+    // The immutable snapshot and all retained product files remain unchanged.
+    const result = spawnSync(snapshot.node.executable, ['--input-type=module', '-e',
+      `await (${fixtureRetainedDuplicateDelivery.toString()})(${JSON.stringify(run)},${JSON.stringify(ROOT)},true);`],
+    { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    process.stdout.write(result.stdout);
+  } else await fixtureRetainedDuplicateDelivery(run, ROOT, runtime);
 } else if (process.argv[2] === '--request-byte-regression') {
   const original = resolve(process.argv[3]);
   assert.equal(JSON.parse(readFileSync(join(original, 'control/run-state.json'), 'utf8')).full_mode, 'fixture-simulated');

@@ -32,6 +32,7 @@ import { verifyAndLoadLoaBundle } from './core-loader.ts';
 import { AMBIGUITY_SELECTION_INPUT, ambiguityExpressionSelection, validateAmbiguityWorkDelivery } from '../../../scripts/lib/work-transitions-ambiguities.ts';
 import { validateRelationWorkDelivery } from '../../../scripts/lib/work-transitions-relations.ts';
 import { validateAuthorityContact } from '../../../scripts/lib/work-transitions-authority.ts';
+import { duplicateTaskForRole, validateDuplicateBundleDelivery } from '../../../scripts/lib/duplicate-review.ts';
 
 const ROOT = 'control/orchestration';
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
@@ -374,6 +375,9 @@ export function validateRetainedWorkDelivery(runDir: string, request: WorkerRequ
   const work = assertWorkRequest(runDir, request);
   withBasis(runDir, work.basis_digest, (basis) => {
     const model = loadRun(basis);
+    const duplicateTask = duplicateTaskForRole(model.manifest?.runFormatVersion || '', request.role, request.stage, request.task_line);
+    if (duplicateTask) validateDuplicateBundleDelivery(model, duplicateTask, request.call_id, request.task_line,
+      request.isolation.producer_context_id, attachments);
     validateRelationWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
       request.isolation.producer_context_id, attachments);
     validateAmbiguityWorkDelivery(model, request.role, request.stage, request.call_id, request.task_line,
