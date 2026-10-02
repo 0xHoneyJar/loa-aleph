@@ -142,6 +142,19 @@ function materialSubject(model, p, c, value) {
     const raw = value.value;
     const assessment = parseInternalAmbiguities(model).t5_2Rows.find((r) => r.values.ambiguityId === p.ambiguity_id);
     assertWork(raw.proposed_by === `invocation:${value.call_id}`, 'WORK_AMBIGUITY_BINDING', 'exact material-impact producer');
+    const scope = raw.operative_scope;
+    fields(scope, ['affected_ids', 'impact_rows'], 'material operative scope');
+    assertWork(Array.isArray(scope.affected_ids) && Array.isArray(scope.impact_rows), 'WORK_AMBIGUITY_MATERIAL', 'operative scope arrays required');
+    // Generic worker transport sorts object keys. Reorder only exact closed
+    // objects; preserve the submitted arrays and every material field.
+    const operativeScope = {
+        affected_ids: [...scope.affected_ids],
+        impact_rows: scope.impact_rows.map((row) => {
+            fields(row, ['affected_id', 'operation_kind', 'requirement_ref', 'unresolved_treatment', 'consequence_if_unresolved'], 'material impact row');
+            return { affected_id: row.affected_id, operation_kind: row.operation_kind, requirement_ref: row.requirement_ref,
+                unresolved_treatment: row.unresolved_treatment, consequence_if_unresolved: row.consequence_if_unresolved };
+        }),
+    };
     const subject = { format: MATERIAL_IMPACT_SUBJECT_FORMAT, run_id: model.manifest.runId,
         ambiguity_id: p.ambiguity_id, assessment_seq: Number(assessment.values.assessmentSeq), material_impact_seq: 1,
         t5_2_assessment_ref: `internal-ambiguity:T5.2:${p.ambiguity_id}:A${assessment.values.assessmentSeq}@${workDigest(assessment.raw)}`,
@@ -149,7 +162,7 @@ function materialSubject(model, p, c, value) {
         t5_2_review_ref: `ambiguity-review-verdict:${c.review_id}@${workDigest(required(model, `verification/harness/${c.review_id}.md`))}`,
         c1_relation_basis_ref: c.subject.affected_relation_ids.length
             ? 'relations-basis:closure_phase=S4-C1-relations-closed;artifact=ledgers/relations.md' : 'none',
-        materiality_class: raw.materiality_class, operative_scope: raw.operative_scope, source_locators: raw.source_locators,
+        materiality_class: raw.materiality_class, operative_scope: operativeScope, source_locators: raw.source_locators,
         reviewed_unaffected_ids: raw.reviewed_unaffected_ids, unresolved_statement: raw.unresolved_statement,
         review_proposition: 'class-B-or-C-and-canonical-operative-scope-complete-and-accurate-under-cited-Core-requirements',
         proposed_by: raw.proposed_by };

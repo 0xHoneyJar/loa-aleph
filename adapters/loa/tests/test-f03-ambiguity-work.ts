@@ -54,7 +54,8 @@ function apply(work: NextWork, value: WorkValue | null = null) {
   }
 }
 function returned(work: NextWork, value: unknown, producerContext: string | null = null): WorkValue {
-  assert(work.kind === 'worker'); const call = work.call.prepared_call_id!, raw = Buffer.from(semanticJson(value));
+  assert(work.kind === 'worker'); const call = work.call.prepared_call_id!, raw = stableJsonBytes(value);
+  value = JSON.parse(raw.toString('utf8'));
   writeFixtureFile(run, `control/worker-returns/${call}/raw.json`, raw);
   return { call_id: call, role: work.call.role, context_id: `CTX-${call}`, producer_context_id: producerContext,
     raw_digest: core.workDigest(raw), receipt_digest: `sha256:${'a'.repeat(64)}`, simulation: true, value: value as WorkValue['value'] };
@@ -205,17 +206,38 @@ if (unresolved) {
   apply(s4.selectS4Work(loadRun(run)));
   const material = s4.selectS4Work(loadRun(run)); assert(material.kind === 'worker');
   test('unresolved assessment requires a separate material-impact producer', () => assert.equal(material.call.role, 'material-impact-producer'));
-  const proposal = returned(material, { materiality_class: classC ? 'C' : 'B', operative_scope: classC ? {
+  const proposalInput = { materiality_class: classC ? 'C' : 'B', operative_scope: classC ? {
     affected_ids: [packet.packetId], impact_rows: [{ affected_id: packet.packetId, operation_kind: 'load-bearing-reasoning',
       requirement_ref: 'core:docs/precis-wedge.md#Completeness contract (canonical: option A)',
       unresolved_treatment: 'carry-or-restriction', consequence_if_unresolved: 'Synthetic exact evidence use remains contingent.' }],
   } : { affected_ids: [], impact_rows: [] },
     source_locators: classC ? [`${packet.sourceId}:${packet.locator}`] : [], reviewed_unaffected_ids: [], unresolved_statement: 'Synthetic unresolved expression and declared operative impact.',
-    proposed_by: `invocation:${material.call.prepared_call_id}`, flags: [] });
+    proposed_by: `invocation:${material.call.prepared_call_id}`, flags: [] };
+  const proposal = returned(material, proposalInput);
   test('material-impact producer identity cannot be substituted', () => {
     const altered = structuredClone(proposal); (altered.value as any).proposed_by = 'invocation:another-call';
     assert.throws(() => amb.deriveAmbiguityTransition(loadRun(run), material, altered), /WORK_AMBIGUITY_BINDING/u);
   }, 'adversarial');
+  test('material scope refuses an extra field', () => {
+    const changed = structuredClone(proposal.value) as any; changed.operative_scope.selected_action = 'carry-unresolved';
+    refuseAfter(material, changed);
+  }, 'adversarial');
+  for (const field of ['affected_ids', 'impact_rows']) test(`material scope refuses missing ${field}`, () => {
+    const changed = structuredClone(proposal.value) as any; delete changed.operative_scope[field];
+    refuseAfter(material, changed);
+  }, 'adversarial');
+  if (classC) {
+    test('material impact row refuses an extra field', () => {
+      const changed = structuredClone(proposal.value) as any; changed.operative_scope.impact_rows[0].selected_action = 'carry-unresolved';
+      refuseAfter(material, changed);
+    }, 'adversarial');
+    for (const field of ['affected_id', 'operation_kind', 'requirement_ref', 'unresolved_treatment', 'consequence_if_unresolved'])
+      test(`material impact row refuses missing ${field}`, () => {
+        const changed = structuredClone(proposal.value) as any; delete changed.operative_scope.impact_rows[0][field];
+        refuseAfter(material, changed);
+      }, 'adversarial');
+  }
+  returned(material, proposal.value);
   if (c08 && classC) {
     for (const locator of ['SRC-0001:L1-L1', 'SRC-777:L1-L1', 'SRC-001:L01-L1', 'SRC-001:L999-L999', 'SRC-001:L2-L1']) {
       test(`C08 material refuses ${locator}`, () => {
@@ -228,6 +250,14 @@ if (unresolved) {
   apply(material, proposal);
   const review = s4.selectS4Work(loadRun(run)); assert(review.kind === 'worker');
   const view = JSON.parse(readFileSync(join(run, review.call.allowlist[0]), 'utf8'));
+  test('material transport preserves exact scope, review digest and accepted return', () => {
+    assert.deepEqual(view.subject.operative_scope, proposalInput.operative_scope);
+    assert.equal(materialImpactSubjectDigest(view.subject),
+      materialImpactSubjectDigest({ ...view.subject, operative_scope: proposalInput.operative_scope }));
+    const captured = JSON.parse(readFileSync(join(run, `verification/harness/ambiguity-work/${material.obligation.subject_id}/material-capture.json`), 'utf8'));
+    assert.deepEqual(captured.accepted.value, proposal.value);
+    assert.equal(core.workDigest(readFileSync(join(run, `control/worker-returns/${proposal.call_id}/raw.json`))), proposal.raw_digest);
+  });
   test('material class still requires fresh independent material-impact review', () => assert.equal(review.call.role, 'material-impact-reviewer'));
   test('unreviewed material scope is not published as a canonical M subject', () => assert(!loadRun(run).files.some((f) =>
     f.relativePath.startsWith('verification/harness/S4/material-impact-subjects/'))));
