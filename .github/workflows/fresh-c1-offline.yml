@@ -1,0 +1,69 @@
+name: Fresh C1 offline tooling
+
+on:
+  push:
+    branches: [agent/f03-fresh-c1-qualification-tooling-20261013]
+  pull_request:
+    branches: [agent/f03-production-reachability-implementation-20260917]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-c1-offline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out permitted source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/calibration/
+      - name: Use build Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
+      - name: Install locked development dependencies
+        run: npm ci --ignore-scripts
+      - name: Strict types and unchanged product runtime projection
+        run: |
+          npm run typecheck
+          npm run runtime:check
+      - name: Build and test offline tooling
+        run: npm run test:fresh-c1
+      - name: Use installed-runtime Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20.20.2"
+      - name: Test compiled tooling on Node 20
+        run: |
+          node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test.js
+          node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test-package.js .
+      - name: Start the ephemeral runner user service manager
+        run: sudo systemctl start "user@$(id -u).service"
+      - name: Test actual supervised harmless services
+        run: node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test-service.js
+      - name: Verify source preservation and excluded-path absence
+        run: |
+          test ! -e calibration
+          git diff --exit-code
+      - name: Retain harmless service and package evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fresh-c1-offline-evidence
+          if-no-files-found: error
+          path: |
+            /tmp/fresh-c1-service-test-*/*
+            /tmp/fresh-c1-package-test-*/result.json
+            /tmp/fresh-c1-package-test-*/current-package-boundary.json
+            /tmp/fresh-c1-package-test-*/status/*

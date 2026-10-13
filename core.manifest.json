@@ -726,7 +726,16 @@
         "adapters/loa/tests/test-f03-retained-runtime-routing.ts",
         "adapters/loa/tests/test-f03-consumed-plan-authentication.ts",
         "adapters/loa/tests/test-f03-concurrency.ts",
-        "adapters/loa/tests/test-f03-late-lineage-existing-halt.ts"
+        "adapters/loa/tests/test-f03-late-lineage-existing-halt.ts",
+        "qualification/fresh-c1/README.md",
+        "qualification/fresh-c1/common.ts",
+        "qualification/fresh-c1/driver.ts",
+        "qualification/fresh-c1/reader.ts",
+        "qualification/fresh-c1/service.ts",
+        "qualification/fresh-c1/supervisor.ts",
+        "qualification/fresh-c1/test-package.ts",
+        "qualification/fresh-c1/test-service.ts",
+        "qualification/fresh-c1/test.ts"
       ]
     },
     "packaging": [
@@ -737,7 +746,8 @@
       "packaging/package-loa-release.ts",
       "packaging/test-loa-release-packaging.ts",
       "packaging/test-runtime-js.ts",
-      "tsconfig.runtime.json"
+      "tsconfig.runtime.json",
+      "tsconfig.qualification.json"
     ],
     "repository_administration": [
       "calibration/src-001/core-design-basis/INCIDENT-f03-fixture-source-copy-scope-20260926.md",
@@ -1014,7 +1024,8 @@
       "calibration/src-001/core-design-basis/EVIDENCE-f03-consumed-authentication-current-verifier-20260927.json",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-node20-bootstrap-final-cleanup-20260927.json",
       "calibration/src-001/core-design-basis/EVIDENCE-f03-excluded-path-accounting-clarification-20260927.json",
-      "calibration/src-001/core-design-basis/EVIDENCE-f03-node20-fragment-and-recovery-harness-20260927.json"
+      "calibration/src-001/core-design-basis/EVIDENCE-f03-node20-fragment-and-recovery-harness-20260927.json",
+      ".github/workflows/fresh-c1-offline.yml"
     ]
   },
   "checker_paths": [

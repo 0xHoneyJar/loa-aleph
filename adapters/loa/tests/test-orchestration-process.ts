@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { collectedSpawn as spawnSync } from '../../../qualification/fresh-c1/supervisor.ts';
+import { completeFreshC1, faultEnvironment, fixtureRepository, fixtureScratch, freshRoot,
+  installedFixture, startedFixture } from '../../../qualification/fresh-c1/driver.ts';
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -124,7 +126,7 @@ async function fixtureRetainedDuplicateDelivery(run: string, sourceRoot: string,
     retained_entries_unchanged: before.length,
     scope: 'Read-only retained fixture delivery and refusal regression; installed recovery is separately required.' }));
 }
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+const ROOT = fixtureRepository(resolve(dirname(fileURLToPath(import.meta.url)), '../../..'));
 if (process.argv[2] === '--fixture-worker') {
   await fixtureWorker(process.argv[3], process.argv[4], process.argv[5]);
 } else if (process.argv[2] === '--retained-duplicate-delivery-regression') {
@@ -173,7 +175,7 @@ if (process.argv[2] === '--fixture-worker') {
   console.log(JSON.stringify({ result: 'PASS', controls: 2, adversarial: attacks.length, scratch,
     scope: 'Isolated copy of retained fixture evidence; direct bundle verifier regression, not installed resume or predecessor qualification.' }));
 } else {
-  const scratch = mkdtempSync(join(tmpdir(), 'aleph-orchestration-process-'));
+  const scratch = fixtureScratch(() => mkdtempSync(join(tmpdir(), 'aleph-orchestration-process-')));
   const keep = process.env.F03_KEEP_TEST === '1';
   try {
     const declaredVersion = JSON.parse(readFileSync(join(ROOT, 'core.manifest.json'), 'utf8')).core.run_format_version;
@@ -194,6 +196,7 @@ if (process.argv[2] === '--fixture-worker') {
     const host = join(scratch, 'host'), bundle = join(scratch, 'bundles/aleph-for-loa');
     const installation = installLoaBundle(bundle, host);
     assert.equal(installation.result, 'PASS', installation.errors.join('; '));
+    installedFixture(host, bundle);
     const capabilities = join(host, 'grimoires/loa/aleph/host-capabilities.json');
     mkdirSync(dirname(capabilities), { recursive: true });
     cpSync(join(ROOT, 'adapters/loa/tests/fixtures/host-capabilities.json'), capabilities);
@@ -260,7 +263,10 @@ if (process.argv[2] === '--fixture-worker') {
       const c09Probe = process.env.F03_C09_FAULTS === '1' && !c09Exercised && module === 'cli' && args.includes('resume');
       let processResult = spawnSync(commandNode, [entrypoint, ...args],
         { encoding: 'utf8', cwd: host, env: c09Probe
-          ? { ...process.env, ALEPH_FIXTURE_WORK_FAULT: 'stage.seal-S3:derived' } : process.env });
+          ? { ...process.env, ALEPH_FIXTURE_WORK_FAULT: 'stage.seal-S3:derived' } : faultEnvironment(args) });
+      if (freshRoot() && processResult.status === 86) {
+        completeFreshC1(run, host, commandNode, [entrypoint, ...args], processResult.status);
+      }
       if (c09Probe && processResult.status === 86) {
         c09Exercised = true;
         const beforeState = readFileSync(join(run, 'control/run-state.json'));
@@ -360,6 +366,7 @@ if (process.argv[2] === '--fixture-worker') {
     const started = cli('start', selectedInput);
     assert.equal(started.result, 'BLOCKED');
     const id = started.run_id; run = join(host, 'grimoires/loa/aleph/runs', id);
+    startedFixture(run);
     const snapshot = JSON.parse(readFileSync(join(run, 'control/corpus.snapshot.json'), 'utf8'));
     const response = join(scratch, 'authority.json');
     writeFileSync(response, JSON.stringify({ format: 'aleph-loa-authority-response/v1', gate_id: 'S0', run_id: id,
