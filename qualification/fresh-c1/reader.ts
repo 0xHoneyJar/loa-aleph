@@ -7,14 +7,25 @@ import { verifyLoaInstallation } from '../../adapters/loa/src/installer.ts';
 import { stableJsonBytes } from '../../adapters/loa/src/fs.ts';
 import { capture, digest, EFFECTS, FAULTS, inside, json, object, OPERATION, PRODUCT,
   LOCKS, NODE_DIGEST, NODE_EXECUTABLE, withoutLeases, type Inventory, type Json, type Verdict } from './common.ts';
-import { disposition, verifyChild, type ChildReceipt } from './supervisor.ts';
+import { alive, disposition, requireBudget, verifyCaseChild, verifyPhases, type ChildReceipt } from './supervisor.ts';
+import { verifyGuard, verifyOwnership } from './service.ts';
 
-export interface Observation { fault: string | null; receipt: string; files: Inventory }
+export interface Observation {
+  fault: string | null; receipt: string; files: Inventory;
+  readback_started_at: number; readback_finished_at: number;
+}
 export interface Evidence {
   format: 'f03-fresh-c1/v1'; nonce: string; run: string; host: string; work_id: string;
   pins: Json; prepared: Json; boundaries: Observation[]; resumes: Observation[];
 }
 type Read = (entry: Inventory[string]) => Buffer;
+export function verifyReadback(observation: Observation, childFinishedAt: number, deadline: number, nextPhaseAt: number): void {
+  assert(Number.isSafeInteger(observation.readback_started_at) && Number.isSafeInteger(observation.readback_finished_at));
+  assert(observation.readback_started_at >= childFinishedAt
+    && observation.readback_finished_at >= observation.readback_started_at
+    && observation.readback_finished_at < deadline, 'TIMEOUT_READBACK');
+  assert(observation.readback_finished_at <= nextPhaseAt, 'READBACK_AFTER_PHASE_TRANSITION');
+}
 function verifySeal(value: Json, journal = false): void {
   const { digest: seal, ...body } = value;
   if (journal) delete body.status;
@@ -160,6 +171,18 @@ export async function readFreshC1(root: string, verifyBeforeTerminal = false): P
       return { verdict: state === 'PASS' ? 'FAIL' : state, reason: 'No complete fresh C1 evidence' };
     }
     const launch = json(join(root, 'launch.json')), evidence = json(join(root, 'evidence.json')) as Evidence;
+    const owner = verifyOwnership(root), guard = verifyGuard(root);
+    if (verifyBeforeTerminal) assert(alive(guard.identity), 'INTERRUPTED_GUARD_LOST');
+    else {
+      const result = json(join(root, 'guard-result.json'));
+      assert.equal(result.guard_digest, digest(readFileSync(join(root, 'guard.json'))), 'GUARD_CHANGED');
+      assert.equal(result.ownership_digest, owner.digest); assert.equal(result.verdict, 'PASS');
+      const terminal = json(join(root, 'terminal.json')), completion = json(join(root, 'completion.json'));
+      assert.equal(terminal.completion_digest, digest(readFileSync(join(root, 'completion.json'))));
+      assert.equal(completion.ownership_digest, owner.digest); assert.equal(completion.verdict, 'PASS');
+      assert.equal(completion.verification, terminal.verification);
+      assert(completion.finished_at <= terminal.finished_at);
+    }
     assert.equal(launch.root, root, 'CASE_PATH_CHANGED');
     assert(launch.deadline - launch.started_at === 86400 * 1000, 'EXACT_OVERALL_CEILING');
     assert.equal(evidence.nonce, launch.nonce, 'CASE_NONCE');
@@ -184,22 +207,12 @@ export async function readFreshC1(root: string, verifyBeforeTerminal = false): P
     for (const observation of evidence.boundaries.slice(0, 2)) {
       verifyStartingBasis(evidence.work_id, observation.files, entry => object(store, entry));
     }
-    const budgets = [
-      ['setup', 1800, 1800], ['prefix', 61200, 10800], ['faults', 14400, 1800],
-      ['resumes', 3600, 1800], ['verification', 5400, 5400],
-    ] as const;
-    const phaseNames = budgets.map(([name], index) => `${index + 1}-${name}.json`);
-    assert.deepEqual(readdirSync(join(root, 'phases')).sort(), phaseNames);
-    const phases = phaseNames.map(name => json(join(root, 'phases', name)));
-    for (const [index, p] of phases.entries()) {
-      assert.equal(p.name, budgets[index][0]); assert.equal(p.child_seconds, budgets[index][2]);
-      assert.equal(p.deadline, Math.min(launch.deadline, p.started_at + budgets[index][1] * 1000));
-      assert(p.started_at >= (index ? phases[index - 1].started_at : launch.started_at));
-    }
+    const phases = verifyPhases(root, verifyBeforeTerminal ? undefined : json(join(root, 'terminal.json')).finished_at,
+      verifyBeforeTerminal ? undefined : json(join(root, 'terminal.json')).finished_tick);
     const firstOrdinal = Number(evidence.boundaries[0].receipt.slice('children/'.length));
     let startCount = 0, prefixEnd = launch.started_at;
     for (let ordinal = 1; ordinal < firstOrdinal; ordinal++) {
-      const receipt = verifyChild(join(root, 'children', String(ordinal).padStart(4, '0')), launch.nonce, 0);
+      const receipt = verifyCaseChild(root, join(root, 'children', String(ordinal).padStart(4, '0')), 0);
       assert.equal(receipt.verdict, 'PASS'); assert.equal(receipt.ordinal, ordinal);
       assert.equal(receipt.command, launch.node); assert.equal(receipt.executable_digest, launch.node_digest);
       assert.equal(receipt.child.boot, launch.boot);
@@ -218,7 +231,7 @@ export async function readFreshC1(root: string, verifyBeforeTerminal = false): P
     for (const [index, observation] of observations.entries()) {
       inside(root, join(root, observation.receipt));
       assert.match(observation.receipt, /^children\/\d{4}$/);
-      const receipt = verifyChild(join(root, observation.receipt), launch.nonce, index < 11 ? 86 : 0);
+      const receipt = verifyCaseChild(root, join(root, observation.receipt), index < 11 ? 86 : 0);
       assert.equal(receipt.verdict, 'PASS'); assert.equal(receipt.status, index < 11 ? 86 : 0);
       assert.equal(receipt.child.boot, launch.boot, 'MIXED_BOOT');
       assert(receipt.started_at >= previousEnd && receipt.finished_at <= launch.deadline, 'STALE_OR_OVERLAPPING_RECEIPT');
@@ -230,6 +243,7 @@ export async function readFreshC1(root: string, verifyBeforeTerminal = false): P
       const p = phases[index === 0 ? 1 : index < 11 ? 2 : 3];
       assert.equal(receipt.deadline, p.deadline); assert.equal(receipt.max_seconds, p.child_seconds);
       assert(receipt.started_at >= p.started_at);
+      verifyReadback(observation, receipt.finished_at, p.deadline, phases[index === 0 ? 2 : index < 11 ? 3 : 4].started_at);
       assert.deepEqual(receipt.args, [join(evidence.host, '.claude/aleph/bin/loa-aleph.mjs'),
         '--root', evidence.host, '--json', '--allow-fixture-simulation', 'resume', runId], 'IDENTICAL_INSTALLED_ARGV');
       assert.equal(receipt.env.ALEPH_FIXTURE_WORK_FAULT ?? null, observation.fault, 'EXACT_FAULT_ENVIRONMENT');
@@ -254,14 +268,14 @@ export async function readFreshC1(root: string, verifyBeforeTerminal = false): P
         if (index === 12) assert.deepEqual(report.details.work,
           JSON.parse(readFileSync(receipts[11].stdout, 'utf8')).details.work);
       }
-      previousEnd = receipt.finished_at; receipts.push(receipt);
+      previousEnd = observation.readback_finished_at; receipts.push(receipt);
     }
     assert.equal(new Set(receipts.map(r => `${r.child.boot}:${r.child.pid}:${r.child.start_ticks}`)).size, 13, 'FRESH_PROCESSES');
     assert.equal(new Set(observations.map(o => o.receipt)).size, 13, 'DUPLICATE_RECEIPT');
     if (!verifyBeforeTerminal) {
       const terminal = json(join(root, 'terminal.json'));
       assert.match(terminal.verification, /^children\/\d{4}$/);
-      const verified = verifyChild(join(root, terminal.verification), launch.nonce, 0);
+      const verified = verifyCaseChild(root, join(root, terminal.verification), 0);
       assert.equal(verified.verdict, 'PASS');
       assert.equal(verified.ordinal, receipts[12].ordinal + 1);
       assert.equal(verified.command, launch.node);
@@ -271,16 +285,12 @@ export async function readFreshC1(root: string, verifyBeforeTerminal = false): P
       assert.equal(verified.deadline, phases[4].deadline); assert.equal(verified.max_seconds, phases[4].child_seconds);
       assert.deepEqual(verified.args, [join(launch.tooling_root, 'qualification/fresh-c1/reader.js'), root, '--verify-before-terminal']);
       assert.equal(JSON.parse(readFileSync(verified.stdout, 'utf8')).verdict, 'PASS');
-      assert(terminal.finished_at >= verified.finished_at && terminal.finished_at <= launch.deadline);
+      assert(terminal.finished_at >= verified.finished_at && terminal.finished_at < phases[4].deadline);
     }
     assert.deepEqual(readdirSync(join(root, 'children')).sort(),
       Array.from({ length: receipts[12].ordinal + 1 }, (_, index) => String(index + 1).padStart(4, '0')),
       'NO_MISSING_OR_EXTRA_EXECUTION');
     assert.deepEqual(capture(launch.tooling_root), launch.tooling, 'RETAINED_TOOLING_CHANGED');
-    const service = json(join(root, 'supervision.json'));
-    assert.equal(service.boot, launch.boot); assert.equal(service.properties.Restart, 'no');
-    assert.equal(service.properties.KillMode, 'control-group'); assert.equal(service.properties.RuntimeMaxUSec, '1d');
-    assert.equal(service.properties.RemainAfterExit, 'yes');
     assert.equal(launch.node_digest, NODE_DIGEST);
     assert.equal(launch.node, NODE_EXECUTABLE);
     assert.equal(evidence.pins.core.tree_digest, PRODUCT.core);
@@ -305,10 +315,13 @@ export async function readFreshC1(root: string, verifyBeforeTerminal = false): P
     const pinned = await import(pathToFileURL(module).href);
     assert.equal(pinned.pendingOrchestrationCommitWork(evidence.run), null, 'UNFINISHED_WORK');
     assert.deepEqual(capture(evidence.run), before, 'AUTHENTICATION_MUTATED_RUN');
-    if (verifyBeforeTerminal) assert(Date.now() <= launch.deadline, 'FINAL_VERIFICATION_PAST_DEADLINE');
-    else assert(json(join(root, 'terminal.json')).finished_at <= launch.deadline);
+    if (verifyBeforeTerminal) requireBudget(root);
+    else verifyPhases(root, json(join(root, 'terminal.json')).finished_at, json(join(root, 'terminal.json')).finished_tick);
     return { verdict: 'PASS' };
-  } catch (error) { return { verdict: 'FAIL', reason: String(error) }; }
+  } catch (error) {
+    return { verdict: String(error).includes('INTERRUPTED') ? 'INTERRUPTED'
+      : String(error).includes('TIMEOUT') ? 'TIMEOUT' : 'FAIL', reason: String(error) };
+  }
 }
 if (resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
   const result = await readFreshC1(resolve(process.argv[2]), process.argv[3] === '--verify-before-terminal');

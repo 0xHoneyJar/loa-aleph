@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync,
-  readdirSync, realpathSync, writeFileSync } from 'node:fs';
+  readdirSync, realpathSync, writeFileSync, linkSync, unlinkSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export const FAULTS = ['derived', 'commit-intent', 'writer-prepared',
@@ -32,8 +32,10 @@ export function syncDirectory(path: string): void {
 /** Exclusive publication: neither retries nor later observations replace receipts. */
 export function publish(path: string, value: unknown): void {
   mkdirSync(dirname(path), { recursive: true });
-  const fd = openSync(path, 'wx', 0o400);
+  // The phase guard must never observe a partially written JSON record.
+  const temporary = `${path}.${randomUUID()}.partial`, fd = openSync(temporary, 'wx', 0o400);
   try { writeFileSync(fd, bytes(value)); fsyncSync(fd); } finally { closeSync(fd); }
+  try { linkSync(temporary, path); } finally { unlinkSync(temporary); }
   syncDirectory(dirname(path));
 }
 export function safeRelative(path: string): void {

@@ -32,6 +32,9 @@ excluded before blob reads.
   executable digest, direct-file streams and observed exit. A stopped exec
   trampoline permits identity capture before even an immediate target exit.
   Boot identity, PID namespace and start ticks distinguish process reuse.
+  Every mandatory request field is validated before execution and comparison.
+  The collector binds the exact request bytes, process record and driver
+  ownership digest; admission also reopens the driver's original `child-N.json`.
 - `service.ts` uses the existing user systemd manager, with no automatic
   restart, a 24-hour service ceiling and termination confined to that service.
   `RemainAfterExit` retains the manager's observed exit properties after a
@@ -40,6 +43,15 @@ excluded before blob reads.
   and policy. Per-child collectors independently enforce phase and child
   deadlines. A dead or rebooted owner without complete evidence is interrupted.
   Liveness alone is never completion.
+  An independently scheduled guard in that same service enforces phase
+  deadlines during synchronous readback. Each transition checks the outgoing
+  deadline; completion at or after a deadline is TIMEOUT. The guard uses
+  monotonic elapsed time as well as wall time and owns terminal publication.
+  Launch, phase and successful completion records also carry boot-bound
+  monotonic timestamps; clock rollback cannot renew a spent phase budget.
+  Timeout records precede a stop of the verified service invocation, confined
+  to its control group. Atomic exclusive receipt publication prevents the
+  guard from reading incomplete JSON.
 
 Every completed boundary archives all run file hashes and exact bytes in a
 content-addressed object store. It records one run, work ID, prepared
@@ -94,6 +106,13 @@ Core, and authentication must leave the run unchanged. The reader also
 requires the one installed `start` receipt, the complete child sequence,
 phase deadlines, individual boundary records and final verification receipt.
 Installed launcher/runtime bytes are checked before each child and at final review.
+Readbacks carry start/end times and must finish before their phase deadline
+and before the next phase starts. Completed admission requires the original
+launch, service command/start, driver, supervision and guard records. Their
+hash links bind case nonce/path, boot, executable, process start ticks,
+namespace, service invocation ID and control group. Collector parent
+identities must match that driver. Verification of a completed case uses
+these retained identities and does not require the exited processes to be live.
 
 Reader dispositions are `NOT_RUN`, `RUNNING`, `FAIL`, `TIMEOUT`,
 `INTERRUPTED` and `PASS`. Missing state after creation is not NOT_RUN;
@@ -119,10 +138,19 @@ subprocesses. The package test validates the new package inventory in an
 excluded-source-free copy, then copies only permitted blobs from the pinned
 product commit, assembles and independently verifies its bundles, installs one
 temporary smoke host, and requests status with no run. The service suite uses
-four harmless services: normal completion, failure, deadline and missing
-receipt. CI performs the checks with excluded source absent and repeats the
+six harmless services: normal completion, failure, deadline, missing receipt,
+guarded completion and an on-time child followed by blocked readback. The last
+control proves phase timeout stops that service's detached descendant while
+an unrelated process survives. Offline regressions additionally cover exact
+deadline equality, expired transitions, every missing request field,
+malformed/substituted requests and missing/altered/stale ownership.
+CI performs the checks with excluded source absent and repeats the
 compiled tests on Node 20. Service and installation evidence is retained as
 a workflow artifact. None invokes installed start/resume or the long C1 driver.
+Package checks assemble and independently verify both the current development
+bundle (including byte-exact corrected qualification source) and the original
+pinned product bundle, and verify a frozen copy of the compiled tooling.
+Offline process evidence is retained in its reported scratch directory.
 
 ## Future authorized execution
 

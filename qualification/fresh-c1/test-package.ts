@@ -3,12 +3,13 @@ import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { assembleBundles, verifyDefaultBundleOutput } from '../../scripts/assemble-bundles.ts';
 import { installLoaBundle } from '../../adapters/loa/src/installer.ts';
 import { stripFixtureCalibrationInventory } from '../../scripts/compatibility-fixture-source.ts';
 import { validateCoreBoundary } from '../../scripts/validate-core-boundary.ts';
-import { sourceFromCommit, sourcePaths } from './driver.ts';
-import { json, PRODUCT, publish } from './common.ts';
+import { freezeTooling, sourceFromCommit, sourcePaths } from './driver.ts';
+import { capture, digest, json, PRODUCT, publish } from './common.ts';
 import { fixtureEnvironment, supervise } from './supervisor.ts';
 
 const repository = resolve(process.argv[2] || '.'), scratch = mkdtempSync(join(tmpdir(), 'fresh-c1-package-test-'));
@@ -38,6 +39,26 @@ for (const args of [['init', '-q'], ['add', '--all'],
 const boundary = validateCoreBoundary({ root: current });
 publish(join(scratch, 'current-package-boundary.json'), boundary);
 assert.equal(boundary.result, 'PASS', JSON.stringify(boundary.checks.filter(check => check.status === 'FAIL')));
+const currentBundles = join(scratch, 'current-bundles');
+const currentAssembly = assembleBundles(current, currentBundles);
+assert.equal(currentAssembly.result, 'PASS', currentAssembly.errors.join('; '));
+const currentVerification = verifyDefaultBundleOutput(currentBundles);
+assert.equal(currentVerification.result, 'PASS', currentVerification.errors.join('; '));
+const toolingFiles = sourcePaths(inventory).filter(path => path.startsWith('qualification/fresh-c1/'));
+for (const path of toolingFiles) {
+  assert.equal(digest(readFileSync(join(currentBundles, 'aleph-for-loa', path))),
+    digest(readFileSync(join(repository, path))), `QUALIFICATION_PACKAGE_BYTES ${path}`);
+}
+const compiled = resolve(dirname(fileURLToPath(import.meta.url)), '../..'), frozen = join(scratch, 'qualification-tools');
+freezeTooling(compiled, frozen);
+const compiledInventory = capture(compiled), frozenInventory = capture(frozen);
+for (const [path, entry] of Object.entries(compiledInventory)) {
+  assert.equal(frozenInventory[path].digest, entry.digest, `COMPILED_PACKAGE_BYTES ${path}`);
+  assert.equal(frozenInventory[path].mode & 0o222, 0);
+}
+publish(join(scratch, 'qualification-package.json'), { result: 'PASS', source_files: toolingFiles,
+  source: capture(join(currentBundles, 'aleph-for-loa/qualification/fresh-c1')),
+  compiled: frozenInventory, assembly: currentAssembly, verification: currentVerification });
 const source = sourceFromCommit(repository, scratch);
 assert(!existsSync(join(source, 'calibration')));
 assert.equal(json(join(scratch, 'source.json')).files.length, 715);

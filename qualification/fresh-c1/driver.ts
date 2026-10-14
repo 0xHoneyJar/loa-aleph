@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { chmodSync, closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -8,9 +8,9 @@ import { verifyRuntimeSnapshot } from '../../adapters/loa/src/runtime-snapshot.t
 import { stripFixtureCalibrationInventory } from '../../scripts/compatibility-fixture-source.ts';
 import { capture, digest, durableRoot, FAULTS, json, MAX_SECONDS, NODE_DIGEST, NODE_EXECUTABLE, object, OPERATION,
   PRODUCT, publish, safeRelative, syncDirectory, withoutLeases, type Json } from './common.ts';
-import { bootId, collectedSpawn, enterPhase, fixtureEnvironment, identity, phase } from './supervisor.ts';
+import { alive, bootId, collectedSpawn, durationTicks, enterPhase, fixtureEnvironment, identity, phase, requireBudget, withinBudget } from './supervisor.ts';
 import { verifyMatrix, verifyStartingBasis, type Evidence, type Observation } from './reader.ts';
-import { inspectService, managerEnvironment, serviceArguments } from './service.ts';
+import { managerEnvironment, recordOwnership, serviceArguments, verifyGuard, verifyOwnership } from './service.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const FIXTURE_FLAGS = {
@@ -85,11 +85,11 @@ export function completeFreshC1(run: string, host: string, node: string, args: s
   const evidence: Evidence = { format: 'f03-fresh-c1/v1', nonce: json(join(root, 'launch.json')).nonce,
     run, host, work_id: id, pins: initial.pins, prepared: {}, boundaries: [], resumes: [] };
   const observe = (index: number): void => {
+    const started = requireBudget(root);
     const observation: Observation = { fault: `${OPERATION}:${FAULTS[index]}`,
-      receipt: receiptPath(root), files: capture(run, join(root, 'objects')) };
+      receipt: receiptPath(root), files: withinBudget(root, () => capture(run, join(root, 'objects'))),
+      readback_started_at: started, readback_finished_at: started };
     evidence.boundaries.push(observation);
-    publish(join(root, `boundary-${String(index + 1).padStart(2, '0')}.json`),
-      { nonce: evidence.nonce, run, work_id: id, ...observation });
     if (index < 2) {
       assert(!observation.files[journalPath] && !observation.files[consumedPath]);
       assert.equal(Boolean(observation.files[intentPath]), index === 1);
@@ -100,6 +100,10 @@ export function completeFreshC1(run: string, host: string, node: string, args: s
       publish(join(root, 'prepared.json'), evidence.prepared);
     }
     if (index >= 2) verifyMatrix(evidence, entry => object(join(root, 'objects'), entry), true);
+    observation.readback_finished_at = requireBudget(root);
+    publish(join(root, `boundary-${String(index + 1).padStart(2, '0')}.json`),
+      { nonce: evidence.nonce, run, work_id: id, ...observation });
+    requireBudget(root);
   };
   observe(0);
   enterPhase(root, 'faults', 4 * 3600, 1800);
@@ -113,22 +117,36 @@ export function completeFreshC1(run: string, host: string, node: string, args: s
     const env = { ...process.env }; delete env.ALEPH_FIXTURE_WORK_FAULT;
     const result = collectedSpawn(node, args, { cwd: host, encoding: 'utf8', env });
     assert.equal(result.status, 0, result.stderr);
+    const started = requireBudget(root);
     const report = JSON.parse(result.stdout);
     assert.equal(report.details.work.kind, 'proposal');
     assert.equal(report.details.work.operation, 'ambiguity.expressions');
-    const observation = { fault: null, receipt: receiptPath(root), files: capture(run, join(root, 'objects')) };
+    const observation = { fault: null, receipt: receiptPath(root), files: withinBudget(root, () => capture(run, join(root, 'objects'))),
+      readback_started_at: started, readback_finished_at: started };
     assert.deepEqual(withoutLeases(observation.files), withoutLeases(evidence.boundaries[10].files));
     evidence.resumes.push(observation);
+    observation.readback_finished_at = requireBudget(root);
     publish(join(root, `resume-${index + 1}.json`), { nonce: evidence.nonce, run, ...observation });
   }
-  verifyMatrix(evidence, entry => object(join(root, 'objects'), entry));
+  withinBudget(root, () => verifyMatrix(evidence, entry => object(join(root, 'objects'), entry)));
   publish(join(root, 'evidence.json'), evidence);
   enterPhase(root, 'verification', 5400, 5400);
   const verified = collectedSpawn(process.execPath, [join(HERE, 'reader.js'), root, '--verify-before-terminal'],
     { cwd: host, encoding: 'utf8', env: process.env });
   assert.equal(verified.status, 0, verified.stdout + verified.stderr);
   assert.equal(JSON.parse(verified.stdout).verdict, 'PASS');
-  publish(join(root, 'terminal.json'), { verdict: 'PASS', finished_at: Date.now(), verification: receiptPath(root) });
+  requireBudget(root);
+  const owner = verifyOwnership(root);
+  publish(join(root, 'completion.json'), { verdict: 'PASS', finished_at: requireBudget(root),
+    finished_tick: String(process.hrtime.bigint()), verification: receiptPath(root), ownership_digest: owner.digest });
+  // The independently scheduled guard owns terminal success as well as timeout.
+  const wait = new Int32Array(new SharedArrayBuffer(4));
+  while (!existsSync(join(root, 'terminal.json')) || !existsSync(join(root, 'guard-result.json'))) {
+    requireBudget(root); assert(alive(verifyGuard(root).identity), 'INTERRUPTED_GUARD_LOST');
+    Atomics.wait(wait, 0, 0, 10);
+  }
+  assert.equal(json(join(root, 'terminal.json')).verdict, 'PASS');
+  assert.equal(json(join(root, 'guard-result.json')).verdict, 'PASS');
   process.exit(0);
 }
 export function sourceFromCommit(repository: string, root: string): string {
@@ -193,32 +211,45 @@ async function main(): Promise<void> {
     mkdirSync(root); for (const name of ['children', 'phases', 'objects']) mkdirSync(join(root, name));
     const tooling = join(root, 'tooling');
     freezeTooling(resolve(HERE, '../..'), tooling);
-    const started = Date.now();
+    const started = Date.now(), startedTick = process.hrtime.bigint();
     publish(join(root, 'launch.json'), { ...config, unit, nonce: randomUUID(), boot: bootId(),
       started_at: started, deadline: started + MAX_SECONDS * 1000, owner: identity(process.pid),
+      started_tick: String(startedTick), deadline_tick: String(startedTick + durationTicks(MAX_SECONDS)),
       tooling_root: tooling, tooling: capture(tooling) });
     const command = serviceArguments(unit, process.execPath,
       [join(tooling, 'qualification/fresh-c1/driver.js'), 'run', root], root, MAX_SECONDS);
-    publish(join(root, 'service-command.json'), { command: '/usr/bin/systemd-run', args: command });
+    const binding = { root, nonce: json(join(root, 'launch.json')).nonce,
+      launch_digest: digest(readFileSync(join(root, 'launch.json'))) };
+    publish(join(root, 'service-command.json'), { ...binding, command: '/usr/bin/systemd-run', args: command });
+    const serviceStarted = Date.now();
     const result = spawnSync('/usr/bin/systemd-run', command, { env: managerEnvironment(), encoding: 'utf8' });
-    publish(join(root, 'service-start.json'), { status: result.status, stdout: result.stdout, stderr: result.stderr });
+    publish(join(root, 'service-start.json'), { ...binding, parent: identity(process.pid),
+      command_digest: digest(readFileSync(join(root, 'service-command.json'))),
+      started_at: serviceStarted, finished_at: Date.now(), status: result.status, signal: result.signal,
+      error: result.error?.message ?? null, stdout: result.stdout, stderr: result.stderr });
     assert.equal(result.status, 0, result.stderr);
     console.log(JSON.stringify({ result: 'STARTED', root, unit, deadline: started + MAX_SECONDS * 1000 }));
   } else if (action === 'run') {
     const root = resolve(argument), launch = json(join(root, 'launch.json'));
     assert.equal(launch.boot, bootId()); assert(Date.now() < launch.deadline);
     assert.equal(launch.node_digest, NODE_DIGEST);
-    const properties = inspectService(launch.unit);
-    assert.equal(properties.MainPID, String(process.pid), 'INDEPENDENT_SUPERVISOR_REQUIRED');
-    assert.equal(properties.Restart, 'no'); assert.equal(properties.KillMode, 'control-group');
-    assert.equal(properties.RemainAfterExit, 'yes');
-    assert.equal(properties.RuntimeMaxUSec, '1d');
-    assert(readFileSync('/proc/self/cgroup', 'utf8').includes(`:${properties.ControlGroup}\n`));
-    publish(join(root, 'supervision.json'), { properties, boot: bootId(), pid: process.pid });
+    const startBy = Math.min(launch.deadline, Date.now() + 10000);
+    while (!existsSync(join(root, 'service-start.json'))) {
+      assert(Date.now() < startBy, 'SERVICE_START_RECEIPT_MISSING');
+      await new Promise(done => setTimeout(done, 10));
+    }
+    recordOwnership(root);
     assert.equal(digest(readFileSync(launch.node)), launch.node_digest);
     assert.deepEqual(capture(launch.tooling_root), launch.tooling, 'TOOLING_CHANGED');
-    publish(join(root, 'driver.json'), { identity: identity(process.pid), at: Date.now() });
     enterPhase(root, 'setup', 1800, 1800);
+    const guard = spawn(process.execPath, [join(HERE, 'service.js'), 'guard', root],
+      { env: fixtureEnvironment(), stdio: ['ignore', 'inherit', 'inherit'] });
+    const guardBy = Math.min(phase(root).deadline, Date.now() + 10000);
+    while (!existsSync(join(root, 'guard.json'))) {
+      assert(Date.now() < guardBy && guard.exitCode === null, 'PHASE_GUARD_NOT_STARTED');
+      await new Promise(done => setTimeout(done, 10));
+    }
+    verifyGuard(root);
     try {
       sourceFromCommit(launch.repository, root);
       for (const key of Object.keys(process.env)) if (key.startsWith('F03_') || key.startsWith('ALEPH_')) delete process.env[key];
@@ -226,8 +257,8 @@ async function main(): Promise<void> {
       await import(pathToFileURL(join(HERE, '../../adapters/loa/tests/test-orchestration-process.js')).href);
       throw Error('FOCUSED_DRIVER_DID_NOT_REACH_C1');
     } catch (error) {
-      const verdict = Date.now() >= Math.min(launch.deadline, phase(root).deadline) || String(error).includes('TIMEOUT')
-        ? 'TIMEOUT' : String(error).includes('INTERRUPTED') ? 'INTERRUPTED' : 'FAIL';
+      const verdict = bootId() !== launch.boot || String(error).includes('INTERRUPTED') ? 'INTERRUPTED'
+        : Date.now() >= Math.min(launch.deadline, phase(root).deadline) || String(error).includes('TIMEOUT') ? 'TIMEOUT' : 'FAIL';
       if (!existsSync(join(root, 'terminal.json'))) publish(join(root, 'terminal.json'), { verdict, finished_at: Date.now(), error: String(error) });
       throw error;
     }
