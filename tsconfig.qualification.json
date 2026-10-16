@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "rootDir": ".",
+    "outDir": ".aleph-bundles/fresh-c1-tools",
+    "noEmit": false,
+    "noEmitOnError": true,
+    "rewriteRelativeImportExtensions": true
+  },
+  "include": [
+    "qualification/fresh-c1/**/*.ts",
+    "adapters/loa/tests/test-orchestration-process.ts"
+  ]
+}
