@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { collectedSpawn as spawnSync } from '../../../qualification/fresh-c1/supervisor.ts';
 import { completeFreshC1, faultEnvironment, fixtureRepository, fixtureScratch, freshRoot,
-  installedFixture, startedFixture } from '../../../qualification/fresh-c1/driver.ts';
+  installedFixture, startedFixture } from '../../../qualification/fresh-c1/fixture-support.ts';
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';

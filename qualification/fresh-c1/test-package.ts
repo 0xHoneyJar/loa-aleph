@@ -8,7 +8,7 @@ import { assembleBundles, verifyDefaultBundleOutput } from '../../scripts/assemb
 import { installLoaBundle } from '../../adapters/loa/src/installer.ts';
 import { stripFixtureCalibrationInventory } from '../../scripts/compatibility-fixture-source.ts';
 import { validateCoreBoundary } from '../../scripts/validate-core-boundary.ts';
-import { freezeTooling, sourceFromCommit, sourcePaths } from './driver.ts';
+import { freezeTooling, sourceFromCommit, sourcePaths } from './fixture-support.ts';
 import { capture, digest, json, PRODUCT, publish } from './common.ts';
 import { fixtureEnvironment, supervise } from './supervisor.ts';
 

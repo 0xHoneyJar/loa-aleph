@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stableJsonBytes } from '../../adapters/loa/src/fs.ts';
 import { bytes, digest, EFFECTS, FAULTS, json, LOCKS, MAX_SECONDS, OPERATION, publish, type Inventory, type Json } from './common.ts';
-import { FIXTURE_FLAGS, freezeTooling, sourcePaths, validateFixtureFlags } from './driver.ts';
+import { FIXTURE_FLAGS, freezeTooling, sourcePaths, validateFixtureFlags } from './fixture-support.ts';
 import { readFreshC1, verifyMatrix, verifyReadback, verifyStartingBasis, type Evidence } from './reader.ts';
 import { bootId, disposition, durationTicks, enterPhase, fixtureEnvironment, identity, PHASE_BUDGETS, requireBudget,
   supervise, validateRequest, verifyCaseChild, verifyChild, verifyPhases, withinBudget, type ChildRequest } from './supervisor.ts';

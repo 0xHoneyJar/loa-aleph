@@ -46,6 +46,7 @@ jobs:
           node-version: "20.20.2"
       - name: Test compiled tooling on Node 20
         run: |
+          node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test-bootstrap.js
           node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test.js
           node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test-package.js .
       - name: Start the ephemeral runner user service manager
@@ -63,6 +64,7 @@ jobs:
           name: fresh-c1-offline-evidence
           if-no-files-found: error
           path: |
+            /tmp/fresh-c1-bootstrap-test-*/**
             /tmp/fresh-c1-service-test-*/*
             /tmp/fresh-c1-package-test-*/result.json
             /tmp/fresh-c1-package-test-*/current-package-boundary.json
