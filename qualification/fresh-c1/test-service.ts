@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { digest, json, MAX_SECONDS, publish } from './common.ts';
 import { alive, bootId, durationTicks, enterPhase, fixtureEnvironment, identity, phase, PHASE_BUDGETS, verifyCaseChild } from './supervisor.ts';
 import { guardCase, inspectService, managerEnvironment, recordOwnership, serviceArguments, verifyOwnership } from './service.ts';
+import { waitForGuardTerminal } from './service-test-support.ts';
 
 if (process.argv[2] === '--guard-fixture') {
   const root = process.argv[3], kind = process.argv[4];
@@ -21,7 +22,10 @@ if (process.argv[2] === '--guard-fixture') {
       deadline: Date.now() + 2000, child_seconds: 1 });
   } else for (const [name, seconds, child] of PHASE_BUDGETS) enterPhase(root, name, seconds, child);
   const guardian = spawn(process.execPath, [fileURLToPath(import.meta.url), '--guard-only', root], { stdio: 'inherit' });
-  const guardianExit = new Promise(done => guardian.once('close', done));
+  const guardianExit = new Promise<number | null>(done => guardian.once('close', (status, signal) => {
+    publish(join(root, 'guard-exit.json'), { status, signal, at: Date.now() });
+    done(status);
+  }));
   while (!existsSync(join(root, 'guard.json'))) await new Promise(done => setTimeout(done, 5));
   if (kind === 'phase-timeout') {
     const request = { nonce: json(join(root, 'launch.json')).nonce, ordinal: 1, command: process.execPath,
@@ -128,25 +132,34 @@ if (process.argv[2] === '--guard-fixture') {
     const unrelated = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
     const unrelatedExit = new Promise(done => unrelated.once('close', done));
     try {
-      const deadline = Date.now() + 15000;
-      while (!existsSync(join(directory, 'guard-result.json'))) {
-        assert(Date.now() < deadline, `GUARD_SERVICE_TEST_DEADLINE ${directory}`);
-        await new Promise(done => setTimeout(done, 25));
-      }
-      const result = json(join(directory, 'guard-result.json'));
+      const deadline = Date.now() + 15000, deadlineTick = process.hrtime.bigint() + durationTicks(15);
+      const { result, terminal } = await waitForGuardTerminal(directory, deadline, deadlineTick);
       assert.equal(result.verdict, kind === 'phase-timeout' ? 'TIMEOUT' : 'PASS');
-      assert.equal(json(join(directory, 'terminal.json')).verdict, result.verdict);
-      verifyOwnership(directory);
+      if (kind === 'guard-normal') {
+        // Retain the actual service/guard exits, independently of terminal admission.
+        let properties = inspectService(unit);
+        while (properties.SubState !== 'exited' && properties.ActiveState !== 'failed') {
+          assert(Date.now() < deadline && process.hrtime.bigint() < deadlineTick, 'GUARD_SERVICE_TEST_DEADLINE');
+          await new Promise(done => setTimeout(done, 25));
+          properties = inspectService(unit);
+        }
+        publish(join(directory, 'service-final.json'), properties);
+        assert(Date.now() < deadline && process.hrtime.bigint() < deadlineTick, 'GUARD_SERVICE_TEST_DEADLINE');
+        assert.equal(properties.InvocationID, verifyOwnership(directory).driver.invocation_id);
+        assert.equal(properties.Result, 'success'); assert.equal(properties.ExecMainStatus, '0');
+        assert.equal(json(join(directory, 'guard-exit.json')).status, 0);
+        assert.equal(json(join(directory, 'guard-exit.json')).signal, null);
+      }
       if (kind === 'phase-timeout') {
         assert.equal(verifyCaseChild(directory, join(directory, 'children/0001'), 0).verdict, 'PASS');
         while (alive(json(join(directory, 'grandchild.json')) as any)) {
-          assert(Date.now() < deadline, 'PHASE_TIMEOUT_DESCENDANT_SURVIVED');
+          assert(Date.now() < deadline && process.hrtime.bigint() < deadlineTick, 'PHASE_TIMEOUT_DESCENDANT_SURVIVED');
           await new Promise(done => setTimeout(done, 25));
         }
         assert(!existsSync(join(directory, 'readback-overran.json')), 'BLOCKED_READBACK_NOT_STOPPED');
       }
       assert(alive(identity(unrelated.pid!)), 'UNRELATED_PROCESS_TERMINATED');
-      results.push({ kind, unit, result, scope: 'Harmless ownership/deadline fixture; no C1 driver' });
+      results.push({ kind, unit, result, terminal, scope: 'Harmless ownership/deadline fixture; no C1 driver' });
       console.log(`PASS actual service ${kind}`);
     } finally {
       unrelated.kill('SIGTERM'); await unrelatedExit;

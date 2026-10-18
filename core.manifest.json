@@ -732,10 +732,12 @@
         "qualification/fresh-c1/driver.ts",
         "qualification/fresh-c1/fixture-support.ts",
         "qualification/fresh-c1/reader.ts",
+        "qualification/fresh-c1/service-test-support.ts",
         "qualification/fresh-c1/service.ts",
         "qualification/fresh-c1/supervisor.ts",
         "qualification/fresh-c1/test-bootstrap.ts",
         "qualification/fresh-c1/test-package.ts",
+        "qualification/fresh-c1/test-service-publication.ts",
         "qualification/fresh-c1/test-service.ts",
         "qualification/fresh-c1/test.ts"
       ]

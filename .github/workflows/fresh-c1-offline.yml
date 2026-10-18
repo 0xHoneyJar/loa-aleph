@@ -48,12 +48,14 @@ jobs:
         run: |
           node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test-bootstrap.js
           node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test.js
+          node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test-service-publication.js
           node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test-package.js .
       - name: Start the ephemeral runner user service manager
         run: sudo systemctl start "user@$(id -u).service"
       - name: Test actual supervised harmless services
         run: node .aleph-bundles/fresh-c1-tools/qualification/fresh-c1/test-service.js
       - name: Verify source preservation and excluded-path absence
+        if: always()
         run: |
           test ! -e calibration
           git diff --exit-code
@@ -66,6 +68,7 @@ jobs:
           path: |
             /tmp/fresh-c1-bootstrap-test-*/**
             /tmp/fresh-c1-service-test-*/*
+            /tmp/fresh-c1-service-publication-test-*/**
             /tmp/fresh-c1-package-test-*/result.json
             /tmp/fresh-c1-package-test-*/current-package-boundary.json
             /tmp/fresh-c1-package-test-*/status/*

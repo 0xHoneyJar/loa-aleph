@@ -168,7 +168,23 @@ temporary smoke host, and requests status with no run. The service suite uses
 six harmless services: normal completion, failure, deadline, missing receipt,
 guarded completion and an on-time child followed by blocked readback. The last
 control proves phase timeout stops that service's detached descendant while
-an unrelated process survives. Offline regressions additionally cover exact
+an unrelated process survives. Guarded completion waits within the existing
+15-second test deadline for both authenticated guard-result and terminal
+records, checks guard/driver death while publication is incomplete, and retains
+the normal guard exit and final service properties. A guard-result PASS alone
+is never completion.
+
+Eight harmless publication subprocess controls cover delayed valid publication,
+missing terminal, guard exit, contradictory verdicts, normal completion,
+test-deadline expiration during publication, phase-deadline equality, and wrong
+terminal ownership. They exercise the same waiter used by the service suite and
+retain exits and raw streams. Their synthetic service envelopes cannot admit
+an installed C1 case; the existing real service suite verifies actual ownership.
+The old immediate read is shown to fail with ENOENT during a controlled
+publication gap. CI runs these controls on Node 20/22 and runs source preservation
+even after a failed test, retaining its separate step outcome.
+
+Offline regressions additionally cover exact
 deadline equality, expired transitions, every missing request field,
 malformed/substituted requests and missing/altered/stale ownership.
 CI performs the checks with excluded source absent and repeats the
